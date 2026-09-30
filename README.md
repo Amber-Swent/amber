@@ -8,9 +8,9 @@
 
 ## App Description
 
-Over 50 million people worldwide live with dementia, facing cognitive decline, short-term memory loss and severe isolation, while their families carry an intense psychological and financial burden. Dementia is irreversible, but structured social engagement can ease its symptoms and help preserve a person's sense of self. **Amber** is an AI-powered Android app built on two clinically recognised approaches, Cognitive Stimulation Therapy and Reminiscence Therapy. Patients revisit their life through interactive photo storytelling and speak their memories aloud, which are transcribed with voice-to-text. Caregivers get a dashboard to curate photos and follow engagement.
+Over 50 million people worldwide live with dementia, facing cognitive decline, short-term memory loss and severe isolation, while their families carry an intense psychological and financial burden. Dementia is irreversible, but structured social engagement can ease its symptoms and help preserve a person's sense of self. **Amber** is an AI-powered Android app built on two clinically recognised approaches, Cognitive Stimulation Therapy and Reminiscence Therapy. Patients revisit their life through interactive photo storytelling. Family members and other loved ones add photos and voice memos of shared memories.
 
-Amber targets two user groups, represented by two fictional personas: patients in the early-to-moderate stages of dementia, like **Arthur**, who need a simple, frustration-free way to reminisce and stay mentally active, and caregivers (family members and other loved ones), like **Sarah**, who need a reliable tool to manage photos, monitor engagement and lighten a 24/7 caregiving load.
+Amber targets two user groups, represented by two fictional personas: patients in the early-to-moderate stages of dementia, like **Arthur**, who need a simple, frustration-free way to reminisce and stay mentally active, and caregivers (family members and other loved ones), like **Sarah**, who want a simple way to help their loved one through dementia by sharing photos and voice memos of past memories. Amber is meant for the whole family, not just one person assigned to the patient.
 
 ### Personas
 
@@ -19,9 +19,9 @@ Amber targets two user groups, represented by two fictional personas: patients i
 | | Arthur: Patient persona | Sarah: Caregiver persona |
 |---|---|---|
 | **Age** | 78 | 45 |
-| **Situation** | Early-to-moderate stage Alzheimer's | Overworked family caregiver |
-| **Needs** | An easy, frustration-free way to reminisce and stay mentally active | A reliable dashboard to manage photos, monitor engagement and reduce her caregiving burden |
-| **Uses Amber to** | Browse photo stories, tell and record memories by voice | Upload and organise photos, follow the patient's activity |
+| **Situation** | Early-to-moderate stage Alzheimer's | Family member of a patient |
+| **Needs** | An easy, frustration-free way to reminisce and stay mentally active | A simple way to help her loved one through dementia by sharing photos and voice memos of past memories |
+| **Uses Amber to** | Browse photo stories, tell and record memories by voice | Upload photos and record voice memos of shared memories |
 
 ---
 
