@@ -9,7 +9,7 @@ Use this workflow when the developer asks you to test an implementation or add i
 
 1. Read `AGENTS.md`, inspect the implementation and current tests, and identify concrete behavior that must be verified.
 2. Work in an isolated worktree on `agent/<feature-or-bug-id>-tests`, based on the coding session's result. Do not modify production code or the developer's checkout. If isolation is unavailable, stop before editing and report why.
-3. Add focused tests using the existing JUnit, Robolectric, Compose testing, and instrumentation setup. Use mocks or MockWebServer for HTTP behavior so tests are deterministic and never depend on a live network. Assert parsed fields and observable behavior, not merely call counts or non-empty results.
+3. Add focused tests using the existing Compose testing, and instrumentation setup. Use mocks or MockWebServer for HTTP behavior so tests are deterministic and never depend on a live network. Assert parsed fields and observable behavior, not merely call counts or non-empty results.
 4. For substantial features, aim for around 10 unit tests and 2-3 or more integration/UI tests as applicable; prioritize meaningful behavior and risk over a fixed quota.
 5. Run focused tests, `./gradlew check`, and relevant connected tests when instrumentation changed and a device/emulator is available. Report exact commands and results, including unavailable or failing checks.
 6. If a test exposes a product bug, record it in `BUG.md` with the next available ID, evidence, and status. Do not change production code in this role.
