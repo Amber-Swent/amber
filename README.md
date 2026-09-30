@@ -8,7 +8,9 @@
 
 ## App Description
 
-Over 50 million people worldwide live with dementia, facing cognitive decline, short-term memory loss and severe isolation, while their families carry an intense psychological and financial burden. Dementia is irreversible, but structured social engagement can ease its symptoms and help preserve a person's sense of self. **Amber** is an AI-powered Android app built on two clinically recognised approaches, Cognitive Stimulation Therapy and Reminiscence Therapy. Patients revisit their life through interactive photo storytelling and speak their memories aloud, which are transcribed with voice-to-text. Caregivers get a dashboard to curate photos and follow engagement. Amber targets two user groups, represented by two fictional personas: patients in the early-to-moderate stages of dementia, like **Arthur**, who need a simple, frustration-free way to reminisce and stay mentally active, and family caregivers, like **Sarah**, who need a reliable tool to manage photos, monitor engagement and lighten a 24/7 caregiving load.
+Over 50 million people worldwide live with dementia, facing cognitive decline, short-term memory loss and severe isolation, while their families carry an intense psychological and financial burden. Dementia is irreversible, but structured social engagement can ease its symptoms and help preserve a person's sense of self. **Amber** is an AI-powered Android app built on two clinically recognised approaches, Cognitive Stimulation Therapy and Reminiscence Therapy. Patients revisit their life through interactive photo storytelling and speak their memories aloud, which are transcribed with voice-to-text. Caregivers get a dashboard to curate photos and follow engagement.
+
+Amber targets two user groups, represented by two fictional personas: patients in the early-to-moderate stages of dementia, like **Arthur**, who need a simple, frustration-free way to reminisce and stay mentally active, and caregivers (family members and other loved ones), like **Sarah**, who need a reliable tool to manage photos, monitor engagement and lighten a 24/7 caregiving load.
 
 ### Personas
 
@@ -37,7 +39,7 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 ## Multi-User Support
 
 - **Authentication:** Firebase Authentication provides secure sign-in.
-- **Roles:** each account is either a **Caregiver** or a **Patient**, with different permissions and interfaces.
+- **Roles:** each account is either a **Caregiver** (family members and other loved ones included) or a **Patient**, with different permissions and interfaces.
 - **Isolation:** Firestore Security Rules restrict each family's data to its own members, so profiles, photos and stories are never visible across families.
 
 ## Sensor Use
@@ -45,7 +47,7 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 | Sensor | Feature it supports |
 |---|---|
 | **Camera** | Capturing new photos to add to the memory library |
-| **Microphone** | Recording the patient's spoken stories for transcription |
+| **Microphone** | Recording spoken stories for transcription, and audio messages that caregivers send to the patient, like a photo or a text message |
 | **Location (Fused Location Provider API)** | Tagging memories with the place they were captured |
 
 ## Offline Mode
