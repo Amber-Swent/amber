@@ -8,3 +8,10 @@ plugins {
 
     id("org.sonarqube") version "7.5.0.8588"
 }
+
+sonar {
+    properties {
+        property("sonar.projectKey", "Amber-Swent_amber")
+        property("sonar.organization", "amber-swent")
+    }
+}
