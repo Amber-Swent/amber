@@ -3,19 +3,22 @@ package com.android.sample.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /* App's primary colors
-*
-* Shades of orange are the dominant colors in the Amber app.
-* Shades of blue are used to provide contrast.
-*/
+ *
+ * Shades of orange are the dominant colors in the Amber app.
+ * Shades of blue are used to provide contrast.
+ */
 
 /* For :
  * Empty Space that shouldn't be (example : no Picture/Audio upload; empty galeri)
+ *
+ * Note: This isn't one of the app's primary colors,
+ * but it's the color used in Figma for areas that will be filled with pictures
  */
 val backOrange = Color(0xFFFFE6CE)
 
 /* For :
- * Button colors
  * Unselected Tab
+ * Button colors
  */
 val lightOrange = Color(0xFFFBB05D)
 
@@ -26,8 +29,7 @@ val lightOrange = Color(0xFFFBB05D)
 val orange = Color(0xFFCE5431)
 
 /* For :
- * Checkout text
- * Cancel Text
+ * Text of the top navigation bar and the corresponding back arrow (example : Checkout, Cancel)
  */
 val darkOrange = Color(0xFF9D3121)
 
