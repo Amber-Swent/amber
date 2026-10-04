@@ -10,7 +10,7 @@ plugins {
 }
 
 android {
-  namespace = "com.android.sample"
+  namespace = "com.github.se.amber"
   compileSdk = 37
 
   defaultConfig {
