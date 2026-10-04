@@ -32,7 +32,8 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 | Service | Role |
 |---|---|
 | **Firebase Authentication** | User identification, login flows and role management (Caregiver / Patient) |
-| **Cloud Firestore** | Storage of user profiles, roles, family groups, stories and engagement data, protected by Firestore Security Rules |
+| **Cloud Firestore** | Storage of user profiles, roles, family groups and engagement data, plus *metadata* about stories and media (description, author, `storagePath`, …) but not the files themselves, protected by Firestore Security Rules |
+| **Firebase Storage** | Storage of photos and voice memos (Firestore only keeps their paths) |
 
 > **AI implementation: to be decided.** The AI features (voice-to-text transcription and photo storytelling assistance) are part of the core design, but the model and how it will be integrated (managed cloud API vs. on-device model) have not been chosen yet. This section will be updated once the choice is made.
 
@@ -40,7 +41,7 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 
 - **Authentication:** Firebase Authentication provides secure sign-in.
 - **Roles:** each account is either a **Caregiver** (family members and other loved ones included) or a **Patient**, with different permissions and interfaces.
-- **Isolation:** Firestore Security Rules restrict each family's data to its own members, so profiles, photos and stories are never visible across families.
+- **Isolation:** Firestore and Firebase Storage Security Rules restrict each family's data to its own members, so profiles, photos and stories are never visible across families.
 
 ## Sensor Use
 
@@ -52,8 +53,8 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 
 ## Offline Mode
 
-- Photos and stories are cached locally with a **Room** database, so the patient can keep browsing and reminiscing without a connection.
-- New photos, recordings and other changes made offline are **queued locally** and **synchronised automatically** once connectivity returns.
+- Story metadata is cached by Firestore's built-in offline persistence, and photos are cached on disk by **Coil**, so the patient can keep browsing and reminiscing without a connection.
+- Changes made offline are **queued locally** and **synchronised automatically** once connectivity returns: Firestore queues its own writes, and photo and voice memo uploads to Firebase Storage are retried in the background.
 - Offline availability of the AI features depends on the model choice (see *Split-App Model*).
 
 ---
