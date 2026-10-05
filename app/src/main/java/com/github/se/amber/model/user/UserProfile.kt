@@ -33,6 +33,7 @@ data class UserProfile(
     val role: Role = Role.CAREGIVER,
     // this user's name and nickname, embedded; person.id == uid, always
     val person: Person = Person(),
-    // ids of the circles they belong to; empty until they create or join one
+    // ids of the circles they belong to, no duplicates (written with arrayUnion); empty until they
+    // create or join one
     val circleIds: List<String> = emptyList(),
 )

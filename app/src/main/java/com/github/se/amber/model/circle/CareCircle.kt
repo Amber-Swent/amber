@@ -4,6 +4,9 @@ package com.github.se.amber.model.circle
 
 import com.github.se.amber.model.user.Person
 
+/** viewerUid -> (personId or uid -> name): the names each member gives the people in the circle. */
+typealias ViewerNicknames = Map<String, Map<String, String>>
+
 /**
  * A patient and everyone around them. Stored at careCircles/{id}. Small enough to hold everything
  * circle-wide in one document, so loading a circle is a single read.
@@ -33,11 +36,11 @@ data class CareCircle(
     val id: String = "", // circleId = document id; also the prefix of every Storage path
     val name: String = "", // "Arthur's family"
     val patientId: String = "", // the patient's uid; "" until their phone redeems a PATIENT code
-    // uids of all members incl. the patient; security rules check membership against it
+    // uids of all members incl. the patient, no duplicates (written with arrayUnion/arrayRemove);
+    // security rules check membership against it
     val memberIds: List<String> = emptyList(),
     val people: Map<String, Person> = emptyMap(), // personId -> Person without an account
-    // viewerUid -> (personId or uid -> name)
-    val nicknames: Map<String, Map<String, String>> = emptyMap(),
+    val nicknames: ViewerNicknames = emptyMap(),
     val createdBy: String = "", // uid of the caregiver who created the circle
     val createdAt: Long = 0L, // Optional; epoch milliseconds
 )
