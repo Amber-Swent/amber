@@ -2,6 +2,8 @@
 // Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.media
 
+import com.github.se.amber.model.location.GeoLocation
+
 /**
  * A memory: one photo or voice memo, with its own description, date, place and people. Exists on
  * its own; it can be added to zero, one or several stories.
