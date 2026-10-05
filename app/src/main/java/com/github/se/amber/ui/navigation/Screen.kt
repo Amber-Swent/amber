@@ -2,16 +2,16 @@ package com.github.se.amber.ui.navigation
 
 /**
  * Base interface for all navigation destinations (Screen).
- * Ensures consistent structure across all userView.
+ * Ensures consistent structure across all user roles
  *
- * @param route The unique route used to identify the destination in navigation.
- * @param name The title associated with the destination.
- * @param isTopLevelDestination Whether the destination is a top-level destination.
+ * @property route The unique route used to identify the destination in navigation.
+ * @property name The title associated with the destination.
+ * @property isTopLevelDestination Whether the destination is a top-level destination.
  */
 sealed interface Screen {
-    val route: String
-    val name: String
-    val isTopLevelDestination: Boolean
+  val route: String
+  val name: String
+  val isTopLevelDestination: Boolean
 }
 
 /**
@@ -19,39 +19,42 @@ sealed interface Screen {
  *
  * See Figma for more information on each Screen.
  */
-sealed class CaregiverScreen (
+sealed class CaregiverScreen(
     override val route: String,
     override val name: String,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
-    object Home : CaregiverScreen(
-        route = "caregiver_home",
-        name = "Home",
-        isTopLevelDestination = true)
+  data object Home :
+      CaregiverScreen(
+          route = "caregiver_home",
+          name = "Home",
+          isTopLevelDestination = true,
+      )
 
-    object Upload : CaregiverScreen(
-        route = "caregiver_upload",
-        name = "Upload Texts, Pictures or Audios",
-        isTopLevelDestination = true
-    )
+  data object Upload :
+      CaregiverScreen(
+          route = "caregiver_upload",
+          name = "Upload Texts, Pictures or Audios",
+          isTopLevelDestination = true,
+      )
 
-    object UploadText : CaregiverScreen(
-        route = "caregiver_upload_text",
-        name = "Upload Text",
-        isTopLevelDestination = false
-    )
+  data object UploadText :
+      CaregiverScreen(
+          route = "caregiver_upload_text",
+          name = "Upload Text",
+      )
 
-    object UploadPicture : CaregiverScreen(
-        route = "caregiver_upload_picture",
-        name = "Upload Picture",
-        isTopLevelDestination = false
-    )
+  data object UploadPicture :
+      CaregiverScreen(
+          route = "caregiver_upload_picture",
+          name = "Upload Picture",
+      )
 
-    object UploadAudio : CaregiverScreen(
-        route = "caregiver_upload_audio",
-        name = "Upload Audio",
-        isTopLevelDestination = false
-    )
+  data object UploadAudio :
+      CaregiverScreen(
+          route = "caregiver_upload_audio",
+          name = "Upload Audio",
+      )
 }
 
 /**
@@ -64,14 +67,17 @@ sealed class PatientScreen(
     override val name: String,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
-    object Home : PatientScreen(
-        route = "patient_home",
-        name = "Home",
-        isTopLevelDestination = true)
+  data object Home :
+      PatientScreen(
+          route = "patient_home",
+          name = "Home",
+          isTopLevelDestination = true,
+      )
 
-    object SeePictures : PatientScreen(
-        route = "patient_pictures",
-        name = "Pictures",
-        isTopLevelDestination = true
-    )
+  data object SeePictures :
+      PatientScreen(
+          route = "patient_pictures",
+          name = "Pictures",
+          isTopLevelDestination = true,
+      )
 }
