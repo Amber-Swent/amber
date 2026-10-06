@@ -39,11 +39,12 @@ fun interface MediaDownloader {
  * Files are written to a temporary `.part` file and renamed once complete, so a cached file is
  * always whole. Past [maxBytes], the least recently used files are deleted.
  *
- * Only one instance may use a given [dir]: the locks don't coordinate across instances.
+ * Only one instance may use a given [dir]: the locks don't coordinate across instances. The
+ * constructor doesn't touch the disk; the folder is set up on first use, on [ioDispatcher].
  *
  * @param downloader fetches a file on a cache miss; temporary, see [MediaDownloader].
  * @param dir cache folder, e.g. `File(context.cacheDir, "media")`; created if missing.
- * @param maxBytes size the cache is trimmed down to after each new file.
+ * @param maxBytes size the cache is trimmed down to after each new file; must be positive.
  * @param ioDispatcher where the disk and network work runs; tests pass a test dispatcher.
  */
 class MediaFileCache(
@@ -52,6 +53,10 @@ class MediaFileCache(
     private val maxBytes: Long = 500L * 1024 * 1024, // 500 MB
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+  init {
+    require(maxBytes > 0) { "maxBytes must be positive, was $maxBytes" }
+  }
+
   /**
    * The lock of one storagePath, see [withPathLock]. [users] counts the callers holding or waiting
    * for [mutex], so the entry can be dropped from [pathLocks] as soon as nobody needs it.
@@ -60,6 +65,9 @@ class MediaFileCache(
     val mutex = Mutex()
     var users = 0 // guarded by synchronized(pathLocks)
   }
+
+  /** A cached file with its last-used time and size, as read once by [trimToSize]. */
+  private class Entry(val file: File, val lastUsed: Long, val size: Long)
 
   /** Locks of the storagePaths currently in use; empty when the cache is idle. */
   private val pathLocks = HashMap<String, PathLock>()
@@ -78,11 +86,13 @@ class MediaFileCache(
    */
   @Volatile private var generation = 0 // written under dirLock
 
-  init {
+  /**
+   * Creates [dir] and deletes the leftovers of downloads interrupted by the app being killed
+   * (trimToSize never counts them, so they would otherwise stay forever). Runs once, on the first
+   * call, before that call's own download; [lazy] makes concurrent first calls wait for it.
+   */
+  private val setUp = lazy {
     dir.mkdirs()
-    // leftovers of downloads interrupted by the app being killed; trimToSize never counts them, so
-    // without this they would stay forever. Safe because no download of this instance has started
-    // yet
     dir.listFiles { f -> f.name.endsWith(PART_SUFFIX) }?.forEach { it.delete() }
   }
 
@@ -95,8 +105,10 @@ class MediaFileCache(
    *   is renamed to its cache name once complete; the cache is then trimmed to [maxBytes].
    *
    * Concurrent calls for the same path share one download: the others wait for it, then find the
-   * file cached.
+   * file cached. The returned file may be evicted later to make room, so open it right away rather
+   * than keeping the [File] around.
    *
+   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
    * @throws Exception whatever [MediaDownloader.download] throws (e.g. when offline and the file
    *   isn't cached); nothing is left in the cache in that case.
    * @throws IOException if the downloaded file can't be moved to its cache name, or if [clear] ran
@@ -104,25 +116,28 @@ class MediaFileCache(
    */
   suspend fun getFile(storagePath: String): File =
       withContext(ioDispatcher) {
+        setUp.value
         val file = fileFor(storagePath)
-        withPathLock(storagePath) {
-          // checked inside the lock: a caller that waited for another one's download finds the
-          // file here instead of downloading it a second time
-          if (file.exists()) {
-            file.setLastModified(System.currentTimeMillis()) // mark as recently used
-            return@withPathLock
-          }
-          val startGeneration = generation
-          val temp = newTempFile()
-          try {
-            downloader.download(storagePath, temp)
-            commit(temp, file, startGeneration)
-          } finally {
-            temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
-          }
-        }
-        // outside the path lock so a long trim doesn't make other callers of this path wait
-        trimToSize(keep = file)
+        val added =
+            withPathLock(storagePath) {
+              // checked inside the lock: a caller that waited for another one's download finds the
+              // file here instead of downloading it a second time
+              if (file.exists()) {
+                markUsed(file)
+                return@withPathLock false
+              }
+              val startGeneration = generation
+              val temp = newTempFile()
+              try {
+                downloader.download(storagePath, temp)
+                commit(temp, file, startGeneration)
+              } finally {
+                temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
+              }
+              true
+            }
+        // only when the cache grew; outside the path lock so other callers of this path don't wait
+        if (added) trimToSize(keep = file)
         file
       }
 
@@ -130,26 +145,30 @@ class MediaFileCache(
    * Returns the cached file of [storagePath] and marks it as recently used, or null if it isn't
    * cached. Never downloads and never waits for a download in progress, so it answers at once, even
    * offline.
+   *
+   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
    */
   suspend fun getCachedFile(storagePath: String): File? =
       withContext(ioDispatcher) {
-        fileFor(storagePath)
-            .takeIf { it.exists() }
-            ?.also { it.setLastModified(System.currentTimeMillis()) }
+        setUp.value
+        fileFor(storagePath).takeIf { it.exists() }?.also { markUsed(it) }
       }
 
   /**
    * Adds a file we already have locally (e.g. one just uploaded) to the cache under [storagePath],
    * so it never needs to be downloaded. Replaces any file already cached under that path.
    *
-   * [source] is moved, not copied: it is gone from its old location afterwards, even if the call
-   * fails.
+   * [source] is moved, not copied: once it has been moved into the cache folder, it is gone from
+   * its old location, even if the call then fails. If the call fails before that (e.g. [source]
+   * doesn't exist), [source] is left untouched.
    *
+   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
    * @throws IOException if [source] can't be moved into the cache, or if [clear] ran during the
    *   call.
    */
   suspend fun put(storagePath: String, source: File): Unit =
       withContext(ioDispatcher) {
+        setUp.value
         val file = fileFor(storagePath)
         withPathLock(storagePath) {
           val startGeneration = generation
@@ -169,9 +188,14 @@ class MediaFileCache(
   /**
    * Removes the cached file of [storagePath], if any. Call it when the media is deleted. Waits for
    * any download of that path in progress, so the file can't reappear right after.
+   *
+   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
    */
   suspend fun evict(storagePath: String): Unit =
-      withContext(ioDispatcher) { withPathLock(storagePath) { fileFor(storagePath).delete() } }
+      withContext(ioDispatcher) {
+        setUp.value
+        withPathLock(storagePath) { fileFor(storagePath).delete() }
+      }
 
   /**
    * Deletes every cached file. Call it on sign-out or when leaving a care circle, so no private
@@ -183,6 +207,7 @@ class MediaFileCache(
    */
   suspend fun clear(): Unit =
       withContext(ioDispatcher) {
+        setUp.value
         dirLock.withLock {
           generation++
           dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }?.forEach { it.delete() }
@@ -215,14 +240,38 @@ class MediaFileCache(
   /**
    * The cache file of [storagePath]. The path's slashes become underscores so every file sits
    * directly in [dir], e.g. `careCircles/c1/media/m1.jpg` -> `careCircles_c1_media_m1.jpg`.
+   *
+   * @throws IllegalArgumentException if [storagePath] is blank, would name [dir] itself or its
+   *   parent (`.` or `..`), or ends with `.part`, which is reserved for temporary files.
    */
-  private fun fileFor(storagePath: String) = File(dir, storagePath.replace('/', '_'))
+  private fun fileFor(storagePath: String): File {
+    val name = storagePath.replace('/', '_')
+    require(
+        storagePath.isNotBlank() && name != "." && name != ".." && !name.endsWith(PART_SUFFIX)
+    ) {
+      "Invalid storagePath: \"$storagePath\""
+    }
+    return File(dir, name)
+  }
+
+  /**
+   * Marks [file] as recently used for [trimToSize]. If the filesystem refuses (returns false), the
+   * file only keeps its older time and may be evicted a bit early, so the result is ignored.
+   */
+  private fun markUsed(file: File) {
+    file.setLastModified(System.currentTimeMillis())
+  }
 
   /**
    * A new empty `.part` file in [dir], with a unique name so concurrent calls never share one.
-   * Being in [dir] guarantees it can later be renamed to its cache name.
+   * Being in [dir] guarantees it can later be renamed to its cache name. Recreates [dir] first, in
+   * case it was deleted while the app runs (e.g. the user cleared the app's cache); a no-op
+   * otherwise.
    */
-  private fun newTempFile() = File.createTempFile("download", PART_SUFFIX, dir)
+  private fun newTempFile(): File {
+    dir.mkdirs()
+    return File.createTempFile("download", PART_SUFFIX, dir)
+  }
 
   /**
    * Gives the complete file [temp] its cache name [target], replacing any previous file there.
@@ -239,7 +288,7 @@ class MediaFileCache(
     }
     Files.move(temp.toPath(), target.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
     // a move keeps the old last-modified time; reset it so the new file isn't evicted first
-    target.setLastModified(System.currentTimeMillis())
+    markUsed(target)
   }
 
   /**
@@ -247,17 +296,23 @@ class MediaFileCache(
    * file is added.
    *
    * Never deletes [keep], the file just added and about to be returned, even when it alone is
-   * bigger than [maxBytes]: the cache then stays over the limit until the next file is added.
-   * `.part` files are skipped, since they are downloads in progress.
+   * bigger than [maxBytes]: the cache then stays over the limit until the next file is added. Also
+   * skips files used since the trim started (another call is returning them) and `.part` files,
+   * which are downloads in progress.
    */
   private suspend fun trimToSize(keep: File) = dirLock.withLock {
-    val files = dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }.orEmpty()
-    var total = files.sumOf { it.length() }
-    for (f in files.sortedBy { it.lastModified() }) { // oldest first
+    // each file's time and size are read once: cache hits change times concurrently, and a
+    // sort whose keys change while it runs can fail
+    val entries =
+        dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }
+            .orEmpty()
+            .map { Entry(it, it.lastModified(), it.length()) }
+    var total = entries.sumOf { it.size }
+    for (entry in entries.sortedBy { it.lastUsed }) { // oldest first
       if (total <= maxBytes) break
-      if (f == keep) continue
-      total -= f.length()
-      f.delete()
+      if (entry.file == keep || entry.file.lastModified() > entry.lastUsed) continue
+      entry.file.delete()
+      if (!entry.file.exists()) total -= entry.size // also counts files evicted meanwhile
     }
   }
 
