@@ -1,9 +1,8 @@
 /* Written by Lou-Anne Maier, with assistance from
-* Claude (Anthropic) via Claude Code
-*/
+ * Claude (Anthropic) via Claude Code
+ */
 package com.github.se.amber.ui.navigation
 
-import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -19,107 +18,108 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class TopNavigationMenuTest {
-    @get:Rule val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createComposeRule()
 
-    /** Fake callback: counts how many times the back action was triggered. */
-    private class FakeBackHandler {
-        var clickCount = 0
-            private set
-        fun onBackClick() {
-            clickCount++
-        }
+  /** Fake callback: counts how many times the back action was triggered. */
+  private class FakeBackHandler {
+    var clickCount = 0
+      private set
+
+    fun onBackClick() {
+      clickCount++
     }
+  }
 
-    private fun setMenu(
-        action: TopNavigationAction = TopNavigationAction.CANCEL,
-        handler: FakeBackHandler = FakeBackHandler(),
-    ) {
-        composeTestRule.setContent {
-            TopNavigationMenu(action= action, onBackClick = handler::onBackClick)
-        }
+  private fun setMenu(
+      action: TopNavigationAction = TopNavigationAction.CANCEL,
+      handler: FakeBackHandler = FakeBackHandler(),
+  ) {
+    composeTestRule.setContent {
+      TopNavigationMenu(action = action, onBackClick = handler::onBackClick)
     }
+  }
 
-    // ---------- Display ----------
+  // ---------- Display ----------
 
-    @Test
-    fun rootIsDisplayed() {
-        setMenu()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.ROOT).assertIsDisplayed()
-    }
+  @Test
+  fun rootIsDisplayed() {
+    setMenu()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.ROOT).assertIsDisplayed()
+  }
 
-    @Test
-    fun titleIsDisplayed() {
-        setMenu()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertIsDisplayed()
-    }
+  @Test
+  fun titleIsDisplayed() {
+    setMenu()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertIsDisplayed()
+  }
 
-    @Test
-    fun backButtonIsDisplayed() {
-        setMenu()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsDisplayed()
-    }
+  @Test
+  fun backButtonIsDisplayed() {
+    setMenu()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsDisplayed()
+  }
 
-    @Test
-    fun dividerIsDisplayed() {
-        setMenu()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.DIVIDER).assertIsDisplayed()
-    }
+  @Test
+  fun dividerIsDisplayed() {
+    setMenu()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.DIVIDER).assertIsDisplayed()
+  }
 
-    // ---------- Title text mapping ----------
+  // ---------- Title text mapping ----------
 
-    @Test
-    fun cancelActionDisplaysCancelText() {
-        setMenu(action = TopNavigationAction.CANCEL)
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
-    }
+  @Test
+  fun cancelActionDisplaysCancelText() {
+    setMenu(action = TopNavigationAction.CANCEL)
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
+  }
 
-    @Test
-    fun checkoutActionDisplaysCheckoutText() {
-        setMenu(action = TopNavigationAction.CHECKOUT)
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Checkout")
-    }
+  @Test
+  fun checkoutActionDisplaysCheckoutText() {
+    setMenu(action = TopNavigationAction.CHECKOUT)
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Checkout")
+  }
 
-    // ---------- Back button state ----------
+  // ---------- Back button state ----------
 
-    @Test
-    fun backButtonIsEnabled() {
-        setMenu()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsEnabled()
-    }
+  @Test
+  fun backButtonIsEnabled() {
+    setMenu()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsEnabled()
+  }
 
-    @Test
-    fun backButtonHasClickAction() {
-        setMenu()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertHasClickAction()
-    }
+  @Test
+  fun backButtonHasClickAction() {
+    setMenu()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertHasClickAction()
+  }
 
-    // ---------- Callback behaviour ----------
+  // ---------- Callback behaviour ----------
 
-    @Test
-    fun backClickIsNotTriggeredWithoutInteraction() {
-        val handler = FakeBackHandler()
-        setMenu(handler = handler)
+  @Test
+  fun backClickIsNotTriggeredWithoutInteraction() {
+    val handler = FakeBackHandler()
+    setMenu(handler = handler)
 
-        assertEquals(0, handler.clickCount)
-    }
+    assertEquals(0, handler.clickCount)
+  }
 
-    @Test
-    fun clickingBackWithCancelActionInvokesCallbackOnce() {
-        val handler = FakeBackHandler()
-        setMenu(handler = handler)
+  @Test
+  fun clickingBackWithCancelActionInvokesCallbackOnce() {
+    val handler = FakeBackHandler()
+    setMenu(handler = handler)
 
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
-        assertEquals(1, handler.clickCount)
-    }
+    assertEquals(1, handler.clickCount)
+  }
 
-    @Test
-    fun clickingBackWithCheckoutActionInvokesCallbackOnce() {
-        val handler = FakeBackHandler()
-        setMenu(action = TopNavigationAction.CHECKOUT, handler = handler)
+  @Test
+  fun clickingBackWithCheckoutActionInvokesCallbackOnce() {
+    val handler = FakeBackHandler()
+    setMenu(action = TopNavigationAction.CHECKOUT, handler = handler)
 
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
-        assertEquals(1, handler.clickCount)
-    }
+    assertEquals(1, handler.clickCount)
+  }
 }

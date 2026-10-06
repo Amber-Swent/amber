@@ -24,11 +24,12 @@ import androidx.compose.ui.unit.dp
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
-object BottomNavigationTestTags {
-    const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
-    const val DIVIDER = "bottom_navigation_divider"
 
-    fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab::class.java.name}"
+object BottomNavigationTestTags {
+  const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
+  const val DIVIDER = "bottom_navigation_divider"
+
+  fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab::class.java.name}"
 }
 
 /**
@@ -91,9 +92,14 @@ fun BottomNavigationMenu(
     tabs: List<Tab>,
     modifier: Modifier = Modifier,
 ) {
-  Column(modifier = modifier.fillMaxWidth().testTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU)) {
-    HorizontalDivider( modifier = Modifier.testTag(BottomNavigationTestTags.DIVIDER),
-        thickness = 1.dp, color = lightGray)
+  Column(
+      modifier = modifier.fillMaxWidth().testTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU)
+  ) {
+    HorizontalDivider(
+        modifier = Modifier.testTag(BottomNavigationTestTags.DIVIDER),
+        thickness = 1.dp,
+        color = lightGray,
+    )
 
     NavigationBar(
         containerColor = Color.White,
@@ -110,8 +116,9 @@ fun BottomNavigationMenu(
                 },
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
-                modifier = Modifier.clip(RoundedCornerShape(50.dp))
-                    .testTag(BottomNavigationTestTags.tabTag(tab)),
+                modifier =
+                    Modifier.clip(RoundedCornerShape(50.dp))
+                        .testTag(BottomNavigationTestTags.tabTag(tab)),
             )
           }
         },
