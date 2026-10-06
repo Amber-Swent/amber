@@ -23,7 +23,7 @@ import com.github.se.amber.ui.theme.orange
 /** Text actions that can be displayed in the top navigation menu. */
 // IDEA : associate TopNavigationAction with a function (text to display, associated function),
 //  if clicking on CANCEL or CHECKOUT always triggers the same action
-enum class TopNavigationAction(val label : String) {
+enum class TopNavigationAction(val label: String) {
   CANCEL("Cancel"),
   CHECKOUT("Checkout"),
 }

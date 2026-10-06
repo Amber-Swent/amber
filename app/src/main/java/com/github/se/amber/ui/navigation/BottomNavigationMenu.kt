@@ -47,11 +47,10 @@ sealed class CaregiverTab(
 
   data object Upload : CaregiverTab("Upload", Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
 
-    companion object {
-        val caregiverTabs: List<CaregiverTab>
-            get() = listOf(Home, Upload)
-    }
-
+  companion object {
+    val caregiverTabs: List<CaregiverTab>
+      get() = listOf(Home, Upload)
+  }
 }
 
 /** Patient's bottom navigation tabs. */
@@ -64,10 +63,10 @@ sealed class PatientTab(
 
   data object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
 
-    companion object {
-        val patientTabs: List<PatientTab>
-            get() = listOf(Home, SeePictures)
-    }
+  companion object {
+    val patientTabs: List<PatientTab>
+      get() = listOf(Home, SeePictures)
+  }
 }
 
 /**
