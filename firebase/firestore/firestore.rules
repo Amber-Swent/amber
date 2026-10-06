@@ -29,12 +29,28 @@ service cloud.firestore {
       return hasRole("CAREGIVER");
     }
 
+    // Identifies patient accounts when a rule needs to distinguish them from caregiver-only
+    // operations.
+    function isPatient() {
+      return hasRole("PATIENT");
+    }
+
     // Confirm that the signed-in user is already a member of the requested care circle.
     function isCircleMember(circleId) {
       return isSignedIn()
           && exists(/databases/$(database)/documents/careCircles/$(circleId))
           && request.auth.uid
               in get(/databases/$(database)/documents/careCircles/$(circleId)).data.memberIds;
+    }
+
+    // createCareCircle and redeemInvitation update circleIds in the same Admin SDK transaction as
+    // care-circle membership. Since clients cannot write that field, it safely proves that two
+    // profiles belong to at least one common circle.
+    function sharesCircleWith(profile) {
+      return isSignedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid))
+              .data.circleIds.hasAny(profile.circleIds);
     }
 
     // Validate profile ownership and limit the role to the two supported application roles.
@@ -44,17 +60,78 @@ service cloud.firestore {
           && request.resource.data.role in ["CAREGIVER", "PATIENT"];
     }
 
+    // Validate the complete client-created invitation shape, bind its document ID and creator to
+    // the request, and reject expired or already-consumed invitations.
+    function hasValidInvitation(code) {
+      return request.resource.data.keys().hasOnly([
+                "code",
+                "circleId",
+                "role",
+                "createdBy",
+                "createdAt",
+                "expiresAt",
+                "usedBy"
+              ])
+          && request.resource.data.code == code
+          && request.resource.data.circleId is string
+          && request.resource.data.role in ["CAREGIVER", "PATIENT"]
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt is int
+          && request.resource.data.expiresAt is int
+          && request.resource.data.expiresAt > request.time.toMillis()
+          && request.resource.data.usedBy == null;
+    }
+
+    // Prevent a permitted circle update from changing fields outside the supplied allowlist.
+    function onlyChangesCareCircleFields(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // Maps hold independently editable people or places. Limiting each write to one entry avoids
+    // replacing the entire map and accidentally overwriting another member's concurrent edit.
+    function changesAtMostOneMapEntry(updatedMap, existingMap) {
+      return updatedMap.diff(existingMap).affectedKeys().size() <= 1;
+    }
+
+    // Nicknames are grouped by viewer UID; each member can change only the map entry keyed by
+    // their own authenticated UID.
+    function onlyChangesOwnNicknames() {
+      return request.resource.data.nicknames
+          .diff(resource.data.nicknames)
+          .affectedKeys()
+          .hasOnly([request.auth.uid]);
+    }
+
+    // Members may update the circle name, one person entry, and their own nickname entry.
+    function hasMemberCareCircleUpdate() {
+      return onlyChangesCareCircleFields(["name", "people", "nicknames"])
+          && changesAtMostOneMapEntry(request.resource.data.people, resource.data.people)
+          && onlyChangesOwnNicknames();
+    }
+
+    // Caregivers retain all member edits and may additionally update one saved place at a time.
+    function hasCaregiverCareCircleUpdate() {
+      return isCaregiver()
+          && onlyChangesCareCircleFields(["name", "people", "nicknames", "places"])
+          && changesAtMostOneMapEntry(request.resource.data.people, resource.data.people)
+          && changesAtMostOneMapEntry(request.resource.data.places, resource.data.places)
+          && onlyChangesOwnNicknames();
+    }
+
     // Rules for one user's profile document.
     match /users/{userId} {
-      // The initial role is selected during onboarding.
-      allow create: if isCurrentUser(userId) && hasValidUserProfile();
-      // A user may read only their own profile.
-      allow get: if isCurrentUser(userId);
-      // Keep both the Firebase UID and selected role immutable after onboarding.
+      // createCareCircle creates a caregiver profile and redeemInvitation creates a first profile
+      // from an invitation. Both functions maintain circleIds atomically with membership.
+      allow create: if false;
+      // Member-name queries must use circleIds array-contains-any with the caller's trusted circle
+      // IDs. Firestore rules are not filters, so an unrestricted user query is rejected.
+      allow get, list: if isCurrentUser(userId) || sharesCircleWith(resource.data);
+      // Clients may update their profile details but never their role, UID, or membership index.
       allow update: if isCurrentUser(userId)
           && hasValidUserProfile()
           && request.resource.data.uid == resource.data.uid
-          && request.resource.data.role == resource.data.role;
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.circleIds == resource.data.circleIds;
       allow delete: if false;
     }
 
@@ -62,13 +139,56 @@ service cloud.firestore {
     match /careCircles/{circleId} {
       // Members may read their own circles.
       allow get, list: if isCircleMember(circleId);
-      // Only caregivers can create a circle, initially containing only themselves.
+      // createCareCircle creates the circle and adds its ID to the creator's profile in one
+      // transaction. Direct client creation would leave that membership index inconsistent.
+      allow create: if false;
+      // Members can edit names, people, and their own nickname; caregivers may also edit places.
+      // redeemInvitation is the only membership or patient-linking path. It uses the Admin SDK to
+      // atomically update the invitation, circle, and user profile; Admin SDK writes bypass rules.
+      allow update: if isCircleMember(circleId)
+          && (hasMemberCareCircleUpdate()
+              || hasCaregiverCareCircleUpdate());
+      allow delete: if false;
+    }
+
+    // Invitation documents are addressed by a code. Authenticated users may look up a code but
+    // cannot enumerate invitations; caregiver members create invitations for their own circles.
+    match /invitations/{code} {
+      allow get: if isSignedIn();
+      allow list: if false;
       allow create: if isCaregiver()
-          && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.memberIds.size() == 1
-          && request.auth.uid in request.resource.data.memberIds;
-      // Only a caregiver who is already a member may mutate a circle.
+          && isCircleMember(request.resource.data.circleId)
+          && hasValidInvitation(code);
+      // redeemInvitation consumes the code. Direct client updates could mark an invitation used
+      // without performing the matching circle and profile updates, so they are denied.
+      allow update, delete: if false;
+    }
+
+    // All circle members can view appointments; caregivers who belong to the circle manage them.
+    match /careCircles/{circleId}/appointments/{appointmentId} {
+      allow get, list: if isCircleMember(circleId);
+      allow create: if isCaregiver()
+          && isCircleMember(circleId)
+          && request.resource.data.createdBy == request.auth.uid;
       allow update, delete: if isCaregiver() && isCircleMember(circleId);
+    }
+
+    // Any member may create a memory. Only its uploader may alter or remove its metadata.
+    match /careCircles/{circleId}/media/{mediaId} {
+      // Empty authorizedIds means the whole circle can view the item; otherwise the caller must
+      // appear in the explicit audience list. Queries must include a matching audience filter.
+      allow get, list: if isCircleMember(circleId)
+          && (resource.data.authorizedIds.size() == 0
+              || request.auth.uid in resource.data.authorizedIds);
+      allow create: if isCircleMember(circleId)
+          && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isCircleMember(circleId)
+          && resource.data.authorId == request.auth.uid;
+    }
+
+    // Stories are shared groups of media: every member can create, edit, or remove them.
+    match /careCircles/{circleId}/stories/{storyId} {
+      allow get, list, create, update, delete: if isCircleMember(circleId);
     }
   }
 }
