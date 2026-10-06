@@ -4,3 +4,4 @@ Record confirmed bugs discovered during implementation or review. Use the next a
 
 | ID | Description | Status | Evidence / Fix |
 | --- | --- | --- | --- |
+| BUG-001 | Firestore rules allowed unrestricted reads and writes, so user roles could not enforce access levels. | Fixed | Added immutable user roles and caregiver-only care-circle mutations in `firebase/firestore/firestore.rules`. |

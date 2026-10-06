@@ -1,9 +1,74 @@
+// Written by Neha Chakraborty and assisted by Github Copilot.
+// Firestore evaluates these rules for every client request. A request is denied unless an
+// applicable `allow` expression evaluates to true.
 rules_version = '2';
 
 service cloud.firestore {
+  // Configure rules for the Cloud Firestore database.
   match /databases/{database}/documents {
-    match /{collection}/{uid} {
-      allow read, write: if true;
+    // Require Firebase Authentication before accessing data that belongs to an account.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Permit access to a user document only when its ID belongs to the authenticated user.
+    function isCurrentUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // The authenticated user's profile is the canonical role mapping. Privileged rules read this
+    // value directly; client-side UI checks do not grant access.
+    function hasRole(role) {
+      return isSignedIn()
+          && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    // Caregivers have the elevated permissions used for care-circle management.
+    function isCaregiver() {
+      return hasRole("CAREGIVER");
+    }
+
+    // Confirm that the signed-in user is already a member of the requested care circle.
+    function isCircleMember(circleId) {
+      return isSignedIn()
+          && exists(/databases/$(database)/documents/careCircles/$(circleId))
+          && request.auth.uid
+              in get(/databases/$(database)/documents/careCircles/$(circleId)).data.memberIds;
+    }
+
+    // Validate profile ownership and limit the role to the two supported application roles.
+    function hasValidUserProfile() {
+      return request.resource.data.keys().hasOnly(["uid", "role", "person", "circleIds"])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.role in ["CAREGIVER", "PATIENT"];
+    }
+
+    // Rules for one user's profile document.
+    match /users/{userId} {
+      // The initial role is selected during onboarding.
+      allow create: if isCurrentUser(userId) && hasValidUserProfile();
+      // A user may read only their own profile.
+      allow get: if isCurrentUser(userId);
+      // Keep both the Firebase UID and selected role immutable after onboarding.
+      allow update: if isCurrentUser(userId)
+          && hasValidUserProfile()
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.role == resource.data.role;
+      allow delete: if false;
+    }
+
+    // Rules for shared care-circle documents.
+    match /careCircles/{circleId} {
+      // Members may read their own circles.
+      allow get, list: if isCircleMember(circleId);
+      // Only caregivers can create a circle, initially containing only themselves.
+      allow create: if isCaregiver()
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.memberIds.size() == 1
+          && request.auth.uid in request.resource.data.memberIds;
+      // Only a caregiver who is already a member may mutate a circle.
+      allow update, delete: if isCaregiver() && isCircleMember(circleId);
     }
   }
 }
