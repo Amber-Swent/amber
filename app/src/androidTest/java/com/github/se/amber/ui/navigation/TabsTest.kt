@@ -19,9 +19,7 @@ class TabsTest {
     val names = PatientTab.patientTabs.map { it.name }
     assertEquals(names.distinct(), names)
   }
-}
 
-class TabDefinitionsTest {
   // ---------- Caregiver tabs ----------
   @Test
   fun caregiverHomeNameIsHome() {
