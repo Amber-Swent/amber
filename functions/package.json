@@ -3,6 +3,9 @@
   "description": "Firebase Functions for family-specific Storage bucket provisioning.",
   "private": true,
   "main": "index.js",
+  "scripts": {
+    "test": "node --test"
+  },
   "engines": {
     "node": "22"
   },
