@@ -50,11 +50,12 @@ import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 
 object UploadTestTags {
-    const val TITLE = "upload_title"
-    const val TEXT_BUTTON = "upload_text_button"
-    const val PICTURE_BUTTON = "upload_picture_button"
-    const val AUDIO_BUTTON = "upload_audio_button"
+  const val TITLE = "upload_title"
+  const val TEXT_BUTTON = "upload_text_button"
+  const val PICTURE_BUTTON = "upload_picture_button"
+  const val AUDIO_BUTTON = "upload_audio_button"
 }
+
 /**
  * Displays the upload menu for text, picture, and audio stories.
  *
@@ -152,7 +153,13 @@ fun Upload(
  * @param onClick callback invoked when the button is selected.
  */
 @Composable
-fun DisplayButton(modifier : Modifier, icon: ImageVector, text: String, description: String, onClick: () -> Unit) {
+fun DisplayButton(
+    modifier: Modifier,
+    icon: ImageVector,
+    text: String,
+    description: String,
+    onClick: () -> Unit,
+) {
   Button(
       onClick = onClick,
       modifier = modifier.fillMaxWidth(),
