@@ -4,3 +4,5 @@ Record confirmed bugs discovered during implementation or review. Use the next a
 
 | ID | Description | Status | Evidence / Fix |
 | --- | --- | --- | --- |
+| BUG-001 | Storage rule source path did not match the deployed/configured location. | Fixed | `firebase.json` and `functions/index.js` both load `functions/storage.rules`. |
+| BUG-002 | Invitation redemption was denied by client rules but had no callable backend. | Fixed | Added the authenticated, transactional `redeemInvitation` callable in `functions/index.js`. |
