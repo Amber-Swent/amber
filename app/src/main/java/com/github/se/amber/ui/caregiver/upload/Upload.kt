@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Mic
@@ -40,14 +42,29 @@ import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 
+object UploadTestTags {
+  const val TEXT_BUTTON = "upload_text_button"
+  const val PICTURE_BUTTON = "upload_picture_button"
+  const val AUDIO_BUTTON = "upload_audio_button"
+}
+
+/**
+ * Displays the upload menu for text, picture, and audio stories.
+ *
+ * @param viewModel view model that stores the upload screen state.
+ * @param onUploadTextClick callback invoked when text upload is selected.
+ * @param onUploadPictureClick callback invoked when picture upload is selected.
+ * @param onUploadAudioClick callback invoked when audio upload is selected.
+ * @param checkout callback invoked when the user selects the checkout action.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Upload(
     viewModel: UploadViewModel = viewModel(),
-    uploadText: () -> Unit = {},
-    uploadPicture: () -> Unit = {},
-    uploadAudio: () -> Unit = {},
-    goBack: () -> Unit = {},
+    onUploadTextClick: () -> Unit = {},
+    onUploadPictureClick: () -> Unit = {},
+    onUploadAudioClick: () -> Unit = {},
+    checkout: () -> Unit = {},
     // TODO : create NavigationActions
     // navigationActions: NavigationActions? = null,
 ) {
@@ -63,14 +80,20 @@ fun Upload(
   }
 
   Scaffold(
-      topBar = { TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, goBack) },
+      topBar = { TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout) },
       // TODO: unExtract the following lines once Navigation is implement
       //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
       //          onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) }, )
       //      },
       content = { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp).padding(paddingValues),
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           Spacer(modifier = Modifier.height(8.dp))
@@ -88,27 +111,35 @@ fun Upload(
               icon = Icons.Outlined.Description,
               text = "Upload Text",
               description = "Text",
-              onClick = { uploadText() },
+              onClick = { onUploadTextClick() },
           )
 
           DisplayButton(
               icon = Icons.Outlined.PhotoCamera,
               text = "Upload Picture",
               description = "Picture",
-              onClick = { uploadPicture() },
+              onClick = { onUploadPictureClick() },
           )
 
           DisplayButton(
               icon = Icons.Outlined.Mic,
               text = "Upload Audio",
               description = "Audio",
-              onClick = { uploadAudio() },
+              onClick = { onUploadAudioClick() },
           )
         }
       },
   )
 }
 
+/**
+ * Displays a button with an icon, label, and click action.
+ *
+ * @param icon icon displayed on the button.
+ * @param text label displayed on the button.
+ * @param description content description for the icon.
+ * @param onClick callback invoked when the button is selected.
+ */
 @Composable
 fun DisplayButton(icon: ImageVector, text: String, description: String, onClick: () -> Unit) {
   Button(
