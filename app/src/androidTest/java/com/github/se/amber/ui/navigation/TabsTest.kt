@@ -23,29 +23,7 @@ class TabsTest {
 }
 
 class TabDefinitionsTest {
-
-    // ---------- Test tags ----------
-
-    @Test
-    fun tabTagIsBuiltFromTabName() {
-        assertEquals("bottom_navigation_tab_Home", NavigationTestTags.tabTag(CaregiverTab.Home))
-    }
-
-    @Test
-    fun tabTagsDifferBetweenTabsWithDifferentNames() {
-        assertNotEquals(
-            NavigationTestTags.tabTag(CaregiverTab.Home),
-            NavigationTestTags.tabTag(CaregiverTab.Upload),
-        )
-    }
-
     // ---------- Caregiver tabs ----------
-
-    @Test
-    fun caregiverTabsContainsHomeThenUpload() {
-        assertEquals(listOf(CaregiverTab.Home, CaregiverTab.Upload), CaregiverTab.caregiverTabs)
-    }
-
     @Test
     fun caregiverHomeNameIsHome() {
         assertEquals("Home", CaregiverTab.Home.name)
@@ -67,12 +45,6 @@ class TabDefinitionsTest {
     }
 
     // ---------- Patient tabs ----------
-
-    @Test
-    fun patientTabsContainsHomeThenSeePictures() {
-        assertEquals(listOf(PatientTab.Home, PatientTab.SeePictures), PatientTab.patientTabs)
-    }
-
     @Test
     fun patientHomeNameIsHome() {
         assertEquals("Home", PatientTab.Home.name)

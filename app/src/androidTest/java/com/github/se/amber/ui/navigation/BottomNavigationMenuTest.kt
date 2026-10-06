@@ -13,10 +13,11 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.ui.navigation.PatientTab.Companion.patientTabs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -30,7 +31,6 @@ class BottomNavigationMenuTest {
     /** Fake callback: records every tab passed to onTabSelected, in order. */
     private class FakeTabSelectionHandler {
         val selectedTabs = mutableListOf<Tab>()
-
         fun onTabSelected(tab: Tab) {
             selectedTabs.add(tab)
         }
@@ -70,7 +70,7 @@ class BottomNavigationMenuTest {
 
     // ---------- Check helpers ----------
     private fun tabNode(tab: Tab): SemanticsNodeInteraction =
-        composeTestRule.onNodeWithTag(NavigationTestTags.tabTag(tab))
+        composeTestRule.onNodeWithTag(BottomNavigationTestTags.tabTag(tab))
 
     private fun checkTabIsDisplayed(tab: Tab) {
         tabNode(tab).assertIsDisplayed()
@@ -93,13 +93,13 @@ class BottomNavigationMenuTest {
     @Test
     fun menuIsDisplayed() {
         setMenu()
-        composeTestRule.onNodeWithTag(NavigationTestTags.BOTTOM_NAVIGATION_MENU).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU).assertIsDisplayed()
     }
 
     @Test
     fun dividerIsDisplayed() {
         setMenu()
-        composeTestRule.onNodeWithTag(NavigationTestTags.DIVIDER).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(BottomNavigationTestTags.DIVIDER).assertIsDisplayed()
     }
 
     // ---------- Caregiver tabs display ----------
@@ -107,16 +107,13 @@ class BottomNavigationMenuTest {
     @Test
     fun caregiverTabAreDisplayed() {
         setMenu(tabs = CaregiverTab.caregiverTabs)
-        checkTabIsDisplayed(CaregiverTab.Home)
-        checkTabIsDisplayed(CaregiverTab.Upload)
-    }
+        CaregiverTab.caregiverTabs.forEach { checkTabIsDisplayed(it) }
+        }
 
     @Test
-    fun patientTabIsNotDisplayedInCaregiverMenu() {
+    fun patientTabsAreNotDisplayedInCaregiverMenu() {
         setMenu(tabs = CaregiverTab.caregiverTabs)
-        checkTabIsNotDisplayed(PatientTab.SeePictures)
-        checkTabIsNotDisplayed(PatientTab.Home)
-
+        PatientTab.patientTabs.forEach { checkTabIsNotDisplayed(it) }
     }
 
     // ---------- Patient tabs display ----------
@@ -124,15 +121,13 @@ class BottomNavigationMenuTest {
     @Test
     fun patientTabAreDisplayed() {
         setMenu(selectedTab = PatientTab.Home, tabs = PatientTab.patientTabs)
-        checkTabIsDisplayed(PatientTab.Home)
-        checkTabIsDisplayed(PatientTab.SeePictures)
-    }
+        PatientTab.patientTabs.forEach { checkTabIsDisplayed(it) }
+        }
 
     @Test
     fun caregiverTabAreNotDisplayedInPatientMenu() {
         setMenu(selectedTab = PatientTab.Home, tabs = PatientTab.patientTabs)
-        checkTabIsNotDisplayed(CaregiverTab.Home)
-        checkTabIsNotDisplayed(CaregiverTab.Upload)
+        CaregiverTab.caregiverTabs.forEach { checkTabIsNotDisplayed(it) }
     }
 
     // ---------- Empty list ----------
@@ -169,8 +164,8 @@ class BottomNavigationMenuTest {
     }
 
     @Test
-    fun selectionFollowsSelectedTabParameter2() {
-        setMenu(selectedTab = PatientTab.Home)
+    fun patientSelectedTabIsSelected() {
+        setMenu(selectedTab = PatientTab.Home, tabs = PatientTab.patientTabs)
         checkTabIsSelected(PatientTab.Home)
         checkTabIsNotSelected(PatientTab.SeePictures)
     }

@@ -21,14 +21,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.github.se.amber.ui.navigation.PatientTab.SeePictures
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
-object NavigationTestTags {
+object BottomNavigationTestTags {
     const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
     const val DIVIDER = "bottom_navigation_divider"
-    fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab.name}"
+
+    fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab::class.java.name}"
 }
 
 /**
@@ -55,7 +55,8 @@ sealed class CaregiverTab(
   data object Upload : CaregiverTab("Upload", Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
 
   companion object {
-    val caregiverTabs = listOf(Home, Upload)
+    val caregiverTabs: List<CaregiverTab>
+      get() = listOf(Home, Upload)
   }
 }
 
@@ -65,12 +66,13 @@ sealed class PatientTab(
     override val icon: ImageVector,
     override val destination: PatientScreen,
 ) : Tab {
-  object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
+  data object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
 
-  object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
+  data object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
 
   companion object {
-    val patientTabs = listOf(Home, SeePictures)
+    val patientTabs: List<PatientTab>
+      get() = listOf(Home, SeePictures)
   }
 }
 
@@ -79,6 +81,7 @@ sealed class PatientTab(
  *
  * @param selectedTab The tab that is currently selected
  * @param onTabSelected Callback invoked with the tab selected by the user.
+ * @param tabs All tabs in the bottom navigation menu
  * @param modifier Modifier applied to the navigation menu's outer container.
  */
 @Composable
@@ -88,8 +91,8 @@ fun BottomNavigationMenu(
     tabs: List<Tab>,
     modifier: Modifier = Modifier,
 ) {
-  Column(modifier = modifier.fillMaxWidth().testTag(NavigationTestTags.BOTTOM_NAVIGATION_MENU)) {
-    HorizontalDivider( modifier = Modifier.testTag(NavigationTestTags.DIVIDER),
+  Column(modifier = modifier.fillMaxWidth().testTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU)) {
+    HorizontalDivider( modifier = Modifier.testTag(BottomNavigationTestTags.DIVIDER),
         thickness = 1.dp, color = lightGray)
 
     NavigationBar(
@@ -108,7 +111,7 @@ fun BottomNavigationMenu(
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
                 modifier = Modifier.clip(RoundedCornerShape(50.dp))
-                    .testTag(NavigationTestTags.tabTag(tab)),
+                    .testTag(BottomNavigationTestTags.tabTag(tab)),
             )
           }
         },
