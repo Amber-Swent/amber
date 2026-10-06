@@ -52,13 +52,9 @@ fun TopNavigationMenu(
 ) {
   Column(modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.ROOT)) {
     TopAppBar(
-        title = {
-          Text(
-              action.label,
-              modifier = Modifier.testTag(TopNavigationMenuTestTags.TITLE),
-              color = orange,
-          )
-        },
+        title = { Text(action.label,
+            modifier = Modifier.testTag(TopNavigationMenuTestTags.TITLE),
+            color = orange) },
         navigationIcon = {
           IconButton(
               onClick = { onBackClick() },
@@ -73,7 +69,6 @@ fun TopNavigationMenu(
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
     )
-
     HorizontalDivider(
         Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
         thickness = 1.dp,
