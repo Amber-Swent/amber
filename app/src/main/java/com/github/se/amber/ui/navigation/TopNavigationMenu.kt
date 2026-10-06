@@ -21,6 +21,9 @@ import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
 
 /** Text actions that can be displayed in the top navigation menu. */
+// IDEA : associate TopNavigationAction with a function (text to display, associated function),
+//  if clicking on CANCEL or CHECKOUT always triggers the same action
+
 enum class TopNavigationAction {
   CANCEL,
   CHECKOUT,
@@ -50,9 +53,6 @@ private fun topNaviActionToString(text: TopNavigationAction): String {
 @Composable
 fun TopNavigationMenu(
     modifier: Modifier = Modifier,
-    // FIXME : associate TopNavigationAction with a function (text to display, associated function),
-    //  if clicking on CANCEL or CHECKOUT always triggers the same action
-
     text: TopNavigationAction,
     onBackClick: () -> Unit,
 ) {

@@ -42,6 +42,20 @@ sealed interface MediaItem {
   val authorizedIds: List<String>
   val status: MediaStatus
 
+  data class Text(
+      override val id: String = "",
+      override val authorId: String = "",
+      override val storagePath: String = "",
+      override val createdAt: Long = 0L,
+      override val description: String = "",
+      override val date: MemoryDate? = null,
+      override val location: GeoLocation? = null,
+      override val shownIds: List<String> = emptyList(),
+      override val authorizedIds: List<String> = emptyList(),
+      override val status: MediaStatus = MediaStatus.APPROVED,
+      val text: String = "",
+  ) : MediaItem
+
   data class Picture(
       override val id: String = "",
       override val authorId: String = "",
