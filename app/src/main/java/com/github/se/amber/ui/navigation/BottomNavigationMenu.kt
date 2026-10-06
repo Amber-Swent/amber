@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import com.github.se.amber.ui.navigation.PatientTab.SeePictures
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
@@ -49,7 +48,8 @@ sealed class CaregiverTab(
   data object Upload : CaregiverTab("Upload", Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
 
   companion object {
-    val caregiverTabs = listOf(Home, Upload)
+    val caregiverTabs: List<CaregiverTab>
+      get() = listOf(Home, Upload)
   }
 }
 
@@ -59,12 +59,13 @@ sealed class PatientTab(
     override val icon: ImageVector,
     override val destination: PatientScreen,
 ) : Tab {
-  object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
+  data object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
 
-  object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
+  data object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
 
   companion object {
-    val patientTabs = listOf(Home, SeePictures)
+    val patientTabs: List<PatientTab>
+      get() = listOf(Home, SeePictures)
   }
 }
 
@@ -73,6 +74,7 @@ sealed class PatientTab(
  *
  * @param selectedTab The tab that is currently selected
  * @param onTabSelected Callback invoked with the tab selected by the user.
+ * @param tabs All tabs in the bottom navigation menu
  * @param modifier Modifier applied to the navigation menu's outer container.
  */
 @Composable

@@ -23,42 +23,28 @@ import com.github.se.amber.ui.theme.orange
 /** Text actions that can be displayed in the top navigation menu. */
 // IDEA : associate TopNavigationAction with a function (text to display, associated function),
 //  if clicking on CANCEL or CHECKOUT always triggers the same action
-
-enum class TopNavigationAction {
-  CANCEL,
-  CHECKOUT,
-}
-
-/**
- * Converts a top navigation action to the text shown to the user.
- *
- * @param text The TopNavigationAction whose display text is required.
- * @return The text to display for the given TopNavigationAction
- */
-private fun topNaviActionToString(text: TopNavigationAction): String {
-  return when (text) {
-    TopNavigationAction.CANCEL -> "Cancel"
-    TopNavigationAction.CHECKOUT -> "Checkout"
-  }
+enum class TopNavigationAction(val label: String) {
+  CANCEL("Cancel"),
+  CHECKOUT("Checkout"),
 }
 
 /**
  * Displays a top app bar with a back button and an action label and the associate text.
  *
  * @param modifier Modifier applied to the outer column containing the app bar and divider.
- * @param text The action label displayed in the app top bar.
+ * @param action The action label displayed in the app top bar.
  * @param onBackClick Callback invoked when the user taps the back arrow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopNavigationMenu(
     modifier: Modifier = Modifier,
-    text: TopNavigationAction,
+    action: TopNavigationAction,
     onBackClick: () -> Unit,
 ) {
   Column(modifier = modifier.fillMaxWidth()) {
     TopAppBar(
-        title = { Text(topNaviActionToString(text), color = orange) },
+        title = { Text(action.label, color = orange) },
         navigationIcon = {
           IconButton(
               onClick = { onBackClick() },
@@ -72,7 +58,6 @@ fun TopNavigationMenu(
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
     )
-
     HorizontalDivider(Modifier, thickness = 1.dp, color = lightGray)
   }
 }
