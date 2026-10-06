@@ -1,8 +1,8 @@
 package com.github.se.amber.ui.navigation
 
 /**
- * Base interface for all navigation destinations (Screen).
- * Ensures consistent structure across all user roles
+ * Base interface for all navigation destinations (Screen). Ensures consistent structure across all
+ * user roles
  *
  * @property route The unique route used to identify the destination in navigation.
  * @property name The title associated with the destination.
