@@ -222,5 +222,5 @@ fun DisplayTakePicture(modifier: Modifier, viewModel: UploadPictureViewModel) {
 
 @Composable
 fun DisplaySelectPicture(modifier: Modifier, viewModel: UploadPictureViewModel) {
-    TODO("to be implement")
+  TODO("to be implement")
 }

@@ -35,9 +35,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.navigation.BottomNavigationMenu
-import com.github.se.amber.ui.navigation.CaregiverTab
-import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.lightOrange
@@ -53,7 +50,7 @@ fun Upload(
     goBack: () -> Unit = {},
     // TODO : create NavigationActions
     // navigationActions: NavigationActions? = null,
-    ) {
+) {
   val uiState by viewModel.uiState.collectAsState()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
@@ -68,9 +65,9 @@ fun Upload(
   Scaffold(
       topBar = { TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, goBack) },
       // TODO: unExtract the following lines once Navigation is implement
-//      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
-//          onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) }, )
-//      },
+      //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
+      //          onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) }, )
+      //      },
       content = { paddingValues ->
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp).padding(paddingValues),

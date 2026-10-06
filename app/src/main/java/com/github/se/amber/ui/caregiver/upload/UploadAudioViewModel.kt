@@ -52,20 +52,20 @@ class UploadAudioViewModel(
 
   /* Must convert and check format date */
   fun uploadAudio() {
-      TODO("to be implement")
+    TODO("to be implement")
   }
 
   fun startRecordAudio() {
-      TODO("to be implement")
+    TODO("to be implement")
   }
 
   fun deleteAudio() {
-      TODO("to be implement")
+    TODO("to be implement")
   }
 
   /* Must actualize uiState */
   fun stopRecordAudio() {
-      TODO("to be implement")
+    TODO("to be implement")
   }
 
   fun setTitle(title: String) {

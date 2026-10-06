@@ -243,7 +243,7 @@ private fun DisplayUnRecord(viewModel: UploadAudioViewModel) {
 
 @Composable
 private fun DisplayBeingRecord(viewModel: UploadAudioViewModel) {
-    TODO("to be implement")
+  TODO("to be implement")
 }
 
 @Composable
@@ -259,7 +259,7 @@ private fun DisplayRecord(viewModel: UploadAudioViewModel) {
         contentDescription = "Delete",
         tint = Color.Black,
     )
-  }// TODO("add graphical audio")
+  } // TODO("add graphical audio")
   Text("todo : display AUDIO")
 
   FilledIconButton(

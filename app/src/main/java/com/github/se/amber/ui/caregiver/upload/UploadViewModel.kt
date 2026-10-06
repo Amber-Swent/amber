@@ -14,7 +14,7 @@ data class UploadUIState(
 
 // TODO: implement repository
 class UploadViewModel(
-  // private val repository: MediaRepository = MediaRepositoryProvider.repository,
+    // private val repository: MediaRepository = MediaRepositoryProvider.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadUIState())
   val uiState: StateFlow<UploadUIState> = _uiState.asStateFlow()
