@@ -15,13 +15,11 @@ import kotlinx.coroutines.withContext
 
 /**
  * What [MediaFileCache] needs from remote storage: downloading one file. Declared here so the cache
- * doesn't depend on the storage repository; wire it with a method reference, e.g.
- * `MediaFileCache(storageRepository::downloadToFile, dir)`, or a lambda in tests.
+ * doesn't depend on the storage repository; pass a method reference to the repository's download
+ * function, or a lambda in tests.
  *
- * TODO: temporary, until the media storage repository is implemented by another team member. Once
- *   that mockable repository exists, the cache may depend on it directly (tests would then mock it)
- *   and this interface would be removed. The repository's method name and signature aren't fixed
- *   yet, so the call in [MediaFileCache.getFile] may change with it.
+ * TODO: temporary until the media storage repository exists (another team member is implementing
+ *   it). The cache may then depend on that repository directly, and tests would mock it.
  */
 fun interface MediaDownloader {
   /**
@@ -39,8 +37,9 @@ fun interface MediaDownloader {
  * Files are written to a temporary `.part` file and renamed once complete, so a cached file is
  * always whole. Past [maxBytes], the least recently used files are deleted.
  *
- * Only one instance may use a given [dir]: the locks don't coordinate across instances. The
- * constructor doesn't touch the disk; the folder is set up on first use, on [ioDispatcher].
+ * Only one instance may use a given [dir]: the locks don't coordinate across instances, so provide
+ * the cache as a single shared instance (e.g. a singleton in dependency injection). The constructor
+ * doesn't touch the disk; the folder is set up on first use, on [ioDispatcher].
  *
  * @param downloader fetches a file on a cache miss; temporary, see [MediaDownloader].
  * @param dir cache folder, e.g. `File(context.cacheDir, "media")`; created if missing.
@@ -50,7 +49,7 @@ fun interface MediaDownloader {
 class MediaFileCache(
     private val downloader: MediaDownloader,
     private val dir: File,
-    private val maxBytes: Long = 500L * 1024 * 1024, // 500 MB
+    private val maxBytes: Long = 500L * 1024 * 1024, // 500 MiB
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   init {
@@ -73,9 +72,9 @@ class MediaFileCache(
   private val pathLocks = HashMap<String, PathLock>()
 
   /**
-   * Serializes changes to the set of cached files: [commit], [trimToSize] and [clear]. Two trims at
-   * once would both delete files for the same excess, and a commit racing a clear could leave a
-   * file behind after it.
+   * Makes [commit] atomic with respect to [clear] and [trimToSize]: a commit racing a clear can't
+   * leave a file behind after it, and a trim never sees a just-added file before its timestamp is
+   * reset (it would look old and be evicted at once).
    */
   private val dirLock = Mutex()
 
@@ -88,7 +87,7 @@ class MediaFileCache(
 
   /**
    * Creates [dir] and deletes the leftovers of downloads interrupted by the app being killed
-   * (trimToSize never counts them, so they would otherwise stay forever). Runs once, on the first
+   * ([trimToSize] never counts them, so they would otherwise stay forever). Runs once, on the first
    * call, before that call's own download; [lazy] makes concurrent first calls wait for it.
    */
   private val setUp = lazy {
@@ -108,7 +107,7 @@ class MediaFileCache(
    * file cached. The returned file may be evicted later to make room, so open it right away rather
    * than keeping the [File] around.
    *
-   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
+   * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
    * @throws Exception whatever [MediaDownloader.download] throws (e.g. when offline and the file
    *   isn't cached); nothing is left in the cache in that case.
    * @throws IOException if the downloaded file can't be moved to its cache name, or if [clear] ran
@@ -146,7 +145,7 @@ class MediaFileCache(
    * cached. Never downloads and never waits for a download in progress, so it answers at once, even
    * offline.
    *
-   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
+   * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
    */
   suspend fun getCachedFile(storagePath: String): File? =
       withContext(ioDispatcher) {
@@ -162,7 +161,7 @@ class MediaFileCache(
    * its old location, even if the call then fails. If the call fails before that (e.g. [source]
    * doesn't exist), [source] is left untouched.
    *
-   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
+   * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
    * @throws IOException if [source] can't be moved into the cache, or if [clear] ran during the
    *   call.
    */
@@ -174,8 +173,8 @@ class MediaFileCache(
           val startGeneration = generation
           val temp = newTempFile()
           try {
-            // moved via a temp file, like a download: from another storage volume, the move is a
-            // copy, which must not be visible under the cache name until it is complete
+            // move into a temp file first, like a download: across storage volumes a move is really
+            // a copy, and a half-copied file must never appear under the cache name
             Files.move(source.toPath(), temp.toPath(), REPLACE_EXISTING)
             commit(temp, file, startGeneration)
           } finally {
@@ -187,9 +186,9 @@ class MediaFileCache(
 
   /**
    * Removes the cached file of [storagePath], if any. Call it when the media is deleted. Waits for
-   * any download of that path in progress, so the file can't reappear right after.
+   * any download or [put] of that path in progress, so the file can't reappear right after.
    *
-   * @throws IllegalArgumentException if [storagePath] isn't a valid path (see [fileFor]).
+   * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
    */
   suspend fun evict(storagePath: String): Unit =
       withContext(ioDispatcher) {
@@ -241,6 +240,9 @@ class MediaFileCache(
    * The cache file of [storagePath]. The path's slashes become underscores so every file sits
    * directly in [dir], e.g. `careCircles/c1/media/m1.jpg` -> `careCircles_c1_media_m1.jpg`.
    *
+   * Different paths can map to the same name (e.g. `a/b_c.jpg` and `a_b/c.jpg`). Real storage paths
+   * are made of Firestore IDs, which contain no `_`, so they don't collide.
+   *
    * @throws IllegalArgumentException if [storagePath] is blank, would name [dir] itself or its
    *   parent (`.` or `..`), or ends with `.part`, which is reserved for temporary files.
    */
@@ -264,9 +266,9 @@ class MediaFileCache(
 
   /**
    * A new empty `.part` file in [dir], with a unique name so concurrent calls never share one.
-   * Being in [dir] guarantees it can later be renamed to its cache name. Recreates [dir] first, in
-   * case it was deleted while the app runs (e.g. the user cleared the app's cache); a no-op
-   * otherwise.
+   * Being in [dir] keeps the final rename to its cache name on one filesystem, so it is atomic.
+   * Recreates [dir] first, in case it was deleted while the app runs (e.g. the user cleared the
+   * app's cache); a no-op otherwise.
    */
   private fun newTempFile(): File {
     dir.mkdirs()
@@ -277,7 +279,7 @@ class MediaFileCache(
    * Gives the complete file [temp] its cache name [target], replacing any previous file there.
    *
    * The rename is atomic (both files are in [dir]), on Android as well as on the JVM that runs the
-   * tests. Runs under [dirLock] so it can't interleave with [clear].
+   * tests. Runs under [dirLock] so it can't interleave with [clear] or [trimToSize].
    *
    * @param startGeneration [generation] when the file's download or copy started.
    * @throws IOException if [clear] ran since [startGeneration], or if the rename fails.
@@ -286,6 +288,8 @@ class MediaFileCache(
     if (generation != startGeneration) {
       throw IOException("Cache cleared while $target was being added")
     }
+    // with ATOMIC_MOVE, replacing an existing target is left to the platform: rename(2) on Android
+    // and MoveFileEx on Windows both replace it; REPLACE_EXISTING only states the intent
     Files.move(temp.toPath(), target.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
     // a move keeps the old last-modified time; reset it so the new file isn't evicted first
     markUsed(target)
@@ -297,12 +301,13 @@ class MediaFileCache(
    *
    * Never deletes [keep], the file just added and about to be returned, even when it alone is
    * bigger than [maxBytes]: the cache then stays over the limit until the next file is added. Also
-   * skips files used since the trim started (another call is returning them) and `.part` files,
-   * which are downloads in progress.
+   * skips files a cache hit used after the listing, which makes evicting a file that another call
+   * is returning unlikely (not impossible), and `.part` files, which are downloads in progress.
    */
   private suspend fun trimToSize(keep: File) = dirLock.withLock {
-    // each file's time and size are read once: cache hits change times concurrently, and a
-    // sort whose keys change while it runs can fail
+    // each file's time and size are read once: cache hits change times concurrently, and a sort
+    // whose keys change while it runs can throw IllegalArgumentException. Don't sort on
+    // file.lastModified() directly; no test reliably catches that race
     val entries =
         dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }
             .orEmpty()
@@ -312,7 +317,7 @@ class MediaFileCache(
       if (total <= maxBytes) break
       if (entry.file == keep || entry.file.lastModified() > entry.lastUsed) continue
       entry.file.delete()
-      if (!entry.file.exists()) total -= entry.size // also counts files evicted meanwhile
+      if (!entry.file.exists()) total -= entry.size // also true if evict() or the system deleted it
     }
   }
 

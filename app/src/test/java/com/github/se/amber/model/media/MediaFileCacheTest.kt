@@ -80,7 +80,7 @@ class MediaFileCacheTest {
 
     assertEquals(first, second)
     assertEquals("content of a/m1.jpg", second.readText())
-    assertEquals(1, downloader.calls.size)
+    assertEquals(listOf("a/m1.jpg"), downloader.calls)
   }
 
   @Test
@@ -94,7 +94,7 @@ class MediaFileCacheTest {
     assertEquals(emptyList<String>(), cachedFileNames()) // no cached file, no .part left
     downloader.failure = null
     assertEquals("content of a/m1.jpg", cache.getFile("a/m1.jpg").readText())
-    assertEquals(2, downloader.calls.size)
+    assertEquals(listOf("a/m1.jpg", "a/m1.jpg"), downloader.calls)
   }
 
   @Test
@@ -110,7 +110,7 @@ class MediaFileCacheTest {
 
     assertEquals(first.await(), second.await())
     assertEquals("content of a/m1.jpg", second.await().readText())
-    assertEquals(1, downloader.calls.size)
+    assertEquals(listOf("a/m1.jpg"), downloader.calls)
   }
 
   @Test
@@ -144,7 +144,7 @@ class MediaFileCacheTest {
     cache.put("a/m1.jpg", sourceFile("new bytes"))
 
     assertEquals("new bytes", cache.getFile("a/m1.jpg").readText())
-    assertEquals(1, downloader.calls.size)
+    assertEquals(listOf("a/m1.jpg"), downloader.calls)
   }
 
   @Test
@@ -156,7 +156,7 @@ class MediaFileCacheTest {
 
     assertNull(cache.getCachedFile("a/m1.jpg"))
     cache.getFile("a/m1.jpg")
-    assertEquals(2, downloader.calls.size)
+    assertEquals(listOf("a/m1.jpg", "a/m1.jpg"), downloader.calls)
   }
 
   @Test
@@ -311,7 +311,8 @@ class MediaFileCacheTest {
     File(cacheDir, "a_m1.jpg").writeText("cached before restart")
 
     val cache = newCache()
-    assertEquals(2, cachedFileNames().size) // the constructor doesn't touch the disk
+    // the constructor doesn't touch the disk
+    assertEquals(listOf("a_m1.jpg", "download123.part"), cachedFileNames())
 
     assertNotNull(cache.getCachedFile("a/m1.jpg"))
     assertEquals(listOf("a_m1.jpg"), cachedFileNames())
@@ -339,6 +340,56 @@ class MediaFileCacheTest {
 
     assertNull(cache.getCachedFile("a/m1.jpg"))
     assertEquals("content of a/m1.jpg", cache.getFile("a/m1.jpg").readText())
-    assertEquals(2, downloader.calls.size)
+    assertEquals(listOf("a/m1.jpg", "a/m1.jpg"), downloader.calls)
+  }
+
+  @Test
+  fun putFileWithOldTimestampIsNotEvictedFirst() = runTest {
+    val cache = newCache(maxBytes = 10)
+    downloader.content = { "4 B." } // 4 bytes each: two fit, three don't
+    cache.getFile("a/downloaded.jpg").setLastModified(2_000)
+    val oldPhoto = sourceFile("4 B.").apply { setLastModified(1_000) } // e.g. taken years ago
+
+    cache.put("a/uploaded.jpg", oldPhoto)
+    cache.getFile("a/new.jpg")
+
+    // put counts as a use: the downloaded file is now the least recently used one
+    assertEquals(listOf("a_new.jpg", "a_uploaded.jpg"), cachedFileNames())
+  }
+
+  @Test
+  fun hitsDoNotTrimTheCache() = runTest {
+    cacheDir.mkdirs() // two files left over a 5-byte limit, e.g. from a run with a higher limit
+    File(cacheDir, "a_m1.jpg").writeText("4 B.")
+    File(cacheDir, "a_m2.jpg").writeText("4 B.")
+    val cache = newCache(maxBytes = 5)
+
+    cache.getFile("a/m1.jpg")
+    cache.getCachedFile("a/m2.jpg")
+
+    assertEquals(listOf("a_m1.jpg", "a_m2.jpg"), cachedFileNames()) // still over the limit
+    assertEquals(emptyList<String>(), downloader.calls)
+  }
+
+  @Test
+  fun getCachedFileDoesNotWaitForDownloadInProgress() = runTest {
+    val cache = newCache()
+    val gate = CompletableDeferred<Unit>()
+    downloader.gate = gate
+    val download = async { cache.getFile("a/m1.jpg") }
+    runCurrent() // the download is in progress
+
+    assertNull(cache.getCachedFile("a/m1.jpg")) // answers at once instead of waiting
+
+    gate.complete(Unit)
+    assertEquals("content of a/m1.jpg", download.await().readText())
+  }
+
+  @Test
+  fun nonPositiveMaxBytesIsRejected() = runTest {
+    for (maxBytes in listOf(0L, -1L)) {
+      val error = runCatching { newCache(maxBytes) }.exceptionOrNull()
+      assertTrue("maxBytes $maxBytes was accepted", error is IllegalArgumentException)
+    }
   }
 }
