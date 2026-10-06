@@ -8,7 +8,6 @@ import androidx.credentials.CustomCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
@@ -31,10 +30,11 @@ class AuthRepositoryFirebase(
 ) : AuthRepository {
 
   override val currentUser: AuthUser?
-    // only continue if auth.currentUser is not null
+    // Only continue if auth.currentUser is not null
+    // If not null, create an AuthUser containing that user's ID
     get() = auth.currentUser?.let { AuthUser(it.uid) }
 
-  override suspend fun signInWithGoogle(credential: Credential): Result<FirebaseUser> {
+  override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> {
     return try {
       require(
           credential is CustomCredential &&
@@ -48,7 +48,7 @@ class AuthRepositoryFirebase(
 
       // Authenticate with Firebase
       val user = checkNotNull(auth.signInWithCredential(firebaseCredential).await().user)
-      Result.success(user) // return Firebase user
+      Result.success(AuthUser(user.uid)) // return AuthUser
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {

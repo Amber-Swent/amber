@@ -2,10 +2,11 @@
 package com.github.se.amber.model.authentication
 
 import androidx.credentials.Credential
-import com.google.firebase.auth.FirebaseUser
 
 /**
- * Identifies an authenticated user within the app.
+ * Identifies an authenticated user within the app. AuthUser only exposes the uid needed by the app,
+ * so that ViewModels don't need to access Firebase directly. This data class is meant to keep the
+ * app's code separate from Firebase.
  *
  * @property uid The user's unique Firebase Authentication identifier.
  */
@@ -25,12 +26,11 @@ interface AuthRepository {
    * suspend function so that the app can wait for authentication without blocking the main thread.
    *
    * @param credential The Google credential to use for authentication.
-   * @return The authenticated Firebase user on success, or a failure if the credential is
-   *   unsupported, cannot be parsed, or authentication fails.
-   * @throws kotlinx.coroutines.CancellationException If cancellation occurs during provider
-   *   cleanup. Cancellation is rethrown rather than returned as a failure.
+   * @return The authenticated AuthUser on success, or a failure if the credential is unsupported,
+   *   cannot be parsed, or authentication fails.
+   * @throws kotlinx.coroutines.CancellationException If authentication is cancelled.
    */
-  suspend fun signInWithGoogle(credential: Credential): Result<FirebaseUser>
+  suspend fun signInWithGoogle(credential: Credential): Result<AuthUser>
 
   /**
    * Ends the Firebase session, then clears credential provider state.
