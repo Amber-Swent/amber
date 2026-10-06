@@ -3,6 +3,9 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
+import android.R.attr.description
+import android.R.attr.onClick
+import android.R.attr.text
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,20 +37,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
+import com.github.se.amber.ui.caregiver.upload.UploadTestTags.PICTURE_BUTTON
+import com.github.se.amber.ui.caregiver.upload.UploadTestTags.TEXT_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 
 object UploadTestTags {
-  const val TEXT_BUTTON = "upload_text_button"
-  const val PICTURE_BUTTON = "upload_picture_button"
-  const val AUDIO_BUTTON = "upload_audio_button"
+    const val TITLE = "upload_title"
+    const val TEXT_BUTTON = "upload_text_button"
+    const val PICTURE_BUTTON = "upload_picture_button"
+    const val AUDIO_BUTTON = "upload_audio_button"
 }
-
 /**
  * Displays the upload menu for text, picture, and audio stories.
  *
@@ -99,6 +106,7 @@ fun Upload(
           Spacer(modifier = Modifier.height(8.dp))
 
           Text(
+              modifier = Modifier.testTag(UploadTestTags.TITLE),
               text = "Upload ",
               color = orange,
               style = MaterialTheme.typography.headlineSmall,
@@ -108,6 +116,7 @@ fun Upload(
           Spacer(modifier = Modifier.height(16.dp))
 
           DisplayButton(
+              modifier = Modifier.testTag(TEXT_BUTTON),
               icon = Icons.Outlined.Description,
               text = "Upload Text",
               description = "Text",
@@ -115,6 +124,7 @@ fun Upload(
           )
 
           DisplayButton(
+              modifier = Modifier.testTag(PICTURE_BUTTON),
               icon = Icons.Outlined.PhotoCamera,
               text = "Upload Picture",
               description = "Picture",
@@ -122,6 +132,7 @@ fun Upload(
           )
 
           DisplayButton(
+              modifier = Modifier.testTag(AUDIO_BUTTON),
               icon = Icons.Outlined.Mic,
               text = "Upload Audio",
               description = "Audio",
@@ -141,10 +152,10 @@ fun Upload(
  * @param onClick callback invoked when the button is selected.
  */
 @Composable
-fun DisplayButton(icon: ImageVector, text: String, description: String, onClick: () -> Unit) {
+fun DisplayButton(modifier : Modifier, icon: ImageVector, text: String, description: String, onClick: () -> Unit) {
   Button(
       onClick = onClick,
-      modifier = Modifier.fillMaxWidth(),
+      modifier = modifier.fillMaxWidth(),
       colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
   ) {
     Row(

@@ -33,9 +33,12 @@ class UploadViewModel(
   /**
    * Sets an error message in the UI state.
    *
+   * Note: internal instead of private;
+   * It stays hidden from other modules but is reachable from tests in the same module.
+   *
    * @param errorMsg message describing the error.
    */
-  private fun setErrorMsg(errorMsg: String) {
+  internal fun setErrorMsg(errorMsg: String) {
     _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
   }
 }
