@@ -59,6 +59,9 @@ object UploadTestTags {
 /**
  * Displays the upload menu for text, picture, and audio stories.
  *
+ * Note: The ViewModel is currently useless.
+ * It's here for possible upcoming implementation, functionality or features.
+ *
  * @param viewModel view model that stores the upload screen state.
  * @param onUploadTextClick callback invoked when text upload is selected.
  * @param onUploadPictureClick callback invoked when picture upload is selected.
