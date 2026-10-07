@@ -30,12 +30,6 @@ object RoleAccess {
   fun canManagePlaces(profile: UserProfile, careCircle: CareCircle): Boolean =
       isCaregiver(profile.role) && canViewCareCircle(profile, careCircle)
 
-  /** A patient member can start the invitation flow that links their phone once. */
-  fun canLinkPatient(profile: UserProfile, careCircle: CareCircle): Boolean =
-      profile.role == Role.PATIENT &&
-          canViewCareCircle(profile, careCircle) &&
-          careCircle.patientId.isEmpty()
-
   /** Invitations change a circle's membership, so they use the same caregiver-member gate. */
   fun canCreateInvitation(profile: UserProfile, careCircle: CareCircle): Boolean =
       canManagePlaces(profile, careCircle)
