@@ -1,0 +1,59 @@
+// Written by GitHub Copilot.
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function circleBucketMember(circleId) {
+      let circle = firestore.get(
+        /databases/(default)/documents/careCircles/$(circleId)
+      );
+      return request.auth != null
+        && circle.data.storageBucket == bucket
+        && request.auth.uid in circle.data.memberIds;
+    }
+
+    function circleCaregiver(circleId) {
+      let profile = firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      );
+      return circleBucketMember(circleId)
+        && profile.data.role == 'CAREGIVER';
+    }
+
+    function validMediaUpload(fileName) {
+      return request.resource.size > 0
+        && request.resource.size <= 25 * 1024 * 1024
+        && (
+          (request.resource.contentType == 'image/jpeg'
+            && fileName.matches('.*\\.jpg'))
+          || (request.resource.contentType == 'image/png'
+            && fileName.matches('.*\\.png'))
+          || (request.resource.contentType == 'audio/mp4'
+            && fileName.matches('.*\\.m4a'))
+        );
+    }
+
+    function uploadedByCurrentUser() {
+      return request.resource.metadata.authorId == request.auth.uid
+        && request.resource.metadata.keys().hasOnly(['authorId']);
+    }
+
+    match /careCircles/{circleId}/media/{fileName} {
+      allow read: if circleBucketMember(circleId);
+      allow create: if circleBucketMember(circleId)
+        && validMediaUpload(fileName)
+        && uploadedByCurrentUser();
+      allow update: if circleBucketMember(circleId)
+        && resource.metadata.authorId == request.auth.uid
+        && uploadedByCurrentUser()
+        && validMediaUpload(fileName);
+      allow delete: if circleCaregiver(circleId)
+        || (circleBucketMember(circleId)
+          && resource.metadata.authorId == request.auth.uid);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

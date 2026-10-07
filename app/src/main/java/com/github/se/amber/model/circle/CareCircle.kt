@@ -1,5 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Claude (Anthropic) via Claude Code and GitHub Copilot.
 package com.github.se.amber.model.circle
 
 import com.github.se.amber.model.location.Place
@@ -35,7 +35,7 @@ typealias ViewerNicknames = Map<String, Map<String, String>>
  * `patientId` is set once, when the patient's phone is linked.
  */
 data class CareCircle(
-    val id: String = "", // circleId = document id; also the prefix of every Storage path
+    val id: String = "", // circleId = document id
     val name: String = "", // "Arthur's family"
     val patientId: String = "", // the patient's uid; "" until their phone redeems a PATIENT code
     // uids of all members incl. the patient, no duplicates (written with arrayUnion/arrayRemove);
@@ -47,4 +47,6 @@ data class CareCircle(
     val places: Map<String, Place> = emptyMap(),
     val createdBy: String = "", // uid of the caregiver who created the circle
     val createdAt: Long = 0L, // Optional; epoch milliseconds
+    // Assigned by the bucket-provisioning backend; empty until the bucket is ready.
+    val storageBucket: String = "",
 )
