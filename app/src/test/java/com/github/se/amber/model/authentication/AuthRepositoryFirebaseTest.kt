@@ -263,7 +263,6 @@ class AuthRepositoryFirebaseTest {
     assertTrue(cleanupCompleted)
   }
 
-
   private fun authResult(firebaseUser: FirebaseUser?): AuthResult {
     val result = mock(AuthResult::class.java)
     `when`(result.user).thenReturn(firebaseUser)
