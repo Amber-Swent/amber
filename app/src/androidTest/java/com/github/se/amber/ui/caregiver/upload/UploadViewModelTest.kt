@@ -1,7 +1,5 @@
-package com.github.se.amber.ui.upload
+package com.github.se.amber.ui.caregiver.upload
 
-import com.github.se.amber.ui.caregiver.upload.UploadUIState
-import com.github.se.amber.ui.caregiver.upload.UploadViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before

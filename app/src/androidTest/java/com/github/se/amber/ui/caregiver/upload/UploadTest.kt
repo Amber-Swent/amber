@@ -1,4 +1,4 @@
-package com.github.se.amber.ui.upload
+package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
@@ -13,10 +13,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.github.se.amber.ui.caregiver.upload.DisplayButton
-import com.github.se.amber.ui.caregiver.upload.Upload
-import com.github.se.amber.ui.caregiver.upload.UploadTestTags
-import com.github.se.amber.ui.caregiver.upload.UploadViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
