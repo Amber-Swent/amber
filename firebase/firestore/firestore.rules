@@ -58,32 +58,7 @@ service cloud.firestore {
         && userDoc(request.auth.uid).circleIds.hasAny(resource.data.circleIds);
     }
 
-    function circleIdsOnlyGrew() {
-      return request.resource.data.circleIds.hasAll(resource.data.circleIds)
-        && request.resource.data.circleIds.size() >= resource.data.circleIds.size();
-    }
-
-    // Invite redeem: not yet a member; only arrayUnion(auth.uid), optional patient link.
-    function isJoiningCircle() {
-      return isSignedIn()
-        && !(request.auth.uid in resource.data.memberIds)
-        && request.auth.uid in request.resource.data.memberIds
-        && request.resource.data.memberIds.hasAll(resource.data.memberIds)
-        && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
-        && request.resource.data.id == resource.data.id
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.name == resource.data.name
-        && request.resource.data.people == resource.data.people
-        && request.resource.data.nicknames == resource.data.nicknames
-        && request.resource.data.places == resource.data.places
-        && (
-          request.resource.data.patientId == resource.data.patientId
-          || (resource.data.patientId == ''
-            && request.resource.data.patientId == request.auth.uid)
-        );
-    }
-
+    // Membership / invite redeem is backend-only (Admin SDK / Cloud Functions).
     function memberCircleFieldEdit(circleId) {
       return isMember(circleId)
         && request.resource.data.id == resource.data.id
@@ -131,9 +106,9 @@ service cloud.firestore {
       allow update: if isSelf(uid)
         && request.resource.data.uid == uid
         && request.resource.data.role == resource.data.role
-        && circleIdsOnlyGrew()
+        && request.resource.data.circleIds == resource.data.circleIds
         && request.resource.data.diff(resource.data)
-             .affectedKeys().hasOnly(['person', 'circleIds']);
+             .affectedKeys().hasOnly(['person']);
 
       allow delete: if false;
     }
@@ -148,7 +123,7 @@ service cloud.firestore {
         && request.resource.data.memberIds == [request.auth.uid]
         && request.resource.data.patientId == '';
 
-      allow update: if isJoiningCircle() || memberCircleFieldEdit(circleId);
+      allow update: if memberCircleFieldEdit(circleId);
 
       allow delete: if false;
 
@@ -204,18 +179,8 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.usedBy == null;
 
-      allow update: if isSignedIn()
-        && resource.data.usedBy == null
-        && resource.data.expiresAt > request.time.toMillis()
-        && request.resource.data.usedBy == request.auth.uid
-        && request.resource.data.code == resource.data.code
-        && request.resource.data.circleId == resource.data.circleId
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.createdBy == resource.data.createdBy
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.expiresAt == resource.data.expiresAt
-        && request.resource.data.diff(resource.data)
-             .affectedKeys().hasOnly(['usedBy']);
+      // Redeem is backend-only (Admin SDK / Cloud Functions).
+      allow update: if false;
 
       allow delete: if false;
     }

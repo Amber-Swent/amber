@@ -92,46 +92,6 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
-  fun circleIdsOnlyGrew_rejectsShrinkOrReorderLoss() {
-    val rules = FirestoreSecurityRules(authUid = "u1", lookup = MockDocumentLookup())
-    assertTrue(rules.circleIdsOnlyGrew(listOf("a"), listOf("a", "b")))
-    assertTrue(rules.circleIdsOnlyGrew(listOf("a"), listOf("a")))
-    assertFalse(rules.circleIdsOnlyGrew(listOf("a", "b"), listOf("a")))
-    assertFalse(rules.circleIdsOnlyGrew(listOf("a"), listOf("b")))
-  }
-
-  @Test
-  fun isJoiningCircle_allowsArrayUnionOfSelf_andOptionalPatientLink() {
-    val rules = FirestoreSecurityRules(authUid = "newbie", lookup = MockDocumentLookup())
-    val before =
-        CareCircle(
-            id = "c1",
-            name = "Family",
-            patientId = "",
-            memberIds = listOf("care"),
-            createdBy = "care",
-            createdAt = 10L,
-        )
-    val joinAsCaregiver = before.copy(memberIds = listOf("care", "newbie"))
-    val joinAsPatient = before.copy(memberIds = listOf("care", "newbie"), patientId = "newbie")
-
-    assertTrue(rules.isJoiningCircle(before, joinAsCaregiver))
-    assertTrue(rules.isJoiningCircle(before, joinAsPatient))
-    assertFalse(
-        rules.isJoiningCircle(
-            before,
-            before.copy(name = "Hacked", memberIds = listOf("care", "newbie")),
-        )
-    )
-    assertFalse(
-        rules.isJoiningCircle(
-            before.copy(memberIds = listOf("care", "newbie")),
-            before.copy(memberIds = listOf("care", "newbie", "extra")),
-        ),
-    )
-  }
-
-  @Test
   fun onlyOwnNicknameChanged_allowsSelfKeyOnly() {
     val rules = FirestoreSecurityRules(authUid = "u1", lookup = MockDocumentLookup())
     val before = mapOf("u1" to mapOf("p1" to "Alice"), "u2" to mapOf("p1" to "Bob"))
@@ -228,15 +188,19 @@ class FirestoreSecurityRulesTest {
     assertFalse(db.rulesFor("new").canCreateUser(onboard.copy(uid = "other")))
 
     db.putUser(onboard)
-    val grown =
-        onboard.copy(circleIds = listOf("c1"), person = Person(id = "new", firstName = "Newer"))
-    assertTrue(db.rulesFor("new").canUpdateUser(onboard, grown))
-    assertFalse(db.rulesFor("new").canUpdateUser(onboard, grown.copy(role = Role.PATIENT)))
+    val personOnly =
+        onboard.copy(person = Person(id = "new", firstName = "Newer"))
+    assertTrue(db.rulesFor("new").canUpdateUser(onboard, personOnly))
+    assertFalse(
+        db.rulesFor("new")
+            .canUpdateUser(onboard, onboard.copy(circleIds = listOf("c1"))),
+    )
+    assertFalse(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
     assertFalse(db.rulesFor("new").canDeleteUser())
   }
 
   @Test
-  fun careCircles_createJoinAndMemberEdit_enforcedByFakeStore() {
+  fun careCircles_createAndMemberEdit_enforcedByFakeStore() {
     val db = FakeFirestore()
     val careProfile = UserProfile(uid = "care", role = Role.CAREGIVER, person = Person(id = "care"))
     db.putUser(careProfile)
@@ -258,8 +222,9 @@ class FirestoreSecurityRulesTest {
     db.putCircle(created)
     db.putUser(UserProfile(uid = "pat", role = Role.PATIENT, person = Person(id = "pat")))
 
+    // Client-side join is denied; membership sync is backend-only (PR #83).
     val joined = created.copy(memberIds = listOf("care", "pat"), patientId = "pat")
-    assertTrue(db.rulesFor("pat").canUpdateCircle(created, joined))
+    assertFalse(db.rulesFor("pat").canUpdateCircle(created, joined))
 
     db.putCircle(joined)
     val nicknameEdit = joined.copy(nicknames = mapOf("pat" to mapOf("care" to "Dad")))
@@ -331,7 +296,7 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
-  fun invitations_getCreateRedeem_enforcedByFakeStore() {
+  fun invitations_getCreate_denyClientRedeem_enforcedByFakeStore() {
     val db = FakeFirestore()
     db.putUser(UserProfile(uid = "care", role = Role.CAREGIVER, person = Person(id = "care")))
     db.putUser(UserProfile(uid = "pat", role = Role.PATIENT, person = Person(id = "pat")))
@@ -356,13 +321,8 @@ class FirestoreSecurityRulesTest {
 
     db.putInvitation(invite)
     val redeemed = invite.copy(usedBy = "pat")
-    assertTrue(db.rulesFor("pat", now).canUpdateInvitation(invite, redeemed))
-    assertFalse(
-        db.rulesFor("pat", now).canUpdateInvitation(invite, redeemed.copy(role = Role.CAREGIVER))
-    )
-    assertFalse(
-        db.rulesFor("pat", now + 120_000).canUpdateInvitation(invite, redeemed),
-    )
+    // Redeem is backend-only (Admin SDK / Cloud Functions in PR #83).
+    assertFalse(db.rulesFor("pat", now).canUpdateInvitation(invite, redeemed))
     assertFalse(db.rulesFor("care", now).canDeleteInvitation())
   }
 }
@@ -418,10 +378,9 @@ private class FakeFirestore {
     pendingCircles[circle.id] = circle
   }
 
-  fun rulesFor(uid: String?, nowMillis: Long = 0L): FirestoreSecurityRules =
+  fun rulesFor(uid: String?, @Suppress("UNUSED_PARAMETER") nowMillis: Long = 0L): FirestoreSecurityRules =
       FirestoreSecurityRules(
           authUid = uid,
-          nowMillis = nowMillis,
           lookup =
               object : DocumentLookup {
                 override fun user(uid: String) = users[uid]
@@ -453,7 +412,6 @@ private interface DocumentLookup {
 private class FirestoreSecurityRules(
     private val authUid: String?,
     private val lookup: DocumentLookup,
-    private val nowMillis: Long = 0L,
 ) {
   fun isSignedIn(): Boolean = authUid != null
 
@@ -477,27 +435,6 @@ private class FirestoreSecurityRules(
   fun sharesCircleWith(resource: UserProfile): Boolean {
     val viewer = authUid?.let(lookup::user) ?: return false
     return isSignedIn() && viewer.circleIds.any { it in resource.circleIds }
-  }
-
-  fun circleIdsOnlyGrew(before: List<String>, after: List<String>): Boolean =
-      after.containsAll(before) && after.size >= before.size
-
-  fun isJoiningCircle(before: CareCircle, after: CareCircle): Boolean {
-    val uid = authUid ?: return false
-    val patientOk =
-        after.patientId == before.patientId || (before.patientId == "" && after.patientId == uid)
-    return uid !in before.memberIds &&
-        uid in after.memberIds &&
-        after.memberIds.containsAll(before.memberIds) &&
-        after.memberIds.size == before.memberIds.size + 1 &&
-        after.id == before.id &&
-        after.createdBy == before.createdBy &&
-        after.createdAt == before.createdAt &&
-        after.name == before.name &&
-        after.people == before.people &&
-        after.nicknames == before.nicknames &&
-        after.places == before.places &&
-        patientOk
   }
 
   fun onlyOwnNicknameChanged(
@@ -544,9 +481,9 @@ private class FirestoreSecurityRules(
   fun canUpdateUser(before: UserProfile, after: UserProfile): Boolean {
     if (!isSelf(before.uid) || after.uid != before.uid) return false
     if (after.role != before.role) return false
-    if (!circleIdsOnlyGrew(before.circleIds, after.circleIds)) return false
+    if (after.circleIds != before.circleIds) return false
     val affected = affectedUserKeys(before, after)
-    return affected.all { it == "person" || it == "circleIds" }
+    return affected.all { it == "person" }
   }
 
   fun canDeleteUser(): Boolean = false
@@ -560,7 +497,7 @@ private class FirestoreSecurityRules(
           resource.patientId == ""
 
   fun canUpdateCircle(before: CareCircle, after: CareCircle): Boolean =
-      isJoiningCircle(before, after) || memberCircleFieldEdit(before.id, before, after)
+      memberCircleFieldEdit(before.id, before, after)
 
   fun canDeleteCircle(): Boolean = false
 
@@ -600,18 +537,8 @@ private class FirestoreSecurityRules(
           resource.createdBy == authUid &&
           resource.usedBy == null
 
-  fun canUpdateInvitation(before: Invitation, after: Invitation): Boolean =
-      isSignedIn() &&
-          before.usedBy == null &&
-          before.expiresAt > nowMillis &&
-          after.usedBy == authUid &&
-          after.code == before.code &&
-          after.circleId == before.circleId &&
-          after.role == before.role &&
-          after.createdBy == before.createdBy &&
-          after.createdAt == before.createdAt &&
-          after.expiresAt == before.expiresAt &&
-          affectedInvitationKeys(before, after) == setOf("usedBy")
+  @Suppress("UNUSED_PARAMETER")
+  fun canUpdateInvitation(before: Invitation, after: Invitation): Boolean = false
 
   fun canDeleteInvitation(): Boolean = false
 
@@ -621,18 +548,6 @@ private class FirestoreSecurityRules(
     if (before.role != after.role) keys += "role"
     if (before.person != after.person) keys += "person"
     if (before.circleIds != after.circleIds) keys += "circleIds"
-    return keys
-  }
-
-  private fun affectedInvitationKeys(before: Invitation, after: Invitation): Set<String> {
-    val keys = mutableSetOf<String>()
-    if (before.code != after.code) keys += "code"
-    if (before.circleId != after.circleId) keys += "circleId"
-    if (before.role != after.role) keys += "role"
-    if (before.createdBy != after.createdBy) keys += "createdBy"
-    if (before.createdAt != after.createdAt) keys += "createdAt"
-    if (before.expiresAt != after.expiresAt) keys += "expiresAt"
-    if (before.usedBy != after.usedBy) keys += "usedBy"
     return keys
   }
 }

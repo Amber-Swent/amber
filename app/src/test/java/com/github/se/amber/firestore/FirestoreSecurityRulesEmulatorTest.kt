@@ -68,25 +68,32 @@ class FirestoreSecurityRulesEmulatorTest {
         ),
     )
 
-    // Peer joins through rules, then caregiver can read the peer via sharesCircleWith.
+    // Client cannot join a circle or grow circleIds (membership sync is backend-only).
     fs.assertSucceeds(
         peer,
         fs.set("users/$peer", user(peer, "CAREGIVER", emptyList(), "Bob")),
     )
-    fs.assertSucceeds(
+    fs.assertFails(
         peer,
         fs.set(
             "careCircles/$circleId",
             circle(circleId, care, listOf(care, peer), patientId = ""),
         ),
     )
-    fs.assertSucceeds(peer, fs.patch("users/$peer", mapOf("circleIds" to listOf(circleId))))
+    fs.assertFails(peer, fs.patch("users/$peer", mapOf("circleIds" to listOf(circleId))))
+
+    // Admin SDK seeds membership (stands in for Cloud Functions redeem in PR #83).
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, care, listOf(care, peer), patientId = ""),
+    )
+    fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
   }
 
   @Test
-  fun inviteRedeem_mediaStoriesAppointments_enforcedByEmulator() {
+  fun inviteClientRedeemDenied_mediaStoriesAppointments_enforcedByEmulator() {
     val circleId = "c-redeem"
     val care = "care"
     val pat = "pat"
@@ -114,15 +121,20 @@ class FirestoreSecurityRulesEmulatorTest {
 
     fs.assertSucceeds(pat, fs.get("invitations/REDEEM1"))
     fs.assertFails(pat, fs.patch("invitations/EXPIRED", mapOf("usedBy" to pat)))
-    fs.assertSucceeds(pat, fs.patch("invitations/REDEEM1", mapOf("usedBy" to pat)))
-    fs.assertSucceeds(
+    // Client redeem / join is denied; Admin SDK stands in for Cloud Functions (PR #83).
+    fs.assertFails(pat, fs.patch("invitations/REDEEM1", mapOf("usedBy" to pat)))
+    fs.assertFails(
         pat,
         fs.set(
             "careCircles/$circleId",
             circle(circleId, care, listOf(care, pat), patientId = pat),
         ),
     )
-    fs.assertSucceeds(pat, fs.set("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat")))
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, care, listOf(care, pat), patientId = pat),
+    )
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
 
     val mediaCol = "careCircles/$circleId/media"
     fs.assertSucceeds(
