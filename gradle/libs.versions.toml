@@ -17,7 +17,8 @@ robolectric = "4.16.1"
 sonar = "7.5.0.8588"
 gms = "4.5.0"
 firebaseBom = "34.18.0"
-coroutinesTest = "1.9.0"
+coroutines = "1.9.0"
+mockitoKotlin = "5.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,11 +45,14 @@ kaspresso-compose = { group = "com.kaspersky.android-components", name = "kaspre
 
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
-kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
 
 firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+firebase-storage = { module = "com.google.firebase:firebase-storage" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

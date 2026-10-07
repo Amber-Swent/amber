@@ -34,7 +34,11 @@ class MediaFileCacheInstrumentedTest {
   // put must never download: a call to this fails the test
   private val cache =
       MediaFileCache(
-          downloader = { path, _ -> throw AssertionError("put must not download $path") },
+          storage =
+              object : MediaStorageRepository {
+                override suspend fun downloadToFile(storagePath: String, destination: File) =
+                    throw AssertionError("put must not download $storagePath")
+              },
           dir = cacheDir,
       )
 

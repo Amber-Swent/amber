@@ -14,22 +14,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
- * What [MediaFileCache] needs from remote storage: downloading one file. Declared here so the cache
- * doesn't depend on the storage repository; pass a method reference to the repository's download
- * function, or a lambda in tests.
- *
- * TODO: temporary until the media storage repository exists (another team member is implementing
- *   it). The cache may then depend on that repository directly, and tests would mock it.
- */
-fun interface MediaDownloader {
-  /**
-   * Downloads the remote file at [storagePath] into [destination], overwriting its content. Throws
-   * if the download fails (e.g. offline); [destination] may then hold a partial file.
-   */
-  suspend fun download(storagePath: String, destination: File)
-}
-
-/**
  * Local on-disk cache of media files (the bytes behind [MediaItem.storagePath]), so media that was
  * already loaded can still be browsed offline. Used by the media repository only, never by
  * ViewModels.
@@ -37,17 +21,17 @@ fun interface MediaDownloader {
  * Files are written to a temporary `.part` file and renamed once complete, so a cached file is
  * always whole. Past [maxBytes], the least recently used files are deleted.
  *
- * Only one instance may use a given [dir]: the locks don't coordinate across instances, so provide
- * the cache as a single shared instance (e.g. a singleton in dependency injection). The constructor
- * doesn't touch the disk; the folder is set up on first use, on [ioDispatcher].
+ * Only one instance may use a given [dir]: the locks don't coordinate across instances, so get the
+ * app's instance from [MediaStorageRepositoryProvider.mediaFileCache]. The constructor doesn't
+ * touch the disk; the folder is set up on first use, on [ioDispatcher].
  *
- * @param downloader fetches a file on a cache miss; temporary, see [MediaDownloader].
+ * @param storage remote storage a file is downloaded from on a cache miss.
  * @param dir cache folder, e.g. `File(context.cacheDir, "media")`; created if missing.
  * @param maxBytes size the cache is trimmed down to after each new file; must be positive.
  * @param ioDispatcher where the disk and network work runs; tests pass a test dispatcher.
  */
 class MediaFileCache(
-    private val downloader: MediaDownloader,
+    private val storage: MediaStorageRepository,
     private val dir: File,
     private val maxBytes: Long = 500L * 1024 * 1024, // 500 MiB
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -100,16 +84,18 @@ class MediaFileCache(
    *
    * - Cache hit: the file is marked as recently used and returned at once, which also works
    *   offline.
-   * - Cache miss: the file is downloaded through [downloader] into a temporary `.part` file, which
-   *   is renamed to its cache name once complete; the cache is then trimmed to [maxBytes].
+   * - Cache miss: the file is downloaded through [storage] into a temporary `.part` file, which is
+   *   renamed to its cache name once complete; the cache is then trimmed to [maxBytes]. Offline,
+   *   this fails once [storage] stops retrying (after a few seconds with the app's repository, see
+   *   [MediaStorageRepositoryProvider]).
    *
    * Concurrent calls for the same path share one download: the others wait for it, then find the
    * file cached. The returned file may be evicted later to make room, so open it right away rather
    * than keeping the [File] around.
    *
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
-   * @throws Exception whatever [MediaDownloader.download] throws (e.g. when offline and the file
-   *   isn't cached); nothing is left in the cache in that case.
+   * @throws Exception whatever [MediaStorageRepository.downloadToFile] throws (e.g. when offline
+   *   and the file isn't cached); nothing is left in the cache in that case.
    * @throws IOException if the downloaded file can't be moved to its cache name, or if [clear] ran
    *   during the download.
    */
@@ -128,7 +114,7 @@ class MediaFileCache(
               val startGeneration = generation
               val temp = newTempFile()
               try {
-                downloader.download(storagePath, temp)
+                storage.downloadToFile(storagePath, temp)
                 commit(temp, file, startGeneration)
               } finally {
                 temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
@@ -138,19 +124,6 @@ class MediaFileCache(
         // only when the cache grew; outside the path lock so other callers of this path don't wait
         if (added) trimToSize(keep = file)
         file
-      }
-
-  /**
-   * Returns the cached file of [storagePath] and marks it as recently used, or null if it isn't
-   * cached. Never downloads and never waits for a download in progress, so it answers at once, even
-   * offline.
-   *
-   * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
-   */
-  suspend fun getCachedFile(storagePath: String): File? =
-      withContext(ioDispatcher) {
-        setUp.value
-        fileFor(storagePath).takeIf { it.exists() }?.also { markUsed(it) }
       }
 
   /**

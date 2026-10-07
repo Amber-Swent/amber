@@ -32,7 +32,11 @@ class MediaFileCacheConcurrencyTest {
 
   private fun newCache() =
       MediaFileCache(
-          downloader = { path, destination -> destination.writeText(contentOf(path)) },
+          storage =
+              object : MediaStorageRepository {
+                override suspend fun downloadToFile(storagePath: String, destination: File) =
+                    destination.writeText(contentOf(storagePath))
+              },
           dir = cacheDir,
           maxBytes = MAX_FILES * FILE_SIZE.toLong(),
       ) // default ioDispatcher: Dispatchers.IO, real threads
@@ -52,10 +56,9 @@ class MediaFileCacheConcurrencyTest {
               repeat(300) {
                 // 150 paths but room for only 50 files: frequent misses (trims) and hits at once
                 val path = "a/m${random.nextInt(150)}.jpg"
-                val file =
-                    if (random.nextBoolean()) cache.getFile(path) else cache.getCachedFile(path)
-                // null: not cached, or evicted before it could be read; both allowed
-                val text = file?.let { runCatching { it.readText() }.getOrNull() }
+                val file = cache.getFile(path)
+                // null: evicted before it could be read, which the cache allows
+                val text = runCatching { file.readText() }.getOrNull()
                 if (text != null && text != contentOf(path)) wrong += "$path -> $text"
               }
             }
