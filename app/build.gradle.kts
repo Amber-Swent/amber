@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   alias(libs.plugins.androidApplication)
@@ -61,7 +62,7 @@ android {
   // (test)
   // The next lines transfers the src/test/* from shared to the testDebug one
   //
-  // This prevent errors from occurring during unit tests
+  // This prevents errors from occurring during unit tests
   sourceSets.getByName("testDebug") {
     val test = sourceSets.getByName("test")
 
@@ -140,6 +141,7 @@ dependencies {
   implementation(libs.compose.viewmodel)
   // Android Studio Preview support
   implementation(libs.compose.preview)
+  implementation(libs.compose.material.icons)
   debugImplementation(libs.compose.tooling)
   // UI Tests
   globalTestImplementation(libs.compose.test.junit)
@@ -157,6 +159,7 @@ dependencies {
   androidTestImplementation(platform(libs.firebase.bom))
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.auth)
+  implementation(libs.firebase.storage)
 }
 
 tasks.withType<Test> {
@@ -185,14 +188,16 @@ tasks.register("jacocoTestReport", JacocoReport::class) {
           "android/**/*.*",
       )
 
-  val debugTree =
-      fileTree("${project.layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
-        exclude(fileFilter)
-      }
+  val debugKotlinClasses =
+      tasks.named<KotlinCompile>("compileDebugKotlin").flatMap { it.destinationDirectory }
+
+  val debugTree = debugKotlinClasses.map { directory ->
+    fileTree(directory) { exclude(fileFilter) }
+  }
 
   val mainSrc = "${project.layout.projectDirectory}/src/main/java"
   sourceDirectories.setFrom(files(mainSrc))
-  classDirectories.setFrom(files(debugTree))
+  classDirectories.setFrom(debugTree)
   executionData.setFrom(
       fileTree(project.layout.buildDirectory.get()) {
         include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
