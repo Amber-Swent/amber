@@ -6,6 +6,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Base64
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -90,6 +91,74 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
+  }
+
+  @Test
+  fun userCreate_rejectsInvalidRoleAndExtraFields_enforcedByEmulator() {
+    val uid = "newbie"
+
+    fs.assertFails(
+        uid,
+        fs.set("users/$uid", user(uid, "ADMIN", emptyList(), "Neo")),
+    )
+    fs.assertFails(
+        uid,
+        fs.set(
+            "users/$uid",
+            user(uid, "CAREGIVER", emptyList(), "Neo") + ("extra" to "nope"),
+        ),
+    )
+    fs.assertSucceeds(
+        uid,
+        fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "Neo")),
+    )
+  }
+
+  @Test
+  fun inviteClientRedeemBatch_rejectedLeavesStateUnchanged_enforcedByEmulator() {
+    val circleId = "c-batch"
+    val care = "care"
+    val pat = "pat"
+    val inviteCode = "BATCH01"
+    val inviteDoc = invite(inviteCode, circleId, "PATIENT", care, expiresAt = now + 120_000)
+    val circleBefore = circle(circleId, care, listOf(care), patientId = "")
+
+    fs.assertSucceeds(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite("careCircles/$circleId", circleBefore),
+        ),
+    )
+    fs.assertSucceeds(care, fs.set("invitations/$inviteCode", inviteDoc))
+
+    // Client batch redeem (invite + circle + profile) must fail atomically.
+    fs.assertFails(
+        pat,
+        fs.commit(
+            fs.setWrite("invitations/$inviteCode", inviteDoc + ("usedBy" to pat)),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, care, listOf(care, pat), patientId = pat),
+            ),
+            fs.setWrite("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat")),
+        ),
+    )
+
+    // Invitation, circle, and profile must be unchanged after the rejected batch.
+    val (inviteStatus, inviteBody) = fs.adminGet("invitations/$inviteCode")
+    assertEquals(200, inviteStatus)
+    assertTrue(inviteBody.contains("\"usedBy\""))
+    assertTrue(inviteBody.contains("nullValue"))
+    assertFalse(inviteBody.contains("\"$pat\""))
+
+    val (circleStatus, circleBody) = fs.adminGet("careCircles/$circleId")
+    assertEquals(200, circleStatus)
+    assertTrue(circleBody.contains("\"$care\""))
+    assertFalse(circleBody.contains("\"$pat\""))
+
+    val (profileStatus, _) = fs.adminGet("users/$pat")
+    assertEquals(404, profileStatus)
   }
 
   @Test
@@ -277,15 +346,21 @@ private class FirestoreEmulatorClient(
     private val host: String = "http://127.0.0.1:8080",
 ) {
   fun clear() {
-    request(
-        "DELETE",
-        "$host/emulator/v1/projects/$projectId/databases/(default)/documents",
-        token = null,
-    )
+    val code =
+        request(
+            "DELETE",
+            "$host/emulator/v1/projects/$projectId/databases/(default)/documents",
+            token = null,
+        )
+    assertTrue("Emulator clear failed with HTTP $code", code in 200..299)
   }
 
   fun adminSet(path: String, fields: Map<String, Any?>): Int =
       commitAs("owner", setWrite(path, fields))
+
+  /** Admin read that returns HTTP status and raw JSON body (bypasses security rules). */
+  fun adminGet(path: String): Pair<Int, String> =
+      requestWithBody("GET", docUrl(path), token = "owner")
 
   fun set(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(bearer(uid), setWrite(path, fields))
@@ -363,7 +438,14 @@ private class FirestoreEmulatorClient(
       url: String,
       token: String?,
       body: Map<String, Any?>? = null,
-  ): Int {
+  ): Int = requestWithBody(method, url, token, body).first
+
+  private fun requestWithBody(
+      method: String,
+      url: String,
+      token: String?,
+      body: Map<String, Any?>? = null,
+  ): Pair<Int, String> {
     val connection = URL(url).openConnection() as HttpURLConnection
     connection.requestMethod = method
     connection.connectTimeout = 5_000
@@ -375,7 +457,10 @@ private class FirestoreEmulatorClient(
       connection.outputStream.use { it.write(jsonEncode(body).toByteArray()) }
     }
     return try {
-      connection.responseCode
+      val code = connection.responseCode
+      val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+      val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+      code to text
     } finally {
       connection.disconnect()
     }

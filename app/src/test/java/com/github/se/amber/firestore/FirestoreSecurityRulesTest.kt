@@ -138,6 +138,8 @@ class FirestoreSecurityRulesTest {
     assertTrue(rules.mediaStoragePathMatches("c1", "careCircles/c1/media/m1.jpg"))
     assertFalse(rules.mediaStoragePathMatches("c1", "careCircles/other/media/m1.jpg"))
     assertFalse(rules.mediaStoragePathMatches("c1", "elsewhere/m1.jpg"))
+    assertFalse(rules.mediaStoragePathMatches("c1", "careCircles/c1/media/subfolder/nested.jpg"))
+    assertFalse(rules.mediaStoragePathMatches("c1", "careCircles/c1/admin/secret.txt"))
   }
 
   // ---------------------------------------------------------------------------
@@ -188,12 +190,10 @@ class FirestoreSecurityRulesTest {
     assertFalse(db.rulesFor("new").canCreateUser(onboard.copy(uid = "other")))
 
     db.putUser(onboard)
-    val personOnly =
-        onboard.copy(person = Person(id = "new", firstName = "Newer"))
+    val personOnly = onboard.copy(person = Person(id = "new", firstName = "Newer"))
     assertTrue(db.rulesFor("new").canUpdateUser(onboard, personOnly))
     assertFalse(
-        db.rulesFor("new")
-            .canUpdateUser(onboard, onboard.copy(circleIds = listOf("c1"))),
+        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("c1"))),
     )
     assertFalse(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
     assertFalse(db.rulesFor("new").canDeleteUser())
@@ -378,7 +378,10 @@ private class FakeFirestore {
     pendingCircles[circle.id] = circle
   }
 
-  fun rulesFor(uid: String?, @Suppress("UNUSED_PARAMETER") nowMillis: Long = 0L): FirestoreSecurityRules =
+  fun rulesFor(
+      uid: String?,
+      @Suppress("UNUSED_PARAMETER") nowMillis: Long = 0L,
+  ): FirestoreSecurityRules =
       FirestoreSecurityRules(
           authUid = uid,
           lookup =
@@ -451,23 +454,32 @@ private class FirestoreSecurityRules(
       before == after || isCaregiver()
 
   fun mediaStoragePathMatches(circleId: String, storagePath: String): Boolean =
-      storagePath.matches(Regex("^careCircles/$circleId/.*"))
+      storagePath.matches(Regex("^careCircles/$circleId/media/[^/]+$"))
 
-  fun memberCircleFieldEdit(circleId: String, before: CareCircle, after: CareCircle): Boolean =
-      isMember(circleId) &&
-          after.id == before.id &&
-          after.createdBy == before.createdBy &&
-          after.createdAt == before.createdAt &&
-          after.memberIds == before.memberIds &&
-          after.patientId == before.patientId &&
-          onlyOwnNicknameChanged(before.nicknames, after.nicknames) &&
-          placesChangedOnlyByCaregiver(before.places, after.places)
+  fun memberCircleFieldEdit(circleId: String, before: CareCircle, after: CareCircle): Boolean {
+    if (!isMember(circleId)) return false
+    if (
+        after.id != before.id ||
+            after.createdBy != before.createdBy ||
+            after.createdAt != before.createdAt ||
+            after.memberIds != before.memberIds ||
+            after.patientId != before.patientId
+    ) {
+      return false
+    }
+    val affected = affectedCircleKeys(before, after)
+    return affected.all { it in setOf("name", "people", "nicknames", "places") } &&
+        onlyOwnNicknameChanged(before.nicknames, after.nicknames) &&
+        placesChangedOnlyByCaregiver(before.places, after.places)
+  }
 
   fun canReadUser(resource: UserProfile): Boolean =
       isSelf(resource.uid) || sharesCircleWith(resource)
 
   fun canCreateUser(resource: UserProfile): Boolean {
     if (!isSelf(resource.uid) || resource.uid != authUid) return false
+    // Mirrors hasOnly(['uid','role','person','circleIds']) + role enum check in rules.
+    if (resource.role != Role.CAREGIVER && resource.role != Role.PATIENT) return false
     return when (resource.circleIds.size) {
       0 -> true
       1 -> {
@@ -488,6 +500,7 @@ private class FirestoreSecurityRules(
 
   fun canDeleteUser(): Boolean = false
 
+  /** Rules also require `createdAt is int`; CareCircle always carries a Long when mirrored. */
   fun canCreateCircle(resource: CareCircle): Boolean =
       isSignedIn() &&
           (isCaregiver() || isCaregiverAfter()) &&
@@ -548,6 +561,20 @@ private class FirestoreSecurityRules(
     if (before.role != after.role) keys += "role"
     if (before.person != after.person) keys += "person"
     if (before.circleIds != after.circleIds) keys += "circleIds"
+    return keys
+  }
+
+  private fun affectedCircleKeys(before: CareCircle, after: CareCircle): Set<String> {
+    val keys = mutableSetOf<String>()
+    if (before.id != after.id) keys += "id"
+    if (before.name != after.name) keys += "name"
+    if (before.patientId != after.patientId) keys += "patientId"
+    if (before.memberIds != after.memberIds) keys += "memberIds"
+    if (before.people != after.people) keys += "people"
+    if (before.nicknames != after.nicknames) keys += "nicknames"
+    if (before.places != after.places) keys += "places"
+    if (before.createdBy != after.createdBy) keys += "createdBy"
+    if (before.createdAt != after.createdAt) keys += "createdAt"
     return keys
   }
 }

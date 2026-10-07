@@ -66,6 +66,8 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.memberIds == resource.data.memberIds
         && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places'])
         && onlyOwnNicknameChanged()
         && placesChangedOnlyByCaregiver();
     }
@@ -83,7 +85,7 @@ service cloud.firestore {
 
     function mediaStoragePathMatches(circleId) {
       return request.resource.data.storagePath.matches(
-        'careCircles/' + circleId + '/.*'
+        'careCircles/' + circleId + '/media/[^/]+'
       );
     }
 
@@ -92,7 +94,8 @@ service cloud.firestore {
 
       allow create: if isSelf(uid)
         && request.resource.data.uid == uid
-        && request.resource.data.keys().hasAll(['uid', 'role', 'person', 'circleIds'])
+        && request.resource.data.role in ['CAREGIVER', 'PATIENT']
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'person', 'circleIds'])
         && (
           request.resource.data.circleIds.size() == 0
           || (
@@ -121,7 +124,8 @@ service cloud.firestore {
         && request.resource.data.id == circleId
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.memberIds == [request.auth.uid]
-        && request.resource.data.patientId == '';
+        && request.resource.data.patientId == ''
+        && request.resource.data.createdAt is int;
 
       allow update: if memberCircleFieldEdit(circleId);
 
