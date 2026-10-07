@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.model.media
+package com.github.se.amber.data.media
 
 import java.io.File
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -32,11 +32,6 @@ class MediaFileCacheConcurrencyTest {
 
   private fun newCache() =
       MediaFileCache(
-          storage =
-              object : MediaStorageRepository {
-                override suspend fun downloadToFile(storagePath: String, destination: File) =
-                    destination.writeText(contentOf(storagePath))
-              },
           dir = cacheDir,
           maxBytes = MAX_FILES * FILE_SIZE.toLong(),
       ) // default ioDispatcher: Dispatchers.IO, real threads
@@ -56,7 +51,7 @@ class MediaFileCacheConcurrencyTest {
               repeat(300) {
                 // 150 paths but room for only 50 files: frequent misses (trims) and hits at once
                 val path = "a/m${random.nextInt(150)}.jpg"
-                val file = cache.getFile(path)
+                val file = cache.getFile(path) { it.writeText(contentOf(path)) }
                 // null: evicted before it could be read, which the cache allows
                 val text = runCatching { file.readText() }.getOrNull()
                 if (text != null && text != contentOf(path)) wrong += "$path -> $text"
@@ -68,7 +63,9 @@ class MediaFileCacheConcurrencyTest {
 
     assertTrue("wrong content served: $wrong", wrong.isEmpty())
     assertTrue(cachedFiles().none { it.name.endsWith(".part") })
-    cache.getFile("a/last.jpg") // a trim with nothing running at the same time
+    cache.getFile("a/last.jpg") {
+      it.writeText(contentOf("a/last.jpg"))
+    } // a trim with nothing running at the same time
     assertTrue(cachedFiles().size <= MAX_FILES)
   }
 

@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.model.media
+package com.github.se.amber.data.media
 
 import java.io.File
 import java.io.IOException
@@ -26,14 +26,14 @@ class MediaFileCacheTest {
   @get:Rule val tmp = TemporaryFolder()
 
   /** Fake remote storage: records each download, and can be told to fail or to pause. */
-  private class FakeStorage : MediaStorageRepository {
+  private class FakeStorage {
     val calls = mutableListOf<String>()
     var content: (String) -> String = { "content of $it" }
     var failure: Exception? = null
     var gate: CompletableDeferred<Unit>? = null // if set, downloads wait for it to complete
     val gates = mutableMapOf<String, CompletableDeferred<Unit>>() // same, for one path only
 
-    override suspend fun downloadToFile(storagePath: String, destination: File) {
+    suspend fun download(storagePath: String, destination: File) {
       calls += storagePath
       destination.writeText("partial") // like a real download, bytes arrive before it ends
       (gates[storagePath] ?: gate)?.await()
@@ -51,7 +51,11 @@ class MediaFileCacheTest {
   }
 
   private fun TestScope.newCache(maxBytes: Long = 1024 * 1024) =
-      MediaFileCache(storage, cacheDir, maxBytes, StandardTestDispatcher(testScheduler))
+      MediaFileCache(cacheDir, maxBytes, StandardTestDispatcher(testScheduler))
+
+  /** [MediaFileCache.getFile], downloading from [storage] on a miss like the app's repository. */
+  private suspend fun MediaFileCache.fetch(storagePath: String) =
+      getFile(storagePath) { storage.download(storagePath, it) }
 
   private fun cachedFileNames() = cacheDir.listFiles().orEmpty().map { it.name }.sorted()
 
@@ -64,7 +68,7 @@ class MediaFileCacheTest {
   fun getFileDownloadsOnCacheMiss() = runTest {
     val cache = newCache()
 
-    val file = cache.getFile("careCircles/c1/media/m1.jpg")
+    val file = cache.fetch("careCircles/c1/media/m1.jpg")
 
     assertEquals("content of careCircles/c1/media/m1.jpg", file.readText())
     assertEquals(cacheDir, file.parentFile)
@@ -74,10 +78,10 @@ class MediaFileCacheTest {
   @Test
   fun getFileReturnsCachedFileWithoutDownloadingAgain() = runTest {
     val cache = newCache()
-    val first = cache.getFile("a/m1.jpg")
+    val first = cache.fetch("a/m1.jpg")
     storage.content = { "changed remotely" }
 
-    val second = cache.getFile("a/m1.jpg")
+    val second = cache.fetch("a/m1.jpg")
 
     assertEquals(first, second)
     assertEquals("content of a/m1.jpg", second.readText())
@@ -89,12 +93,12 @@ class MediaFileCacheTest {
     val cache = newCache()
     storage.failure = IOException("offline")
 
-    val error = runCatching { cache.getFile("a/m1.jpg") }.exceptionOrNull()
+    val error = runCatching { cache.fetch("a/m1.jpg") }.exceptionOrNull()
 
     assertEquals("offline", error?.message)
     assertEquals(emptyList<String>(), cachedFileNames()) // no cached file, no .part left
     storage.failure = null
-    assertEquals("content of a/m1.jpg", cache.getFile("a/m1.jpg").readText())
+    assertEquals("content of a/m1.jpg", cache.fetch("a/m1.jpg").readText())
     assertEquals(listOf("a/m1.jpg", "a/m1.jpg"), storage.calls)
   }
 
@@ -104,8 +108,8 @@ class MediaFileCacheTest {
     val gate = CompletableDeferred<Unit>()
     storage.gate = gate
 
-    val first = async { cache.getFile("a/m1.jpg") }
-    val second = async { cache.getFile("a/m1.jpg") }
+    val first = async { cache.fetch("a/m1.jpg") }
+    val second = async { cache.fetch("a/m1.jpg") }
     runCurrent() // first is downloading, second waits for it
     gate.complete(Unit)
 
@@ -122,37 +126,37 @@ class MediaFileCacheTest {
     cache.put("a/m1.jpg", source)
 
     assertFalse(source.exists())
-    assertEquals("uploaded bytes", cache.getFile("a/m1.jpg").readText())
+    assertEquals("uploaded bytes", cache.fetch("a/m1.jpg").readText())
     assertEquals(emptyList<String>(), storage.calls)
   }
 
   @Test
   fun putReplacesAlreadyCachedFile() = runTest {
     val cache = newCache()
-    cache.getFile("a/m1.jpg")
+    cache.fetch("a/m1.jpg")
 
     cache.put("a/m1.jpg", sourceFile("new bytes"))
 
-    assertEquals("new bytes", cache.getFile("a/m1.jpg").readText())
+    assertEquals("new bytes", cache.fetch("a/m1.jpg").readText())
     assertEquals(listOf("a/m1.jpg"), storage.calls)
   }
 
   @Test
   fun evictedFileIsDownloadedAgain() = runTest {
     val cache = newCache()
-    cache.getFile("a/m1.jpg")
+    cache.fetch("a/m1.jpg")
 
     cache.evict("a/m1.jpg")
 
     assertFalse(isCached("a/m1.jpg"))
-    cache.getFile("a/m1.jpg")
+    cache.fetch("a/m1.jpg")
     assertEquals(listOf("a/m1.jpg", "a/m1.jpg"), storage.calls)
   }
 
   @Test
   fun clearDeletesEveryCachedFile() = runTest {
     val cache = newCache()
-    cache.getFile("a/m1.jpg")
+    cache.fetch("a/m1.jpg")
     cache.put("a/m2.m4a", sourceFile("voice memo"))
 
     cache.clear()
@@ -163,12 +167,106 @@ class MediaFileCacheTest {
   }
 
   @Test
+  fun clearCircleDeletesOnlyThatCirclesFiles() = runTest {
+    val cache = newCache()
+    cache.fetch("careCircles/c1/media/m1.jpg")
+    cache.put("careCircles/c1/media/m2.m4a", sourceFile("voice memo"))
+    cache.fetch("careCircles/c2/media/m1.jpg")
+    cache.fetch("careCircles/c10/media/m1.jpg") // its id starts like c1's
+
+    cache.clearCircle("c1")
+
+    assertEquals(
+        listOf("careCircles_c10_media_m1.jpg", "careCircles_c2_media_m1.jpg"),
+        cachedFileNames(),
+    )
+  }
+
+  @Test
+  fun clearedCircleFilesAreDownloadedAgain() = runTest {
+    val cache = newCache()
+    cache.fetch("careCircles/c1/media/m1.jpg")
+
+    cache.clearCircle("c1")
+
+    assertEquals(
+        "content of careCircles/c1/media/m1.jpg",
+        cache.fetch("careCircles/c1/media/m1.jpg").readText(),
+    )
+    assertEquals(2, storage.calls.size)
+  }
+
+  @Test
+  fun downloadOfClearedCircleStartedBeforeIsNotCachedButOtherCirclesAre() = runTest {
+    val cache = newCache()
+    val gate = CompletableDeferred<Unit>()
+    storage.gate = gate
+
+    val cleared = async { runCatching { cache.fetch("careCircles/c1/media/m1.jpg") } }
+    val other = async { runCatching { cache.fetch("careCircles/c2/media/m1.jpg") } }
+    runCurrent() // both downloads are in progress
+    cache.clearCircle("c1") // e.g. the user leaves c1 while a c2 photo loads too
+    gate.complete(Unit)
+
+    val error = cleared.await().exceptionOrNull()
+    assertTrue(error?.message.orEmpty().startsWith("Cache cleared"))
+    assertTrue(other.await().isSuccess)
+    assertEquals(listOf("careCircles_c2_media_m1.jpg"), cachedFileNames())
+  }
+
+  @Test
+  fun callMadeAfterClearCircleIsNotRefusedByLaterClearOfAnotherCircle() = runTest {
+    val cache = newCache()
+    cache.clearCircle("c1")
+    val gate = CompletableDeferred<Unit>()
+    storage.gate = gate
+
+    val download = async { cache.fetch("careCircles/c1/media/m1.jpg") }
+    runCurrent() // the download is in progress
+    cache.clearCircle("c2")
+    gate.complete(Unit)
+
+    assertEquals("content of careCircles/c1/media/m1.jpg", download.await().readText())
+  }
+
+  @Test
+  fun putOfClearedCircleWaitingBeforeIsRefusedAndKeepsItsSource() = runTest {
+    val cache = newCache()
+    val gate = CompletableDeferred<Unit>()
+    storage.gate = gate
+    val source = sourceFile("uploaded bytes")
+    val download = async { runCatching { cache.fetch("careCircles/c1/media/m1.jpg") } }
+    val put = async { runCatching { cache.put("careCircles/c1/media/m1.jpg", source) } }
+    runCurrent() // the put waits for the download's path lock
+
+    cache.clearCircle("c1")
+    gate.complete(Unit)
+    download.await()
+
+    assertTrue(put.await().exceptionOrNull()?.message.orEmpty().startsWith("Cache cleared"))
+    assertTrue(source.exists())
+    assertEquals(emptyList<String>(), cachedFileNames())
+  }
+
+  @Test
+  fun invalidCircleIdsAreRejected() = runTest {
+    val cache = newCache()
+    cache.fetch("careCircles/c1/media/m1.jpg")
+
+    for (circleId in listOf("", "  ", "c1/media", "c_1")) {
+      val error = runCatching { cache.clearCircle(circleId) }.exceptionOrNull()
+      assertTrue("\"$circleId\" was accepted", error is IllegalArgumentException)
+    }
+    assertEquals(listOf("careCircles_c1_media_m1.jpg"), cachedFileNames())
+  }
+
+  @Test
   fun downloadStartedBeforeClearIsNotCached() = runTest {
     val cache = newCache()
     val gate = CompletableDeferred<Unit>()
     storage.gate = gate
 
-    val pending = async { runCatching { cache.getFile("a/m1.jpg") } }
+    val pending = async { runCatching { cache.fetch("a/m1.jpg") } }
     runCurrent() // the download is in progress
     cache.clear()
     gate.complete(Unit)
@@ -185,8 +283,8 @@ class MediaFileCacheTest {
     val cache = newCache()
     val gate = CompletableDeferred<Unit>()
     storage.gate = gate
-    val first = async { runCatching { cache.getFile("a/m1.jpg") } }
-    val waiting = async { runCatching { cache.getFile("a/m1.jpg") } }
+    val first = async { runCatching { cache.fetch("a/m1.jpg") } }
+    val waiting = async { runCatching { cache.fetch("a/m1.jpg") } }
     runCurrent() // first is downloading, waiting waits for its path lock
 
     cache.clear() // e.g. sign-out while a list and a detail screen load the same photo
@@ -205,7 +303,7 @@ class MediaFileCacheTest {
     val gate = CompletableDeferred<Unit>()
     storage.gate = gate
     val source = sourceFile("uploaded bytes")
-    val download = async { runCatching { cache.getFile("a/m1.jpg") } }
+    val download = async { runCatching { cache.fetch("a/m1.jpg") } }
     val put = async { runCatching { cache.put("a/m1.jpg", source) } }
     runCurrent() // the put waits for the download's path lock
 
@@ -225,7 +323,7 @@ class MediaFileCacheTest {
     val gate = CompletableDeferred<Unit>()
     storage.gate = gate
 
-    val download = async { cache.getFile("a/m1.jpg") }
+    val download = async { cache.fetch("a/m1.jpg") }
     runCurrent() // the download is in progress
     val evict = async { cache.evict("a/m1.jpg") }
     runCurrent()
@@ -244,10 +342,10 @@ class MediaFileCacheTest {
     val slowGate = CompletableDeferred<Unit>()
     storage.gates["a/slow.jpg"] = slowGate
 
-    val slow = async { cache.getFile("a/slow.jpg") }
+    val slow = async { cache.fetch("a/slow.jpg") }
     runCurrent() // the slow download is in progress
 
-    assertEquals("content of a/fast.jpg", cache.getFile("a/fast.jpg").readText())
+    assertEquals("content of a/fast.jpg", cache.fetch("a/fast.jpg").readText())
     assertTrue(slow.isActive)
     slowGate.complete(Unit)
     assertEquals("content of a/slow.jpg", slow.await().readText())
@@ -258,10 +356,10 @@ class MediaFileCacheTest {
     val cache = newCache(maxBytes = 2) // anything added forces a trim
     val slowGate = CompletableDeferred<Unit>()
     storage.gates["a/slow.jpg"] = slowGate
-    val slow = async { cache.getFile("a/slow.jpg") }
+    val slow = async { cache.fetch("a/slow.jpg") }
     runCurrent() // its .part file holds the bytes received so far
 
-    cache.getFile("a/fast.jpg") // trims the cache
+    cache.fetch("a/fast.jpg") // trims the cache
 
     assertTrue(cachedFileNames().any { it.endsWith(".part") })
     slowGate.complete(Unit)
@@ -274,14 +372,14 @@ class MediaFileCacheTest {
     val gate = CompletableDeferred<Unit>()
     storage.gate = gate
 
-    val download = launch { cache.getFile("a/m1.jpg") }
+    val download = launch { cache.fetch("a/m1.jpg") }
     runCurrent() // the download is in progress, with a .part file
     download.cancel()
     download.join()
 
     assertEquals(emptyList<String>(), cachedFileNames())
     storage.gate = null
-    assertEquals("content of a/m1.jpg", cache.getFile("a/m1.jpg").readText()) // lock was released
+    assertEquals("content of a/m1.jpg", cache.fetch("a/m1.jpg").readText()) // lock was released
   }
 
   @Test
@@ -300,11 +398,11 @@ class MediaFileCacheTest {
   fun leastRecentlyUsedFileIsEvictedPastMaxBytes() = runTest {
     val cache = newCache(maxBytes = 10)
     storage.content = { "4 B." } // 4 bytes each: two fit, three don't
-    cache.getFile("a/old.jpg").setLastModified(1_000)
-    cache.getFile("a/older.jpg").setLastModified(500)
-    cache.getFile("a/older.jpg") // reading it again makes it the most recently used
+    cache.fetch("a/old.jpg").setLastModified(1_000)
+    cache.fetch("a/older.jpg").setLastModified(500)
+    cache.fetch("a/older.jpg") // reading it again makes it the most recently used
 
-    cache.getFile("a/new.jpg")
+    cache.fetch("a/new.jpg")
 
     assertEquals(listOf("a_new.jpg", "a_older.jpg"), cachedFileNames())
   }
@@ -312,9 +410,9 @@ class MediaFileCacheTest {
   @Test
   fun fileBiggerThanMaxBytesIsStillReturnedAndKept() = runTest {
     val cache = newCache(maxBytes = 2)
-    cache.getFile("a/m1.jpg")
+    cache.fetch("a/m1.jpg")
 
-    val file = cache.getFile("a/m2.jpg")
+    val file = cache.fetch("a/m2.jpg")
 
     assertEquals("content of a/m2.jpg", file.readText())
     assertEquals(listOf("a_m2.jpg"), cachedFileNames())
@@ -330,7 +428,7 @@ class MediaFileCacheTest {
     // the constructor doesn't touch the disk
     assertEquals(listOf("a_m1.jpg", "download123.part"), cachedFileNames())
 
-    val file = cache.getFile("a/m1.jpg") // first use: a cache hit, no download
+    val file = cache.fetch("a/m1.jpg") // first use: a cache hit, no download
 
     assertEquals(listOf("a_m1.jpg"), cachedFileNames())
     assertEquals("cached before restart", file.readText())
@@ -342,7 +440,7 @@ class MediaFileCacheTest {
     val cache = newCache()
 
     for (path in listOf("", "  ", ".", "..", "a/m1.part")) {
-      val error = runCatching { cache.getFile(path) }.exceptionOrNull()
+      val error = runCatching { cache.fetch(path) }.exceptionOrNull()
       assertTrue("\"$path\" was accepted", error is IllegalArgumentException)
     }
     assertEquals(emptyList<String>(), storage.calls)
@@ -351,12 +449,12 @@ class MediaFileCacheTest {
   @Test
   fun cacheKeepsWorkingAfterItsFolderIsDeleted() = runTest {
     val cache = newCache()
-    cache.getFile("a/m1.jpg")
+    cache.fetch("a/m1.jpg")
 
     cacheDir.deleteRecursively() // e.g. the user cleared the app's cache while it runs
 
     assertFalse(isCached("a/m1.jpg"))
-    assertEquals("content of a/m1.jpg", cache.getFile("a/m1.jpg").readText())
+    assertEquals("content of a/m1.jpg", cache.fetch("a/m1.jpg").readText())
     assertEquals(listOf("a/m1.jpg", "a/m1.jpg"), storage.calls)
   }
 
@@ -364,11 +462,11 @@ class MediaFileCacheTest {
   fun putFileWithOldTimestampIsNotEvictedFirst() = runTest {
     val cache = newCache(maxBytes = 10)
     storage.content = { "4 B." } // 4 bytes each: two fit, three don't
-    cache.getFile("a/downloaded.jpg").setLastModified(2_000)
+    cache.fetch("a/downloaded.jpg").setLastModified(2_000)
     val oldPhoto = sourceFile("4 B.").apply { setLastModified(1_000) } // e.g. taken years ago
 
     cache.put("a/uploaded.jpg", oldPhoto)
-    cache.getFile("a/new.jpg")
+    cache.fetch("a/new.jpg")
 
     // put counts as a use: the downloaded file is now the least recently used one
     assertEquals(listOf("a_new.jpg", "a_uploaded.jpg"), cachedFileNames())
@@ -381,8 +479,8 @@ class MediaFileCacheTest {
     File(cacheDir, "a_m2.jpg").writeText("4 B.")
     val cache = newCache(maxBytes = 5)
 
-    cache.getFile("a/m1.jpg")
-    cache.getFile("a/m2.jpg")
+    cache.fetch("a/m1.jpg")
+    cache.fetch("a/m2.jpg")
 
     assertEquals(listOf("a_m1.jpg", "a_m2.jpg"), cachedFileNames()) // still over the limit
     assertEquals(emptyList<String>(), storage.calls)

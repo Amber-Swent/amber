@@ -1,12 +1,15 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.model.media
+package com.github.se.amber.data.media
 
+import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepositoryProvider
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -15,23 +18,25 @@ import kotlinx.coroutines.withContext
 
 /**
  * Local on-disk cache of media files (the bytes behind [MediaItem.storagePath]), so media that was
- * already loaded can still be browsed offline. Used by the media repository only, never by
- * ViewModels.
+ * already loaded can still be browsed offline. One cache holds the media of every care circle:
+ * storage paths contain the circle id, so they never collide. Used by the media repository only,
+ * never by ViewModels.
  *
  * Files are written to a temporary `.part` file and renamed once complete, so a cached file is
  * always whole. Past [maxBytes], the least recently used files are deleted.
  *
- * Only one instance may use a given [dir]: the locks don't coordinate across instances, so get the
- * app's instance from [MediaStorageRepositoryProvider.mediaFileCache]. The constructor doesn't
- * touch the disk; the folder is set up on first use, on [ioDispatcher].
+ * The cache doesn't know where files come from: each [getFile] says how to download its file (in
+ * the app, through [MediaFileStorage] from the circle's bucket).
  *
- * @param storage remote storage a file is downloaded from on a cache miss.
+ * Only one instance may use a given [dir]: the locks don't coordinate across instances, so get the
+ * app's instance from [MediaRepositoryProvider.mediaFileCache]. The constructor doesn't touch the
+ * disk; the folder is set up on first use, on [ioDispatcher].
+ *
  * @param dir cache folder, e.g. `File(context.cacheDir, "media")`; created if missing.
  * @param maxBytes size the cache is trimmed down to after each new file; must be positive.
  * @param ioDispatcher where the disk and network work runs; tests pass a test dispatcher.
  */
 class MediaFileCache(
-    private val storage: MediaStorageRepository,
     private val dir: File,
     private val maxBytes: Long = 500L * 1024 * 1024, // 500 MiB
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -56,18 +61,24 @@ class MediaFileCache(
   private val pathLocks = HashMap<String, PathLock>()
 
   /**
-   * Makes [commit] atomic with respect to [clear] and [trimToSize]: a commit racing a clear can't
-   * leave a file behind after it, and a trim never sees a just-added file before its timestamp is
-   * reset (it would look old and be evicted at once).
+   * Makes [commit] atomic with respect to [clear], [clearCircle] and [trimToSize]: a commit racing
+   * a clear can't leave a file behind after it, and a trim never sees a just-added file before its
+   * timestamp is reset (it would look old and be evicted at once).
    */
   private val dirLock = Mutex()
 
   /**
-   * Incremented by each [clear]. [getFile] and [put] record it as soon as they are called, before
-   * waiting for anything, and refuse to add their file if the value changed in the meantime: the
-   * call then belongs to the session that was just cleared.
+   * Incremented by each [clear] and [clearCircle]. [getFile] and [put] record it as soon as they
+   * are called, before waiting for anything, and refuse to add their file if a clear covering that
+   * file ran in the meantime: the call then belongs to what was just cleared.
    */
   @Volatile private var generation = 0 // written under dirLock
+
+  /** [generation] set by the latest [clear]; 0 if none. */
+  @Volatile private var clearedAt = 0 // written under dirLock
+
+  /** circleId -> [generation] set by the latest [clearCircle] of that circle. */
+  private val circleClearedAt = ConcurrentHashMap<String, Int>() // written under dirLock
 
   /**
    * Creates [dir] and deletes the leftovers of downloads interrupted by the app being killed
@@ -80,26 +91,30 @@ class MediaFileCache(
   }
 
   /**
-   * Returns the local copy of the file at [storagePath], downloading it only if it isn't cached.
+   * Returns the local copy of the file at [storagePath], downloading it with [download] only if it
+   * isn't cached.
    *
    * - Cache hit: the file is marked as recently used and returned at once, which also works
    *   offline.
-   * - Cache miss: the file is downloaded through [storage] into a temporary `.part` file, which is
-   *   renamed to its cache name once complete; the cache is then trimmed to [maxBytes]. Offline,
-   *   this fails once [storage] stops retrying (after a few seconds with the app's repository, see
-   *   [MediaStorageRepositoryProvider]).
+   * - Cache miss: [download] writes the file into a temporary `.part` file, which is renamed to its
+   *   cache name once complete; the cache is then trimmed to [maxBytes]. Offline, this fails once
+   *   [download] gives up (after a few seconds with [MediaFileStorageFirebase]).
    *
    * Concurrent calls for the same path share one download: the others wait for it, then find the
    * file cached. The returned file may be evicted later to make room, so open it right away rather
    * than keeping the [File] around.
    *
+   * @param download writes the remote file of [storagePath] into the given file, overwriting it;
+   *   only called on a cache miss, and while it runs no other call adds or evicts [storagePath].
+   *   E.g. `{ fileStorage.downloadToFile(circle, storagePath, it) }`.
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
-   * @throws Exception whatever [MediaStorageRepository.downloadToFile] throws (e.g. when offline
-   *   and the file isn't cached); nothing is left in the cache in that case.
-   * @throws IOException if the downloaded file can't be moved to its cache name, or if [clear] ran
-   *   since the call (the file is then not downloaded, or not kept).
+   * @throws Exception whatever [download] throws (e.g. when offline and the file isn't cached);
+   *   nothing is left in the cache in that case.
+   * @throws IOException if the downloaded file can't be moved to its cache name, or if [clear] or a
+   *   [clearCircle] of its circle ran since the call (the file is then not downloaded, or not
+   *   kept).
    */
-  suspend fun getFile(storagePath: String): File {
+  suspend fun getFile(storagePath: String, download: suspend (destination: File) -> Unit): File {
     val callGeneration = generation // before waiting for anything, see [generation]
     return withContext(ioDispatcher) {
       setUp.value
@@ -115,7 +130,7 @@ class MediaFileCache(
             ensureNotCleared(callGeneration, file) // no download for a cleared session
             val temp = newTempFile()
             try {
-              storage.downloadToFile(storagePath, temp)
+              download(temp)
               commit(temp, file, callGeneration)
             } finally {
               temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
@@ -134,11 +149,11 @@ class MediaFileCache(
    *
    * [source] is moved, not copied: once it has been moved into the cache folder, it is gone from
    * its old location, even if the call then fails. If the call fails before that (e.g. [source]
-   * doesn't exist, or [clear] ran while the call waited), [source] is left untouched.
+   * doesn't exist, or the cache was cleared while the call waited), [source] is left untouched.
    *
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
-   * @throws IOException if [source] can't be moved into the cache, or if [clear] ran since the
-   *   call.
+   * @throws IOException if [source] can't be moved into the cache, or if [clear] or a [clearCircle]
+   *   of its circle ran since the call.
    */
   suspend fun put(storagePath: String, source: File) {
     val callGeneration = generation // before waiting for anything, see [generation]
@@ -174,8 +189,8 @@ class MediaFileCache(
       }
 
   /**
-   * Deletes every cached file. Call it on sign-out or when leaving a care circle, so no private
-   * media stays on the device.
+   * Deletes every cached file, of every circle. Call it on sign-out, so no private media stays on
+   * the device. To forget a single circle, use [clearCircle].
    *
    * Calls to [getFile] and [put] made before it, whether already running or still waiting, are not
    * interrupted, but their files are refused (they throw [IOException]), so nothing requested
@@ -186,10 +201,36 @@ class MediaFileCache(
       withContext(ioDispatcher) {
         setUp.value
         dirLock.withLock {
-          generation++
+          clearedAt = ++generation
           dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }?.forEach { it.delete() }
         }
       }
+
+  /**
+   * Deletes the cached files of care circle [circleId], i.e. those whose storagePath starts with
+   * `careCircles/{circleId}/` (see [MediaItem.storagePath]); other circles' files are kept. Call it
+   * when the user leaves that circle, so its private media doesn't stay on the device.
+   *
+   * Like [clear], calls to [getFile] and [put] of that circle made before it are not interrupted,
+   * but their files are refused (they throw [IOException]). Calls of other circles are unaffected.
+   *
+   * @throws IllegalArgumentException if [circleId] is blank, or contains `/` or `_`: Firestore
+   *   auto-generated IDs never do, and the cache relies on `_` to find where the id ends in a file
+   *   name.
+   */
+  suspend fun clearCircle(circleId: String) {
+    require(circleId.isNotBlank() && '/' !in circleId && '_' !in circleId) {
+      "Invalid circleId: \"$circleId\""
+    }
+    withContext(ioDispatcher) {
+      setUp.value
+      dirLock.withLock {
+        circleClearedAt[circleId] = ++generation
+        // .part files are named download*.part, so they never match: each is deleted by its call
+        dir.listFiles { f -> circleIdOf(f.name) == circleId }?.forEach { it.delete() }
+      }
+    }
+  }
 
   /**
    * Runs [block] while holding the lock of [storagePath], so calls on the same path never overlap
@@ -255,13 +296,23 @@ class MediaFileCache(
   }
 
   /**
-   * Refuses a call made before the latest [clear]: its file belongs to the session that was
-   * cleared.
+   * The circle id in the cache file name [name], e.g. `c1` for `careCircles_c1_media_m1.jpg`, or
+   * null if [name] isn't the file of a circle's media.
+   */
+  private fun circleIdOf(name: String): String? {
+    if (!name.startsWith(CIRCLE_PREFIX)) return null
+    return name.removePrefix(CIRCLE_PREFIX).substringBefore('_', "").ifEmpty { null }
+  }
+
+  /**
+   * Refuses a call made before the latest [clear], or before the latest [clearCircle] of [target]'s
+   * circle: its file belongs to what was cleared.
    *
-   * @throws IOException if [generation] differs from [callGeneration].
+   * @throws IOException if such a clear ran since [callGeneration].
    */
   private fun ensureNotCleared(callGeneration: Int, target: File) {
-    if (generation != callGeneration) {
+    val circleClear = circleIdOf(target.name)?.let { circleClearedAt[it] } ?: 0
+    if (maxOf(clearedAt, circleClear) > callGeneration) {
       throw IOException("Cache cleared while $target was being added")
     }
   }
@@ -270,13 +321,14 @@ class MediaFileCache(
    * Gives the complete file [temp] its cache name [target], replacing any previous file there.
    *
    * The rename is atomic (both files are in [dir]), on Android as well as on the JVM that runs the
-   * tests. Runs under [dirLock] so it can't interleave with [clear] or [trimToSize].
+   * tests. Runs under [dirLock] so it can't interleave with [clear], [clearCircle] or [trimToSize].
    *
    * @param callGeneration [generation] when the [getFile] or [put] call was made.
-   * @throws IOException if [clear] ran since [callGeneration], or if the rename fails.
+   * @throws IOException if [clear] or a [clearCircle] of its circle ran since [callGeneration], or
+   *   if the rename fails.
    */
   private suspend fun commit(temp: File, target: File, callGeneration: Int) = dirLock.withLock {
-    // checked again here, under dirLock: clear() may have run during the download or copy
+    // checked again here, under dirLock: a clear may have run during the download or copy
     ensureNotCleared(callGeneration, target)
     // with ATOMIC_MOVE, replacing an existing target is left to the platform: rename(2) on Android
     // and MoveFileEx on Windows both replace it; REPLACE_EXISTING only states the intent
@@ -314,5 +366,8 @@ class MediaFileCache(
   private companion object {
     /** Suffix of temporary files holding a download or copy in progress. */
     const val PART_SUFFIX = ".part"
+
+    /** Start of the cache file name of every circle's media: `careCircles/{circleId}/...`. */
+    const val CIRCLE_PREFIX = "careCircles_"
   }
 }

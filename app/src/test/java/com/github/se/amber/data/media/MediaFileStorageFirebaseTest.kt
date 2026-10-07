@@ -1,7 +1,8 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.model.media
+package com.github.se.amber.data.media
 
+import com.github.se.amber.model.circle.CareCircle
 import com.google.firebase.storage.FileDownloadTask
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -20,9 +21,11 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 
-/** Checks [MediaStorageRepositoryFirebase] against a mocked Firebase Storage: no network. */
+/** Checks [MediaFileStorageFirebase] against a mocked Firebase Storage: no network. */
 @OptIn(ExperimentalCoroutinesApi::class) // runCurrent
-class MediaStorageRepositoryFirebaseTest {
+class MediaFileStorageFirebaseTest {
+
+  private val circle = CareCircle(id = "c1", storageBucket = "bucket-c1")
 
   private val destination = File("unused.jpg") // never written: the download is mocked
 
@@ -56,11 +59,42 @@ class MediaStorageRepositoryFirebaseTest {
   fun downloadsTheFileAtStoragePathIntoDestination() = runTest {
     val firebase = FakeFirebase(downloadTask())
 
-    MediaStorageRepositoryFirebase(firebase.storage)
-        .downloadToFile("careCircles/c1/media/m1.jpg", destination)
+    MediaFileStorageFirebase { firebase.storage }
+        .downloadToFile(circle, "careCircles/c1/media/m1.jpg", destination)
 
     verify(firebase.root).child("careCircles/c1/media/m1.jpg")
     verify(firebase.file).getFile(destination)
+  }
+
+  @Test
+  fun downloadsFromTheBucketOfTheGivenCircle() = runTest {
+    val firebase = FakeFirebase(downloadTask())
+    val other = FakeFirebase(downloadTask())
+    val buckets = mapOf("c1" to firebase.storage, "c2" to other.storage)
+    val fileStorage = MediaFileStorageFirebase { buckets.getValue(it.id) }
+
+    fileStorage.downloadToFile(CareCircle(id = "c2"), "careCircles/c2/media/m1.jpg", destination)
+
+    verify(other.file).getFile(destination)
+    verify(firebase.root, never()).child(any())
+  }
+
+  @Test
+  fun downloadsStopRetryingAfterFiveSeconds() = runTest {
+    val firebase = FakeFirebase(downloadTask())
+
+    MediaFileStorageFirebase { firebase.storage }.downloadToFile(circle, "a/m1.jpg", destination)
+
+    verify(firebase.storage).maxDownloadRetryTimeMillis = 5_000L
+  }
+
+  @Test
+  fun circleWithoutBucketIsRejectedBeforeAnyDownload() = runTest {
+    val fileStorage = MediaFileStorageFirebase { throw IllegalArgumentException("not ready") }
+
+    val error = runCatching { fileStorage.downloadToFile(circle, "a/m1.jpg", destination) }
+
+    assertTrue(error.exceptionOrNull() is IllegalArgumentException)
   }
 
   @Test
@@ -68,7 +102,7 @@ class MediaStorageRepositoryFirebaseTest {
     val firebase = FakeFirebase(downloadTask(failure = IOException("no network")))
 
     val error = runCatching {
-      MediaStorageRepositoryFirebase(firebase.storage).downloadToFile("a/m1.jpg", destination)
+      MediaFileStorageFirebase { firebase.storage }.downloadToFile(circle, "a/m1.jpg", destination)
     }
         .exceptionOrNull()
 
@@ -81,7 +115,7 @@ class MediaStorageRepositoryFirebaseTest {
     val firebase = FakeFirebase(downloadTask(cancelled = true))
 
     val error = runCatching {
-      MediaStorageRepositoryFirebase(firebase.storage).downloadToFile("a/m1.jpg", destination)
+      MediaFileStorageFirebase { firebase.storage }.downloadToFile(circle, "a/m1.jpg", destination)
     }
         .exceptionOrNull()
 
@@ -92,9 +126,10 @@ class MediaStorageRepositoryFirebaseTest {
   @Test
   fun cancellingTheCallCancelsTheDownload() = runTest {
     val task = downloadTask(complete = false)
-    val repository = MediaStorageRepositoryFirebase(FakeFirebase(task).storage)
+    val firebase = FakeFirebase(task)
+    val fileStorage = MediaFileStorageFirebase { firebase.storage }
 
-    val call = launch { repository.downloadToFile("a/m1.jpg", destination) }
+    val call = launch { fileStorage.downloadToFile(circle, "a/m1.jpg", destination) }
     runCurrent() // waiting for the download
     verify(task, never()).cancel()
     call.cancel()

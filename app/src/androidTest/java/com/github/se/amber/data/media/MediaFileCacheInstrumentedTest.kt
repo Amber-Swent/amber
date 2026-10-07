@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.model.media
+package com.github.se.amber.data.media
 
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -31,16 +31,11 @@ class MediaFileCacheInstrumentedTest {
   private val cacheDir = File(context.cacheDir, "media-cache-test")
   private val sources = mutableListOf<File>()
 
-  // put must never download: a call to this fails the test
-  private val cache =
-      MediaFileCache(
-          storage =
-              object : MediaStorageRepository {
-                override suspend fun downloadToFile(storagePath: String, destination: File) =
-                    throw AssertionError("put must not download $storagePath")
-              },
-          dir = cacheDir,
-      )
+  private val cache = MediaFileCache(dir = cacheDir)
+
+  /** [MediaFileCache.getFile] of a file [MediaFileCache.put] added: it must never download. */
+  private suspend fun cached(storagePath: String) =
+      cache.getFile(storagePath) { throw AssertionError("put must not download $storagePath") }
 
   @Before
   fun setUp() {
@@ -91,7 +86,7 @@ class MediaFileCacheInstrumentedTest {
     val cached = File(cacheDir, "careCircles_c1_media_m1.jpg")
     assertTrue(cached.lastModified() >= before - 2_000) // reset, so it isn't evicted first
     assertArrayEquals(bytes, cached.readBytes())
-    assertEquals(cached, cache.getFile("careCircles/c1/media/m1.jpg")) // no download needed
+    assertEquals(cached, cached("careCircles/c1/media/m1.jpg")) // no download needed
   }
 
   @Test
@@ -103,7 +98,7 @@ class MediaFileCacheInstrumentedTest {
     cache.put("a/m1.jpg", sourceFile(context.filesDir, "first.jpg", first))
     cache.put("a/m1.jpg", sourceFile(context.filesDir, "second.jpg", second))
 
-    assertArrayEquals(second, cache.getFile("a/m1.jpg").readBytes())
+    assertArrayEquals(second, cached("a/m1.jpg").readBytes())
     assertTrue(sources.none { it.exists() }) // both sources were moved
     assertEquals(listOf("a_m1.jpg"), cacheDir.list()!!.toList()) // one entry, no .part
   }
