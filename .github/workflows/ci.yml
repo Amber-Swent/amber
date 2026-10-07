@@ -100,7 +100,9 @@ jobs:
 
       # Decode the debug keystore from the GitHub secret
       - name: Decode debug keystore
-        run: echo "${{ secrets.CI_DEBUG_KEYSTORE }}" | base64 --decode > app/ci-debug.keystore
+        env:
+          CI_DEBUG_KEYSTORE: ${{ secrets.CI_DEBUG_KEYSTORE }}
+        run: echo "$CI_DEBUG_KEYSTORE" | base64 --decode > app/ci-debug.keystore
 
       # This step runs gradle commands to build the application
       - name: Assemble
