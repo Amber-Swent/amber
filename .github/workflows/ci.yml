@@ -121,7 +121,7 @@ jobs:
           script: ./gradlew connectedCheck --parallel --build-cache
 
       - name: Install Firebase CLI
-        run: npm install --global firebase-tools@15.30.1
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
 
       - name: Run Firestore rules tests
         run: |
