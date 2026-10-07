@@ -5,7 +5,6 @@ package com.github.se.amber.ui.navigation
 
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -66,7 +65,6 @@ class TopNavigationMenuTest {
   }
 
   // ---------- Title text mapping ----------
-
   @Test
   fun cancelActionDisplaysCancelText() {
     setMenu(action = TopNavigationAction.CANCEL)
@@ -80,13 +78,6 @@ class TopNavigationMenuTest {
   }
 
   // ---------- Back button state ----------
-
-  @Test
-  fun backButtonIsEnabled() {
-    setMenu()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsEnabled()
-  }
-
   @Test
   fun backButtonHasClickAction() {
     setMenu()

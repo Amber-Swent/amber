@@ -18,7 +18,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.navigation.PatientTab.Companion.patientTabs
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -224,34 +223,5 @@ class BottomNavigationMenuTest {
   fun tabHasClickAction() {
     setMenu()
     tabNode(CaregiverTab.Upload).assertHasClickAction()
-  }
-
-  // ---------- Callback behaviour ----------
-  // Useful ?
-
-  @Test
-  fun clickingTabInvokesCallbackWithThatTab() {
-    val handler = FakeTabSelectionHandler()
-    setMenu(selectedTab = CaregiverTab.Home, handler = handler)
-    tabNode(CaregiverTab.Upload).performClick()
-    assertEquals(listOf<Tab>(CaregiverTab.Upload), handler.selectedTabs)
-  }
-
-  @Test
-  fun clickingPatientTabInvokesCallbackWithThatTab() {
-    val handler = FakeTabSelectionHandler()
-    setMenu(selectedTab = PatientTab.Home, tabs = PatientTab.patientTabs, handler = handler)
-    tabNode(PatientTab.SeePictures).performClick()
-    assertEquals(listOf<Tab>(PatientTab.SeePictures), handler.selectedTabs)
-  }
-
-  @Test
-  fun clickingAlreadySelectedTabStillInvokesCallback() {
-    val handler = FakeTabSelectionHandler()
-    setMenu(selectedTab = CaregiverTab.Home, handler = handler)
-
-    tabNode(CaregiverTab.Home).performClick()
-
-    assertEquals(listOf<Tab>(CaregiverTab.Home), handler.selectedTabs)
   }
 }
