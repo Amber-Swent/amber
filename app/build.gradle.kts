@@ -13,6 +13,20 @@ android {
   namespace = "com.github.se.amber"
   compileSdk = 37
 
+  // Sign debug builds with the shared CI keystore (its SHA-1 is registered in Firebase).
+  // If the file is absent (e.g. local builds), Gradle falls back to the default debug key.
+  signingConfigs {
+    getByName("debug") {
+      val ciKeystore = file("ci-debug.keystore")
+      if (ciKeystore.exists()) {
+        storeFile = ciKeystore
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
+    }
+  }
+
   defaultConfig {
     applicationId = "com.github.se.amber"
     minSdk = 28
