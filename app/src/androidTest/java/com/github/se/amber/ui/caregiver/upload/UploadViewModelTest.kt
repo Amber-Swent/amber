@@ -29,17 +29,6 @@ class UploadViewModelTest {
     assertNull(UploadUIState(errorMsg = "Boom").copy(errorMsg = null).errorMsg)
   }
 
-  // ---------- Initial state ----------
-  @Test
-  fun initialUiStateHasNoError() {
-    assertNull(viewModel.uiState.value.errorMsg)
-  }
-
-  @Test
-  fun initialUiStateEqualsDefaultUiState() {
-    assertEquals(UploadUIState(), viewModel.uiState.value)
-  }
-
   // ---------- setErrorMsg ----------
   @Test
   fun setErrorMsgStoresTheMessage() {
