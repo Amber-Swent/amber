@@ -46,7 +46,7 @@ fun HomeScreen(
       //      },
       content = { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp).padding(paddingValues),
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
