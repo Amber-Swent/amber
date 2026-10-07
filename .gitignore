@@ -11,3 +11,7 @@ local.properties
 firestore-debug.log
 firebase-debug.log
 ui-debug.log
+# Firebase Functions environment configuration is deployment-specific.
+functions/.env*
+!functions/.env.example
+functions/node_modules/
