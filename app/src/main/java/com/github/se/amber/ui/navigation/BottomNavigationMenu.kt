@@ -29,7 +29,10 @@ object BottomNavigationTestTags {
   const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
   const val DIVIDER = "bottom_navigation_divider"
 
-  fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab::class.java.name}"
+  //fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab::class.java.name}"
+  fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab.id}${tab.name}"
+
+
 }
 
 /**
@@ -43,6 +46,7 @@ sealed interface Tab {
   val name: String
   val icon: ImageVector
   val destination: Screen
+  val id: String
 }
 
 /** Caregiver's bottom navigation tabs. */
@@ -50,6 +54,7 @@ sealed class CaregiverTab(
     override val name: String,
     override val icon: ImageVector,
     override val destination: CaregiverScreen,
+    override val id: String =  "caregiverId_"
 ) : Tab {
   data object Home : CaregiverTab("Home", Icons.Outlined.Home, CaregiverScreen.Home)
 
@@ -66,6 +71,7 @@ sealed class PatientTab(
     override val name: String,
     override val icon: ImageVector,
     override val destination: PatientScreen,
+    override val id :String =  "patientId_"
 ) : Tab {
   data object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
 
