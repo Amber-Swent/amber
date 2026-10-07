@@ -242,6 +242,28 @@ class AuthRepositoryFirebaseTest {
     assertFalse(cleanupCompleted)
   }
 
+  // Check that both login and logout work when in the same sequence
+  @Test
+  fun signInThenSignOutSucceedsInSameSequence() = runBlocking {
+    val firebaseResult = authResult(user)
+    `when`(auth.signInWithCredential(firebaseCredential)).thenAnswer {
+      currentFirebaseUser = user
+      Tasks.forResult(firebaseResult)
+    }
+
+    val signInResult = repository.signInWithGoogle(credential)
+
+    assertEquals(AuthUser("user-123"), signInResult.getOrThrow())
+    assertEquals(AuthUser("user-123"), repository.currentUser)
+
+    val signOutResult = repository.signOut()
+
+    assertEquals(Unit, signOutResult.getOrThrow())
+    assertNull(repository.currentUser)
+    assertTrue(cleanupCompleted)
+  }
+
+
   private fun authResult(firebaseUser: FirebaseUser?): AuthResult {
     val result = mock(AuthResult::class.java)
     `when`(result.user).thenReturn(firebaseUser)
