@@ -51,6 +51,13 @@ class RoleAccessTest {
   }
 
   @Test
+  fun caregiverNonMemberCannotManageCareCircleResources() {
+    assertFalse(RoleAccess.canManagePlaces(outsider, careCircle))
+    assertFalse(RoleAccess.canCreateInvitation(outsider, careCircle))
+    assertFalse(RoleAccess.canManageAppointment(outsider, careCircle))
+  }
+
+  @Test
   fun patientMemberCannotManageCareCircleResources() {
     assertFalse(RoleAccess.canManagePlaces(patient, careCircle))
     assertFalse(RoleAccess.canCreateInvitation(patient, careCircle))
