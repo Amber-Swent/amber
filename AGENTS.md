@@ -21,6 +21,5 @@
 - Run review in a fresh session using `.github/skills/review-checklist/SKILL.md`. The reviewer may open the code-and-tests PR when authorized, but never approves or merges; the developer owns the final decision.
 - If worktree or GitHub access is unavailable, report that instead of editing the developer's checkout or claiming a PR was opened.
 
-## Bugs and PRs
-- Log confirmed bugs in `BUG.md` with a unique ID, status (`Open` or `Fixed`), and evidence.
+## PRs
 - Include a brief feature/fix summary and relevant check results in each PR description.

@@ -12,8 +12,7 @@ Use this workflow when implementing a feature or fixing a bug. The developer lau
 3. Follow MVVM and Compose conventions. Keep composables focused on rendering, state/events in ViewModels, and external services in repositories/data sources. A ViewModel must never import Firebase.
 4. Use camelCase for variables, properties, and parameters. Do not edit generated files or anything under the repository-root `/generated` directory.
 5. Keep the change focused and within the sizing guidance in `AGENTS.md`. Include the required contributor acknowledgement at the top of each changed source file; preserve existing attributions and do not invent identities.
-6. Record confirmed bugs in `BUG.md` with a unique ID and `Open` or `Fixed` status.
-7. Make the implementation compile where practical. Do not write tests in this role or invoke another agent.
+6. Make the implementation compile where practical. Do not write tests in this role or invoke another agent.
 7. Make the implementation compile where practical. Do not write tests or start another Copilot session in this role.
 8. Return the branch/worktree name, concise implementation summary, relevant files, compile/check results, known risks, and a suggested prompt for the separate testing session. The developer inspects the code before that session begins.
 
