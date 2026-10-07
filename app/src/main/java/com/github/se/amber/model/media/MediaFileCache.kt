@@ -63,9 +63,9 @@ class MediaFileCache(
   private val dirLock = Mutex()
 
   /**
-   * Incremented by each [clear]. A new file records it before its download or copy starts, and
-   * [commit] refuses the file if the value changed in the meantime, as the file then belongs to the
-   * session that was just cleared.
+   * Incremented by each [clear]. [getFile] and [put] record it as soon as they are called, before
+   * waiting for anything, and refuse to add their file if the value changed in the meantime: the
+   * call then belongs to the session that was just cleared.
    */
   @Volatile private var generation = 0 // written under dirLock
 
@@ -97,34 +97,36 @@ class MediaFileCache(
    * @throws Exception whatever [MediaStorageRepository.downloadToFile] throws (e.g. when offline
    *   and the file isn't cached); nothing is left in the cache in that case.
    * @throws IOException if the downloaded file can't be moved to its cache name, or if [clear] ran
-   *   during the download.
+   *   since the call (the file is then not downloaded, or not kept).
    */
-  suspend fun getFile(storagePath: String): File =
-      withContext(ioDispatcher) {
-        setUp.value
-        val file = fileFor(storagePath)
-        val added =
-            withPathLock(storagePath) {
-              // checked inside the lock: a caller that waited for another one's download finds the
-              // file here instead of downloading it a second time
-              if (file.exists()) {
-                markUsed(file)
-                return@withPathLock false
-              }
-              val startGeneration = generation
-              val temp = newTempFile()
-              try {
-                storage.downloadToFile(storagePath, temp)
-                commit(temp, file, startGeneration)
-              } finally {
-                temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
-              }
-              true
+  suspend fun getFile(storagePath: String): File {
+    val callGeneration = generation // before waiting for anything, see [generation]
+    return withContext(ioDispatcher) {
+      setUp.value
+      val file = fileFor(storagePath)
+      val added =
+          withPathLock(storagePath) {
+            // checked inside the lock: a caller that waited for another one's download finds the
+            // file here instead of downloading it a second time
+            if (file.exists()) {
+              markUsed(file)
+              return@withPathLock false
             }
-        // only when the cache grew; outside the path lock so other callers of this path don't wait
-        if (added) trimToSize(keep = file)
-        file
-      }
+            ensureNotCleared(callGeneration, file) // no download for a cleared session
+            val temp = newTempFile()
+            try {
+              storage.downloadToFile(storagePath, temp)
+              commit(temp, file, callGeneration)
+            } finally {
+              temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
+            }
+            true
+          }
+      // only when the cache grew; outside the path lock so other callers of this path don't wait
+      if (added) trimToSize(keep = file)
+      file
+    }
+  }
 
   /**
    * Adds a file we already have locally (e.g. one just uploaded) to the cache under [storagePath],
@@ -132,30 +134,32 @@ class MediaFileCache(
    *
    * [source] is moved, not copied: once it has been moved into the cache folder, it is gone from
    * its old location, even if the call then fails. If the call fails before that (e.g. [source]
-   * doesn't exist), [source] is left untouched.
+   * doesn't exist, or [clear] ran while the call waited), [source] is left untouched.
    *
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
-   * @throws IOException if [source] can't be moved into the cache, or if [clear] ran during the
+   * @throws IOException if [source] can't be moved into the cache, or if [clear] ran since the
    *   call.
    */
-  suspend fun put(storagePath: String, source: File): Unit =
-      withContext(ioDispatcher) {
-        setUp.value
-        val file = fileFor(storagePath)
-        withPathLock(storagePath) {
-          val startGeneration = generation
-          val temp = newTempFile()
-          try {
-            // move into a temp file first, like a download: across storage volumes a move is really
-            // a copy, and a half-copied file must never appear under the cache name
-            Files.move(source.toPath(), temp.toPath(), REPLACE_EXISTING)
-            commit(temp, file, startGeneration)
-          } finally {
-            temp.delete()
-          }
+  suspend fun put(storagePath: String, source: File) {
+    val callGeneration = generation // before waiting for anything, see [generation]
+    withContext(ioDispatcher) {
+      setUp.value
+      val file = fileFor(storagePath)
+      withPathLock(storagePath) {
+        ensureNotCleared(callGeneration, file) // leaves source untouched
+        val temp = newTempFile()
+        try {
+          // move into a temp file first, like a download: across storage volumes a move is really
+          // a copy, and a half-copied file must never appear under the cache name
+          Files.move(source.toPath(), temp.toPath(), REPLACE_EXISTING)
+          commit(temp, file, callGeneration)
+        } finally {
+          temp.delete()
         }
-        trimToSize(keep = file)
       }
+      trimToSize(keep = file)
+    }
+  }
 
   /**
    * Removes the cached file of [storagePath], if any. Call it when the media is deleted. Waits for
@@ -173,9 +177,10 @@ class MediaFileCache(
    * Deletes every cached file. Call it on sign-out or when leaving a care circle, so no private
    * media stays on the device.
    *
-   * Downloads and calls to [put] in progress are not interrupted, but their files are refused when
-   * they finish (they throw [IOException]), so nothing started before the clear ends up in the
-   * cache. Their `.part` files are left alone: each one is deleted by the call that created it.
+   * Calls to [getFile] and [put] made before it, whether already running or still waiting, are not
+   * interrupted, but their files are refused (they throw [IOException]), so nothing requested
+   * before the clear ends up in the cache. Their `.part` files are left alone: each one is deleted
+   * by the call that created it.
    */
   suspend fun clear(): Unit =
       withContext(ioDispatcher) {
@@ -214,7 +219,8 @@ class MediaFileCache(
    * directly in [dir], e.g. `careCircles/c1/media/m1.jpg` -> `careCircles_c1_media_m1.jpg`.
    *
    * Different paths can map to the same name (e.g. `a/b_c.jpg` and `a_b/c.jpg`). Real storage paths
-   * are made of Firestore IDs, which contain no `_`, so they don't collide.
+   * are made of Firestore auto-generated IDs, which contain no `_`, so they don't collide; this
+   * assumes circle and media IDs stay auto-generated.
    *
    * @throws IllegalArgumentException if [storagePath] is blank, would name [dir] itself or its
    *   parent (`.` or `..`), or ends with `.part`, which is reserved for temporary files.
@@ -249,18 +255,29 @@ class MediaFileCache(
   }
 
   /**
+   * Refuses a call made before the latest [clear]: its file belongs to the session that was
+   * cleared.
+   *
+   * @throws IOException if [generation] differs from [callGeneration].
+   */
+  private fun ensureNotCleared(callGeneration: Int, target: File) {
+    if (generation != callGeneration) {
+      throw IOException("Cache cleared while $target was being added")
+    }
+  }
+
+  /**
    * Gives the complete file [temp] its cache name [target], replacing any previous file there.
    *
    * The rename is atomic (both files are in [dir]), on Android as well as on the JVM that runs the
    * tests. Runs under [dirLock] so it can't interleave with [clear] or [trimToSize].
    *
-   * @param startGeneration [generation] when the file's download or copy started.
-   * @throws IOException if [clear] ran since [startGeneration], or if the rename fails.
+   * @param callGeneration [generation] when the [getFile] or [put] call was made.
+   * @throws IOException if [clear] ran since [callGeneration], or if the rename fails.
    */
-  private suspend fun commit(temp: File, target: File, startGeneration: Int) = dirLock.withLock {
-    if (generation != startGeneration) {
-      throw IOException("Cache cleared while $target was being added")
-    }
+  private suspend fun commit(temp: File, target: File, callGeneration: Int) = dirLock.withLock {
+    // checked again here, under dirLock: clear() may have run during the download or copy
+    ensureNotCleared(callGeneration, target)
     // with ATOMIC_MOVE, replacing an existing target is left to the platform: rename(2) on Android
     // and MoveFileEx on Windows both replace it; REPLACE_EXISTING only states the intent
     Files.move(temp.toPath(), target.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)

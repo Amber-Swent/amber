@@ -5,6 +5,9 @@ package com.github.se.amber.model.media
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,5 +31,12 @@ class MediaStorageRepositoryProviderTest {
     // second calls must not build new instances: the cache must be the only one using its folder
     assertSame(repository, MediaStorageRepositoryProvider.repository)
     assertSame(cache, MediaStorageRepositoryProvider.mediaFileCache(context.applicationContext))
+  }
+
+  @Test
+  fun downloadsStopRetryingAfterFiveSeconds() {
+    MediaStorageRepositoryProvider.repository // sets the limit on first creation
+
+    assertEquals(5_000L, Firebase.storage.maxDownloadRetryTimeMillis)
   }
 }

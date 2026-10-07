@@ -181,6 +181,45 @@ class MediaFileCacheTest {
   }
 
   @Test
+  fun getFileWaitingBeforeClearDoesNotDownloadAfterIt() = runTest {
+    val cache = newCache()
+    val gate = CompletableDeferred<Unit>()
+    storage.gate = gate
+    val first = async { runCatching { cache.getFile("a/m1.jpg") } }
+    val waiting = async { runCatching { cache.getFile("a/m1.jpg") } }
+    runCurrent() // first is downloading, waiting waits for its path lock
+
+    cache.clear() // e.g. sign-out while a list and a detail screen load the same photo
+    gate.complete(Unit)
+
+    val error = waiting.await().exceptionOrNull()
+    assertTrue(error?.message.orEmpty().startsWith("Cache cleared"))
+    assertTrue(first.await().exceptionOrNull() is IOException)
+    assertEquals(listOf("a/m1.jpg"), storage.calls) // the waiting call never downloaded
+    assertEquals(emptyList<String>(), cachedFileNames())
+  }
+
+  @Test
+  fun putWaitingBeforeClearIsRefusedAndKeepsItsSource() = runTest {
+    val cache = newCache()
+    val gate = CompletableDeferred<Unit>()
+    storage.gate = gate
+    val source = sourceFile("uploaded bytes")
+    val download = async { runCatching { cache.getFile("a/m1.jpg") } }
+    val put = async { runCatching { cache.put("a/m1.jpg", source) } }
+    runCurrent() // the put waits for the download's path lock
+
+    cache.clear()
+    gate.complete(Unit)
+    download.await()
+
+    val error = put.await().exceptionOrNull()
+    assertTrue(error?.message.orEmpty().startsWith("Cache cleared"))
+    assertTrue(source.exists()) // refused before it was moved
+    assertEquals(emptyList<String>(), cachedFileNames())
+  }
+
+  @Test
   fun evictWaitsForDownloadInProgressSoFileDoesNotReappear() = runTest {
     val cache = newCache()
     val gate = CompletableDeferred<Unit>()

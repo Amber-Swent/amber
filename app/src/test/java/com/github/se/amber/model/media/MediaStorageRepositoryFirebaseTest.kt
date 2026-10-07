@@ -29,6 +29,9 @@ class MediaStorageRepositoryFirebaseTest {
   /**
    * A download task in the state that `Task.await()` reads: finished with [failure] (null for
    * success), cancelled by Firebase if [cancelled], or still running if [complete] is false.
+   *
+   * Mocks the getters kotlinx-coroutines' `await()` reads today; a coroutines upgrade that reads
+   * others could break these tests.
    */
   private fun downloadTask(
       complete: Boolean = true,

@@ -12,8 +12,8 @@ import java.io.File
  * it exists once, so every caller shares the same instances; this matters for the cache, which must
  * be the only one using its folder.
  *
- * Both are created on first use. Code that needs them takes them as constructor parameters
- * (defaulting to these), so tests can pass fakes instead.
+ * Both are created on first use. Code that needs them should receive them as constructor parameters
+ * rather than read this object itself, so tests can pass fakes instead.
  */
 object MediaStorageRepositoryProvider {
 
@@ -42,9 +42,13 @@ object MediaStorageRepositoryProvider {
   private const val CACHE_DIR = "media"
 
   /**
-   * How long Firebase keeps retrying a download after errors (default: 10 minutes). Offline, a file
-   * that isn't cached then fails after about this long instead of leaving the UI waiting, at the
-   * cost of failing on short network drops. A download that is making progress isn't cut off.
+   * Maximum time Firebase retries a download after a failure (Firebase's default: 10 minutes).
+   * Offline, a file that isn't cached then fails after roughly this long instead of leaving the UI
+   * waiting, at the cost of failing on short network drops. It limits retries, not the length of a
+   * download.
+   *
+   * It is set on the app-wide `Firebase.storage` instance when [repository] is first created, so it
+   * also applies to any other code using that instance from then on.
    */
   private const val MAX_DOWNLOAD_RETRY_MS = 5_000L
 }
