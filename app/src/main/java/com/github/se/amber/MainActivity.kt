@@ -1,6 +1,6 @@
 // this code was written with the aid of AI
 
-package com.android.sample
+package com.github.se.amber
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -24,11 +24,10 @@ import com.github.se.amber.ui.navigation.NavGraphs
 import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.graphForAuthState
-import com.github.se.amber.ui.theme.AmberAppTheme
-import com.google.firebase.auth.FirebaseAuth
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
-
+import com.github.se.amber.ui.theme.AmberAppTheme
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,14 +59,13 @@ fun AmberApp(
       navController = navController,
       startDestination = startDestination,
   ) {
-
-    composable(route = NavGraphs.ROLE_LOADING){
+    composable(route = NavGraphs.ROLE_LOADING) {
       RoleLoadingScreen(
-        onRoleLoaded = { role ->
-          navController.navigate(graphForRole(role)){
-            popUpTo(NavGraphs.ROLE_LOADING) {inclusive = true}
+          onRoleLoaded = { role ->
+            navController.navigate(graphForRole(role)) {
+              popUpTo(NavGraphs.ROLE_LOADING) { inclusive = true }
+            }
           }
-        }
       )
     }
 
