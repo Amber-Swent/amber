@@ -160,6 +160,7 @@ dependencies {
 
   // ----------          MockK        ------------
   testImplementation(libs.mockk)
+  testImplementation(libs.kotlinx.coroutines.test)
 
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))

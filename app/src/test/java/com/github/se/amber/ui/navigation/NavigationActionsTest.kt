@@ -102,8 +102,9 @@ class NavigationActionsTest {
 
     actions.navigateTo(PatientScreen.Home)
 
-    // check that the function navigate was never called
-    verify(exactly = 0) { navController.navigate(any<String>(), any<NavOptions>(), any()) }
+    verify(exactly = 0) {
+      navController.navigate(any<String>(), any<NavOptionsBuilder.() -> Unit>())
+    }
   }
 
   @Test
