@@ -183,11 +183,12 @@ class MediaFileCache(
    * any download or [put] of that path in progress, so the file can't reappear right after.
    *
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
+   * @throws IOException if the file is cached but can't be deleted; it then stays in the cache.
    */
   suspend fun evict(storagePath: String): Unit =
       withContext(ioDispatcher) {
         setUp.value
-        withPathLock(storagePath) { fileFor(storagePath).delete() }
+        withPathLock(storagePath) { deleteAll(listOf(fileFor(storagePath))) }
       }
 
   /**
@@ -198,13 +199,17 @@ class MediaFileCache(
    * interrupted, but their files are refused (they throw [IOException]), so nothing requested
    * before the clear ends up in the cache. Their `.part` files are left alone: each one is deleted
    * by the call that created it.
+   *
+   * @throws IOException if some files can't be deleted: every file is tried first, and calls made
+   *   before the clear are refused all the same. Private media may then still be on the device, so
+   *   the caller should report it rather than ignore it.
    */
   suspend fun clear(): Unit =
       withContext(ioDispatcher) {
         setUp.value
         dirLock.withLock {
           clearedAt = ++generation
-          dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }?.forEach { it.delete() }
+          deleteAll(dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }.orEmpty().asList())
         }
       }
 
@@ -219,6 +224,7 @@ class MediaFileCache(
    * @throws IllegalArgumentException if [circleId] is blank, or contains `/` or `_`: Firestore
    *   auto-generated IDs never do, and the cache relies on `_` to find where the id ends in a file
    *   name.
+   * @throws IOException if some of the circle's files can't be deleted, like [clear].
    */
   suspend fun clearCircle(circleId: String) {
     require(circleId.isNotBlank() && '/' !in circleId && '_' !in circleId) {
@@ -229,7 +235,7 @@ class MediaFileCache(
       dirLock.withLock {
         circleClearedAt[circleId] = ++generation
         // .part files are named download*.part, so they never match: each is deleted by its call
-        dir.listFiles { f -> circleIdOf(f.name) == circleId }?.forEach { it.delete() }
+        deleteAll(dir.listFiles { f -> circleIdOf(f.name) == circleId }.orEmpty().asList())
       }
     }
   }
@@ -276,6 +282,19 @@ class MediaFileCache(
       "Invalid storagePath: \"$storagePath\""
     }
     return File(dir, name)
+  }
+
+  /**
+   * Deletes each of [files] that exists, trying them all even if some fail.
+   *
+   * @throws IOException if some still exist afterwards, naming the first one.
+   */
+  private fun deleteAll(files: List<File>) {
+    // File.delete() also returns false when the file was already gone, which is fine
+    val left = files.filter { !it.delete() && it.exists() }
+    if (left.isNotEmpty()) {
+      throw IOException("Could not delete ${left.size} cached file(s), e.g. ${left.first()}")
+    }
   }
 
   /**
@@ -359,8 +378,8 @@ class MediaFileCache(
     for (entry in entries.sortedBy { it.lastUsed }) { // oldest first
       if (total <= maxBytes) break
       if (entry.file == keep) continue
-      entry.file.delete()
-      if (!entry.file.exists()) total -= entry.size // also true if evict() or the system deleted it
+      // a failed delete leaves the file counted; one already gone (evict() or the system) isn't
+      if (entry.file.delete() || !entry.file.exists()) total -= entry.size
     }
   }
 

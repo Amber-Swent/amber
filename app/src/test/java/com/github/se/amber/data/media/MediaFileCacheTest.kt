@@ -292,6 +292,59 @@ class MediaFileCacheTest {
     assertEquals(emptyList<String>(), cachedFileNames()) // no cached file, no .part left
   }
 
+  /**
+   * Puts something no delete can remove under the cache name of [storagePath]: a non-empty folder
+   * (File.delete() refuses those on every platform, unlike read-only files).
+   */
+  private fun undeletableEntry(storagePath: String) =
+      File(cacheDir, storagePath.replace('/', '_')).apply {
+        mkdirs()
+        File(this, "inside").writeText("x")
+      }
+
+  @Test
+  fun evictThrowsWhenTheFileCannotBeDeletedButNotWhenItIsntCached() = runTest {
+    val cache = newCache()
+    cache.fetch("a/other.jpg") // sets the folder up
+    undeletableEntry("a/m1.jpg")
+
+    val error = runCatching { cache.evict("a/m1.jpg") }.exceptionOrNull()
+
+    assertTrue(error is IOException)
+    assertTrue(isCached("a/m1.jpg"))
+    cache.evict("a/never-cached.jpg") // nothing to delete: no error
+  }
+
+  @Test
+  fun clearDeletesWhatItCanThenThrowsForTheRest() = runTest {
+    val cache = newCache()
+    cache.fetch("a/m1.jpg")
+    cache.fetch("a/m3.jpg")
+    undeletableEntry("a/m2.jpg")
+
+    val error = runCatching { cache.clear() }.exceptionOrNull()
+
+    // the caller learns that private media may still be on the device
+    assertTrue(error is IOException)
+    assertEquals(listOf("a_m2.jpg"), cachedFileNames()) // the others were all deleted
+  }
+
+  @Test
+  fun clearCircleDeletesWhatItCanThenThrowsForTheRest() = runTest {
+    val cache = newCache()
+    cache.fetch("careCircles/c1/media/m1.jpg")
+    cache.fetch("careCircles/c2/media/m1.jpg")
+    undeletableEntry("careCircles/c1/media/m2.jpg")
+
+    val error = runCatching { cache.clearCircle("c1") }.exceptionOrNull()
+
+    assertTrue(error is IOException)
+    assertEquals(
+        listOf("careCircles_c1_media_m2.jpg", "careCircles_c2_media_m1.jpg"),
+        cachedFileNames(),
+    )
+  }
+
   @Test
   fun evictWaitsForDownloadInProgressSoFileDoesNotReappear() = runTest {
     val cache = newCache()
