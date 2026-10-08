@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PADDING_SMALL
 
 /**
  * Displays the caregiver home screen
@@ -46,11 +48,11 @@ fun HomeScreen(
       //      },
       content = { paddingValues ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_MEDIUM),
+            verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          Spacer(modifier = Modifier.height(8.dp))
+          Spacer(modifier = Modifier.height(PADDING_SMALL))
 
           Text(
               text = "Welcome ! You are with " + viewModel.getPatientName(),
@@ -58,8 +60,6 @@ fun HomeScreen(
               style = MaterialTheme.typography.bodyLarge,
               textAlign = TextAlign.Center,
           )
-
-          Spacer(modifier = Modifier.height(16.dp))
         }
       },
   )
