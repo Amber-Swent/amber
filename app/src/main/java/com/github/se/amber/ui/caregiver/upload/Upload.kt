@@ -91,17 +91,17 @@ fun Upload(
 
   Scaffold(
       topBar = {
-          TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout)
-          Spacer(modifier = Modifier.height(small))
+        TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout)
+        Spacer(modifier = Modifier.height(small))
 
-          Text(
-              modifier = Modifier.testTag(UploadTestTags.TITLE),
-              text = "Upload ",
-              color = orange,
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.Bold,
-          )
-          Spacer(modifier = Modifier.height(medium))
+        Text(
+            modifier = Modifier.testTag(UploadTestTags.TITLE),
+            text = "Upload ",
+            color = orange,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(modifier = Modifier.height(medium))
       },
       // TODO: unExtract the following lines once Navigation is implement
       //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
