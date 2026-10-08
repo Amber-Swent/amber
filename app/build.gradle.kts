@@ -173,12 +173,17 @@ dependencies {
   // ----------      Coroutines test    ----------
   testImplementation(libs.kotlinx.coroutines.test)
 
+  // ----------        Mockito        ------------
+  testImplementation(libs.mockito.kotlin)
+
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))
   androidTestImplementation(platform(libs.firebase.bom))
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.auth)
   implementation(libs.firebase.storage)
+  // Task.await() for Firebase calls
+  implementation(libs.kotlinx.coroutines.play.services)
 }
 
 tasks.withType<Test> {
