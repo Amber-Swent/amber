@@ -123,10 +123,11 @@ jobs:
       - name: Install Firebase CLI
         run: npm install --global --ignore-scripts firebase-tools@15.30.1
 
-      - name: Run Firestore rules tests
+      # Run unit tests once, with the Firestore emulator available for the rules tests.
+      - name: Run tests
         run: |
           firebase emulators:exec --only firestore \
-            './gradlew :app:testDebugUnitTest --tests "*FirestoreSecurityRulesTest"'
+            './gradlew check --parallel --build-cache'
 
       - name: Generate Firestore rules coverage report
         run: node scripts/generate-firestore-rules-coverage.js
