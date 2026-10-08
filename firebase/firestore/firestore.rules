@@ -36,6 +36,9 @@ service cloud.firestore {
     function isMember(circleId) {
       return isSignedIn()
         && exists(circlePath(circleId))
+        // The profile and circle must agree on the family (care-circle) ID.
+        && exists(userPath(request.auth.uid))
+        && circleId in userDoc(request.auth.uid).circleIds
         && request.auth.uid in circleDoc(circleId).memberIds;
     }
 
