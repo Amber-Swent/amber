@@ -1,9 +1,195 @@
+// Written by Alaabrine, with assistance from
+// Cursor (Composer).
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{collection}/{uid} {
-      allow read, write: if true;
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function circlePath(circleId) {
+      return /databases/$(database)/documents/careCircles/$(circleId);
+    }
+
+    function userDoc(uid) {
+      return get(userPath(uid)).data;
+    }
+
+    function circleDoc(circleId) {
+      return get(circlePath(circleId)).data;
+    }
+
+    function circleDocAfter(circleId) {
+      return getAfter(circlePath(circleId)).data;
+    }
+
+    function isMember(circleId) {
+      return isSignedIn()
+        && exists(circlePath(circleId))
+        // The profile and circle must agree on the family (care-circle) ID.
+        && exists(userPath(request.auth.uid))
+        && circleId in userDoc(request.auth.uid).circleIds
+        && request.auth.uid in circleDoc(circleId).memberIds;
+    }
+
+    function isCaregiver() {
+      return isSignedIn()
+        && exists(userPath(request.auth.uid))
+        && userDoc(request.auth.uid).role == 'CAREGIVER';
+    }
+
+    // Caregiver role after this batch (onboarding creates profile + circle together).
+    function isCaregiverAfter() {
+      return isSignedIn()
+        && existsAfter(userPath(request.auth.uid))
+        && getAfter(userPath(request.auth.uid)).data.role == 'CAREGIVER';
+    }
+
+    function sharesCircleWith() {
+      return isSignedIn()
+        && exists(userPath(request.auth.uid))
+        && userDoc(request.auth.uid).circleIds.hasAny(resource.data.circleIds);
+    }
+
+    // Membership / invite redeem is backend-only (Admin SDK / Cloud Functions).
+    function memberCircleFieldEdit(circleId) {
+      return isMember(circleId)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.memberIds == resource.data.memberIds
+        && request.resource.data.patientId == resource.data.patientId
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places'])
+        && onlyOwnNicknameChanged()
+        && placesChangedOnlyByCaregiver();
+    }
+
+    function onlyOwnNicknameChanged() {
+      return request.resource.data.nicknames == resource.data.nicknames
+        || request.resource.data.nicknames.diff(resource.data.nicknames)
+             .affectedKeys().hasOnly([request.auth.uid]);
+    }
+
+    function placesChangedOnlyByCaregiver() {
+      return request.resource.data.places == resource.data.places
+        || isCaregiver();
+    }
+
+    function mediaStoragePathMatches(circleId) {
+      return request.resource.data.storagePath.matches(
+        'careCircles/' + circleId + '/media/[^/]+'
+      );
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid) || sharesCircleWith();
+
+      allow create: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.role in ['CAREGIVER', 'PATIENT']
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'person', 'circleIds'])
+        && (
+          request.resource.data.circleIds.size() == 0
+          || (
+            request.resource.data.circleIds.size() == 1
+            && request.auth.uid in circleDocAfter(
+              request.resource.data.circleIds[0]
+            ).memberIds
+          )
+        );
+
+      allow update: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.circleIds == resource.data.circleIds
+        && request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['person']);
+
+      allow delete: if false;
+    }
+
+    match /careCircles/{circleId} {
+      allow read: if isMember(circleId);
+
+      allow create: if isSignedIn()
+        && (isCaregiver() || isCaregiverAfter())
+        && request.resource.data.id == circleId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.memberIds == [request.auth.uid]
+        && request.resource.data.patientId == ''
+        && request.resource.data.createdAt is int;
+
+      allow update: if memberCircleFieldEdit(circleId);
+
+      allow delete: if false;
+
+      match /media/{mediaId} {
+        allow read: if isMember(circleId);
+
+        allow create: if isMember(circleId)
+          && request.resource.data.id == mediaId
+          && request.resource.data.authorId == request.auth.uid
+          && mediaStoragePathMatches(circleId);
+
+        allow update: if isMember(circleId)
+          && resource.data.authorId == request.auth.uid
+          && request.resource.data.id == mediaId
+          && request.resource.data.authorId == resource.data.authorId
+          && mediaStoragePathMatches(circleId);
+
+        allow delete: if isMember(circleId)
+          && resource.data.authorId == request.auth.uid;
+      }
+
+      match /stories/{storyId} {
+        allow read: if isMember(circleId);
+
+        allow create, update: if isMember(circleId)
+          && request.resource.data.id == storyId;
+
+        allow delete: if isMember(circleId);
+      }
+
+      match /appointments/{appointmentId} {
+        allow read: if isMember(circleId);
+
+        allow create: if isMember(circleId)
+          && isCaregiver()
+          && request.resource.data.id == appointmentId;
+
+        allow update: if isMember(circleId)
+          && isCaregiver()
+          && request.resource.data.id == appointmentId;
+
+        allow delete: if isMember(circleId) && isCaregiver();
+      }
+    }
+
+    match /invitations/{code} {
+      allow get: if isSignedIn();
+      allow list: if false;
+
+      allow create: if isCaregiver()
+        && isMember(request.resource.data.circleId)
+        && request.resource.data.code == code
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.usedBy == null;
+
+      // Redeem is backend-only (Admin SDK / Cloud Functions).
+      allow update: if false;
+
+      allow delete: if false;
     }
   }
 }

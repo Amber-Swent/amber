@@ -16,9 +16,17 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
+
+object TopNavigationMenuTestTags {
+  const val ROOT = "topNavigationMenuRoot"
+  const val TITLE = "topNavigationMenuTitle"
+  const val BACK_BUTTON = "topNavigationMenuBackButton"
+  const val DIVIDER = "topNavigationMenuDivider"
+}
 
 /** Text actions that can be displayed in the top navigation menu. */
 // IDEA : associate TopNavigationAction with a function (text to display, associated function),
@@ -42,12 +50,19 @@ fun TopNavigationMenu(
     action: TopNavigationAction,
     onBackClick: () -> Unit,
 ) {
-  Column(modifier = modifier.fillMaxWidth()) {
+  Column(modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.ROOT)) {
     TopAppBar(
-        title = { Text(action.label, color = orange) },
+        title = {
+          Text(
+              action.label,
+              modifier = Modifier.testTag(TopNavigationMenuTestTags.TITLE),
+              color = orange,
+          )
+        },
         navigationIcon = {
           IconButton(
               onClick = { onBackClick() },
+              modifier = Modifier.testTag(TopNavigationMenuTestTags.BACK_BUTTON),
           ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
@@ -58,6 +73,10 @@ fun TopNavigationMenu(
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
     )
-    HorizontalDivider(Modifier, thickness = 1.dp, color = lightGray)
+    HorizontalDivider(
+        Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
+        thickness = 1.dp,
+        color = lightGray,
+    )
   }
 }
