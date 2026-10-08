@@ -59,9 +59,18 @@ interface MediaRepository {
    */
   suspend fun getFile(circle: CareCircle, item: MediaItem): File
 
-  /** Deletes the cached files of [circleId]. Call it when the user leaves that circle. */
+  /**
+   * Deletes the cached files of [circleId]. Call it when the user leaves that circle.
+   *
+   * @throws java.io.IOException if some files can't be deleted: that circle's private media may
+   *   then still be on the device, so report it rather than ignore it.
+   */
   suspend fun clearCachedMedia(circleId: String)
 
-  /** Deletes the cached files of every circle. Call it on sign-out. */
+  /**
+   * Deletes the cached files of every circle. Call it on sign-out.
+   *
+   * @throws java.io.IOException if some files can't be deleted, like the other [clearCachedMedia].
+   */
   suspend fun clearCachedMedia()
 }
