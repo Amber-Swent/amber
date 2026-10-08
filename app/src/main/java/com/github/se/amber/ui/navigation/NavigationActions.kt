@@ -33,10 +33,10 @@ open class NavigationActions(private val navController: NavHostController) {
         launchSingleTop = true
         popUpTo(screen.route) { inclusive = true }
       }
-      // if the screen is not a top-level destination it only adds a new copy of if
+      // If the screen is not a top-level destination, simply push it onto the back stack
 
       // restore the previous stored state of the screen, except for the authentification
-      if (screen !is AuthScreen.Auth) {
+      if (screen !is AuthScreen) {
         restoreState = true
       }
     }
@@ -54,5 +54,15 @@ open class NavigationActions(private val navController: NavHostController) {
    */
   open fun currentRoute(): String {
     return navController.currentDestination?.route ?: ""
+  }
+
+  /**
+   * Navigate to a navigation graph and clear the entire back stack, so the user cannot go back to
+   * any previous screen
+   *
+   * @param graphRoute The route of the graph to navigate to (see [NavGraphs])
+   */
+  open fun navigateToGraph(graphRoute: String) {
+    navController.navigate(graphRoute) { popUpTo(navController.graph.id) { inclusive = true } }
   }
 }

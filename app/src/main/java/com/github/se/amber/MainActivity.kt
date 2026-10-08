@@ -49,11 +49,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AmberApp(
     // TODO add context and credential manager
+    startDestination: String = graphForAuthState(FirebaseAuth.getInstance().currentUser)
 ) {
   val navController: NavHostController = rememberNavController()
   val navigationActions = NavigationActions(navController)
-
-  val startDestination = graphForAuthState(FirebaseAuth.getInstance().currentUser)
 
   NavHost(
       navController = navController,
@@ -61,15 +60,12 @@ fun AmberApp(
   ) {
     composable(route = NavGraphs.ROLE_LOADING) {
       RoleLoadingScreen(
-          onRoleLoaded = { role ->
-            navController.navigate(graphForRole(role)) {
-              popUpTo(NavGraphs.ROLE_LOADING) { inclusive = true }
-            }
-          }
+          onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
+          onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
       )
     }
 
-    // Authentification Graph
+    // Authentication Graph
     navigation(
         startDestination = AuthScreen.Auth.route,
         route = NavGraphs.AUTH,

@@ -1,6 +1,7 @@
 // this code was written with the aid of AI
 package com.github.se.amber.ui.roleLoading
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.model.user.Role
@@ -26,13 +27,17 @@ sealed interface RoleState {
   data object Error : RoleState
 }
 
-class RoleLoadingViewModel : ViewModel() {
+class RoleLoadingViewModel(
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
+) : ViewModel() {
   private val _state = MutableStateFlow<RoleState>(RoleState.Loading)
   val state: StateFlow<RoleState> = _state
 
   fun loadRole() {
     viewModelScope.launch {
-      val uid = FirebaseAuth.getInstance().currentUser?.uid
+      _state.value = RoleState.Loading
+      val uid = auth.currentUser?.uid
       // case where no one is connected
       if (uid == null) {
         _state.value = RoleState.Error
@@ -40,13 +45,17 @@ class RoleLoadingViewModel : ViewModel() {
       }
       _state.value =
           try {
-            val snapshot =
-                FirebaseFirestore.getInstance().collection("users").document(uid).get().await()
+            val snapshot = firestore.collection("users").document(uid).get().await()
             val profile = snapshot.toObject(UserProfile::class.java)
             if (profile == null) RoleState.NoProfile else RoleState.Loaded(profile.role)
           } catch (e: Exception) {
+            Log.e("RoleLoadingViewModel", "Failed to load role", e)
             RoleState.Error
           }
     }
+  }
+
+  fun signOut() {
+    auth.signOut()
   }
 }
