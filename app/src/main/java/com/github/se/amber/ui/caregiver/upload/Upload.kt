@@ -36,17 +36,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.PICTURE_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.TEXT_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.lightOrange
-import com.github.se.amber.ui.theme.medium
 import com.github.se.amber.ui.theme.orange
-import com.github.se.amber.ui.theme.small
 
 object UploadTestTags {
   const val TITLE = "upload_title"
@@ -92,7 +91,7 @@ fun Upload(
   Scaffold(
       topBar = {
         TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout)
-        Spacer(modifier = Modifier.height(small))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         Text(
             modifier = Modifier.testTag(UploadTestTags.TITLE),
@@ -101,7 +100,7 @@ fun Upload(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
         )
-        Spacer(modifier = Modifier.height(medium))
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
       },
       // TODO: unExtract the following lines once Navigation is implement
       //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
@@ -110,13 +109,8 @@ fun Upload(
       content = { paddingValues ->
         Column(
             modifier =
-                Modifier.fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(medium)
-                    .padding(paddingValues)
-                    .padding(medium)
-                    .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                Modifier.fillMaxSize().padding(paddingValues).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         ) {
           DisplayButton(
               modifier = Modifier.testTag(TEXT_BUTTON),

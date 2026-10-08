@@ -2,14 +2,8 @@ package com.github.se.amber.ui.theme
 
 import androidx.compose.ui.unit.dp
 
-/* App's primary colors
- *
- * Shades of orange are the dominant colors in the Amber app.
- * Shades of blue are used to provide contrast.
- */
+/* App's primary padding value */
 
-val small = 8.dp
-
-val medium = 16.dp
-
-val big = 24.dp
+val PADDING_SMALL = 8.dp
+val PADDING_MEDIUM = 16.dp
+val PADDING_BIG = 24.dp
