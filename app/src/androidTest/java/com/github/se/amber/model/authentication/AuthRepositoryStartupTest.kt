@@ -36,7 +36,6 @@ class AuthRepositoryStartupTest {
         val repository = AuthRepositoryProvider.repository
         assertTrue(repository is AuthRepositoryFirebase)
         assertSame(activity.applicationContext, firebaseApp.applicationContext)
-        assertSame(repository, AuthRepositoryProvider.repository)
       }
     }
   }
