@@ -3,9 +3,6 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
-import android.R.attr.description
-import android.R.attr.onClick
-import android.R.attr.text
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
