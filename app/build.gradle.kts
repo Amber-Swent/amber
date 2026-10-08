@@ -14,6 +14,20 @@ android {
   namespace = "com.github.se.amber"
   compileSdk = 37
 
+  // Sign debug builds with the shared CI keystore (its SHA-1 is registered in Firebase).
+  // If the file is absent (e.g. local builds), Gradle falls back to the default debug key.
+  signingConfigs {
+    getByName("debug") {
+      val ciKeystore = file("ci-debug.keystore")
+      if (ciKeystore.exists()) {
+        storeFile = ciKeystore
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
+    }
+  }
+
   defaultConfig {
     applicationId = "com.github.se.amber"
     minSdk = 28
@@ -119,10 +133,12 @@ fun DependencyHandlerScope.globalTestImplementation(dep: Any) {
 dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.appcompat)
+  implementation(libs.googleid)
   implementation(libs.material)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(platform(libs.compose.bom))
   testImplementation(libs.junit)
+  testImplementation("org.mockito:mockito-core:5.23.0")
   globalTestImplementation(libs.androidx.junit)
   globalTestImplementation(libs.androidx.espresso.core)
 

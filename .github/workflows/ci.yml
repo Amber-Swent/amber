@@ -1,3 +1,5 @@
+# This code was written with the aid of AI
+
 name: CI - Test Runner
 
 # Run the workflow when commits are pushed on main or when a PR is modified
@@ -96,11 +98,29 @@ jobs:
         run: |
           ./gradlew ktfmtCheck
 
+      # Decode the debug keystore from the GitHub secret
+      - name: Decode debug keystore
+        env:
+          CI_DEBUG_KEYSTORE: ${{ secrets.CI_DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$CI_DEBUG_KEYSTORE" ]; then
+            echo "$CI_DEBUG_KEYSTORE" | base64 --decode > app/ci-debug.keystore
+          else
+            echo "::warning::CI_DEBUG_KEYSTORE is not set. Using the default debug signing key."
+          fi
+
       # This step runs gradle commands to build the application
       - name: Assemble
         run: |
           # To run the CI with debug information, add --info
           ./gradlew assemble lint --parallel --build-cache
+
+      # This step upload the APK as an artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
 
       # Run Unit tests
       - name: Run tests
@@ -119,6 +139,18 @@ jobs:
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: ./gradlew connectedCheck --parallel --build-cache
+
+      - name: Install Firebase CLI
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+
+      # Run unit tests once, with the Firestore emulator available for the rules tests.
+      - name: Run tests
+        run: |
+          firebase emulators:exec --only firestore \
+            './gradlew check --parallel --build-cache'
+
+      - name: Generate Firestore rules coverage report
+        run: node scripts/generate-firestore-rules-coverage.js
 
       # This step generates the coverage report which will be uploaded to sonar
       - name: Generate Coverage Report
