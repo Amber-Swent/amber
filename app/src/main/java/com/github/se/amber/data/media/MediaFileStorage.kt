@@ -15,7 +15,7 @@ import java.io.File
  * [MediaFileCache.getFile]. Only downloads exist for now; uploads and deletions will be added with
  * the repository's Firestore part.
  */
-interface MediaFileStorage {
+fun interface MediaFileStorage {
   /**
    * Downloads the file at [storagePath] in [circle]'s bucket into [destination], overwriting its
    * content.
