@@ -8,6 +8,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -34,8 +35,13 @@ class RoleLoadingViewModel(
   private val _state = MutableStateFlow<RoleState>(RoleState.Loading)
   val state: StateFlow<RoleState> = _state
 
+  private var loadJob: Job? = null
+
   fun loadRole() {
-    viewModelScope.launch {
+    // Skip if already not loading
+    // To avoid fast second call to overwrite first
+    if (loadJob?.isActive == true) return
+    loadJob = viewModelScope.launch {
       _state.value = RoleState.Loading
       val uid = auth.currentUser?.uid
       // case where no one is connected
@@ -47,7 +53,12 @@ class RoleLoadingViewModel(
           try {
             val snapshot = firestore.collection("users").document(uid).get().await()
             val profile = snapshot.toObject(UserProfile::class.java)
-            if (profile == null) RoleState.NoProfile else RoleState.Loaded(profile.role)
+            when {
+              profile == null -> RoleState.NoProfile
+              !snapshot.contains("role") ->
+                  RoleState.Error // missing field: to avoid a silent default role
+              else -> RoleState.Loaded(profile.role)
+            }
           } catch (e: Exception) {
             Log.e("RoleLoadingViewModel", "Failed to load role", e)
             RoleState.Error

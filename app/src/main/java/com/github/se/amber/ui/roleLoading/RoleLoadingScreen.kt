@@ -26,7 +26,7 @@ fun RoleLoadingScreen(
       viewModel.loadRole()
     }
   }
-  // when the state change and is l
+  // when the state changes to Loaded
   LaunchedEffect(state) {
     val s = state
     if (s is RoleState.Loaded) {
