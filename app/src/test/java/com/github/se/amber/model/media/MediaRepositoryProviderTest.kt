@@ -3,7 +3,7 @@
 package com.github.se.amber.model.media
 
 import android.content.Context
-import com.github.se.amber.data.media.MediaFileStorageFirebase
+import com.github.se.amber.data.media.MediaRepositoryFirebase
 import com.github.se.amber.model.circle.CareCircle
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -19,8 +19,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
 /**
- * Checks how [MediaRepositoryProvider] wires the media layer, on Robolectric. Nothing here contacts
- * Firebase: creating the instances needs no network.
+ * Checks how [MediaRepositoryProvider] builds the repository, on Robolectric, where Firebase is
+ * initialized by hand like the app does at startup. Nothing here contacts Firebase.
  */
 @RunWith(RobolectricTestRunner::class)
 class MediaRepositoryProviderTest {
@@ -42,46 +42,30 @@ class MediaRepositoryProviderTest {
   }
 
   @Test
-  fun everyCallReturnsTheSameFileStorageAndCache() {
-    val cache = MediaRepositoryProvider.mediaFileCache(context)
+  fun repositoryIsASingleFirebaseInstance() {
+    val repository = MediaRepositoryProvider.repository
 
-    assertTrue(MediaRepositoryProvider.fileStorage is MediaFileStorageFirebase)
-    assertSame(MediaRepositoryProvider.fileStorage, MediaRepositoryProvider.fileStorage)
-    // the cache must be the only one using its folder, whatever context is passed
-    assertSame(cache, MediaRepositoryProvider.mediaFileCache(context.applicationContext))
+    assertTrue(repository is MediaRepositoryFirebase)
+    // its cache must be the only one using its folder
+    assertSame(repository, MediaRepositoryProvider.repository)
   }
 
   @Test
-  fun cacheStoresFilesOfEveryCircleInTheMediaFolder() = runTest {
-    val cache = MediaRepositoryProvider.mediaFileCache(context)
+  fun filesAreCachedInTheMediaFolderOfTheAppCache() = runTest {
+    // the app's context as the provider gets it: Robolectric gives each test a new application,
+    // but Firebase, like the repository, keeps the first one
+    val appCacheDir = FirebaseApp.getInstance().applicationContext.cacheDir
+    val cached = File(appCacheDir, "media/careCircles_cached_media_m1.jpg")
+    cached.parentFile!!.mkdirs()
+    cached.writeText("cached before")
+    // no bucket: a cache miss would fail at once instead of trying the network
+    val circle = CareCircle(id = "cached")
+    val item = MediaItem.Picture(id = "m1", storagePath = "careCircles/cached/media/m1.jpg")
 
-    cache.put("careCircles/c1/media/m1.jpg", tempFile("first circle"))
-    cache.put("careCircles/c2/media/m1.jpg", tempFile("second circle"))
+    // a cache hit: no download
+    val file = MediaRepositoryProvider.repository.getFile(circle, item)
 
-    val folder = File(context.cacheDir, "media")
-    assertEquals("first circle", File(folder, "careCircles_c1_media_m1.jpg").readText())
-    assertEquals("second circle", File(folder, "careCircles_c2_media_m1.jpg").readText())
-    cache.clear()
+    assertEquals("cached before", file.readText())
+    MediaRepositoryProvider.repository.clearCachedMedia("cached")
   }
-
-  @Test
-  fun fileStorageResolvesTheCircleBucketThroughCircleStorageProvider() = runTest {
-    val destination = tempFile("")
-
-    // CircleStorageProvider refuses a circle whose bucket isn't assigned, before any network call
-    val error = runCatching {
-      MediaRepositoryProvider.fileStorage.downloadToFile(
-          CareCircle(id = "pending"),
-          "careCircles/pending/media/m1.jpg",
-          destination,
-      )
-    }
-        .exceptionOrNull()
-
-    assertTrue(error is IllegalArgumentException)
-    assertEquals("Storage is not ready for care circle pending", error?.message)
-  }
-
-  private fun tempFile(text: String) =
-      File.createTempFile("media", ".jpg").apply { writeText(text) }
 }

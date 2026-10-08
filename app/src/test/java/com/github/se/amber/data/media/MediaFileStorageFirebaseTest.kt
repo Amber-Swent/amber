@@ -8,6 +8,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
@@ -89,12 +90,21 @@ class MediaFileStorageFirebaseTest {
   }
 
   @Test
-  fun circleWithoutBucketIsRejectedBeforeAnyDownload() = runTest {
-    val fileStorage = MediaFileStorageFirebase { throw IllegalArgumentException("not ready") }
+  fun byDefaultTheBucketComesFromCircleStorageProvider() = runTest {
+    // the app's instance: no mock. CircleStorageProvider refuses a circle whose bucket isn't
+    // assigned before touching Firebase, so this needs neither Firebase nor the network
+    val error = runCatching {
+      MediaFileStorageFirebase()
+          .downloadToFile(
+              CareCircle(id = "pending"),
+              "careCircles/pending/media/m1.jpg",
+              destination,
+          )
+    }
+        .exceptionOrNull()
 
-    val error = runCatching { fileStorage.downloadToFile(circle, "a/m1.jpg", destination) }
-
-    assertTrue(error.exceptionOrNull() is IllegalArgumentException)
+    assertTrue(error is IllegalArgumentException)
+    assertEquals("Storage is not ready for care circle pending", error?.message)
   }
 
   @Test
@@ -124,17 +134,27 @@ class MediaFileStorageFirebaseTest {
   }
 
   @Test
-  fun cancellingTheCallCancelsTheDownload() = runTest {
+  fun cancellingTheCallCancelsTheDownloadAndRethrowsTheCancellation() = runTest {
     val task = downloadTask(complete = false)
     val firebase = FakeFirebase(task)
     val fileStorage = MediaFileStorageFirebase { firebase.storage }
+    var thrown: Throwable? = null
 
-    val call = launch { fileStorage.downloadToFile(circle, "a/m1.jpg", destination) }
+    val call = launch {
+      try {
+        fileStorage.downloadToFile(circle, "a/m1.jpg", destination)
+      } catch (e: Throwable) {
+        thrown = e
+        throw e
+      }
+    }
     runCurrent() // waiting for the download
     verify(task, never()).cancel()
     call.cancel()
     call.join()
 
     verify(task).cancel() // the download stops instead of writing into a file nobody wants
+    // a cancellation, not an IOException: a ViewModel whose screen closed must not see an error
+    assertTrue(thrown is CancellationException)
   }
 }

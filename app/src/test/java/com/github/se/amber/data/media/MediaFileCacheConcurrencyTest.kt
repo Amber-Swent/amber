@@ -17,9 +17,9 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * Runs [MediaFileCache] on real threads, so cache hits really happen while a trim runs, which the
- * single-threaded tests in [MediaFileCacheTest] can't do. Only asserts what must hold whatever the
- * timing; a pass makes a race unlikely, it doesn't prove there is none.
+ * Runs [MediaFileCache] on real threads, so hits, downloads and trims of many paths really run at
+ * the same time, which the single-threaded tests in [MediaFileCacheTest] can't do. Only asserts
+ * what must hold whatever the timing; a pass makes a race unlikely, it doesn't prove there is none.
  */
 class MediaFileCacheConcurrencyTest {
 
@@ -39,7 +39,7 @@ class MediaFileCacheConcurrencyTest {
   private fun cachedFiles() = cacheDir.listFiles().orEmpty().toList()
 
   @Test
-  fun hitsDuringTrimsNeverFailOrServeWrongContent() = runBlocking {
+  fun concurrentHitsAndTrimsNeverFailOrServeWrongContent() = runBlocking {
     val cache = newCache()
     val wrong = ConcurrentLinkedQueue<String>()
 
@@ -52,13 +52,14 @@ class MediaFileCacheConcurrencyTest {
                 // 150 paths but room for only 50 files: frequent misses (trims) and hits at once
                 val path = "a/m${random.nextInt(150)}.jpg"
                 val file = cache.getFile(path) { it.writeText(contentOf(path)) }
-                // null: evicted before it could be read, which the cache allows
+                // null: evicted by another worker's trim after it was returned, which the cache
+                // allows
                 val text = runCatching { file.readText() }.getOrNull()
                 if (text != null && text != contentOf(path)) wrong += "$path -> $text"
               }
             }
           }
-          .joinAll() // an exception in any worker (e.g. from the sort) fails the test
+          .joinAll() // an exception in any worker fails the test
     }
 
     assertTrue("wrong content served: $wrong", wrong.isEmpty())

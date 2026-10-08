@@ -2,44 +2,37 @@
 // Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.media
 
-import android.content.Context
 import com.github.se.amber.data.media.MediaFileCache
-import com.github.se.amber.data.media.MediaFileStorage
 import com.github.se.amber.data.media.MediaFileStorageFirebase
+import com.github.se.amber.data.media.MediaRepositoryFirebase
+import com.google.firebase.Firebase
+import com.google.firebase.app
 import java.io.File
 
 /**
- * The one place where the media layer is built. ViewModel factories will get the media repository
- * from here, and nothing else: [MediaFileStorage] and [MediaFileCache] are its building blocks.
+ * Holds the app's single [MediaRepository], the one place where the media layer is built. Its
+ * building blocks (the file storage and the file cache) stay inside: only the repository is
+ * exposed.
  *
- * TODO: once the media repository exists, build it here from [fileStorage] and [mediaFileCache],
- *   expose only it, and make those two private.
- *
- * Being an `object`, it exists once, so every caller shares the same instances; this matters for
- * the cache, which must be the only one using its folder. Code that needs them should receive them
- * as constructor parameters rather than read this object itself, so tests can pass fakes instead.
+ * Being an `object`, it exists once, so every caller shares the same repository; this matters for
+ * its cache, which must be the only one using its folder. ViewModels should receive the repository
+ * as a constructor parameter (their factory reads it here), so tests can pass a fake instead.
  */
 object MediaRepositoryProvider {
 
-  /** The Firebase-backed file storage, which reads each circle's own bucket. */
-  val fileStorage: MediaFileStorage by lazy { MediaFileStorageFirebase() }
-
-  @Volatile private var cache: MediaFileCache? = null
-
   /**
-   * The cache of downloaded media of every circle, in a `media` folder of the app's cache
-   * directory. Created on the first call; later calls return the same instance, whatever [context]
-   * they pass.
+   * The Firebase-backed repository, caching files in a `media` folder of the app's cache directory.
+   *
+   * Built on first use: [lazy] makes concurrent first uses wait for a single instance, and if
+   * building fails (Firebase not initialized yet), the next use tries again. The app's context
+   * comes from Firebase, which the app initializes before any activity starts.
    */
-  fun mediaFileCache(context: Context): MediaFileCache =
-      // checked again inside synchronized: two first calls at once must not both create one
-      cache
-          ?: synchronized(this) {
-            cache
-                ?: MediaFileCache(File(context.applicationContext.cacheDir, CACHE_DIR)).also {
-                  cache = it
-                }
-          }
+  val repository: MediaRepository by lazy {
+    MediaRepositoryFirebase(
+        fileStorage = MediaFileStorageFirebase(),
+        cache = MediaFileCache(File(Firebase.app.applicationContext.cacheDir, CACHE_DIR)),
+    )
+  }
 
   private const val CACHE_DIR = "media"
 }

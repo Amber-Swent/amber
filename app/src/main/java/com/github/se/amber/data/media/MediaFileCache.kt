@@ -3,7 +3,6 @@
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.media.MediaItem
-import com.github.se.amber.model.media.MediaRepositoryProvider
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -19,8 +18,8 @@ import kotlinx.coroutines.withContext
 /**
  * Local on-disk cache of media files (the bytes behind [MediaItem.storagePath]), so media that was
  * already loaded can still be browsed offline. One cache holds the media of every care circle:
- * storage paths contain the circle id, so they never collide. Used by the media repository only,
- * never by ViewModels.
+ * storage paths contain the circle id, so they never collide. Used by [MediaRepositoryFirebase]
+ * only, never by ViewModels.
  *
  * Files are written to a temporary `.part` file and renamed once complete, so a cached file is
  * always whole. Past [maxBytes], the least recently used files are deleted.
@@ -28,9 +27,9 @@ import kotlinx.coroutines.withContext
  * The cache doesn't know where files come from: each [getFile] says how to download its file (in
  * the app, through [MediaFileStorage] from the circle's bucket).
  *
- * Only one instance may use a given [dir]: the locks don't coordinate across instances, so get the
- * app's instance from [MediaRepositoryProvider.mediaFileCache]. The constructor doesn't touch the
- * disk; the folder is set up on first use, on [ioDispatcher].
+ * Only one instance may use a given [dir]: the locks don't coordinate across instances, so the app
+ * builds a single one, inside its repository (see `MediaRepositoryProvider`). The constructor
+ * doesn't touch the disk; the folder is set up on first use, on [ioDispatcher].
  *
  * @param dir cache folder, e.g. `File(context.cacheDir, "media")`; created if missing.
  * @param maxBytes size the cache is trimmed down to after each new file; must be positive.
@@ -61,16 +60,20 @@ class MediaFileCache(
   private val pathLocks = HashMap<String, PathLock>()
 
   /**
-   * Makes [commit] atomic with respect to [clear], [clearCircle] and [trimToSize]: a commit racing
-   * a clear can't leave a file behind after it, and a trim never sees a just-added file before its
-   * timestamp is reset (it would look old and be evicted at once).
+   * Makes [commit] and cache hits atomic with respect to [clear], [clearCircle] and [trimToSize]: a
+   * commit racing a clear can't leave a file behind after it, a trim never sees a just-added file
+   * before its timestamp is reset (it would look old and be evicted at once), and a trim can't
+   * delete a file between a hit finding it and returning it.
+   *
+   * Taken either alone or while holding a path lock, never the other way round, so the two locks
+   * can't deadlock.
    */
   private val dirLock = Mutex()
 
   /**
-   * Incremented by each [clear] and [clearCircle]. [getFile] and [put] record it as soon as they
-   * are called, before waiting for anything, and refuse to add their file if a clear covering that
-   * file ran in the meantime: the call then belongs to what was just cleared.
+   * Incremented by each [clear] and [clearCircle]. Each [getFile] and [put] records it on entry,
+   * before waiting for anything; if a clear covering its file runs before the call commits, the
+   * file is refused with [IOException].
    */
   @Volatile private var generation = 0 // written under dirLock
 
@@ -98,11 +101,11 @@ class MediaFileCache(
    *   offline.
    * - Cache miss: [download] writes the file into a temporary `.part` file, which is renamed to its
    *   cache name once complete; the cache is then trimmed to [maxBytes]. Offline, this fails once
-   *   [download] gives up (after a few seconds with [MediaFileStorageFirebase]).
+   *   [download] gives up.
    *
    * Concurrent calls for the same path share one download: the others wait for it, then find the
-   * file cached. The returned file may be evicted later to make room, so open it right away rather
-   * than keeping the [File] around.
+   * file cached. The returned file may be evicted at any time after it is returned, to make room,
+   * so open it right away rather than keeping the [File] around.
    *
    * @param download writes the remote file of [storagePath] into the given file, overwriting it;
    *   only called on a cache miss, and while it runs no other call adds or evicts [storagePath].
@@ -121,12 +124,11 @@ class MediaFileCache(
       val file = fileFor(storagePath)
       val added =
           withPathLock(storagePath) {
-            // checked inside the lock: a caller that waited for another one's download finds the
-            // file here instead of downloading it a second time
-            if (file.exists()) {
-              markUsed(file)
-              return@withPathLock false
-            }
+            // checked inside the path lock: a caller that waited for another one's download finds
+            // the file here instead of downloading it a second time. Under dirLock: a trim can't
+            // delete the file between this check and its return
+            val hit = dirLock.withLock { file.exists().also { if (it) markUsed(file) } }
+            if (hit) return@withPathLock false
             ensureNotCleared(callGeneration, file) // no download for a cleared session
             val temp = newTempFile()
             try {
@@ -343,13 +345,12 @@ class MediaFileCache(
    *
    * Never deletes [keep], the file just added and about to be returned, even when it alone is
    * bigger than [maxBytes]: the cache then stays over the limit until the next file is added. Also
-   * skips files a cache hit used after the listing, which makes evicting a file that another call
-   * is returning unlikely (not impossible), and `.part` files, which are downloads in progress.
+   * skips `.part` files, which are downloads in progress. Runs under [dirLock], so no cache hit can
+   * use a file while it runs.
    */
   private suspend fun trimToSize(keep: File) = dirLock.withLock {
-    // each file's time and size are read once: cache hits change times concurrently, and a sort
-    // whose keys change while it runs can throw IllegalArgumentException. Don't sort on
-    // file.lastModified() directly; no test reliably catches that race
+    // each file's time and size are read once, so the sort keys can't change while it runs (e.g.
+    // the system touching a file), which can make the sort throw IllegalArgumentException
     val entries =
         dir.listFiles { f -> !f.name.endsWith(PART_SUFFIX) }
             .orEmpty()
@@ -357,7 +358,7 @@ class MediaFileCache(
     var total = entries.sumOf { it.size }
     for (entry in entries.sortedBy { it.lastUsed }) { // oldest first
       if (total <= maxBytes) break
-      if (entry.file == keep || entry.file.lastModified() > entry.lastUsed) continue
+      if (entry.file == keep) continue
       entry.file.delete()
       if (!entry.file.exists()) total -= entry.size // also true if evict() or the system deleted it
     }

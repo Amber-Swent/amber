@@ -4,10 +4,13 @@ package com.github.se.amber.data.media
 
 import java.io.File
 import java.io.IOException
+import java.nio.file.Path
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -183,20 +186,6 @@ class MediaFileCacheTest {
   }
 
   @Test
-  fun clearedCircleFilesAreDownloadedAgain() = runTest {
-    val cache = newCache()
-    cache.fetch("careCircles/c1/media/m1.jpg")
-
-    cache.clearCircle("c1")
-
-    assertEquals(
-        "content of careCircles/c1/media/m1.jpg",
-        cache.fetch("careCircles/c1/media/m1.jpg").readText(),
-    )
-    assertEquals(2, storage.calls.size)
-  }
-
-  @Test
   fun downloadOfClearedCircleStartedBeforeIsNotCachedButOtherCirclesAre() = runTest {
     val cache = newCache()
     val gate = CompletableDeferred<Unit>()
@@ -230,25 +219,6 @@ class MediaFileCacheTest {
   }
 
   @Test
-  fun putOfClearedCircleWaitingBeforeIsRefusedAndKeepsItsSource() = runTest {
-    val cache = newCache()
-    val gate = CompletableDeferred<Unit>()
-    storage.gate = gate
-    val source = sourceFile("uploaded bytes")
-    val download = async { runCatching { cache.fetch("careCircles/c1/media/m1.jpg") } }
-    val put = async { runCatching { cache.put("careCircles/c1/media/m1.jpg", source) } }
-    runCurrent() // the put waits for the download's path lock
-
-    cache.clearCircle("c1")
-    gate.complete(Unit)
-    download.await()
-
-    assertTrue(put.await().exceptionOrNull()?.message.orEmpty().startsWith("Cache cleared"))
-    assertTrue(source.exists())
-    assertEquals(emptyList<String>(), cachedFileNames())
-  }
-
-  @Test
   fun invalidCircleIdsAreRejected() = runTest {
     val cache = newCache()
     cache.fetch("careCircles/c1/media/m1.jpg")
@@ -258,24 +228,6 @@ class MediaFileCacheTest {
       assertTrue("\"$circleId\" was accepted", error is IllegalArgumentException)
     }
     assertEquals(listOf("careCircles_c1_media_m1.jpg"), cachedFileNames())
-  }
-
-  @Test
-  fun downloadStartedBeforeClearIsNotCached() = runTest {
-    val cache = newCache()
-    val gate = CompletableDeferred<Unit>()
-    storage.gate = gate
-
-    val pending = async { runCatching { cache.fetch("a/m1.jpg") } }
-    runCurrent() // the download is in progress
-    cache.clear()
-    gate.complete(Unit)
-
-    val error = pending.await().exceptionOrNull()
-    assertTrue(error is IOException)
-    assertTrue(error?.message.orEmpty().startsWith("Cache cleared")) // refused, not a failed move
-    assertFalse(isCached("a/m1.jpg"))
-    assertEquals(emptyList<String>(), cachedFileNames())
   }
 
   @Test
@@ -292,7 +244,8 @@ class MediaFileCacheTest {
 
     val error = waiting.await().exceptionOrNull()
     assertTrue(error?.message.orEmpty().startsWith("Cache cleared"))
-    assertTrue(first.await().exceptionOrNull() is IOException)
+    // the download in progress was refused at commit, not by a failed move
+    assertTrue(first.await().exceptionOrNull()?.message.orEmpty().startsWith("Cache cleared"))
     assertEquals(listOf("a/m1.jpg"), storage.calls) // the waiting call never downloaded
     assertEquals(emptyList<String>(), cachedFileNames())
   }
@@ -315,6 +268,28 @@ class MediaFileCacheTest {
     assertTrue(error?.message.orEmpty().startsWith("Cache cleared"))
     assertTrue(source.exists()) // refused before it was moved
     assertEquals(emptyList<String>(), cachedFileNames())
+  }
+
+  @Test
+  fun putRefusedAfterItsSourceWasMovedLosesTheSourceAndCachesNothing() = runTest {
+    // Unconfined: clear() can then run to completion inside the put, see below
+    val cache = MediaFileCache(cacheDir, ioDispatcher = Dispatchers.Unconfined)
+    val bytes = sourceFile("uploaded bytes")
+    // a source whose path, read by put right before it moves the file, triggers a clear: the
+    // clear then lands after put's first check but before its commit
+    val source =
+        object : File(bytes.path) {
+          override fun toPath(): Path {
+            runBlocking { cache.clear() }
+            return super.toPath()
+          }
+        }
+
+    val error = runCatching { cache.put("a/m1.jpg", source) }.exceptionOrNull()
+
+    assertTrue(error?.message.orEmpty().startsWith("Cache cleared"))
+    assertFalse(bytes.exists()) // already moved when the commit refused it, as documented
+    assertEquals(emptyList<String>(), cachedFileNames()) // no cached file, no .part left
   }
 
   @Test

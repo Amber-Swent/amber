@@ -11,8 +11,9 @@ import java.io.File
  * circle keeps its files in its own bucket, so every call names the circle the file belongs to.
  * Being an interface, it can be replaced by a fake in tests.
  *
- * Used by the media repository only, never by ViewModels; [MediaFileCache] fills itself through it.
- * Only downloads exist for now; uploads and deletions will be added with the media repository.
+ * Used by [MediaRepositoryFirebase] only, never by ViewModels; it passes its downloads to
+ * [MediaFileCache.getFile]. Only downloads exist for now; uploads and deletions will be added with
+ * the repository's Firestore part.
  */
 interface MediaFileStorage {
   /**
