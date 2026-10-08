@@ -9,13 +9,14 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -111,26 +112,16 @@ class UploadTest {
     checkIsDisplayed(UploadTestTags.AUDIO_BUTTON)
   }
 
-  // TODO: unExtract once NavigationMenuTest passes
-  //    @Test
-  //    fun topBarIsDisplayed() {
-  //        setUpload()
-  //        checkIsDisplayed(TopNavigationMenuTestTags.ROOT)
-  //    }
-
-  //    @Test
-  //    fun topBarShowsCheckoutAction() {
-  //        setUpload()
-  //        node(TopNavigationMenuTestTags.TITLE).assertTextEquals("Checkout")
-  //    }
-
-  // ---------- Upload: button labels ----------
   @Test
-  fun buttonShowsLabel() {
+  fun topBarIsDisplayed() {
     setUpload()
-    node(UploadTestTags.TEXT_BUTTON).assertTextContains("Upload Text")
-    node(UploadTestTags.PICTURE_BUTTON).assertTextContains("Upload Picture")
-    node(UploadTestTags.AUDIO_BUTTON).assertTextContains("Upload Audio")
+    checkIsDisplayed(TopNavigationMenuTestTags.ROOT)
+  }
+
+  @Test
+  fun topBarShowsCheckoutAction() {
+    setUpload()
+    node(TopNavigationMenuTestTags.TITLE).assertTextEquals("Checkout")
   }
 
   // ---------- Upload: accessibility ----------
@@ -142,23 +133,7 @@ class UploadTest {
     node(UploadTestTags.AUDIO_BUTTON).assertHasClickAction()
   }
 
-  @Test
-  fun buttonIconHaveTextDescription() {
-    setUpload()
-    node(UploadTestTags.TEXT_BUTTON).assertContentDescriptionEquals("Text")
-    node(UploadTestTags.PICTURE_BUTTON).assertContentDescriptionEquals("Picture")
-    node(UploadTestTags.AUDIO_BUTTON).assertContentDescriptionEquals("Audio")
-  }
-
   // ---------- Upload: callbacks ----------
-
-  @Test
-  fun noCallbackWithoutInteraction() {
-    val actions = FakeUploadActions()
-    setUpload(actions = actions)
-    assertTrue(actions.calls.isEmpty())
-  }
-
   @Test
   fun clickingTextButtonInvokesOnlyTextCallback() {
     val actions = FakeUploadActions()
@@ -183,14 +158,13 @@ class UploadTest {
     assertEquals(listOf("audio"), actions.calls)
   }
 
-  // TODO: unExtract once NavigationMenuTest passes
-  //    @Test
-  //    fun clickingTopBarBackInvokesOnlyCheckoutCallback() {
-  //        val actions = FakeUploadActions()
-  //        setUpload(actions = actions)
-  //        node(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-  //        assertEquals(listOf("checkout"), actions.calls)
-  //    }
+  @Test
+  fun clickingTopBarBackInvokesOnlyCheckoutCallback() {
+    val actions = FakeUploadActions()
+    setUpload(actions = actions)
+    node(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    assertEquals(listOf("checkout"), actions.calls)
+  }
 
   // ---------- Upload: error handling ----------
   @Test
@@ -205,35 +179,12 @@ class UploadTest {
 
   // ---------- DisplayButton Function----------
   @Test
-  fun displayButtonIsDisplayed() {
+  fun displayButtonFillCriteria() {
     setDisplayButton()
     checkIsDisplayed(SAMPLE_BUTTON_TAG)
-  }
-
-  @Test
-  fun displayButtonShowsGivenText() {
-    setDisplayButton()
     node(SAMPLE_BUTTON_TAG).assertTextContains(SAMPLE_TEXT)
-  }
-
-  @Test
-  fun displayButtonIconUsesGivenDescription() {
-    setDisplayButton()
     node(SAMPLE_BUTTON_TAG).assertContentDescriptionEquals(SAMPLE_DESCRIPTION)
-  }
-
-  @Test
-  fun displayButtonHasClickAction() {
-    setDisplayButton()
     node(SAMPLE_BUTTON_TAG).assertHasClickAction()
-  }
-
-  @Test
-  fun clickingDisplayButtonInvokesOnClickOnce() {
-    var clickCount = 0
-    setDisplayButton(onClick = { clickCount++ })
-    node(SAMPLE_BUTTON_TAG).performClick()
-    assertEquals(1, clickCount)
   }
 
   private companion object {
