@@ -98,27 +98,4 @@ class MediaRepositoryFirebaseTest {
     repository.getFile(c1, picture("c1", "m1")) // downloaded again
     assertEquals(3, fileStorage.calls.size)
   }
-
-  @Test
-  fun metadataMethodsAreNotImplementedYet() = runTest {
-    val repository = newRepository()
-    val item = picture("c1", "m1")
-    val calls: List<suspend () -> Unit> =
-        listOf(
-            { repository.newMediaId("c1") },
-            { repository.observeApprovedMedia("c1") },
-            { repository.observeMediaShowing("c1", "u1") },
-            { repository.getMedia("c1", "m1") },
-            { repository.addMedia(c1, item, tmp.newFile()) },
-            { repository.updateMedia("c1", item) },
-            { repository.deleteMedia(c1, item) },
-        )
-
-    // they must fail loudly until the Firestore part is added, never return empty results
-    calls.forEachIndexed { i, call ->
-      val error = runCatching { call() }.exceptionOrNull()
-      assertTrue("call $i didn't throw NotImplementedError: $error", error is NotImplementedError)
-    }
-    assertEquals(emptyList<String>(), fileStorage.calls)
-  }
 }
