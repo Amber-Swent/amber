@@ -100,4 +100,5 @@ object NavGraphs {
   const val CAREGIVER = "caregiver_graph"
   const val PATIENT = "patient_graph"
   const val AUTH = "auth_graph"
+  const val ROLE_LOADING = "role_loading"
 }

@@ -1,3 +1,5 @@
+// this code was written with the aid of AI
+
 package com.github.se.amber.ui.navigation
 
 import androidx.navigation.NavHostController

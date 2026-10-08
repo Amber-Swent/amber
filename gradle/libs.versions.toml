@@ -18,6 +18,7 @@ sonar = "7.5.0.8588"
 gms = "4.5.0"
 firebaseBom = "34.18.0"
 navigationCompose = "2.9.8"
+mockk = "1.13.12"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -27,6 +28,7 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }

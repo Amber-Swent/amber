@@ -156,6 +156,9 @@ dependencies {
   // ----------       Robolectric     ------------
   testImplementation(libs.robolectric)
 
+  // ----------          MockK        ------------
+  testImplementation(libs.mockk)
+
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))
   androidTestImplementation(platform(libs.firebase.bom))

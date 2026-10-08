@@ -1,3 +1,5 @@
+// this code was written with the aid of AI
+
 package com.android.sample
 
 import android.os.Bundle
@@ -21,7 +23,12 @@ import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
 import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.PatientScreen
+import com.github.se.amber.ui.navigation.graphForAuthState
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.google.firebase.auth.FirebaseAuth
+import com.github.se.amber.ui.navigation.graphForRole
+import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
+
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,15 +52,24 @@ fun AmberApp(
     // TODO add context and credential manager
 ) {
   val navController: NavHostController = rememberNavController()
-  // TODO
-  //val navigationActions = NavigationActions(navController)
-  val startDestination = NavGraphs.AUTH
+  val navigationActions = NavigationActions(navController)
+
+  val startDestination = graphForAuthState(FirebaseAuth.getInstance().currentUser)
 
   NavHost(
       navController = navController,
-      // TODO check if the user is already logged in, if yes goes directly to the home page
       startDestination = startDestination,
   ) {
+
+    composable(route = NavGraphs.ROLE_LOADING){
+      RoleLoadingScreen(
+        onRoleLoaded = { role ->
+          navController.navigate(graphForRole(role)){
+            popUpTo(NavGraphs.ROLE_LOADING) {inclusive = true}
+          }
+        }
+      )
+    }
 
     // Authentification Graph
     navigation(
