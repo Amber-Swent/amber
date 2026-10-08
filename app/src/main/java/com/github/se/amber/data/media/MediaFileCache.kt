@@ -90,7 +90,8 @@ class MediaFileCache(
    */
   private val setUp = lazy {
     dir.mkdirs()
-    dir.listFiles { f -> f.name.endsWith(PART_SUFFIX) }?.forEach { it.delete() }
+    // a leftover that can't be deleted only wastes space, and is tried again at the next start
+    dir.listFiles { f -> f.name.endsWith(PART_SUFFIX) }?.forEach { it.delete() } // NOSONAR
   }
 
   /**
@@ -135,7 +136,9 @@ class MediaFileCache(
               download(temp)
               commit(temp, file, callGeneration)
             } finally {
-              temp.delete() // no-op if the commit succeeded; removes half-downloads otherwise
+              // no-op if the commit succeeded; removes half-downloads otherwise. One that can't be
+              // deleted is removed at the next app start (see [setUp])
+              temp.delete() // NOSONAR
             }
             true
           }
@@ -150,8 +153,12 @@ class MediaFileCache(
    * so it never needs to be downloaded. Replaces any file already cached under that path.
    *
    * [source] is moved, not copied: once it has been moved into the cache folder, it is gone from
-   * its old location, even if the call then fails. If the call fails before that (e.g. [source]
-   * doesn't exist, or the cache was cleared while the call waited), [source] is left untouched.
+   * its old location, even if the call then fails. In particular, if [clear] or a [clearCircle] of
+   * its circle runs while the call is in progress, [source] may already have been moved: the file
+   * is then refused and deleted, so [source] is lost and nothing is cached. This is intended:
+   * [source] is a file already uploaded, so its bytes are safe remotely, and a clear means its
+   * media must not stay on the device. If the call fails before the move (e.g. [source] doesn't
+   * exist, or the cache was cleared while the call waited), [source] is left untouched.
    *
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
    * @throws IOException if [source] can't be moved into the cache, or if [clear] or a [clearCircle]
@@ -171,7 +178,9 @@ class MediaFileCache(
           Files.move(source.toPath(), temp.toPath(), REPLACE_EXISTING)
           commit(temp, file, callGeneration)
         } finally {
-          temp.delete()
+          // no-op if the commit succeeded; one that can't be deleted is removed at the next app
+          // start (see [setUp])
+          temp.delete() // NOSONAR
         }
       }
       trimToSize(keep = file)
@@ -302,7 +311,7 @@ class MediaFileCache(
    * file only keeps its older time and may be evicted a bit early, so the result is ignored.
    */
   private fun markUsed(file: File) {
-    file.setLastModified(System.currentTimeMillis())
+    file.setLastModified(System.currentTimeMillis()) // NOSONAR: see above
   }
 
   /**
