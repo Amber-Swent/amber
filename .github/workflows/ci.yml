@@ -120,6 +120,17 @@ jobs:
           disable-animations: true
           script: ./gradlew connectedCheck --parallel --build-cache
 
+      - name: Install Firebase CLI
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+
+      - name: Run Firestore rules tests
+        run: |
+          firebase emulators:exec --only firestore \
+            './gradlew :app:testDebugUnitTest --tests "*FirestoreSecurityRulesTest"'
+
+      - name: Generate Firestore rules coverage report
+        run: node scripts/generate-firestore-rules-coverage.js
+
       # This step generates the coverage report which will be uploaded to sonar
       - name: Generate Coverage Report
         run: |
