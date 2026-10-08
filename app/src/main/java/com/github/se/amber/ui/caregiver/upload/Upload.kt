@@ -44,7 +44,9 @@ import com.github.se.amber.ui.caregiver.upload.UploadTestTags.TEXT_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.medium
 import com.github.se.amber.ui.theme.orange
+import com.github.se.amber.ui.theme.small
 
 object UploadTestTags {
   const val TITLE = "upload_title"
@@ -88,7 +90,19 @@ fun Upload(
   }
 
   Scaffold(
-      topBar = { TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout) },
+      topBar = {
+          TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout)
+          Spacer(modifier = Modifier.height(small))
+
+          Text(
+              modifier = Modifier.testTag(UploadTestTags.TITLE),
+              text = "Upload ",
+              color = orange,
+              style = MaterialTheme.typography.headlineSmall,
+              fontWeight = FontWeight.Bold,
+          )
+          Spacer(modifier = Modifier.height(medium))
+      },
       // TODO: unExtract the following lines once Navigation is implement
       //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
       //          onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) }, )
@@ -98,24 +112,12 @@ fun Upload(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(16.dp)
+                    .padding(medium)
                     .padding(paddingValues)
-                    .padding(16.dp)
+                    .padding(medium)
                     .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-          Spacer(modifier = Modifier.height(8.dp))
-
-          Text(
-              modifier = Modifier.testTag(UploadTestTags.TITLE),
-              text = "Upload ",
-              color = orange,
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.Bold,
-          )
-
-          Spacer(modifier = Modifier.height(16.dp))
-
           DisplayButton(
               modifier = Modifier.testTag(TEXT_BUTTON),
               icon = Icons.Outlined.Description,
