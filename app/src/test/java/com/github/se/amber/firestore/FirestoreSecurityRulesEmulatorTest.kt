@@ -94,6 +94,44 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
+  fun crossFamilyAccess_requiresMatchingProfileAndCircleFamilyIds_enforcedByEmulator() {
+    val familyA = "family-a"
+    val familyB = "family-b"
+    val memberA = "member-a"
+    val memberB = "member-b"
+
+    fs.adminSet("users/$memberA", user(memberA, "CAREGIVER", listOf(familyA), "Ada"))
+    fs.adminSet("users/$memberB", user(memberB, "CAREGIVER", listOf(familyB), "Bob"))
+    fs.adminSet(
+        "careCircles/$familyA",
+        circle(familyA, memberA, listOf(memberA), patientId = ""),
+    )
+    // Simulates an inconsistent backend write: memberA is listed in family B, but their profile
+    // identifies family A only. Client access must still be denied.
+    fs.adminSet(
+        "careCircles/$familyB",
+        circle(familyB, memberB, listOf(memberA, memberB), patientId = ""),
+    )
+
+    fs.assertSucceeds(memberA, fs.get("careCircles/$familyA"))
+    fs.assertFails(memberA, fs.get("careCircles/$familyB"))
+    fs.assertFails(
+        memberA,
+        fs.set(
+            "careCircles/$familyB/stories/cross-family",
+            mapOf("id" to "cross-family", "title" to "Blocked"),
+        ),
+    )
+    fs.assertFails(
+        memberA,
+        fs.set(
+            "careCircles/$familyB/media/cross-family",
+            media("cross-family", memberA, "careCircles/$familyB/media/cross-family.jpg"),
+        ),
+    )
+  }
+
+  @Test
   fun userCreate_rejectsInvalidRoleAndExtraFields_enforcedByEmulator() {
     val uid = "newbie"
 
@@ -343,7 +381,8 @@ class FirestoreSecurityRulesEmulatorTest {
 /** Minimal Firestore emulator REST client with per-request auth uid. */
 private class FirestoreEmulatorClient(
     private val projectId: String = "amber-34abf",
-    private val host: String = "http://127.0.0.1:8080",
+    private val host: String =
+        System.getenv("FIRESTORE_EMULATOR_HOST")?.let { "http://$it" } ?: "http://127.0.0.1:8080",
 ) {
   fun clear() {
     val code =
