@@ -102,7 +102,12 @@ jobs:
       - name: Decode debug keystore
         env:
           CI_DEBUG_KEYSTORE: ${{ secrets.CI_DEBUG_KEYSTORE }}
-        run: echo "$CI_DEBUG_KEYSTORE" | base64 --decode > app/ci-debug.keystore
+        run: |
+          if [ -n "$CI_DEBUG_KEYSTORE" ]; then
+            echo "$CI_DEBUG_KEYSTORE" | base64 --decode > app/ci-debug.keystore
+          else
+            echo "::warning::CI_DEBUG_KEYSTORE is not set. Using the default debug signing key."
+          fi
 
       # This step runs gradle commands to build the application
       - name: Assemble
