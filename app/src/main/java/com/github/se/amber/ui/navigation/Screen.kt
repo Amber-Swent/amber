@@ -14,6 +14,19 @@ sealed interface Screen {
   val isTopLevelDestination: Boolean
 }
 
+/** Authentification navigation Screen */
+sealed class AuthScreen(
+    override val route: String,
+    override val name: String,
+    override val isTopLevelDestination: Boolean = false,
+) : Screen {
+  data object Auth :
+      AuthScreen(
+          route = "auth",
+          name = "Authentification",
+      )
+}
+
 /**
  * Caregiver's navigation Screen.
  *
@@ -80,4 +93,12 @@ sealed class PatientScreen(
           name = "Pictures",
           isTopLevelDestination = true,
       )
+}
+
+/** Routes of the nested navigation graphs, one per user role. */
+object NavGraphs {
+  const val CAREGIVER = "caregiver_graph"
+  const val PATIENT = "patient_graph"
+  const val AUTH = "auth_graph"
+  const val ROLE_LOADING = "role_loading"
 }

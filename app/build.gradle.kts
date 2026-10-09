@@ -155,6 +155,8 @@ dependencies {
   implementation(libs.compose.activity)
   // Integration with ViewModels
   implementation(libs.compose.viewmodel)
+  // Navigation
+  implementation(libs.androidx.navigation.compose)
   // Android Studio Preview support
   implementation(libs.compose.preview)
   implementation(libs.compose.material.icons)
@@ -171,6 +173,10 @@ dependencies {
   testImplementation(libs.robolectric)
 
   // ----------      Coroutines test    ----------
+  testImplementation(libs.kotlinx.coroutines.test)
+
+  // ----------          MockK        ------------
+  testImplementation(libs.mockk)
   testImplementation(libs.kotlinx.coroutines.test)
 
   // ----------        Mockito        ------------
