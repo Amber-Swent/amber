@@ -3,6 +3,7 @@ package com.github.se.amber.ui.roleLoading
 
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -19,6 +20,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -62,12 +64,16 @@ class RoleLoadingViewModelTest {
     unmockkAll()
   }
 
-  /** Makes Firestore return a document with the given profile / "role" field presence. */
-  private fun stubDocument(profile: UserProfile?, hasRoleField: Boolean = true) {
+  private fun mockSnapshot(profile: UserProfile?, hasRoleField: Boolean = true): DocumentSnapshot {
     val snapshot = mockk<DocumentSnapshot>()
     every { snapshot.toObject(UserProfile::class.java) } returns profile
     every { snapshot.contains("role") } returns hasRoleField
-    every { document.get() } returns Tasks.forResult(snapshot)
+    return snapshot
+  }
+
+  /** Makes Firestore return a document with the given profile / "role" field presence. */
+  private fun stubDocument(profile: UserProfile?, hasRoleField: Boolean = true) {
+    every { document.get() } returns Tasks.forResult(mockSnapshot(profile, hasRoleField))
   }
 
   @Test
@@ -83,6 +89,15 @@ class RoleLoadingViewModelTest {
     advanceUntilIdle()
 
     assertEquals(RoleState.Error, viewModel.state.value)
+  }
+
+  @Test
+  fun loadRole_userNotConnected_doesNotQueryFirestore() = runTest {
+    every { auth.currentUser } returns null
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
     verify(exactly = 0) { firestore.collection(any()) }
   }
 
@@ -139,27 +154,40 @@ class RoleLoadingViewModelTest {
 
   @Test
   fun loadRole_calledTwiceWhileLoading_secondCallIsIgnored() = runTest {
-    stubDocument(UserProfile(uid = uid, role = Role.PATIENT))
+    // The Firestore task stays pending, so the first call is guaranteed to be in flight.
+    val pending = TaskCompletionSource<DocumentSnapshot>()
+    every { document.get() } returns pending.task
 
     viewModel.loadRole()
-    viewModel.loadRole() // the first job has not finished yet
-    advanceUntilIdle()
+    runCurrent() // the first call starts and suspends on the pending task
+    viewModel.loadRole() // happens while the first call is still in flight
+    runCurrent()
 
     verify(exactly = 1) { firestore.collection("users") }
+    assertEquals(RoleState.Loading, viewModel.state.value)
+
+    // Let the first call finish
+    pending.setResult(mockSnapshot(UserProfile(uid = uid, role = Role.PATIENT)))
+    advanceUntilIdle()
+
     assertEquals(RoleState.Loaded(Role.PATIENT), viewModel.state.value)
   }
 
   @Test
-  fun loadRole_retryAfterError_canSucceed() = runTest {
+  fun loadRole_retryAfterError_emitsLoadingThenCanSucceed() = runTest {
     every { document.get() } returns Tasks.forException(RuntimeException("Firestore down"))
     viewModel.loadRole()
     advanceUntilIdle()
     assertEquals(RoleState.Error, viewModel.state.value)
 
-    stubDocument(UserProfile(uid = uid, role = Role.CAREGIVER))
+    val pending = TaskCompletionSource<DocumentSnapshot>()
+    every { document.get() } returns pending.task
     viewModel.loadRole()
-    advanceUntilIdle()
+    runCurrent()
+    assertEquals(RoleState.Loading, viewModel.state.value)
 
+    pending.setResult(mockSnapshot(UserProfile(uid = uid, role = Role.CAREGIVER)))
+    advanceUntilIdle()
     assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value)
   }
 

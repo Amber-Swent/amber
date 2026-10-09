@@ -8,6 +8,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,8 @@ sealed interface RoleState {
 }
 
 class RoleLoadingViewModel(
+    // TODO: move the Firebase access (FirebaseAuth / Firestore) into a repository and inject it
+    // here instead of auth and firestore (planned for Sprint 2).
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) : ViewModel() {
@@ -38,8 +41,7 @@ class RoleLoadingViewModel(
   private var loadJob: Job? = null
 
   fun loadRole() {
-    // Skip if already not loading
-    // To avoid fast second call to overwrite first
+    // Ignore the call if a role loading operation is already in progress
     if (loadJob?.isActive == true) return
     loadJob = viewModelScope.launch {
       _state.value = RoleState.Loading
@@ -59,6 +61,9 @@ class RoleLoadingViewModel(
                   RoleState.Error // missing field: to avoid a silent default role
               else -> RoleState.Loaded(profile.role)
             }
+          } catch (e: CancellationException) {
+            // Rethrow so the coroutine can be cancelled normally (not treated as a Firestore error)
+            throw e
           } catch (e: Exception) {
             Log.e("RoleLoadingViewModel", "Failed to load role", e)
             RoleState.Error

@@ -1,13 +1,12 @@
 // this code was written with the aid of AI
 package com.github.se.amber.ui.roleLoading
 
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.model.user.Role
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,15 +33,13 @@ class RoleLoadingScreenTest {
   // so the tests can check how many times it was called.
   private var signedOutCount = 0
 
-  private val errorMessage = "Could not load your profile. Try again."
-
   @Before
   fun setUp() {
     loadedRoles.clear()
     signedOutCount = 0
     stateFlow = MutableStateFlow(RoleState.Loading)
     viewModel = mockk(relaxed = true)
-    io.mockk.every { viewModel.state } returns stateFlow
+    every { viewModel.state } returns stateFlow
   }
 
   private fun setScreen(initialState: RoleState) {
@@ -56,24 +53,26 @@ class RoleLoadingScreenTest {
     }
   }
 
+  private fun assertNothingButLoadingIsShown() {
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertDoesNotExist()
+  }
+
   // ---------- Loading ----------
 
   @Test
   fun loading_showsProgressIndicator() {
     setScreen(RoleState.Loading)
 
-    composeTestRule
-        .onNode(hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate))
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertIsDisplayed()
   }
 
   @Test
   fun loading_doesNotShowErrorNorBackToLogin() {
     setScreen(RoleState.Loading)
 
-    composeTestRule.onNodeWithText(errorMessage).assertDoesNotExist()
-    composeTestRule.onNodeWithText("Retry").assertDoesNotExist()
-    composeTestRule.onNodeWithText("Back to login").assertDoesNotExist()
+    assertNothingButLoadingIsShown()
   }
 
   @Test
@@ -108,15 +107,15 @@ class RoleLoadingScreenTest {
   fun error_showsMessageAndRetryButton() {
     setScreen(RoleState.Error)
 
-    composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Retry").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun error_clickOnRetry_callsLoadRole() {
     setScreen(RoleState.Error)
 
-    composeTestRule.onNodeWithText("Retry").performClick()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).performClick()
 
     verify(exactly = 1) { viewModel.loadRole() }
   }
@@ -136,14 +135,14 @@ class RoleLoadingScreenTest {
   fun noProfile_showsBackToLoginButton() {
     setScreen(RoleState.NoProfile)
 
-    composeTestRule.onNodeWithText("Back to login").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun noProfile_clickOnBackToLogin_signsOutAndCallsOnSignedOut() {
     setScreen(RoleState.NoProfile)
 
-    composeTestRule.onNodeWithText("Back to login").performClick()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
 
     verify(exactly = 1) { viewModel.signOut() }
     assertEquals(1, signedOutCount)
@@ -174,9 +173,7 @@ class RoleLoadingScreenTest {
     setScreen(RoleState.Loaded(Role.PATIENT))
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithText(errorMessage).assertDoesNotExist()
-    composeTestRule.onNodeWithText("Retry").assertDoesNotExist()
-    composeTestRule.onNodeWithText("Back to login").assertDoesNotExist()
+    assertNothingButLoadingIsShown()
   }
 
   // ---------- State transitions ----------
@@ -201,7 +198,7 @@ class RoleLoadingScreenTest {
     stateFlow.value = RoleState.Error
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithText("Retry").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertIsDisplayed()
   }
 
   @Test
@@ -212,6 +209,6 @@ class RoleLoadingScreenTest {
     stateFlow.value = RoleState.NoProfile
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithText("Back to login").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsDisplayed()
   }
 }
