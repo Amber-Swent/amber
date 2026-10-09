@@ -5,6 +5,7 @@ package com.github.se.amber.ui.patient
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -14,7 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.navigation.BottomNavigationTestTags
 import com.github.se.amber.ui.navigation.PatientTab
-import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,20 +36,12 @@ class PatientHomeTest {
     fun onCheckout() {
       calls.add("checkout")
     }
-
-    fun onTabSelected(tab: Tab) {
-      calls.add(tab.name)
-    }
   }
 
   // ---------- Setup helpers ----------
   private fun setHome(actions: FakeActions = FakeActions()) {
     composeTestRule.setContent {
-      PatientHome(
-          onSearchClick = actions::onSearchClick,
-          onCheckout = actions::onCheckout,
-          onTabSelected = actions::onTabSelected,
-      )
+      PatientHome(onSearchClick = actions::onSearchClick, onCheckout = actions::onCheckout)
     }
   }
 
@@ -90,9 +82,32 @@ class PatientHomeTest {
   }
 
   @Test
-  fun topBarIsDisplayed() {
+  fun searchButtonHasClickAction() {
     setHome()
-    checkIsDisplayed(TopNavigationMenuTestTags.ROOT)
+    node(PatientHomeTestTags.SEARCH_BUTTON).assertHasClickAction()
+  }
+
+  @Test
+  fun clickingSearchInvokesOnlySearchCallback() {
+    val actions = FakeActions()
+    setHome(actions)
+    node(PatientHomeTestTags.SEARCH_BUTTON).performClick()
+    assertEquals(listOf("search"), actions.calls)
+  }
+
+  @Test
+  fun defaultSearchCallbackIgnoresClick() {
+    setHomeWithDefaultCallbacks()
+    node(PatientHomeTestTags.SEARCH_BUTTON).performClick()
+    checkIsDisplayed(PatientHomeTestTags.TITLE)
+  }
+
+  // ---------- PatientHome: which screen is shown ----------
+  @Test
+  fun appStartsOnHome() {
+    setHome()
+    node(PatientHomeTestTags.TITLE).assertTextEquals("You are on Home")
+    node(BottomNavigationTestTags.tabTag(PatientTab.Home)).assertIsSelected()
   }
 
   @Test
@@ -102,31 +117,26 @@ class PatientHomeTest {
   }
 
   @Test
-  fun homeTabIsSelected() {
-    setHome()
-    node(BottomNavigationTestTags.tabTag(PatientTab.Home)).assertIsSelected()
-  }
-
-  @Test
   fun picturesTabIsDisplayed() {
     setHome()
     checkIsDisplayed(BottomNavigationTestTags.tabTag(PatientTab.SeePictures))
   }
 
-  // ---------- PatientHome: accessibility ----------
   @Test
-  fun searchButtonHasClickAction() {
+  fun clickingPicturesTabShowsOnlyPictures() {
     setHome()
-    node(PatientHomeTestTags.SEARCH_BUTTON).assertHasClickAction()
+    node(BottomNavigationTestTags.tabTag(PatientTab.SeePictures)).performClick()
+    node(PatientPicturesTestTags.TITLE).assertTextEquals("You are on Pictures")
+    node(PatientHomeTestTags.TITLE).assertIsNotDisplayed()
   }
 
-  // ---------- PatientHome: callbacks ----------
   @Test
-  fun clickingSearchInvokesOnlySearchCallback() {
-    val actions = FakeActions()
-    setHome(actions)
-    node(PatientHomeTestTags.SEARCH_BUTTON).performClick()
-    assertEquals(listOf("search"), actions.calls)
+  fun clickingHomeTabReturnsToHome() {
+    setHome()
+    node(BottomNavigationTestTags.tabTag(PatientTab.SeePictures)).performClick()
+    node(BottomNavigationTestTags.tabTag(PatientTab.Home)).performClick()
+    node(PatientHomeTestTags.TITLE).assertTextEquals("You are on Home")
+    node(PatientPicturesTestTags.TITLE).assertIsNotDisplayed()
   }
 
   @Test
@@ -138,40 +148,9 @@ class PatientHomeTest {
   }
 
   @Test
-  fun clickingPicturesTabInvokesOnlyThatTab() {
-    val actions = FakeActions()
-    setHome(actions)
-    node(BottomNavigationTestTags.tabTag(PatientTab.SeePictures)).performClick()
-    assertEquals(listOf("Pictures"), actions.calls)
-  }
-
-  @Test
-  fun clickingHomeTabInvokesOnlyHome() {
-    val actions = FakeActions()
-    setHome(actions)
-    node(BottomNavigationTestTags.tabTag(PatientTab.Home)).performClick()
-    assertEquals(listOf("Home"), actions.calls)
-  }
-
-  // ---------- PatientHome: default callbacks ----------
-  @Test
-  fun defaultSearchCallbackIgnoresClick() {
-    setHomeWithDefaultCallbacks()
-    node(PatientHomeTestTags.SEARCH_BUTTON).performClick()
-    checkIsDisplayed(PatientHomeTestTags.TITLE)
-  }
-
-  @Test
   fun defaultCheckoutCallbackIgnoresClick() {
     setHomeWithDefaultCallbacks()
     node(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-    checkIsDisplayed(PatientHomeTestTags.TITLE)
-  }
-
-  @Test
-  fun defaultHomeTabCallbackIgnoresClick() {
-    setHomeWithDefaultCallbacks()
-    node(BottomNavigationTestTags.tabTag(PatientTab.Home)).performClick()
     checkIsDisplayed(PatientHomeTestTags.TITLE)
   }
 }
