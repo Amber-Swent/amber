@@ -184,6 +184,7 @@ service cloud.firestore {
         && isMember(request.resource.data.circleId)
         && request.resource.data.code == code
         && request.resource.data.createdBy == request.auth.uid
+        && !request.resource.data.keys().hasAny(['role'])
         && request.resource.data.usedBy == null;
 
       // Redeem is backend-only (Admin SDK / Cloud Functions).
