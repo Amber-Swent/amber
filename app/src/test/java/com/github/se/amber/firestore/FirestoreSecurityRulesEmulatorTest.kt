@@ -54,10 +54,19 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set(
             "invitations/JOIN01",
-            invite("JOIN01", circleId, "PATIENT", care, expiresAt = now + 60_000),
+            invite("JOIN01", circleId, care, expiresAt = now + 60_000),
         ),
     )
     fs.assertFails(care, fs.list("invitations"))
+    fs.assertSucceeds(care, fs.listInvitations(care, circleId))
+    fs.assertFails(pat, fs.listInvitations(care, circleId))
+    fs.assertFails(
+        care,
+        fs.set(
+            "invitations/WITHROLE",
+            invite("WITHROLE", circleId, care, expiresAt = now + 60_000).plus("role" to "PATIENT"),
+        ),
+    )
 
     // Stranger is denied circle and caregiver profile reads.
     fs.assertFails(stranger, fs.get("careCircles/$circleId"))
@@ -66,7 +75,7 @@ class FirestoreSecurityRulesEmulatorTest {
         stranger,
         fs.set(
             "invitations/HACK",
-            invite("HACK", circleId, "CAREGIVER", stranger, expiresAt = now + 60_000),
+            invite("HACK", circleId, stranger, expiresAt = now + 60_000),
         ),
     )
 
@@ -193,7 +202,7 @@ class FirestoreSecurityRulesEmulatorTest {
     val care = "care"
     val pat = "pat"
     val inviteCode = "BATCH01"
-    val inviteDoc = invite(inviteCode, circleId, "PATIENT", care, expiresAt = now + 120_000)
+    val inviteDoc = invite(inviteCode, circleId, care, expiresAt = now + 120_000)
     val circleBefore = circle(circleId, care, listOf(care), patientId = "")
 
     fs.assertSucceeds(
@@ -253,12 +262,12 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set(
             "invitations/REDEEM1",
-            invite("REDEEM1", circleId, "PATIENT", care, expiresAt = now + 120_000),
+            invite("REDEEM1", circleId, care, expiresAt = now + 120_000),
         ),
     )
     fs.adminSet(
         "invitations/EXPIRED",
-        invite("EXPIRED", circleId, "CAREGIVER", care, expiresAt = now - 1),
+        invite("EXPIRED", circleId, care, expiresAt = now - 1),
     )
 
     fs.assertSucceeds(pat, fs.get("invitations/REDEEM1"))
@@ -381,7 +390,6 @@ class FirestoreSecurityRulesEmulatorTest {
     private fun invite(
         code: String,
         circleId: String,
-        role: String,
         createdBy: String,
         expiresAt: Long,
         usedBy: String? = null,
@@ -389,7 +397,6 @@ class FirestoreSecurityRulesEmulatorTest {
         mapOf(
             "code" to code,
             "circleId" to circleId,
-            "role" to role,
             "createdBy" to createdBy,
             "createdAt" to now,
             "expiresAt" to expiresAt,
@@ -456,6 +463,60 @@ private class FirestoreEmulatorClient(
 
   fun list(collectionId: String): (String?) -> Int = { uid ->
     request("GET", docUrl(collectionId), token = bearer(uid))
+  }
+
+  fun listInvitations(createdBy: String, circleId: String): (String?) -> Int = { uid ->
+    requestWithBody(
+            "POST",
+            "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
+            token = bearer(uid),
+            body =
+                mapOf(
+                    "structuredQuery" to
+                        mapOf(
+                            "from" to listOf(mapOf("collectionId" to "invitations")),
+                            "where" to
+                                mapOf(
+                                    "compositeFilter" to
+                                        mapOf(
+                                            "op" to "AND",
+                                            "filters" to
+                                                listOf(
+                                                    mapOf(
+                                                        "fieldFilter" to
+                                                            mapOf(
+                                                                "field" to
+                                                                    mapOf(
+                                                                        "fieldPath" to "createdBy"
+                                                                    ),
+                                                                "op" to "EQUAL",
+                                                                "value" to
+                                                                    mapOf(
+                                                                        "stringValue" to createdBy
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                    mapOf(
+                                                        "fieldFilter" to
+                                                            mapOf(
+                                                                "field" to
+                                                                    mapOf(
+                                                                        "fieldPath" to "circleId"
+                                                                    ),
+                                                                "op" to "EQUAL",
+                                                                "value" to
+                                                                    mapOf(
+                                                                        "stringValue" to circleId
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                ),
+        )
+        .first
   }
 
   fun delete(path: String): (String?) -> Int = { uid ->
