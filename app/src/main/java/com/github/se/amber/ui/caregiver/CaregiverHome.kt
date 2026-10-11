@@ -1,9 +1,11 @@
 package com.github.se.amber.ui.caregiver
 
+import android.R.attr.text
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,12 +58,14 @@ fun CaregiverHomeScreen(
   val uiState by viewModel.uiState.collectAsState()
   Scaffold(
       topBar = {
-        TopNavigationMenu(
-            modifier = Modifier.testTag(TopNavigationMenuTestTags.ROOT),
-            action = TopNavigationAction.CHECKOUT,
-            onBackClick = goBack,
-        )
-        // TODO: DisplayCaregiverTitle("Home", Modifier.testTag(HomeTestTags.TITLE))
+        Column(modifier = Modifier.fillMaxWidth()) {
+          TopNavigationMenu(
+              modifier = Modifier.testTag(TopNavigationMenuTestTags.ROOT),
+              action = TopNavigationAction.CHECKOUT,
+              onBackClick = goBack,
+          )
+          // TODO: DisplayCaregiverTitle("Home", Modifier.testTag(HomeTestTags.TITLE))
+        }
       },
       bottomBar = {
         BottomNavigationMenu(
