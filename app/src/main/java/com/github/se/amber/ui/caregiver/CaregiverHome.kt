@@ -19,20 +19,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.caregiver.HomeTestTags.WELCOME_TEXT
+import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
+import com.github.se.amber.ui.navigation.BottomNavigationTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 
-object HomeTestTags {
+object CaregiverHomeTestTags {
   const val TITLE = "caregiver_home_title"
   const val WELCOME_TEXT = "caregiver_home_welcome_text"
-  const val TOP_NAVIGATION_MENU = "caregiver_home_top_nav_menu"
-  const val BOTTOM_NAVIGATION_MENU = "caregiver_home_bottom_nav_menu"
 }
 
 /**
@@ -55,7 +55,7 @@ fun CaregiverHomeScreen(
   Scaffold(
       topBar = {
         TopNavigationMenu(
-            modifier = Modifier.testTag(HomeTestTags.TOP_NAVIGATION_MENU),
+            modifier = Modifier.testTag(TopNavigationMenuTestTags.ROOT),
             action = TopNavigationAction.CHECKOUT,
             onBackClick = goBack,
         )
@@ -66,7 +66,7 @@ fun CaregiverHomeScreen(
             selectedTab = CaregiverTab.Home,
             onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
             tabs = CaregiverTab.caregiverTabs,
-            modifier = Modifier.testTag(HomeTestTags.BOTTOM_NAVIGATION_MENU),
+            modifier = Modifier.testTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU),
         )
       },
       content = { paddingValues ->
