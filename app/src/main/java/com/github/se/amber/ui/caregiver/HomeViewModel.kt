@@ -25,10 +25,4 @@ class HomeViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(HomeUIState())
   val uiState: StateFlow<HomeUIState> = _uiState.asStateFlow()
-
-  /** Returns the name of the patient associated with the caregiver home screen. */
-  fun getPatientName(): String {
-    // TODO : to be implement
-    return ""
-  }
 }

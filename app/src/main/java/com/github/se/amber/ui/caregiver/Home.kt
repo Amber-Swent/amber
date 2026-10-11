@@ -16,12 +16,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.HomeTestTags.WELCOME_TEXT
+import com.github.se.amber.ui.navigation.BottomNavigationMenu
+import com.github.se.amber.ui.navigation.CaregiverTab
+import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
+
+object HomeTestTags {
+  const val TITLE = "caregiver_home_title"
+  const val WELCOME_TEXT = "caregiver_home_welcome_text"
+  const val TOP_NAVIGATION_MENU = "caregiver_home_top_nav_menu"
+  const val BOTTOM_NAVIGATION_MENU = "caregiver_home_bottom_nav_menu"
+}
 
 /**
  * Displays the caregiver home screen
@@ -36,17 +48,27 @@ import com.github.se.amber.ui.theme.PADDING_SMALL
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
-    // navigationActions: NavigationActions? = null,
-
+    navigationActions: NavigationActions? = null,
     goBack: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
   Scaffold(
-      topBar = { TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, goBack) },
-      // TODO: unExtract the following lines once Navigation is implement
-      //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Home,
-      //          onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) }, )
-      //      },
+      topBar = {
+        TopNavigationMenu(
+            modifier = Modifier.testTag(HomeTestTags.TOP_NAVIGATION_MENU),
+            action = TopNavigationAction.CHECKOUT,
+            onBackClick = goBack,
+        )
+        DisplayCaregiverTitle("Home", Modifier.testTag(HomeTestTags.TITLE))
+      },
+      bottomBar = {
+        BottomNavigationMenu(
+            selectedTab = CaregiverTab.Home,
+            onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
+            tabs = CaregiverTab.caregiverTabs,
+            modifier = Modifier.testTag(HomeTestTags.BOTTOM_NAVIGATION_MENU),
+        )
+      },
       content = { paddingValues ->
         Column(
             modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_MEDIUM),
@@ -56,6 +78,7 @@ fun HomeScreen(
           Spacer(modifier = Modifier.height(PADDING_SMALL))
           Text(
               text = "Welcome ! You are with " + uiState.patient.person.firstName,
+              modifier = Modifier.testTag(WELCOME_TEXT),
               color = Color.Black,
               style = MaterialTheme.typography.bodyLarge,
               textAlign = TextAlign.Center,
