@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
-import com.github.se.amber.ui.theme.SampleAppTheme
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -59,7 +59,8 @@ fun EmailSignInScreen(
     onContinue: () -> Unit = {},
     onGoogleSignIn: () -> Unit = {},
     emailSignInViewModel: EmailSignInViewModel = viewModel(),
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
+
 ) {
   val uiState by emailSignInViewModel.uiState.collectAsState()
 
@@ -68,6 +69,24 @@ fun EmailSignInScreen(
       onGoogleSignIn()
     }
   }
+  EmailSignInContent(
+      uiState = uiState,
+      onEmailChange = emailSignInViewModel::onEmailChange,
+      onContinue = onContinue,
+      onGoogleClick = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
+      modifier = modifier,
+  )
+}
+
+/** Renders the email sign-in UI from state supplied by the caller. */
+@Composable
+private fun EmailSignInContent(
+    uiState: EmailSignInUiState,
+    onEmailChange: (String) -> Unit,
+    onContinue: () -> Unit,
+    onGoogleClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
   AuthenticationLayout(modifier = modifier) {
     Text(
         text = "Create an account",
@@ -86,7 +105,7 @@ fun EmailSignInScreen(
 
     AuthenticationTextField(
         value = uiState.email,
-        onValueChange = emailSignInViewModel::onEmailChange,
+        onValueChange = onEmailChange,
         placeholder = "email@domain.com",
         keyboardOptions =
             KeyboardOptions(
@@ -109,7 +128,7 @@ fun EmailSignInScreen(
     Spacer(modifier = Modifier.height(18.dp))
 
     Button(
-        onClick = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
+        onClick = onGoogleClick,
         enabled = !uiState.isLoading,
         modifier = Modifier.fillMaxWidth().height(44.dp),
         shape = buttonShape,
@@ -168,5 +187,11 @@ private fun OrDivider() {
 @Preview(showBackground = true)
 @Composable
 private fun EmailSignInScreenPreview() {
-  SampleAppTheme(dynamicColor = false) { EmailSignInScreen() }
+  AmberAppTheme(dynamicColor = false) {
+      EmailSignInContent(
+          EmailSignInUiState(),
+          {},
+          {},
+          {})
+  }
 }

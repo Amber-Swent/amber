@@ -7,46 +7,46 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.theme.SampleAppTheme
+import com.github.se.amber.ui.theme.AmberAppTheme
 
 /**
- * Displays the password authentication screen for a caregiver.
+ * Displays the password authentication screen for a patient.
  *
- * The screen observes its email and password state from [CaregiverPasswordViewModel]. User password
+ * The screen observes its email and password state from [PatientPasswordViewModel]. User password
  * input is forwarded to the ViewModel, while authentication and navigation actions are handled
  * through callbacks.
  *
- * If the caregiver forgets their password, the screen indicates that a password-reset link will be
- * sent to them.
+ * If the patient forgets their password, the screen indicates that a help message will be sent to
+ * their loved ones.
  *
  * @param onContinue Called when the user presses the Continue button.
  * @param onForgotPassword Called when the user presses the forgotten-password button.
- * @param caregiverPasswordViewModel ViewModel holding the email and password state for this screen.
+ * @param patientPasswordViewModel ViewModel holding the email and password state for this screen.
  * @param modifier Modifier applied to the screen.
  */
 @Composable
-fun CaregiverPasswordScreen(
+fun PatientPasswordScreen(
     onContinue: () -> Unit = {},
     onForgotPassword: () -> Unit = {},
-    caregiverPasswordViewModel: CaregiverPasswordViewModel = viewModel(),
+    patientPasswordViewModel: PatientPasswordViewModel = viewModel(),
     modifier: Modifier = Modifier,
 ) {
-  val uiState by caregiverPasswordViewModel.uiState.collectAsState()
+  val uiState by patientPasswordViewModel.uiState.collectAsState()
 
   PasswordScreen(
       email = uiState.email,
       password = uiState.password,
-      onPasswordChange = caregiverPasswordViewModel::onPasswordChange,
+      onPasswordChange = patientPasswordViewModel::onPasswordChange,
       onContinue = onContinue,
       onForgotPassword = onForgotPassword,
-      forgotPasswordExplanation = "This will send you a link to reset your password",
+      forgotPasswordExplanation = "This will send a help message to your loved ones",
       modifier = modifier,
   )
 }
 
-/** Preview of [CaregiverPasswordScreen] using the Amber application theme. */
+/** Preview of [PatientPasswordScreen] using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
-private fun CaregiverPasswordScreenPreview() {
-  SampleAppTheme(dynamicColor = false) { CaregiverPasswordScreen() }
+private fun PatientPasswordScreenPreview() {
+  AmberAppTheme(dynamicColor = false) { PatientPasswordScreen() }
 }
