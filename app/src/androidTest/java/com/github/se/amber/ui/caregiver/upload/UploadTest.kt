@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -63,11 +64,6 @@ class UploadTest {
     }
   }
 
-  private fun setUploadWithDefaultCallbacks() {
-    val viewModel = UploadViewModel()
-    composeTestRule.setContent { Upload(viewModel = viewModel) }
-  }
-
   private fun setDisplayButton(onClick: () -> Unit = {}) {
     composeTestRule.setContent {
       DisplayButton(
@@ -88,6 +84,18 @@ class UploadTest {
   }
 
   // ---------- Upload: display ----------
+  @Test
+  fun topNavigationMenuIsDisplayed() {
+    setUpload()
+    checkIsDisplayed(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
+  }
+
+  @Test
+  fun bottomNavigationMenuIsDisplayed() {
+    setUpload()
+    checkIsDisplayed(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+  }
+
   @Test
   fun titleIsDisplayed() {
     setUpload()
@@ -115,7 +123,7 @@ class UploadTest {
   @Test
   fun topBarIsDisplayed() {
     setUpload()
-    checkIsDisplayed(TopNavigationMenuTestTags.ROOT)
+    checkIsDisplayed(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
   }
 
   @Test

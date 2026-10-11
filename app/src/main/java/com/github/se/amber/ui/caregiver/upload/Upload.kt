@@ -7,10 +7,8 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,7 +20,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,17 +32,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.PICTURE_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.TEXT_BUTTON
+import com.github.se.amber.ui.navigation.BottomNavigationMenu
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.navigation.CaregiverTab
+import com.github.se.amber.ui.navigation.CaregiverTab.Companion.caregiverTabs
+import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.lightOrange
-import com.github.se.amber.ui.theme.orange
 
 object UploadTestTags {
   const val TITLE = "upload_title"
@@ -74,8 +74,7 @@ fun Upload(
     onUploadPictureClick: () -> Unit = {},
     onUploadAudioClick: () -> Unit = {},
     checkout: () -> Unit = {},
-    // TODO : create NavigationActions
-    // navigationActions: NavigationActions? = null,
+    navigationActions: NavigationActions? = null,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val errorMessage = uiState.errorMsg
@@ -90,22 +89,19 @@ fun Upload(
 
   Scaffold(
       topBar = {
-        TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, checkout)
-        Spacer(modifier = Modifier.height(PADDING_SMALL))
+        TopNavigationMenu(
+            modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+            action = TopNavigationAction.CHECKOUT,
+            onBackClick = checkout)
 
-        Text(
-            modifier = Modifier.testTag(UploadTestTags.TITLE),
-            text = "Upload ",
-            color = orange,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
+          // TODO("use DisplayCaregiverTitle from Utils.kt")
       },
-      // TODO: unExtract the following lines once Navigation is implement
-      //      bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
-      //          onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) }, )
-      //      },
+    bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
+        onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
+        caregiverTabs,
+        Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
+        )
+    },
       content = { paddingValues ->
         Column(
             modifier =

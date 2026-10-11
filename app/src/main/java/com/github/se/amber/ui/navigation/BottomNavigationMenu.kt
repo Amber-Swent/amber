@@ -25,12 +25,10 @@ import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 
-object BottomNavigationTestTags {
+object BottomNavigationMenuTestTags {
   const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
-  const val DIVIDER = "bottom_navigation_divider"
-
-  // fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab::class.java.name}"
-  fun tabTag(tab: Tab) = "bottom_navigation_tab_${tab.id}${tab.name}"
+  const val DIVIDER = "bottom_navigation_menu_divider"
+  fun tabTag(tab: Tab) = "bottom_navigation_menu_tab_${tab.id}${tab.name}"
 }
 
 /**
@@ -97,10 +95,10 @@ fun BottomNavigationMenu(
     modifier: Modifier = Modifier,
 ) {
   Column(
-      modifier = modifier.fillMaxWidth().testTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU)
+      modifier = modifier.fillMaxWidth().testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
   ) {
     HorizontalDivider(
-        modifier = Modifier.testTag(BottomNavigationTestTags.DIVIDER),
+        modifier = Modifier.testTag(BottomNavigationMenuTestTags.DIVIDER),
         thickness = 1.dp,
         color = lightGray,
     )
@@ -122,7 +120,7 @@ fun BottomNavigationMenu(
                 onClick = { onTabSelected(tab) },
                 modifier =
                     Modifier.clip(RoundedCornerShape(50.dp))
-                        .testTag(BottomNavigationTestTags.tabTag(tab)),
+                        .testTag(BottomNavigationMenuTestTags.tabTag(tab)),
             )
           }
         },

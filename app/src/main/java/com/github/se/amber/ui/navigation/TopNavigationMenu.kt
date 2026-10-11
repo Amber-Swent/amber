@@ -22,10 +22,10 @@ import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
 
 object TopNavigationMenuTestTags {
-  const val ROOT = "topNavigationMenuRoot"
-  const val TITLE = "topNavigationMenuTitle"
-  const val BACK_BUTTON = "topNavigationMenuBackButton"
-  const val DIVIDER = "topNavigationMenuDivider"
+  const val TOP_NAVIGATION_MENU = "top_navigation_menu"
+  const val TITLE = "top_navigation_menu_title"
+  const val BACK_BUTTON = "top_navigation_menu_back_button"
+  const val DIVIDER = "top_navigation_menu_divider"
 }
 
 /** Text actions that can be displayed in the top navigation menu. */
@@ -50,7 +50,7 @@ fun TopNavigationMenu(
     action: TopNavigationAction,
     onBackClick: () -> Unit,
 ) {
-  Column(modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.ROOT)) {
+  Column(modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)) {
     TopAppBar(
         title = {
           Text(
