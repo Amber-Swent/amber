@@ -1,5 +1,6 @@
 package com.github.se.amber.ui.caregiver
 
+import android.R.style.Theme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +30,9 @@ import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
+import androidx.compose.material3.Surface
+import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.ui.theme.AmberAppTheme
 
 object CaregiverHomeTestTags {
   const val TITLE = "caregiver_home_title"
@@ -86,4 +90,13 @@ fun CaregiverHomeScreen(
         }
       },
   )
+}
+
+
+/** Preview of [CaregiverHomeScreen] using the Amber application theme. */
+@Preview( showBackground = true )
+@Composable
+private fun CaregiverHomeScreenPreview() {
+    AmberAppTheme(dynamicColor = false)
+    { CaregiverHomeScreen() }
 }
