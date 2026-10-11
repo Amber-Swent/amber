@@ -43,11 +43,21 @@ class FirebaseInvitationCreationRepository(
           )
 
       try {
-        firestore.collection(INVITATIONS_COLLECTION).document(code).create(invitation).await()
-        return InvitationCreationResult.Created(code)
-      } catch (exception: CancellationException) {
-        throw exception
-      } catch (exception: FirebaseFirestoreException) {
+            val invitationReference = firestore.collection(INVITATIONS_COLLECTION).document(code)
+            firestore
+                .runTransaction { transaction ->
+                  if (transaction.get(invitationReference).exists()) {
+                    throw InvitationCodeCollisionException()
+                  }
+                  transaction.set(invitationReference, invitation)
+                }
+                .await()
+            return InvitationCreationResult.Created(code)
+          } catch (_: InvitationCodeCollisionException) {
+            return@repeat
+          } catch (exception: CancellationException) {
+            throw exception
+          } catch (exception: FirebaseFirestoreException) {
         if (exception.code == FirebaseFirestoreException.Code.ALREADY_EXISTS) {
           return@repeat
         }
@@ -87,6 +97,8 @@ class FirebaseInvitationCreationRepository(
 private const val INVITATION_CODE_LENGTH = 8
 private const val INVITATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 private val secureRandom = SecureRandom()
+
+private class InvitationCodeCollisionException : Exception()
 
 private fun generateSecureCode(): String =
     buildString(INVITATION_CODE_LENGTH) {
