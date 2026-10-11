@@ -59,7 +59,7 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(care, fs.list("invitations"))
     fs.assertSucceeds(care, fs.listInvitations(care, circleId))
-    fs.assertFails(pat, fs.listInvitations(care, circleId))
+    fs.assertFails(null, fs.listInvitations(care, circleId))
     fs.assertFails(
         care,
         fs.set(
