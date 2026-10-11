@@ -13,6 +13,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Transaction
 import io.mockk.every
 import io.mockk.mockk
@@ -21,6 +22,7 @@ import io.mockk.verify
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -71,6 +73,24 @@ class FirebaseOnboardingRepositoryTest {
     assertFailure<OnboardingError.ProfileMissing>(result)
     verify(exactly = 0) { transaction.set(circleDocument, any<CareCircle>()) }
     verify(exactly = 0) { transaction.update(profileDocument, any<String>(), any<Any>()) }
+  }
+
+  @Test
+  fun createInitialCareCircle_rejectsBlankNameBeforeAccessingFirebase() = runBlocking {
+    val result = repository.createInitialCareCircle("   ")
+
+    assertFailure<OnboardingError.InvalidCircleName>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun createInitialCareCircle_rejectsSignedOutUserBeforeAccessingFirestore() = runBlocking {
+    every { auth.currentUser } returns null
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertFailure<OnboardingError.NotAuthenticated>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
   }
 
   @Test
@@ -143,6 +163,70 @@ class FirebaseOnboardingRepositoryTest {
     verify(exactly = 1) { transaction.update(profileDocument, any<String>(), any<Any>()) }
   }
 
+  @Test
+  fun createInitialCareCircle_mapsPermissionDeniedFirestoreFailure() = runBlocking {
+    stubFailedTransaction(
+        FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+    )
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertFailure<OnboardingError.PermissionDenied>(result)
+  }
+
+  @Test
+  fun createInitialCareCircle_mapsUnauthenticatedFirestoreFailure() = runBlocking {
+    stubFailedTransaction(
+        FirebaseFirestoreException("signed out", FirebaseFirestoreException.Code.UNAUTHENTICATED)
+    )
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertFailure<OnboardingError.NotAuthenticated>(result)
+  }
+
+  @Test
+  fun createInitialCareCircle_mapsUnavailableFirestoreFailureToNetwork() = runBlocking {
+    stubFailedTransaction(
+        FirebaseFirestoreException("offline", FirebaseFirestoreException.Code.UNAVAILABLE)
+    )
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertFailure<OnboardingError.Network>(result)
+  }
+
+  @Test
+  fun createInitialCareCircle_mapsDeadlineExceededFirestoreFailureToNetwork() = runBlocking {
+    stubFailedTransaction(
+        FirebaseFirestoreException("timed out", FirebaseFirestoreException.Code.DEADLINE_EXCEEDED)
+    )
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertFailure<OnboardingError.Network>(result)
+  }
+
+  @Test
+  fun createInitialCareCircle_wrapsUnexpectedFirestoreFailure() = runBlocking {
+    val source = FirebaseFirestoreException("failed", FirebaseFirestoreException.Code.INTERNAL)
+    stubFailedTransaction(source)
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertUnknownFailure(result, source)
+  }
+
+  @Test
+  fun createInitialCareCircle_wrapsUnexpectedFailure() = runBlocking {
+    val source = IllegalStateException("failed")
+    stubFailedTransaction(source)
+
+    val result = repository.createInitialCareCircle("Family")
+
+    assertUnknownFailure(result, source)
+  }
+
   private fun stubTransactionWithProfile(
       profile: UserProfile?,
       exists: Boolean = true,
@@ -155,6 +239,10 @@ class FirebaseOnboardingRepositoryTest {
           firstArg<Transaction.Function<CareCircle>>().apply(transaction)
           error("The transaction should fail before committing")
         }
+  }
+
+  private fun stubFailedTransaction(error: Exception) {
+    every { firestore.runTransaction<CareCircle>(any()) } returns Tasks.forException(error)
   }
 
   private fun profileSnapshot(
@@ -181,5 +269,12 @@ class FirebaseOnboardingRepositoryTest {
   private inline fun <reified T : Throwable> assertFailure(result: Result<CareCircle>) {
     assertFalse(result.isSuccess)
     assertTrue(result.exceptionOrNull() is T)
+  }
+
+  private fun assertUnknownFailure(result: Result<CareCircle>, source: Throwable) {
+    assertFalse(result.isSuccess)
+    val error = result.exceptionOrNull()
+    assertTrue(error is OnboardingError.Unknown)
+    assertSame(source, (error as OnboardingError.Unknown).source)
   }
 }
