@@ -43,21 +43,21 @@ class FirebaseInvitationCreationRepository(
           )
 
       try {
-            val invitationReference = firestore.collection(INVITATIONS_COLLECTION).document(code)
-            firestore
-                .runTransaction { transaction ->
-                  if (transaction.get(invitationReference).exists()) {
-                    throw InvitationCodeCollisionException()
-                  }
-                  transaction.set(invitationReference, invitation)
-                }
-                .await()
-            return InvitationCreationResult.Created(code)
-          } catch (_: InvitationCodeCollisionException) {
-            return@repeat
-          } catch (exception: CancellationException) {
-            throw exception
-          } catch (exception: FirebaseFirestoreException) {
+        val invitationReference = firestore.collection(INVITATIONS_COLLECTION).document(code)
+        firestore
+            .runTransaction { transaction ->
+              if (transaction.get(invitationReference).exists()) {
+                throw InvitationCodeCollisionException()
+              }
+              transaction.set(invitationReference, invitation)
+            }
+            .await()
+        return InvitationCreationResult.Created(code)
+      } catch (_: InvitationCodeCollisionException) {
+        return@repeat
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: FirebaseFirestoreException) {
         if (exception.code == FirebaseFirestoreException.Code.ALREADY_EXISTS) {
           return@repeat
         }
