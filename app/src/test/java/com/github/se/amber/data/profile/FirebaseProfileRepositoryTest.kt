@@ -17,10 +17,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -121,6 +123,19 @@ class FirebaseProfileRepositoryTest {
 
     assertFailure<ProfileCreationError.ProfileAlreadyExists>(result)
     verify(exactly = 0) { transaction.set(any(), any()) }
+  }
+
+  @Test
+  fun createProfile_rethrowsCancellationException() {
+    val cancellation = CancellationException("profile creation cancelled")
+    stubFailedTransaction(cancellation)
+
+    val thrown =
+        assertThrows(CancellationException::class.java) {
+          runBlocking { repository.createProfile(Person(firstName = "Ada"), Role.PATIENT) }
+        }
+
+    assertSame(cancellation, thrown)
   }
 
   @Test
