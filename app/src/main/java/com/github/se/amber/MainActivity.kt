@@ -22,9 +22,11 @@ import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
 import com.github.se.amber.ui.navigation.NavigationActions
+import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.PatientScreen
-import com.github.se.amber.ui.navigation.graphForAuthState
+import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
+import com.github.se.amber.ui.navigation.startDestinationForAuthState
 import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -49,7 +51,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AmberApp(
     // TODO add context and credential manager
-    startDestination: String = graphForAuthState(FirebaseAuth.getInstance().currentUser)
+    startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser)
 ) {
   val navController: NavHostController = rememberNavController()
   val navigationActions = NavigationActions(navController)
@@ -58,12 +60,6 @@ fun AmberApp(
       navController = navController,
       startDestination = startDestination,
   ) {
-    composable(route = NavGraphs.ROLE_LOADING) {
-      RoleLoadingScreen(
-          onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
-          onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
-      )
-    }
 
     // Authentication Graph
     navigation(
@@ -73,6 +69,34 @@ fun AmberApp(
       // SignInScreen
       composable(route = AuthScreen.Auth.route) {
         // TODO
+      }
+    }
+
+    // Loading Screen
+    composable(route = TransitionScreen.RoleLoading.route) {
+      RoleLoadingScreen(
+          onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
+          noProfile = { navigationActions.navigateToGraph(NavGraphs.ONBOARDING) },
+          onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+      )
+    }
+
+    // Onboarding Screen
+    navigation(
+        startDestination = OnboardingScreen.CreateProfile.route,
+        route = NavGraphs.ONBOARDING,
+    ) {
+      composable(route = OnboardingScreen.CreateProfile.route) {
+        // TODO
+      }
+      composable(route = OnboardingScreen.CaregiverChoice.route) {
+        // Todo
+      }
+      composable(route = OnboardingScreen.CreateCareCircle.route) {
+        // Todo
+      }
+      composable(route = OnboardingScreen.EnterInvitation.route) {
+        // Todo
       }
     }
 
@@ -94,6 +118,12 @@ fun AmberApp(
         // TODO
       }
       composable(route = CaregiverScreen.UploadAudio.route) {
+        // TODO
+      }
+      composable(route = CaregiverScreen.Parameters.route) {
+        // TODO
+      }
+      composable(route = CaregiverScreen.SeeInvitationCode.route) {
         // TODO
       }
     }

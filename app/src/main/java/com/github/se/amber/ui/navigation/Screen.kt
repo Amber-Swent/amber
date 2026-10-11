@@ -27,6 +27,51 @@ sealed class AuthScreen(
       )
 }
 
+/** Intermediate screens that only redirect the user to another destination. */
+sealed class TransitionScreen(
+    override val route: String,
+    override val name: String,
+    override val isTopLevelDestination: Boolean = false,
+) : Screen {
+  data object RoleLoading :
+      TransitionScreen(
+          route = "role_loading",
+          name = "Role loading",
+      )
+}
+
+/** Screens of the onboarding flow, shown to a signed-in user who has no profile yet. */
+sealed class OnboardingScreen(
+    override val route: String,
+    override val name: String,
+    override val isTopLevelDestination: Boolean = false,
+) : Screen {
+
+  data object CreateProfile :
+      OnboardingScreen(
+          route = "create_profile",
+          name = "Create a profile",
+      )
+
+  data object CaregiverChoice :
+      OnboardingScreen(
+          route = "caregiver_choice",
+          name = "Create CareCircle or Enter Invitation",
+      )
+
+  data object CreateCareCircle :
+      OnboardingScreen(
+          route = "create_carecircle",
+          name = "Create a CareCircle",
+      )
+
+  data object EnterInvitation :
+      OnboardingScreen(
+          route = "enter_invitation",
+          name = "Enter an invitation",
+      )
+}
+
 /**
  * Caregiver's navigation Screen.
  *
@@ -68,6 +113,19 @@ sealed class CaregiverScreen(
           route = "caregiver_upload_audio",
           name = "Upload Audio",
       )
+
+  data object Parameters :
+      CaregiverScreen(
+          route = "parameters",
+          name = "Parameters",
+          isTopLevelDestination = true,
+      )
+
+  data object SeeInvitationCode :
+      CaregiverScreen(
+          route = "see_invitation_code",
+          name = "See the invitation code",
+      )
 }
 
 /**
@@ -100,5 +158,5 @@ object NavGraphs {
   const val CAREGIVER = "caregiver_graph"
   const val PATIENT = "patient_graph"
   const val AUTH = "auth_graph"
-  const val ROLE_LOADING = "role_loading"
+  const val ONBOARDING = "onboarding_graph"
 }

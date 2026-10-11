@@ -27,16 +27,21 @@ class RoleLoadingScreenTest {
 
   // Spy: onRoleLoaded adds each role it receives to this list (see setScreen),
   // so the tests can check how many times it was called and with which role.
-
   private val loadedRoles = mutableListOf<Role>()
+
   // Spy: onSignedOut increments this counter (see setScreen),
   // so the tests can check how many times it was called.
   private var signedOutCount = 0
+
+  // Spy: noProfile increments this counter (see setScreen), so the tests can check how many times
+  // it was called.
+  private var noProfileCount = 0
 
   @Before
   fun setUp() {
     loadedRoles.clear()
     signedOutCount = 0
+    noProfileCount = 0
     stateFlow = MutableStateFlow(RoleState.Loading)
     viewModel = mockk(relaxed = true)
     every { viewModel.state } returns stateFlow
@@ -47,8 +52,9 @@ class RoleLoadingScreenTest {
     composeTestRule.setContent {
       RoleLoadingScreen(
           onRoleLoaded = { loadedRoles.add(it) },
-          viewModel = viewModel,
+          noProfile = { noProfileCount++ },
           onSignedOut = { signedOutCount++ },
+          viewModel = viewModel,
       )
     }
   }
@@ -127,26 +133,47 @@ class RoleLoadingScreenTest {
 
     assertTrue(loadedRoles.isEmpty())
     assertEquals(0, signedOutCount)
+    assertEquals(0, noProfileCount)
   }
 
-  // ---------- NoProfile ----------
-
   @Test
-  fun noProfile_showsBackToLoginButton() {
-    setScreen(RoleState.NoProfile)
+  fun error_showsBackToLoginButton() {
+    setScreen(RoleState.Error)
 
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsDisplayed()
   }
 
   @Test
-  fun noProfile_clickOnBackToLogin_signsOutAndCallsOnSignedOut() {
-    setScreen(RoleState.NoProfile)
+  fun error_clickOnBackToLogin_signsOutAndCallsOnSignedOut() {
+    setScreen(RoleState.Error)
 
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
 
     verify(exactly = 1) { viewModel.signOut() }
     assertEquals(1, signedOutCount)
+    assertEquals(0, noProfileCount)
     assertTrue(loadedRoles.isEmpty())
+  }
+
+  // ---------- NoProfile ----------
+
+  @Test
+  fun noProfile_callsNoProfileCallback() {
+    setScreen(RoleState.NoProfile)
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, noProfileCount)
+    assertTrue(loadedRoles.isEmpty())
+    assertEquals(0, signedOutCount)
+  }
+
+  @Test
+  fun noProfile_displaysNothing() {
+    setScreen(RoleState.NoProfile)
+    composeTestRule.waitForIdle()
+
+    assertNothingButLoadingIsShown()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertDoesNotExist()
   }
 
   // ---------- Loaded ----------
@@ -158,6 +185,7 @@ class RoleLoadingScreenTest {
 
     assertEquals(listOf(Role.PATIENT), loadedRoles)
     assertEquals(0, signedOutCount)
+    assertEquals(0, noProfileCount)
   }
 
   @Test
@@ -166,6 +194,8 @@ class RoleLoadingScreenTest {
     composeTestRule.waitForIdle()
 
     assertEquals(listOf(Role.CAREGIVER), loadedRoles)
+    assertEquals(0, signedOutCount)
+    assertEquals(0, noProfileCount)
   }
 
   @Test
@@ -202,13 +232,14 @@ class RoleLoadingScreenTest {
   }
 
   @Test
-  fun transitionLoadingToNoProfile_showsBackToLogin() {
+  fun transitionLoadingToNoProfile_callsNoProfile() {
     setScreen(RoleState.Loading)
     composeTestRule.waitForIdle()
+    assertEquals(0, noProfileCount)
 
     stateFlow.value = RoleState.NoProfile
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsDisplayed()
+    assertEquals(1, noProfileCount)
   }
 }

@@ -25,8 +25,9 @@ object RoleLoadingTestTags {
 @Composable
 fun RoleLoadingScreen(
     onRoleLoaded: (Role) -> Unit,
-    viewModel: RoleLoadingViewModel = viewModel(),
+    noProfile: () -> Unit,
     onSignedOut: () -> Unit,
+    viewModel: RoleLoadingViewModel = viewModel(),
 ) {
   val state by viewModel.state.collectAsState()
 
@@ -40,6 +41,8 @@ fun RoleLoadingScreen(
     val s = state
     if (s is RoleState.Loaded) {
       onRoleLoaded(s.role)
+    } else if (s is RoleState.NoProfile) {
+      noProfile()
     }
   }
   when (state) {
@@ -48,17 +51,8 @@ fun RoleLoadingScreen(
         CircularProgressIndicator(
             modifier = Modifier.testTag(RoleLoadingTestTags.LOADING_INDICATOR)
         )
-    // what is displayed when the user is connected but there are no user document with this uid
-    is RoleState.NoProfile ->
-        Button(
-            onClick = {
-              viewModel.signOut()
-              onSignedOut()
-            },
-            modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),
-        ) {
-          Text("Back to login")
-        }
+    // when there is no profile it displays nothing because being redirected
+    is RoleState.NoProfile -> Unit
     // what is displayed if the user is not connected or if Firestore has failed
     is RoleState.Error ->
         Column {
@@ -71,6 +65,15 @@ fun RoleLoadingScreen(
               modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
           ) {
             Text("Retry")
+          }
+          Button(
+              onClick = {
+                viewModel.signOut()
+                onSignedOut()
+              },
+              modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),
+          ) {
+            Text("Back to login")
           }
         }
     // when the role is loaded it displays nothing because being redirected
