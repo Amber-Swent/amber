@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -30,10 +31,13 @@ import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -57,13 +61,17 @@ class MediaImageTest {
 
   @Before
   fun setUp() {
+    // Empty files are enough: the fake decoder never reads them, it only compares them.
     photo = tempFolder.newFile("photo.jpg")
     otherPhoto = tempFolder.newFile("other.jpg")
+    // MediaImage uses Coil's app-wide image loader, so the fake is installed there. setUnsafe
+    // replaces it even if Coil already created one in an earlier test of the same process.
     SingletonImageLoader.setUnsafe(ImageLoader.Builder(context).components { add(decoder) }.build())
   }
 
   @After
   fun tearDown() {
+    // The loader is global: without a reset, the next test class would get this fake.
     SingletonImageLoader.reset()
   }
 
@@ -86,13 +94,16 @@ class MediaImageTest {
     }
   }
 
+  /** Waits until Coil has decoded a file and the UI shows it. */
   private fun waitForImage() {
     composeTestRule.waitUntil(TIMEOUT_MS) { decoder.decoded.isNotEmpty() }
+    // The decoder answers before Compose draws the result: let that recomposition happen too.
     composeTestRule.waitForIdle()
   }
 
   @Test
   fun showsLoadingWhileTheFileIsLoaded() {
+    // A deferred that is never completed keeps loadFile suspended, like a slow download.
     val never = CompletableDeferred<File>()
     setImage { never.await() }
 
@@ -112,6 +123,51 @@ class MediaImageTest {
   }
 
   @Test
+  fun showsFailedWhenLoadFileGivesUpWithACancellation() {
+    // Like a withTimeout in the loader: its TimeoutCancellationException is a
+    // CancellationException, but the image itself was not cancelled. Rethrowing it blindly would
+    // leave the image loading forever, so it must show the failed slot.
+    // (TimeoutCancellationException
+    // can't be created outside kotlinx.coroutines, so a plain CancellationException stands in.)
+    setImage { throw CancellationException("timed out") }
+
+    waitForText(FAILED)
+    composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
+    composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
+  }
+
+  @Test
+  fun cancelsTheLoadWhenTheImageLeavesTheScreen() {
+    var shown by mutableStateOf(true)
+    val started = CompletableDeferred<Unit>()
+    var cancelled = false
+    composeTestRule.setContent {
+      if (shown) {
+        MediaImage(
+            mediaId = "m1",
+            loadFile = {
+              started.complete(Unit)
+              // Suspends until cancelled; the finally block records that the cancellation came.
+              try {
+                awaitCancellation()
+              } finally {
+                cancelled = true
+              }
+            },
+            contentDescription = DESCRIPTION,
+        )
+      }
+    }
+    // Remove the image only once its load is running, otherwise there is nothing to cancel.
+    composeTestRule.waitUntil(TIMEOUT_MS) { started.isCompleted }
+
+    shown = false
+    composeTestRule.waitForIdle()
+
+    assertTrue(cancelled)
+  }
+
+  @Test
   fun showsTheDecodedFileWithItsDescription() {
     setImage { photo }
 
@@ -124,25 +180,31 @@ class MediaImageTest {
 
   @Test
   fun showsLoadingWhileCoilDecodes() {
+    // The gate holds the fake decoder: the file is loaded, but Coil hasn't finished decoding it.
     decoder.gate = CompletableDeferred()
     setImage { photo }
 
     composeTestRule.waitUntil(TIMEOUT_MS) { decoder.requested.isNotEmpty() }
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+    // TalkBack must not describe a picture that isn't shown yet.
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertDoesNotExist()
 
     decoder.gate!!.complete(Unit)
     waitForImage()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
   }
 
   @Test
-  fun showsFailedWhenTheFileCannotBeDecoded() {
+  fun showsFailedAndHidesTheImageWhenTheFileCannotBeDecoded() {
     decoder.broken += photo
     setImage { photo }
 
     waitForText(FAILED)
     composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
   }
 
   @Test
@@ -162,9 +224,11 @@ class MediaImageTest {
     }
     waitForImage()
 
+    // A new parameter recomposes MediaImage (with a new loadFile lambda too) but keeps mediaId.
     description = "second"
     composeTestRule.waitForIdle()
 
+    // The new description proves the recomposition happened; the file was still loaded once.
     composeTestRule.onNodeWithContentDescription("second").assertIsDisplayed()
     assertEquals(1, calls)
   }
@@ -174,6 +238,8 @@ class MediaImageTest {
     var mediaId by mutableStateOf("m1")
     var calls = 0
     composeTestRule.setContent {
+      // Each composition passes a new lambda returning the file of the current id, so loading
+      // otherPhoto proves the latest loadFile was used.
       val file = if (mediaId == "m1") photo else otherPhoto
       MediaImage(
           mediaId = mediaId,
@@ -188,6 +254,8 @@ class MediaImageTest {
     waitForImage()
 
     mediaId = "m2"
+    // Recompose with "m2" first, then move the test clock on so that Coil starts the new request
+    // (see FRAMES_MS). In the other order, the request didn't start.
     composeTestRule.waitForIdle()
     composeTestRule.mainClock.advanceTimeBy(FRAMES_MS)
     composeTestRule.waitUntil(TIMEOUT_MS) { decoder.decoded.size == 2 }
@@ -197,7 +265,7 @@ class MediaImageTest {
   }
 
   @Test
-  fun showsLoadingAgainInsteadOfThePreviousMediaWhenTheMediaIdChanges() {
+  fun showsLoadingInsteadOfThePreviousMediaFromTheFirstFrameAfterAMediaIdChange() {
     var mediaId by mutableStateOf("m1")
     val second = CompletableDeferred<File>()
     composeTestRule.setContent {
@@ -210,16 +278,69 @@ class MediaImageTest {
       )
     }
     waitForImage()
+    // The bug lasted a single frame, and waitForIdle would run many frames and hide it. With the
+    // clock paused, the test decides exactly which frames run.
+    composeTestRule.mainClock.autoAdvance = false
+
+    mediaId = "m2"
+    // A state written outside composition is only seen by Compose once published; without this,
+    // the frame below would still compose "m1" and the check would prove nothing.
+    Snapshot.sendApplyNotifications()
+    composeTestRule.mainClock.advanceTimeByFrame()
+
+    // First frame with "m2": the m1 picture must already be gone.
+    composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+
+    // And it stays so while the m2 file is loading (second is never completed).
+    composeTestRule.mainClock.autoAdvance = true
+    composeTestRule.waitForIdle()
+    composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+  }
+
+  @Test
+  fun aCancelledLoadThatFailsLateDoesNotShowFailedForTheNewMedia() {
+    // Changing mediaId cancels the m1 load. Here the m1 loader turns that cancellation into an
+    // IOException, which arrives after the m2 load has started; it must not mark m2 as failed.
+    var mediaId by mutableStateOf("m1")
+    val firstStarted = CompletableDeferred<Unit>()
+    val second = CompletableDeferred<File>()
+    composeTestRule.setContent {
+      MediaImage(
+          mediaId = mediaId,
+          // mediaId is read when the loader runs, so one lambda serves as both loaders.
+          loadFile = {
+            if (mediaId == "m1") {
+              firstStarted.complete(Unit)
+              // A loader that turns its own cancellation into another exception.
+              try {
+                awaitCancellation()
+              } catch (e: CancellationException) {
+                throw IOException("download stopped", e)
+              }
+            } else {
+              second.await()
+            }
+          },
+          contentDescription = DESCRIPTION,
+          modifier = Modifier.size(100.dp),
+          loading = { Text(LOADING) },
+          failed = { Text(FAILED) },
+      )
+    }
+    composeTestRule.waitUntil(TIMEOUT_MS) { firstStarted.isCompleted }
 
     mediaId = "m2"
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
+    composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
   }
 
   @Test
   fun clearMediaImageMemoryCacheEmptiesCoilsMemoryCache() {
+    // An entry put directly in the cache stands in for a decoded private photo.
     val memoryCache = SingletonImageLoader.get(context).memoryCache!!
     val key = MemoryCache.Key("private photo")
     memoryCache[key] = MemoryCache.Value(smallBitmap().asImage())
@@ -232,6 +353,10 @@ class MediaImageTest {
   /**
    * Replaces Coil's fetching and decoding: answers with a small bitmap, or an error for the files
    * in [broken], after [gate] completes if one is set.
+   *
+   * Coil runs its interceptors before fetching and decoding, and an interceptor that returns a
+   * result without calling `chain.proceed` skips them. So files are never read and Robolectric
+   * needs no real image decoding.
    */
   private class FakeDecoder : Interceptor {
     val requested = mutableListOf<Any>()

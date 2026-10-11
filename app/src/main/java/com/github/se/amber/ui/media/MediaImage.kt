@@ -6,9 +6,9 @@ import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -20,11 +20,12 @@ import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
 import java.io.File
-import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
 
 /** Test tags of [MediaImage]. */
 object MediaImageTestTags {
-  /** The decoded image, once its file is loaded. */
+  /** The picture, only once it is decoded and shown. */
   const val IMAGE = "mediaImage"
 }
 
@@ -53,7 +54,8 @@ private sealed interface FileState {
  * @param mediaId the id of the media; a new id loads a new file.
  * @param loadFile returns the local file of the media; it may throw (for example offline and not
  *   cached), which shows [failed].
- * @param contentDescription what the picture shows, read by TalkBack; give one whenever possible.
+ * @param contentDescription what the picture shows, read by TalkBack once it is shown; give one
+ *   whenever possible.
  * @param modifier the modifier of the whole component, slots included.
  * @param contentScale how the picture fills the space given by [modifier].
  * @param loading shown, centered, while the file is loaded or decoded.
@@ -70,19 +72,22 @@ fun MediaImage(
     failed: @Composable () -> Unit = {},
 ) {
   val currentLoadFile by rememberUpdatedState(loadFile)
-  val fileState by
-      produceState<FileState>(FileState.Loading, mediaId) {
-        // The state outlives a change of mediaId, so the previous media must not stay visible.
-        value = FileState.Loading
-        value =
-            try {
-              FileState.Ready(currentLoadFile())
-            } catch (e: CancellationException) {
-              throw e
-            } catch (e: Exception) {
-              FileState.Failed
-            }
-      }
+  // One state per mediaId: the first frame with a new id already shows loading, never the
+  // previous media, and a late result of a previous load only reaches that previous state.
+  var fileState by remember(mediaId) { mutableStateOf<FileState>(FileState.Loading) }
+  LaunchedEffect(mediaId) {
+    fileState =
+        try {
+          FileState.Ready(currentLoadFile())
+        } catch (e: CancellationException) {
+          // This image was cancelled (left the screen or got a new mediaId): just stop.
+          ensureActive()
+          // Otherwise loadFile gave up by itself, for example after a withTimeout.
+          FileState.Failed
+        } catch (e: Exception) {
+          FileState.Failed
+        }
+  }
 
   Box(modifier = modifier, contentAlignment = Alignment.Center) {
     when (val state = fileState) {
@@ -93,13 +98,19 @@ fun MediaImage(
             remember(state.file) {
               mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty)
             }
+        // Until the picture is decoded, it is hidden from TalkBack and from tests.
+        val shown = imageState is AsyncImagePainter.State.Success
         AsyncImage(
             model = state.file,
-            contentDescription = contentDescription,
-            modifier = Modifier.fillMaxSize().testTag(MediaImageTestTags.IMAGE),
+            contentDescription = if (shown) contentDescription else null,
+            modifier =
+                Modifier.fillMaxSize()
+                    .then(if (shown) Modifier.testTag(MediaImageTestTags.IMAGE) else Modifier),
             contentScale = contentScale,
             onState = { imageState = it },
         )
+        // AsyncImage draws nothing while it decodes the file or if decoding fails, so the slots
+        // cover those cases too.
         when (imageState) {
           is AsyncImagePainter.State.Error -> failed()
           is AsyncImagePainter.State.Success -> Unit
