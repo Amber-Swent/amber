@@ -50,7 +50,9 @@ fun TopNavigationMenu(
     action: TopNavigationAction,
     onBackClick: () -> Unit,
 ) {
-  Column(modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)) {
+  Column(
+      modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
+  ) {
     TopAppBar(
         title = {
           Text(

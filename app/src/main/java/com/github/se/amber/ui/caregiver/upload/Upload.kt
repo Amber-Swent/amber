@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.PICTURE_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.TEXT_BUTTON
@@ -92,16 +93,18 @@ fun Upload(
         TopNavigationMenu(
             modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
             action = TopNavigationAction.CHECKOUT,
-            onBackClick = checkout)
-
-          // TODO("use DisplayCaregiverTitle from Utils.kt")
-      },
-    bottomBar = { BottomNavigationMenu(selectedTab = CaregiverTab.Upload,
-        onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
-        caregiverTabs,
-        Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
+            onBackClick = checkout,
         )
-    },
+        DisplayCaregiverTitle("Upload", modifier = Modifier.testTag(UploadTestTags.TITLE))
+      },
+      bottomBar = {
+        BottomNavigationMenu(
+            selectedTab = CaregiverTab.Upload,
+            onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
+            caregiverTabs,
+            Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
+        )
+      },
       content = { paddingValues ->
         Column(
             modifier =

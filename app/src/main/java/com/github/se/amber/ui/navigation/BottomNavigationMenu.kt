@@ -28,6 +28,7 @@ import com.github.se.amber.ui.theme.orange
 object BottomNavigationMenuTestTags {
   const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
   const val DIVIDER = "bottom_navigation_menu_divider"
+
   fun tabTag(tab: Tab) = "bottom_navigation_menu_tab_${tab.id}${tab.name}"
 }
 
@@ -95,7 +96,8 @@ fun BottomNavigationMenu(
     modifier: Modifier = Modifier,
 ) {
   Column(
-      modifier = modifier.fillMaxWidth().testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+      modifier =
+          modifier.fillMaxWidth().testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
   ) {
     HorizontalDivider(
         modifier = Modifier.testTag(BottomNavigationMenuTestTags.DIVIDER),
