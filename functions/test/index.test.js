@@ -1,4 +1,5 @@
 // Written by GitHub Copilot.
+// Modified by Neha Chakraborty and Copilot.
 const assert = require("node:assert/strict");
 const {createHash} = require("node:crypto");
 const Module = require("node:module");
@@ -106,7 +107,6 @@ function callableModule() {
 function invitation(overrides = {}) {
   return {
     circleId: "circle-1",
-    role: "CAREGIVER",
     usedBy: null,
     expiresAt: Date.now() + 60_000,
     ...overrides,
@@ -120,7 +120,7 @@ function validCircle(overrides = {}) {
 function setupRedeem(options = {}) {
   const invitationData = "invitationData" in options ? options.invitationData : invitation();
   const circle = "circle" in options ? options.circle : validCircle();
-  const {user} = options;
+  const user = "user" in options ? options.user : {role: "CAREGIVER", circleIds: []};
   state.documents.set("invitations/code-1", invitationData);
   if (circle !== undefined) state.documents.set("careCircles/circle-1", circle);
   if (user !== undefined) state.documents.set("users/user-1", user);
@@ -154,13 +154,14 @@ test("rejects unauthenticated and malformed redemption requests", async (t) => {
   }
 });
 
-test("returns the original redemption result for the same user without writes", async () => {
-  setupRedeem({invitationData: invitation({usedBy: "user-1", role: "PATIENT"})});
+test("rejects an invitation already redeemed by the same user without writes", async () => {
+  setupRedeem({invitationData: invitation({usedBy: "user-1"})});
   const {redeemInvitation} = callableModule();
 
-  assert.deepEqual(
-    await redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1"}}),
-    {circleId: "circle-1", role: "PATIENT"},
+  await expectHttpsError(
+    redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1"}}),
+    "failed-precondition",
+    "Invitation has already been redeemed",
   );
   assert.deepEqual(state.updates, []);
   assert.deepEqual(state.creates, []);
@@ -171,8 +172,8 @@ test("rejects unavailable, consumed, and structurally invalid invitations", asyn
     ["missing", undefined, "not-found", "Invitation was not found"],
     ["redeemed by another user", invitation({usedBy: "other-user"}), "failed-precondition",
       "Invitation has already been redeemed"],
-    ["invalid role", invitation({role: "ADMIN"}), "failed-precondition",
-      "Invitation has an invalid role"],
+    ["invitation role", invitation({role: "CAREGIVER"}), "failed-precondition",
+      "Invitation must not specify a role"],
     ["expired numeric timestamp", invitation({expiresAt: Date.now() - 1}), "failed-precondition",
       "Invitation has expired"],
     ["invalid expiration", invitation({expiresAt: {}}), "failed-precondition",
@@ -195,16 +196,18 @@ test("rejects unavailable, consumed, and structurally invalid invitations", asyn
 });
 
 test("rejects invalid circle and user membership states", async (t) => {
+  const caregiverProfile = {role: "CAREGIVER", circleIds: []};
   const cases = [
-    ["missing circle", undefined, undefined, "Invitation circle no longer exists"],
-    ["invalid member ids", validCircle({memberIds: "user-1"}), undefined,
+    ["missing circle", undefined, caregiverProfile, "Invitation circle no longer exists"],
+    ["invalid member ids", validCircle({memberIds: "user-1"}), caregiverProfile,
       "User is already a circle member"],
-    ["already a member", validCircle({memberIds: ["user-1"]}), undefined,
+    ["already a member", validCircle({memberIds: ["user-1"]}), caregiverProfile,
       "User is already a circle member"],
-    ["patient already assigned", validCircle({patientId: "patient-1"}), undefined,
-      "Circle already has a patient", invitation({role: "PATIENT"})],
-    ["role mismatch", validCircle(), {role: "PATIENT", circleIds: []},
-      "Invitation role does not match user profile"],
+    ["patient already assigned", validCircle({patientId: "patient-1"}),
+      {role: "PATIENT", circleIds: []}, "Circle already has a patient"],
+    ["missing profile", validCircle(), undefined, "User profile was not found"],
+    ["invalid profile role", validCircle(), {role: "ADMIN", circleIds: []},
+      "User profile has an invalid role"],
     ["invalid profile memberships", validCircle(), {role: "CAREGIVER", circleIds: "circle-1"},
       "User profile has invalid circle membership"],
   ];
@@ -244,53 +247,43 @@ test("redeems a caregiver invitation for an existing profile atomically", async 
   assert.deepEqual(state.creates, []);
 });
 
-test("creates a patient profile with supplied person data", async () => {
+test("redeems a universal invitation with an existing patient profile atomically", async () => {
   setupRedeem({
-    invitationData: invitation({role: "PATIENT", expiresAt: {toMillis: () => Date.now() + 60_000}}),
+    invitationData: invitation({expiresAt: {toMillis: () => Date.now() + 60_000}}),
+    user: {role: "PATIENT", circleIds: []},
   });
   const {redeemInvitation} = callableModule();
 
-  await redeemInvitation({
-    auth: {uid: "user-1"},
-    data: {
-      code: "code-1",
-      person: {firstName: "Ada", lastName: "Lovelace", nickname: null},
-    },
-  });
+  assert.deepEqual(
+    await redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1"}}),
+    {circleId: "circle-1", role: "PATIENT"},
+  );
 
   assert.deepEqual(state.updates[1], {
     reference: {path: "careCircles/circle-1"},
     data: {memberIds: {arrayUnion: "user-1"}, patientId: "user-1"},
   });
-  assert.deepEqual(state.creates, [{
-    reference: {path: "users/user-1"},
-    data: {
-      uid: "user-1",
-      role: "PATIENT",
-      person: {id: "user-1", firstName: "Ada", lastName: "Lovelace", nickname: null},
-      circleIds: ["circle-1"],
-    },
-  }]);
+  assert.deepEqual(state.creates, []);
 });
 
-test("validates new profile person fields", async (t) => {
-  const invalidPeople = [
-    ["array", [] , "Person must be an object"],
-    ["unsupported field", {middleName: "Byron"}, "Person contains unsupported fields"],
-    ["non-string first name", {firstName: 1}, "Person fields have invalid types"],
-    ["non-string last name", {lastName: false}, "Person fields have invalid types"],
-    ["non-string nickname", {nickname: {}}, "Person fields have invalid types"],
+test("accepts only the invitation code", async (t) => {
+  const invalidRequests = [
+    ["person", {code: "code-1", person: {firstName: "Ada"}}],
+    ["role", {code: "code-1", role: "PATIENT"}],
+    ["additional field", {code: "code-1", circleId: "circle-1"}],
   ];
 
-  for (const [name, person, message] of invalidPeople) {
+  for (const [name, data] of invalidRequests) {
     await t.test(name, async () => {
       setupRedeem();
       const {redeemInvitation} = callableModule();
       await expectHttpsError(
-        redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1", person}}),
+        redeemInvitation({auth: {uid: "user-1"}, data}),
         "invalid-argument",
-        message,
+        "A valid invitation code is required",
       );
+      assert.deepEqual(state.updates, []);
+      assert.deepEqual(state.creates, []);
     });
   }
 });
