@@ -13,5 +13,10 @@ sonar {
     properties {
         property("sonar.projectKey", "Amber-Swent_amber")
         property("sonar.organization", "amber-swent")
+        property(
+            "sonar.coverageReportPaths",
+            layout.buildDirectory.file("reports/firestore-rules-coverage.xml").get().asFile,
+        )
+        property("sonar.coverage.exclusions", "**/scripts/**")
     }
 }

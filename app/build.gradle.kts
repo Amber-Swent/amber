@@ -14,6 +14,20 @@ android {
   namespace = "com.github.se.amber"
   compileSdk = 37
 
+  // Sign debug builds with the shared CI keystore (its SHA-1 is registered in Firebase).
+  // If the file is absent (e.g. local builds), Gradle falls back to the default debug key.
+  signingConfigs {
+    getByName("debug") {
+      val ciKeystore = file("ci-debug.keystore")
+      if (ciKeystore.exists()) {
+        storeFile = ciKeystore
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      }
+    }
+  }
+
   defaultConfig {
     applicationId = "com.github.se.amber"
     minSdk = 28
@@ -141,6 +155,8 @@ dependencies {
   implementation(libs.compose.activity)
   // Integration with ViewModels
   implementation(libs.compose.viewmodel)
+  // Navigation
+  implementation(libs.androidx.navigation.compose)
   // Android Studio Preview support
   implementation(libs.compose.preview)
   implementation(libs.compose.material.icons)
@@ -156,12 +172,24 @@ dependencies {
   // ----------       Robolectric     ------------
   testImplementation(libs.robolectric)
 
+  // ----------      Coroutines test    ----------
+  testImplementation(libs.kotlinx.coroutines.test)
+
+  // ----------          MockK        ------------
+  testImplementation(libs.mockk)
+  testImplementation(libs.kotlinx.coroutines.test)
+
+  // ----------        Mockito        ------------
+  testImplementation(libs.mockito.kotlin)
+
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))
   androidTestImplementation(platform(libs.firebase.bom))
   implementation(libs.firebase.firestore)
   implementation(libs.firebase.auth)
   implementation(libs.firebase.storage)
+  // Task.await() for Firebase calls
+  implementation(libs.kotlinx.coroutines.play.services)
 }
 
 tasks.withType<Test> {

@@ -45,18 +45,31 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
-  fun isMember_usesMockedCircleMembership() {
+  fun isMember_requiresMatchingFamilyIdInProfileAndCircle() {
     val lookup =
         MockDocumentLookup(
+            userOf = { uid ->
+              when (uid) {
+                "u1" -> UserProfile(uid = "u1", circleIds = listOf("c1"))
+                "stale-member" -> UserProfile(uid = "stale-member", circleIds = listOf("other"))
+                else -> null
+              }
+            },
             circleOf = { id ->
-              if (id == "c1") CareCircle(id = "c1", memberIds = listOf("u1")) else null
+              if (id == "c1") {
+                CareCircle(id = "c1", memberIds = listOf("u1", "stale-member"))
+              } else {
+                null
+              }
             },
         )
     val asMember = FirestoreSecurityRules(authUid = "u1", lookup = lookup)
     val asStranger = FirestoreSecurityRules(authUid = "u2", lookup = lookup)
+    val asStaleMember = FirestoreSecurityRules(authUid = "stale-member", lookup = lookup)
 
     assertTrue(asMember.isMember("c1"))
     assertFalse(asStranger.isMember("c1"))
+    assertFalse(asStaleMember.isMember("c1"))
     assertFalse(asMember.isMember("missing"))
   }
 
@@ -202,7 +215,13 @@ class FirestoreSecurityRulesTest {
   @Test
   fun careCircles_createAndMemberEdit_enforcedByFakeStore() {
     val db = FakeFirestore()
-    val careProfile = UserProfile(uid = "care", role = Role.CAREGIVER, person = Person(id = "care"))
+    val careProfile =
+        UserProfile(
+            uid = "care",
+            role = Role.CAREGIVER,
+            person = Person(id = "care"),
+            circleIds = listOf("c1"),
+        )
     db.putUser(careProfile)
 
     val created =
@@ -220,7 +239,14 @@ class FirestoreSecurityRulesTest {
     )
 
     db.putCircle(created)
-    db.putUser(UserProfile(uid = "pat", role = Role.PATIENT, person = Person(id = "pat")))
+    db.putUser(
+        UserProfile(
+            uid = "pat",
+            role = Role.PATIENT,
+            person = Person(id = "pat"),
+            circleIds = listOf("c1"),
+        ),
+    )
 
     // Client-side join is denied; membership sync is backend-only (PR #83).
     val joined = created.copy(memberIds = listOf("care", "pat"), patientId = "pat")
@@ -239,10 +265,29 @@ class FirestoreSecurityRulesTest {
   @Test
   fun mediaStoriesAppointments_memberAndRoleGates_enforcedByFakeStore() {
     val db = FakeFirestore()
-    db.putUser(UserProfile(uid = "care", role = Role.CAREGIVER, person = Person(id = "care")))
-    db.putUser(UserProfile(uid = "pat", role = Role.PATIENT, person = Person(id = "pat")))
     db.putUser(
-        UserProfile(uid = "outsider", role = Role.CAREGIVER, person = Person(id = "outsider"))
+        UserProfile(
+            uid = "care",
+            role = Role.CAREGIVER,
+            person = Person(id = "care"),
+            circleIds = listOf("c1"),
+        ),
+    )
+    db.putUser(
+        UserProfile(
+            uid = "pat",
+            role = Role.PATIENT,
+            person = Person(id = "pat"),
+            circleIds = listOf("c1"),
+        ),
+    )
+    db.putUser(
+        UserProfile(
+            uid = "outsider",
+            role = Role.CAREGIVER,
+            person = Person(id = "outsider"),
+            circleIds = listOf("c9"),
+        ),
     )
     db.putCircle(CareCircle(id = "c1", memberIds = listOf("care", "pat"), createdBy = "care"))
 
@@ -298,7 +343,14 @@ class FirestoreSecurityRulesTest {
   @Test
   fun invitations_getCreate_denyClientRedeem_enforcedByFakeStore() {
     val db = FakeFirestore()
-    db.putUser(UserProfile(uid = "care", role = Role.CAREGIVER, person = Person(id = "care")))
+    db.putUser(
+        UserProfile(
+            uid = "care",
+            role = Role.CAREGIVER,
+            person = Person(id = "care"),
+            circleIds = listOf("c1"),
+        ),
+    )
     db.putUser(UserProfile(uid = "pat", role = Role.PATIENT, person = Person(id = "pat")))
     db.putCircle(CareCircle(id = "c1", memberIds = listOf("care"), createdBy = "care"))
 
@@ -422,7 +474,8 @@ private class FirestoreSecurityRules(
 
   fun isMember(circleId: String): Boolean {
     val circle = lookup.circle(circleId) ?: return false
-    return isSignedIn() && authUid in circle.memberIds
+    val user = authUid?.let(lookup::user) ?: return false
+    return isSignedIn() && circleId in user.circleIds && authUid in circle.memberIds
   }
 
   fun isCaregiver(): Boolean {
