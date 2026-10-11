@@ -36,7 +36,6 @@ import com.github.se.amber.ui.theme.PADDING_SMALL
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
-    // TODO : create NavigationActions
     // navigationActions: NavigationActions? = null,
 
     goBack: () -> Unit = {},
