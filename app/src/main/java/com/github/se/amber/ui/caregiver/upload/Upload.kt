@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
@@ -45,6 +46,7 @@ import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.lightOrange
 
@@ -69,7 +71,7 @@ object UploadTestTags {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Upload(
+fun UploadScreen(
     viewModel: UploadViewModel = viewModel(),
     onUploadTextClick: () -> Unit = {},
     onUploadPictureClick: () -> Unit = {},
@@ -90,12 +92,14 @@ fun Upload(
 
   Scaffold(
       topBar = {
-        TopNavigationMenu(
-            modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
-            action = TopNavigationAction.CHECKOUT,
-            onBackClick = checkout,
-        )
-        DisplayCaregiverTitle("Upload", modifier = Modifier.testTag(UploadTestTags.TITLE))
+        Column(modifier = Modifier.fillMaxWidth()) {
+          TopNavigationMenu(
+              modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+              action = TopNavigationAction.CHECKOUT,
+              onBackClick = checkout,
+          )
+          DisplayCaregiverTitle("Upload", modifier = Modifier.testTag(UploadTestTags.TITLE))
+        }
       },
       bottomBar = {
         BottomNavigationMenu(
@@ -169,4 +173,11 @@ fun DisplayButton(
       Icon(icon, contentDescription = description, tint = Color.Black)
     }
   }
+}
+
+/** Preview of [UploadScreen] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun UploadScreenPreview() {
+  AmberAppTheme(dynamicColor = false) { UploadScreen() }
 }

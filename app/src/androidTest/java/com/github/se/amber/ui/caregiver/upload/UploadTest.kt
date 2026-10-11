@@ -54,7 +54,7 @@ class UploadTest {
       actions: FakeUploadActions = FakeUploadActions(),
   ) {
     composeTestRule.setContent {
-      Upload(
+      UploadScreen(
           viewModel = viewModel,
           onUploadTextClick = actions::onUploadTextClick,
           onUploadPictureClick = actions::onUploadPictureClick,
