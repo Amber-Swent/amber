@@ -46,7 +46,7 @@ object HomeTestTags {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
+fun CaregiverHomeScreen(
     viewModel: HomeViewModel = viewModel(),
     navigationActions: NavigationActions? = null,
     goBack: () -> Unit = {},
@@ -59,7 +59,7 @@ fun HomeScreen(
             action = TopNavigationAction.CHECKOUT,
             onBackClick = goBack,
         )
-        DisplayCaregiverTitle("Home", Modifier.testTag(HomeTestTags.TITLE))
+        // TODO: DisplayCaregiverTitle("Home", Modifier.testTag(HomeTestTags.TITLE))
       },
       bottomBar = {
         BottomNavigationMenu(
