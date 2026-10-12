@@ -79,7 +79,8 @@ class FirebaseProfileRepository(
 
     data object NotAuthenticated : ProfileCreationError("No user is signed in")
 
-    data object ProfileAlreadyExists : ProfileCreationError("A profile already exists for this user")
+    data object ProfileAlreadyExists :
+        ProfileCreationError("A profile already exists for this user")
 
     data object PermissionDenied :
         ProfileCreationError("You do not have permission to create a profile")
