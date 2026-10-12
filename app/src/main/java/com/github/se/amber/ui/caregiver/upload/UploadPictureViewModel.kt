@@ -44,7 +44,6 @@ data class UploadPictureUIState(
     val errorMsg: String? = null,
 )
 
-
 /** Manages the state and user actions for the picture upload screen. */
 // TODO: use Repo once available
 class UploadPictureViewModel(
