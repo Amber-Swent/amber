@@ -24,9 +24,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
-import com.github.se.amber.ui.navigation.BottomNavigationTestTags
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.NavigationActions
+import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -46,33 +47,33 @@ object CaregiverHomeTestTags {
  * of navigation.
  *
  * @param viewModel ViewModel providing the patient information displayed on the screen.
- * @param goBack Callback invoked when the user selects the back action in the top bar.
+ * @param signOut Callback invoked when the user selects the back action in the top bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaregiverHomeScreen(
     viewModel: HomeViewModel = viewModel(),
-    navigationActions: NavigationActions? = null,
-    goBack: () -> Unit = {},
+    onTabSelected : (Tab) -> Unit = { tab ->},
+    signOut: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
   Scaffold(
       topBar = {
         Column(modifier = Modifier.fillMaxWidth()) {
           TopNavigationMenu(
-              modifier = Modifier.testTag(TopNavigationMenuTestTags.ROOT),
+              modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = goBack,
+              onBackClick = signOut,
           )
-          // TODO: DisplayCaregiverTitle("Home", Modifier.testTag(HomeTestTags.TITLE))
+          DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
         }
       },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = CaregiverTab.Home,
-            onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
+            onTabSelected = onTabSelected,
             tabs = CaregiverTab.caregiverTabs,
-            modifier = Modifier.testTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU),
+            modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
         )
       },
       content = { paddingValues ->
