@@ -10,7 +10,11 @@ import com.google.firebase.firestore.firestore
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.tasks.await
 
-/** Firebase-backed implementation that retrieves a caregiver's invitations for one care circle. */
+/**
+ * Firebase-backed implementation that retrieves a caregiver's invitations for one care circle.
+ *
+ * A malformed invitation makes the complete lookup fail rather than silently omitting it.
+ */
 class FirebaseInvitationLookupRepository(
     private val auth: FirebaseAuth = Firebase.auth,
     private val firestore: FirebaseFirestore = Firebase.firestore,
