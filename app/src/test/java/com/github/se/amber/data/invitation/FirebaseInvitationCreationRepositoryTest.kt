@@ -1,7 +1,6 @@
 // This file was written by Neha Chakraborty and Copilot
 package com.github.se.amber.data.invitation
 
-import com.github.se.amber.model.circle.Invitation
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -51,25 +50,27 @@ class FirebaseInvitationCreationRepositoryTest {
   }
 
   @Test
-  fun createInvitation_persistsInvitationWithTrustedFieldsAndReturnsCode() = runBlocking {
-    val invitation = slot<Invitation>()
-    stubSuccessfulTransaction(document, invitation)
+  fun createInvitation_persistsRoleFreeInvitationPayloadWithTrustedFieldsAndReturnsCode() =
+      runBlocking {
+        val invitationPayload = slot<Map<String, Any?>>()
+        stubSuccessfulTransaction(document, invitationPayload)
 
-    val result = repository().createInvitation(circleId)
+        val result = repository().createInvitation(circleId)
 
-    assertEquals(InvitationCreationResult.Created("CODE1234"), result)
-    assertEquals(
-        Invitation(
-            code = "CODE1234",
-            circleId = circleId,
-            createdBy = uid,
-            createdAt = createdAt,
-            expiresAt = createdAt + thirtyDaysMillis,
-            usedBy = null,
-        ),
-        invitation.captured,
-    )
-  }
+        assertEquals(InvitationCreationResult.Created("CODE1234"), result)
+        assertEquals(
+            mapOf(
+                "code" to "CODE1234",
+                "circleId" to circleId,
+                "createdBy" to uid,
+                "createdAt" to createdAt,
+                "expiresAt" to createdAt + thirtyDaysMillis,
+                "usedBy" to null,
+            ),
+            invitationPayload.captured,
+        )
+        assertTrue("role" !in invitationPayload.captured)
+      }
 
   @Test
   fun createInvitation_signedOutUserDoesNotAccessFirestore() = runBlocking {
@@ -238,13 +239,13 @@ class FirebaseInvitationCreationRepositoryTest {
 
   private fun stubSuccessfulTransaction(
       reference: DocumentReference,
-      invitation: io.mockk.CapturingSlot<Invitation>,
+      invitationPayload: io.mockk.CapturingSlot<Map<String, Any?>>,
   ) {
     val missingSnapshot = mockk<DocumentSnapshot>()
     every { collection.document("CODE1234") } returns reference
     every { missingSnapshot.exists() } returns false
     every { transaction.get(reference) } returns missingSnapshot
-    every { transaction.set(reference, capture(invitation)) } returns transaction
+    every { transaction.set(reference, capture(invitationPayload)) } returns transaction
     every { firestore.runTransaction<Unit>(any()) } answers
         {
           firstArg<Transaction.Function<Unit>>().apply(transaction)
