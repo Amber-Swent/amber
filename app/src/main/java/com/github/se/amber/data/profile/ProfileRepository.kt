@@ -5,7 +5,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 
 /** Creates the authenticated user's initial profile during first-time onboarding. */
-interface ProfileRepository {
+fun interface ProfileRepository {
 
   /**
    * Atomically creates the current authenticated user's initial profile with [person] and [role].
