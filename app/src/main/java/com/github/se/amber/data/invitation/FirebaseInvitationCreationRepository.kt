@@ -32,13 +32,12 @@ class FirebaseInvitationCreationRepository(
     repeat(maximumCreateAttempts) {
       val code = codeGenerator()
       val invitationPayload =
-          mapOf(
-              "code" to code,
-              "circleId" to selectedCircleId,
-              "createdBy" to creatorUid,
-              "createdAt" to createdAt,
-              "expiresAt" to expiresAt,
-              "usedBy" to null,
+          universalInvitationPayload(
+              code = code,
+              circleId = selectedCircleId,
+              createdBy = creatorUid,
+              createdAt = createdAt,
+              expiresAt = expiresAt,
           )
 
       try {
@@ -92,6 +91,22 @@ class FirebaseInvitationCreationRepository(
     const val INVITATION_LIFETIME_MILLIS = 30L * 24 * 60 * 60 * 1_000
   }
 }
+
+internal fun universalInvitationPayload(
+    code: String,
+    circleId: String,
+    createdBy: String,
+    createdAt: Long,
+    expiresAt: Long,
+): Map<String, Any?> =
+    mapOf(
+        "code" to code,
+        "circleId" to circleId,
+        "createdBy" to createdBy,
+        "createdAt" to createdAt,
+        "expiresAt" to expiresAt,
+        "usedBy" to null,
+    )
 
 private const val INVITATION_CODE_LENGTH = 8
 private const val INVITATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
