@@ -7,3 +7,5 @@ import androidx.compose.ui.unit.dp
 val PADDING_SMALL = 8.dp
 val PADDING_MEDIUM = 16.dp
 val PADDING_BIG = 24.dp
+val ROUND_CORNER = 32.dp
+val DIVIDER_THICKNESS = 1.dp

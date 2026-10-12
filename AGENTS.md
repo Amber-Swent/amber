@@ -17,9 +17,10 @@
 - Keep feature code and tests together in the final PR. Run `./gradlew check`; run relevant connected tests when instrumentation changes and a device is available.
 
 ## Workflow
-- The developer creates a feature branch from `main` and orchestrates separate coding, testing, and review sessions. Use isolated worktrees: `agent/<feature-or-bug-id>-code` and `agent/<feature-or-bug-id>-tests`. The developer inspects and integrates each result.
+- The developer creates a feature branch from `main` and works on it directly in their own checkout. Agents edit that branch in place; do not create separate `agent/` branches or worktrees unless the developer asks for them.
+- Do not switch branches, commit, or push unless the developer asks. The developer inspects and integrates each result.
 - Run review in a fresh session using `.github/skills/review-checklist/SKILL.md`. The reviewer may open the code-and-tests PR when authorized, but never approves or merges; the developer owns the final decision.
-- If worktree or GitHub access is unavailable, report that instead of editing the developer's checkout or claiming a PR was opened.
+- If GitHub access is unavailable, report that instead of claiming a PR was opened.
 
 ## PRs
 - Include a brief feature/fix summary and relevant check results in each PR description.

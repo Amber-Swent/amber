@@ -1,7 +1,9 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
+// Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.invitation.universalInvitationPayload
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Base64
@@ -53,10 +55,19 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set(
             "invitations/JOIN01",
-            invite("JOIN01", circleId, "PATIENT", care, expiresAt = now + 60_000),
+            invite("JOIN01", circleId, care, expiresAt = now + 60_000),
         ),
     )
     fs.assertFails(care, fs.list("invitations"))
+    fs.assertSucceeds(care, fs.listInvitations(care, circleId))
+    fs.assertFails(null, fs.listInvitations(care, circleId))
+    fs.assertFails(
+        care,
+        fs.set(
+            "invitations/WITHROLE",
+            invite("WITHROLE", circleId, care, expiresAt = now + 60_000).plus("role" to "PATIENT"),
+        ),
+    )
 
     // Stranger is denied circle and caregiver profile reads.
     fs.assertFails(stranger, fs.get("careCircles/$circleId"))
@@ -65,7 +76,7 @@ class FirestoreSecurityRulesEmulatorTest {
         stranger,
         fs.set(
             "invitations/HACK",
-            invite("HACK", circleId, "CAREGIVER", stranger, expiresAt = now + 60_000),
+            invite("HACK", circleId, stranger, expiresAt = now + 60_000),
         ),
     )
 
@@ -83,14 +94,68 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(peer, fs.patch("users/$peer", mapOf("circleIds" to listOf(circleId))))
 
+    val peerCircleId = "c-peer"
+    fs.assertSucceeds(
+        peer,
+        fs.commit(
+            fs.setWrite("users/$peer", user(peer, "CAREGIVER", listOf(peerCircleId), "Bob")),
+            fs.setWrite(
+                "careCircles/$peerCircleId",
+                circle(peerCircleId, peer, listOf(peer), patientId = ""),
+            ),
+        ),
+    )
+    fs.assertSucceeds(peer, fs.get("careCircles/$peerCircleId"))
+
     // Admin SDK seeds membership (stands in for Cloud Functions redeem in PR #83).
     fs.adminSet(
         "careCircles/$circleId",
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertSucceeds(
+        peer,
+        fs.set(
+            "invitations/PEER01",
+            invite("PEER01", circleId, peer, expiresAt = now + 60_000),
+        ),
+    )
+    fs.assertFails(care, fs.listInvitations(peer, circleId))
+    fs.assertFails(peer, fs.listInvitations(care, circleId))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
+  }
+
+  @Test
+  fun universalInvitationPayload_isAcceptedAndStoredRoleFree_enforcedByEmulator() {
+    val circleId = "c-universal"
+    val care = "care"
+    val code = "UNIVERSAL"
+    fs.assertSucceeds(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, care, listOf(care), patientId = ""),
+            ),
+        ),
+    )
+
+    val payload =
+        universalInvitationPayload(
+            code = code,
+            circleId = circleId,
+            createdBy = care,
+            createdAt = now,
+            expiresAt = now + 60_000,
+        )
+    fs.assertSucceeds(care, fs.set("invitations/$code", payload))
+
+    val (status, body) = fs.adminGet("invitations/$code")
+    assertEquals(200, status)
+    assertTrue(body.contains("\"$code\""))
+    assertFalse(body.contains("\"role\""))
   }
 
   @Test
@@ -153,12 +218,21 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
+  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+    val uid = "existing-user"
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
+
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
+  }
+
+  @Test
   fun inviteClientRedeemBatch_rejectedLeavesStateUnchanged_enforcedByEmulator() {
     val circleId = "c-batch"
     val care = "care"
     val pat = "pat"
     val inviteCode = "BATCH01"
-    val inviteDoc = invite(inviteCode, circleId, "PATIENT", care, expiresAt = now + 120_000)
+    val inviteDoc = invite(inviteCode, circleId, care, expiresAt = now + 120_000)
     val circleBefore = circle(circleId, care, listOf(care), patientId = "")
 
     fs.assertSucceeds(
@@ -218,12 +292,12 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set(
             "invitations/REDEEM1",
-            invite("REDEEM1", circleId, "PATIENT", care, expiresAt = now + 120_000),
+            invite("REDEEM1", circleId, care, expiresAt = now + 120_000),
         ),
     )
     fs.adminSet(
         "invitations/EXPIRED",
-        invite("EXPIRED", circleId, "CAREGIVER", care, expiresAt = now - 1),
+        invite("EXPIRED", circleId, care, expiresAt = now - 1),
     )
 
     fs.assertSucceeds(pat, fs.get("invitations/REDEEM1"))
@@ -346,20 +420,17 @@ class FirestoreSecurityRulesEmulatorTest {
     private fun invite(
         code: String,
         circleId: String,
-        role: String,
         createdBy: String,
         expiresAt: Long,
         usedBy: String? = null,
     ) =
-        mapOf(
-            "code" to code,
-            "circleId" to circleId,
-            "role" to role,
-            "createdBy" to createdBy,
-            "createdAt" to now,
-            "expiresAt" to expiresAt,
-            "usedBy" to usedBy,
-        )
+        universalInvitationPayload(
+            code = code,
+            circleId = circleId,
+            createdBy = createdBy,
+            createdAt = now,
+            expiresAt = expiresAt,
+        ) + ("usedBy" to usedBy)
 
     private fun media(id: String, authorId: String, storagePath: String) =
         mapOf(
@@ -423,6 +494,60 @@ private class FirestoreEmulatorClient(
     request("GET", docUrl(collectionId), token = bearer(uid))
   }
 
+  fun listInvitations(createdBy: String, circleId: String): (String?) -> Int = { uid ->
+    requestWithBody(
+            "POST",
+            "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
+            token = bearer(uid),
+            body =
+                mapOf(
+                    "structuredQuery" to
+                        mapOf(
+                            "from" to listOf(mapOf("collectionId" to "invitations")),
+                            "where" to
+                                mapOf(
+                                    "compositeFilter" to
+                                        mapOf(
+                                            "op" to "AND",
+                                            "filters" to
+                                                listOf(
+                                                    mapOf(
+                                                        "fieldFilter" to
+                                                            mapOf(
+                                                                "field" to
+                                                                    mapOf(
+                                                                        "fieldPath" to "createdBy"
+                                                                    ),
+                                                                "op" to "EQUAL",
+                                                                "value" to
+                                                                    mapOf(
+                                                                        "stringValue" to createdBy
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                    mapOf(
+                                                        "fieldFilter" to
+                                                            mapOf(
+                                                                "field" to
+                                                                    mapOf(
+                                                                        "fieldPath" to "circleId"
+                                                                    ),
+                                                                "op" to "EQUAL",
+                                                                "value" to
+                                                                    mapOf(
+                                                                        "stringValue" to circleId
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                ),
+        )
+        .first
+  }
+
   fun delete(path: String): (String?) -> Int = { uid ->
     commitAs(bearer(uid), mapOf("delete" to docName(path)))
   }
@@ -445,6 +570,11 @@ private class FirestoreEmulatorClient(
   fun assertSucceeds(uid: String?, op: (String?) -> Int) {
     val code = op(uid)
     assertTrue("Expected success for uid=$uid but HTTP $code", code in 200..299)
+  }
+
+  fun assertSucceeds(op: () -> Int) {
+    val code = op()
+    assertTrue("Expected success but HTTP $code", code in 200..299)
   }
 
   fun assertFails(uid: String?, op: (String?) -> Int) {
@@ -487,8 +617,8 @@ private class FirestoreEmulatorClient(
   ): Pair<Int, String> {
     val connection = URL(url).openConnection() as HttpURLConnection
     connection.requestMethod = method
-    connection.connectTimeout = 5_000
-    connection.readTimeout = 5_000
+    connection.connectTimeout = REQUEST_TIMEOUT_MS
+    connection.readTimeout = REQUEST_TIMEOUT_MS
     if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
     if (body != null) {
       connection.doOutput = true
@@ -539,4 +669,8 @@ private class FirestoreEmulatorClient(
         is List<*> -> value.joinToString(",", "[", "]") { jsonEncode(it) }
         else -> error("Cannot JSON-encode ${value::class}")
       }
+
+  private companion object {
+    const val REQUEST_TIMEOUT_MS = 5_000
+  }
 }

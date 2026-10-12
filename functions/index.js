@@ -1,4 +1,5 @@
 // Written by GitHub Copilot.
+// Modified by Neha Chakraborty and Copilot.
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -14,31 +15,28 @@ initializeApp();
 
 const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
 const db = getFirestore();
+const VALID_ROLES = ["CAREGIVER", "PATIENT"];
 
-function newUserPerson(value, uid) {
-  const person = value ?? {};
-  if (typeof person !== "object" || Array.isArray(person)) {
-    throw new HttpsError("invalid-argument", "Person must be an object");
+function validInvitationCircleId(invitation) {
+  if (typeof invitation.circleId !== "string" || invitation.circleId.length === 0) {
+    throw new HttpsError("failed-precondition", "Invitation has an invalid circle");
   }
-  if (Object.keys(person).some((key) => !["firstName", "lastName", "nickname"].includes(key))) {
-    throw new HttpsError("invalid-argument", "Person contains unsupported fields");
-  }
-  if (
-    (person.firstName !== undefined && typeof person.firstName !== "string")
-    || (person.lastName !== undefined && typeof person.lastName !== "string")
-    || (person.nickname !== undefined
-      && person.nickname !== null
-      && typeof person.nickname !== "string")
-  ) {
-    throw new HttpsError("invalid-argument", "Person fields have invalid types");
-  }
+  return invitation.circleId;
+}
 
-  return {
-    id: uid,
-    firstName: person.firstName ?? "",
-    lastName: person.lastName ?? "",
-    nickname: person.nickname ?? null,
-  };
+function validUser(userSnapshot) {
+  if (!userSnapshot.exists) {
+    throw new HttpsError("failed-precondition", "User profile was not found");
+  }
+  const user = userSnapshot.data();
+  if (!VALID_ROLES.includes(user.role)) {
+    throw new HttpsError("failed-precondition", "User profile has an invalid role");
+  }
+  return user;
+}
+
+async function readValidUser(transaction, userRef) {
+  return validUser(await transaction.get(userRef));
 }
 
 function bucketDetails(projectId, circleId) {
@@ -128,12 +126,20 @@ exports.redeemInvitation = onCall(async (request) => {
   }
 
   const code = request.data?.code;
-  if (typeof code !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(code)) {
+  if (
+    !request.data
+    || typeof request.data !== "object"
+    || Array.isArray(request.data)
+    || Object.keys(request.data).length !== 1
+    || typeof code !== "string"
+    || !/^[A-Za-z0-9_-]{1,128}$/.test(code)
+  ) {
     throw new HttpsError("invalid-argument", "A valid invitation code is required");
   }
 
   const uid = request.auth.uid;
   const invitationRef = db.doc(`invitations/${code}`);
+  const userRef = db.doc(`users/${uid}`);
   return db.runTransaction(async (transaction) => {
     const invitationSnapshot = await transaction.get(invitationRef);
     if (!invitationSnapshot.exists) {
@@ -142,13 +148,15 @@ exports.redeemInvitation = onCall(async (request) => {
 
     const invitation = invitationSnapshot.data();
     if (invitation.usedBy === uid) {
-      return { circleId: invitation.circleId, role: invitation.role };
+      const circleId = validInvitationCircleId(invitation);
+      const user = await readValidUser(transaction, userRef);
+      return { circleId, role: user.role };
     }
     if (invitation.usedBy != null) {
       throw new HttpsError("failed-precondition", "Invitation has already been redeemed");
     }
-    if (!["CAREGIVER", "PATIENT"].includes(invitation.role)) {
-      throw new HttpsError("failed-precondition", "Invitation has an invalid role");
+    if (Object.hasOwn(invitation, "role")) {
+      throw new HttpsError("failed-precondition", "Invitation must not specify a role");
     }
 
     const expirationMs = typeof invitation.expiresAt === "number"
@@ -157,12 +165,8 @@ exports.redeemInvitation = onCall(async (request) => {
     if (!Number.isFinite(expirationMs) || expirationMs <= Date.now()) {
       throw new HttpsError("failed-precondition", "Invitation has expired");
     }
-
-    if (typeof invitation.circleId !== "string" || invitation.circleId.length === 0) {
-      throw new HttpsError("failed-precondition", "Invitation has an invalid circle");
-    }
-    const circleRef = db.doc(`careCircles/${invitation.circleId}`);
-    const userRef = db.doc(`users/${uid}`);
+    const circleId = validInvitationCircleId(invitation);
+    const circleRef = db.doc(`careCircles/${circleId}`);
     const [circleSnapshot, userSnapshot] = await Promise.all([
       transaction.get(circleRef),
       transaction.get(userRef),
@@ -171,39 +175,27 @@ exports.redeemInvitation = onCall(async (request) => {
       throw new HttpsError("failed-precondition", "Invitation circle no longer exists");
     }
 
+    const user = validUser(userSnapshot);
+    if (!Array.isArray(user.circleIds)) {
+      throw new HttpsError("failed-precondition", "User profile has invalid circle membership");
+    }
+
     const circle = circleSnapshot.data();
     if (!Array.isArray(circle.memberIds) || circle.memberIds.includes(uid)) {
       throw new HttpsError("failed-precondition", "User is already a circle member");
     }
-    if (invitation.role === "PATIENT" && circle.patientId) {
+    if (user.role === "PATIENT" && circle.patientId) {
       throw new HttpsError("failed-precondition", "Circle already has a patient");
-    }
-
-    const user = userSnapshot.data();
-    if (userSnapshot.exists && user.role !== invitation.role) {
-      throw new HttpsError("failed-precondition", "Invitation role does not match user profile");
-    }
-    if (userSnapshot.exists && !Array.isArray(user.circleIds)) {
-      throw new HttpsError("failed-precondition", "User profile has invalid circle membership");
     }
 
     transaction.update(invitationRef, { usedBy: uid });
     transaction.update(circleRef, {
       memberIds: FieldValue.arrayUnion(uid),
-      ...(invitation.role === "PATIENT" ? { patientId: uid } : {}),
+      ...(user.role === "PATIENT" ? { patientId: uid } : {}),
     });
-    if (userSnapshot.exists) {
-      transaction.update(userRef, { circleIds: FieldValue.arrayUnion(invitation.circleId) });
-    } else {
-      transaction.create(userRef, {
-        uid,
-        role: invitation.role,
-        person: newUserPerson(request.data?.person, uid),
-        circleIds: [invitation.circleId],
-      });
-    }
+    transaction.update(userRef, { circleIds: FieldValue.arrayUnion(circleId) });
 
-    return { circleId: invitation.circleId, role: invitation.role };
+    return { circleId, role: user.role };
   });
 });
 

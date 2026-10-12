@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.model.user
 
 /**
@@ -24,8 +25,7 @@ package com.github.se.amber.model.user
  * or an invitation is redeemed.
  *
  * Subject to change: [role] is global, the same in every circle the user belongs to. Someone who is
- * a caregiver in one circle can't be the patient of another, and redeeming an invitation whose role
- * differs from the user's current role has no defined outcome yet. The role may have to move to a
+ * a caregiver in one circle can't be the patient of another. The role may have to move to a
  * per-circle value.
  */
 data class UserProfile(
