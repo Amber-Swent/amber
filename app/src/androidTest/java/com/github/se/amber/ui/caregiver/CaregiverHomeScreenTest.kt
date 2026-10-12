@@ -22,7 +22,7 @@ class CaregiverHomeScreenTest {
   }
 
   private fun setScreen(signOut: () -> Unit = {}) {
-    composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel, signOut = signOut) }
+    composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel, checkout = signOut) }
   }
 
   @Test
