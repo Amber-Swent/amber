@@ -423,14 +423,14 @@ class FirestoreSecurityRulesEmulatorTest {
         createdBy: String,
         expiresAt: Long,
         usedBy: String? = null,
-        ) =
-            universalInvitationPayload(
-                code = code,
-                circleId = circleId,
-                createdBy = createdBy,
-                createdAt = now,
-                expiresAt = expiresAt,
-            ) + ("usedBy" to usedBy)
+    ) =
+        universalInvitationPayload(
+            code = code,
+            circleId = circleId,
+            createdBy = createdBy,
+            createdAt = now,
+            expiresAt = expiresAt,
+        ) + ("usedBy" to usedBy)
 
     private fun media(id: String, authorId: String, storagePath: String) =
         mapOf(
