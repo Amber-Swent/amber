@@ -172,27 +172,12 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun concurrentProfileCreates_preserveTheFirstCommittedProfile_enforcedByEmulator() {
-    val uid = "concurrent-user"
-    fs.assertSucceeds(uid, fs.create("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
-    val conflictingCreate = fs.create("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second"))
-    assertEquals(
-        "A concurrent profile creation must not overwrite the first profile",
-        409,
-        conflictingCreate(uid),
-    )
+  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+    val uid = "existing-user"
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
 
-    val (status, body) = fs.adminGet("users/$uid")
-    assertEquals(200, status)
-    assertTrue(
-        "Expected the first profile value in $body",
-        Regex("\"firstName\"\\s*:\\s*\\{\\s*\"stringValue\"\\s*:\\s*\"First\"")
-            .containsMatchIn(body),
-    )
-    assertFalse(
-        Regex("\"firstName\"\\s*:\\s*\\{\\s*\"stringValue\"\\s*:\\s*\"Second\"")
-            .containsMatchIn(body)
-    )
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
   }
 
   @Test
@@ -446,10 +431,6 @@ private class FirestoreEmulatorClient(
     commitAs(bearer(uid), setWrite(path, fields))
   }
 
-  fun create(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
-    commitAs(bearer(uid), createWrite(path, fields))
-  }
-
   fun patch(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(
         bearer(uid),
@@ -528,9 +509,6 @@ private class FirestoreEmulatorClient(
 
   fun setWrite(path: String, fields: Map<String, Any?>): Map<String, Any?> =
       mapOf("update" to mapOf("name" to docName(path), "fields" to encodeFields(fields)))
-
-  private fun createWrite(path: String, fields: Map<String, Any?>): Map<String, Any?> =
-      setWrite(path, fields) + ("currentDocument" to mapOf("exists" to false))
 
   fun commit(vararg writes: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(bearer(uid), *writes)
@@ -648,6 +626,6 @@ private class FirestoreEmulatorClient(
       }
 
   private companion object {
-    const val REQUEST_TIMEOUT_MS = 15_000
+    const val REQUEST_TIMEOUT_MS = 5_000
   }
 }

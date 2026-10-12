@@ -182,6 +182,8 @@ test("rejects unavailable, consumed, and structurally invalid invitations", asyn
       "Invitation has expired"],
     ["blank circle", invitation({circleId: ""}), "failed-precondition",
       "Invitation has an invalid circle"],
+    ["blank circle on retry", invitation({circleId: "", usedBy: "user-1"}), "failed-precondition",
+      "Invitation has an invalid circle"],
   ];
 
   for (const [name, invitationData, code, message] of cases) {
@@ -261,10 +263,17 @@ test("redeems a universal invitation with an existing patient profile atomically
     {circleId: "circle-1", role: "PATIENT"},
   );
 
-  assert.deepEqual(state.updates[1], {
-    reference: {path: "careCircles/circle-1"},
-    data: {memberIds: {arrayUnion: "user-1"}, patientId: "user-1"},
-  });
+  assert.deepEqual(state.updates, [
+    {reference: {path: "invitations/code-1"}, data: {usedBy: "user-1"}},
+    {
+      reference: {path: "careCircles/circle-1"},
+      data: {memberIds: {arrayUnion: "user-1"}, patientId: "user-1"},
+    },
+    {
+      reference: {path: "users/user-1"},
+      data: {circleIds: {arrayUnion: "circle-1"}},
+    },
+  ]);
   assert.deepEqual(state.creates, []);
 });
 
