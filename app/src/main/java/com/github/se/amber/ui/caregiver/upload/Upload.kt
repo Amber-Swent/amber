@@ -42,7 +42,6 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.CaregiverTab.Companion.caregiverTabs
-import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -77,7 +76,7 @@ fun UploadScreen(
     onUploadTextClick: () -> Unit = {},
     onUploadPictureClick: () -> Unit = {},
     onUploadAudioClick: () -> Unit = {},
-    onTabSelected: (Tab) -> Unit = {tab -> },
+    onTabSelected: (Tab) -> Unit = { tab -> },
     checkout: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()

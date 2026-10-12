@@ -73,9 +73,9 @@ fun TopNavigationMenu(
             )
           }
         },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        ),    )
+        colors =
+            TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
+    )
     HorizontalDivider(
         Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
         thickness = DIVIDER_THICKNESS,
