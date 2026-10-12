@@ -1,7 +1,6 @@
 // This file was written by Neha Chakraborty and Copilot
 package com.github.se.amber.data.invitation
 
-import com.github.se.amber.model.circle.Invitation
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -32,14 +31,14 @@ class FirebaseInvitationCreationRepository(
 
     repeat(maximumCreateAttempts) {
       val code = codeGenerator()
-      val invitation =
-          Invitation(
-              code = code,
-              circleId = selectedCircleId,
-              createdBy = creatorUid,
-              createdAt = createdAt,
-              expiresAt = expiresAt,
-              usedBy = null,
+      val invitationPayload =
+          mapOf(
+              "code" to code,
+              "circleId" to selectedCircleId,
+              "createdBy" to creatorUid,
+              "createdAt" to createdAt,
+              "expiresAt" to expiresAt,
+              "usedBy" to null,
           )
 
       try {
@@ -49,7 +48,7 @@ class FirebaseInvitationCreationRepository(
               if (transaction.get(invitationReference).exists()) {
                 throw InvitationCodeCollisionException()
               }
-              transaction.set(invitationReference, invitation)
+              transaction.set(invitationReference, invitationPayload)
             }
             .await()
         return InvitationCreationResult.Created(code)

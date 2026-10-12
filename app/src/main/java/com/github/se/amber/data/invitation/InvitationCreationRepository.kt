@@ -2,7 +2,7 @@
 package com.github.se.amber.data.invitation
 
 /** Creates a universal invitation code for the authenticated caregiver's selected care circle. */
-interface InvitationCreationRepository {
+fun interface InvitationCreationRepository {
 
   /**
    * Persists a new invitation for [selectedCircleId] and returns its code.
