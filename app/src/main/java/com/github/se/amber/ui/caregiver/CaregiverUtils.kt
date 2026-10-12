@@ -37,25 +37,79 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.darkOrange
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 import java.time.LocalDate
+
+private const val VISIBLE_ITEMS = 5 // number of rows visible at once in the picker
+
+private enum class DateField(val label: String) {
+  YEAR("Year"),
+  MONTH("Month"),
+  DAY("Day");
+
+  /**
+   * Returns the valid values for this date field.
+   *
+   * @param date date used to determine the valid range
+   */
+  fun range(date: LocalDate): IntRange =
+      when (this) {
+        YEAR -> date.year - 100..date.year + 100
+        MONTH -> 1..12
+        DAY -> 1..date.lengthOfMonth()
+      }
+
+  /**
+   * Returns this field's value from the given date.
+   *
+   * @param date date from which to read the value
+   */
+  fun valueIn(date: LocalDate): Int =
+      when (this) {
+        YEAR -> date.year
+        MONTH -> date.monthValue
+        DAY -> date.dayOfMonth
+      }
+
+  /**
+   * Returns a date with this field replaced by [value].
+   *
+   * @param date date to update
+   * @param value new value for this field
+   */
+  fun applyTo(date: LocalDate, value: Int): LocalDate =
+      when (this) {
+        YEAR -> date.withYear(value)
+        MONTH -> date.withMonth(value)
+        DAY -> date.withDayOfMonth(value)
+      }
+
+  /**
+   * Formats a value for display in the picker.
+   *
+   * @param value value to format
+   */
+  // FIXME : line under is dirty...
+  fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
+}
 
 /**
  * Displays the title for caregiver's [Screen]
@@ -74,38 +128,18 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
   )
 }
 
-private const val VISIBLE_ITEMS = 5 // number of rows visible at once in the picker
-
-private enum class DateField(val label: String) {
-  YEAR("Year"),
-  MONTH("Month"),
-  DAY("Day");
-
-  fun range(date: LocalDate): IntRange =
-      when (this) {
-        YEAR -> date.year - 100..date.year + 100
-        MONTH -> 1..12
-        DAY -> 1..date.lengthOfMonth()
-      }
-
-  fun valueIn(date: LocalDate): Int =
-      when (this) {
-        YEAR -> date.year
-        MONTH -> date.monthValue
-        DAY -> date.dayOfMonth
-      }
-
-  fun applyTo(date: LocalDate, value: Int): LocalDate =
-      when (this) {
-        YEAR -> date.withYear(value)
-        MONTH -> date.withMonth(value)
-        DAY -> date.withDayOfMonth(value)
-      }
-
-  // FIXME : line under is dirty...
-  fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
+/** Preview of [DisplayScrollableDatePicker] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun DisplayScrollableDatePickerPreview() {
+  AmberAppTheme(dynamicColor = false) { DisplayScrollableDatePicker() }
 }
 
+/**
+ * Displays a picker for selecting a date. The dates go from ( Today ±100 ).
+ *
+ * @param onDateSelected called with the selected year, month, and day
+ */
 @Composable
 fun DisplayScrollableDatePicker(
     onDateSelected: (year: Int, month: Int, day: Int) -> Unit = { _, _, _ -> }
@@ -113,6 +147,7 @@ fun DisplayScrollableDatePicker(
   var date by remember { mutableStateOf(LocalDate.now()) } // The default date is Today
   var openField by remember { mutableStateOf<DateField?>(null) }
 
+  // Displays the date field (c.f year, month, and day)
   Row(
       modifier =
           Modifier.fillMaxWidth()
@@ -136,6 +171,8 @@ fun DisplayScrollableDatePicker(
     }
   }
 
+  // Displayed a window when a date field is clicked.
+  // This window allows you to select a value for the field in question
   openField?.let { field ->
     val range = field.range(date)
     ScrollablePickerDialog(
@@ -152,6 +189,14 @@ fun DisplayScrollableDatePicker(
   }
 }
 
+/**
+ * Displays one date field in the picker.
+ *
+ * @param label field label (c.f. year, month or day)
+ * @param value formatted field value
+ * @param onClick called when the field is selected
+ * @param modifier modifier applied to the field
+ */
 @Composable
 private fun DateBox(
     label: String,
@@ -167,7 +212,7 @@ private fun DateBox(
           modifier
               .fillMaxWidth()
               .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-              .background(if (isPressed) lightGray.copy(alpha = 0.4f) else Color.Transparent)
+              .background(if (isPressed) lightGray else Color.Transparent)
               .clickable(
                   interactionSource = interactionSource,
                   indication = null,
@@ -187,6 +232,15 @@ private fun DateBox(
   }
 }
 
+/**
+ * Displays a dialog for selecting one value from a scrollable list.
+ *
+ * @param title title display at the top
+ * @param items values shown in the picker
+ * @param initialIndex initially selected item index
+ * @param onDismiss called when the dialog is dismissed
+ * @param onSelected called with the selected item index
+ */
 @Composable
 private fun ScrollablePickerDialog(
     title: String,
@@ -197,15 +251,10 @@ private fun ScrollablePickerDialog(
 ) {
   Dialog(
       onDismissRequest = onDismiss,
-      properties =
-          DialogProperties(
-              usePlatformDefaultWidth = false
-          ), // lets the dialog use the width we give it
+      // lets the dialog use the width we give it.
+      // The size depends on the Screen of the user's Android
+      properties = DialogProperties(usePlatformDefaultWidth = false),
   ) {
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val listHeight = screenHeight * 0.3f
-    val itemHeight = listHeight / VISIBLE_ITEMS // each row = an equal share of the list
-
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
 
     // Snapping guarantees the list always rests with one item exactly in the
@@ -213,19 +262,27 @@ private fun ScrollablePickerDialog(
     val snapFling = rememberSnapFlingBehavior(listState)
     val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
 
+    // Better than [LocalConfiguration.current.screenHeightDp] because
+    // Responds to real-time window size changes
+    // But require conversion from Float to Dp
+    val screenHeight =
+        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val listHeight = screenHeight * 0.3f
+    val itemHeight = listHeight / VISIBLE_ITEMS
+
     Column(
         modifier =
             Modifier.fillMaxWidth(fraction = 0.7f)
                 .background(color = Color.White, shape = RoundedCornerShape(size = ROUND_CORNER))
                 .padding(PADDING_MEDIUM),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
     ) {
-      // display Select [Year/Month/Day]
+      // display "Select <dateFieldName>"
       Text(
           text = title,
           style = MaterialTheme.typography.titleLarge,
           color = Color.Black,
-          modifier = Modifier.padding(bottom = PADDING_MEDIUM),
       )
 
       Box(
@@ -240,14 +297,12 @@ private fun ScrollablePickerDialog(
         LazyColumn(
             state = listState,
             flingBehavior = snapFling,
-            contentPadding =
-                PaddingValues(
-                    vertical = (listHeight - itemHeight) / 2
-                ), // Lets the first and last items reach the center slot
+            // Lets the first and last items reach the center slot
+            contentPadding = PaddingValues(vertical = (listHeight - itemHeight) / 2),
             modifier = Modifier.fillMaxWidth(),
         ) {
           itemsIndexed(items) { index, item ->
-            val isSelected = index == selectedIndex
+            val isSelected = (index == selectedIndex)
             Text(
                 text = item,
                 style =
@@ -264,19 +319,13 @@ private fun ScrollablePickerDialog(
             )
           }
         }
-
-        // Center highlight
-        Box(
-            modifier =
-                Modifier.align(Alignment.Center).fillMaxWidth().border(BORDER_THICKNESS, darkOrange)
-        )
       }
 
       Row(
-          modifier = Modifier.fillMaxWidth().padding(top = PADDING_SMALL),
+          modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
       ) {
-        // TODO : Should extract on a helper function to avoid duplicate
+        // Done Button
         Button(
             onClick = { onSelected(selectedIndex) },
             modifier = Modifier.weight(1f),
@@ -288,7 +337,7 @@ private fun ScrollablePickerDialog(
               style = MaterialTheme.typography.labelLarge,
           )
         }
-
+        // Cancel Button
         Button(
             onClick = onDismiss,
             modifier = Modifier.weight(1f),
