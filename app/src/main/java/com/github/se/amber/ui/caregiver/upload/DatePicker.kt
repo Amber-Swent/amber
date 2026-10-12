@@ -119,7 +119,6 @@ enum class DateField(val label: String) {
      *
      * @param value value to format
      */
-    // FIXME : line under is dirty...
     fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
 }
 
