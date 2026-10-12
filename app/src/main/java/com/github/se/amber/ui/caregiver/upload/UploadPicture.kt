@@ -49,17 +49,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
+import com.github.se.amber.ui.caregiver.DisplayScrollableDatePicker
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
-import com.github.se.amber.ui.theme.LARGE_TEXT_FIELD
 import com.github.se.amber.ui.theme.MAX_LINE
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD
+import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.darkOrange
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -109,7 +110,6 @@ fun UploadPictureScreen(
           DisplayCaregiverTitle("Upload Picture", Modifier.testTag(UploadPictureTestTags.TITLE))
         }
       },
-
       content = { paddingValues ->
         Column(
             modifier =
@@ -138,7 +138,7 @@ fun UploadPictureScreen(
               label = "Description",
               placeholder = "Enter a one-line description",
               emptyErrorMessage = "Description cannot be empty",
-              modifier = Modifier.height(LARGE_TEXT_FIELD),
+              modifier = Modifier.height(TEXT_FIELD_BIG),
           )
 
           DisplayTextField(
@@ -156,6 +156,8 @@ fun UploadPictureScreen(
           //                    onValueChange = { viewModel.setDate(it) },
           //                    label = "Date",
           //                )
+
+          DisplayScrollableDatePicker()
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
@@ -219,6 +221,9 @@ private fun DisplayTextField(
       minLines = minLines,
       maxLines = maxLines,
   )
+  // TODO: should show message when reach max-line
+  // TODO: should grow descritpion textField size when lines take more space that the alocate one
+  // TODO: should keep the area focus on where the user click
 
   if (emptyErrorMessage != null && value.isBlank() && hasBeenFocused) {
     Text(
