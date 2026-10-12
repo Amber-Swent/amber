@@ -1,7 +1,9 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
+// Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.invitation.universalInvitationPayload
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Base64
@@ -53,7 +55,7 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set(
             "invitations/JOIN01",
-            invite("JOIN01", circleId, "PATIENT", care, expiresAt = now + 60_000),
+            invite("JOIN01", circleId, care, expiresAt = now + 60_000),
         ),
     )
     fs.assertFails(care, fs.list("invitations"))
@@ -65,7 +67,7 @@ class FirestoreSecurityRulesEmulatorTest {
         stranger,
         fs.set(
             "invitations/HACK",
-            invite("HACK", circleId, "CAREGIVER", stranger, expiresAt = now + 60_000),
+            invite("HACK", circleId, stranger, expiresAt = now + 60_000),
         ),
     )
 
@@ -91,6 +93,38 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
+  }
+
+  @Test
+  fun universalInvitationPayload_isAcceptedAndStoredRoleFree_enforcedByEmulator() {
+    val circleId = "c-universal"
+    val care = "care"
+    val code = "UNIVERSAL"
+    fs.assertSucceeds(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, care, listOf(care), patientId = ""),
+            ),
+        ),
+    )
+
+    val payload =
+        universalInvitationPayload(
+            code = code,
+            circleId = circleId,
+            createdBy = care,
+            createdAt = now,
+            expiresAt = now + 60_000,
+        )
+    fs.assertSucceeds(care, fs.set("invitations/$code", payload))
+
+    val (status, body) = fs.adminGet("invitations/$code")
+    assertEquals(200, status)
+    assertTrue(body.contains("\"$code\""))
+    assertFalse(body.contains("\"role\""))
   }
 
   @Test
@@ -153,12 +187,46 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
+  fun concurrentProfileTransactions_preserveTheFirstCommittedProfile_enforcedByEmulator() {
+    val uid = "concurrent-user"
+    val firstTransaction = fs.beginTransaction(uid)
+    val secondTransaction = fs.beginTransaction(uid)
+
+    assertEquals(404, fs.getInTransaction("users/$uid", firstTransaction, uid).first)
+    assertEquals(404, fs.getInTransaction("users/$uid", secondTransaction, uid).first)
+
+    fs.assertSucceeds(
+        fs.commitInTransaction(
+            firstTransaction,
+            uid,
+            fs.setWrite("users/$uid", user(uid, "PATIENT", emptyList(), "First")),
+        )
+    )
+    val conflictingCommit =
+        fs.commitInTransaction(
+            secondTransaction,
+            uid,
+            fs.setWrite("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second")),
+        )
+    assertEquals(
+        "The stale transaction must abort instead of overwriting the first profile",
+        409,
+        conflictingCommit(),
+    )
+
+    val (status, body) = fs.adminGet("users/$uid")
+    assertEquals(200, status)
+    assertTrue(body.contains("\"firstName\":{\"stringValue\":\"First\"}"))
+    assertFalse(body.contains("\"firstName\":{\"stringValue\":\"Second\"}"))
+  }
+
+  @Test
   fun inviteClientRedeemBatch_rejectedLeavesStateUnchanged_enforcedByEmulator() {
     val circleId = "c-batch"
     val care = "care"
     val pat = "pat"
     val inviteCode = "BATCH01"
-    val inviteDoc = invite(inviteCode, circleId, "PATIENT", care, expiresAt = now + 120_000)
+    val inviteDoc = invite(inviteCode, circleId, care, expiresAt = now + 120_000)
     val circleBefore = circle(circleId, care, listOf(care), patientId = "")
 
     fs.assertSucceeds(
@@ -218,12 +286,12 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set(
             "invitations/REDEEM1",
-            invite("REDEEM1", circleId, "PATIENT", care, expiresAt = now + 120_000),
+            invite("REDEEM1", circleId, care, expiresAt = now + 120_000),
         ),
     )
     fs.adminSet(
         "invitations/EXPIRED",
-        invite("EXPIRED", circleId, "CAREGIVER", care, expiresAt = now - 1),
+        invite("EXPIRED", circleId, care, expiresAt = now - 1),
     )
 
     fs.assertSucceeds(pat, fs.get("invitations/REDEEM1"))
@@ -346,20 +414,17 @@ class FirestoreSecurityRulesEmulatorTest {
     private fun invite(
         code: String,
         circleId: String,
-        role: String,
         createdBy: String,
         expiresAt: Long,
         usedBy: String? = null,
     ) =
-        mapOf(
-            "code" to code,
-            "circleId" to circleId,
-            "role" to role,
-            "createdBy" to createdBy,
-            "createdAt" to now,
-            "expiresAt" to expiresAt,
-            "usedBy" to usedBy,
-        )
+        universalInvitationPayload(
+            code = code,
+            circleId = circleId,
+            createdBy = createdBy,
+            createdAt = now,
+            expiresAt = expiresAt,
+        ) + ("usedBy" to usedBy)
 
     private fun media(id: String, authorId: String, storagePath: String) =
         mapOf(
@@ -434,6 +499,39 @@ private class FirestoreEmulatorClient(
     commitAs(bearer(uid), *writes)
   }
 
+  fun beginTransaction(uid: String): String {
+    val (status, body) =
+        requestWithBody(
+            "POST",
+            "$host/v1/projects/$projectId/databases/(default)/documents:beginTransaction",
+            token = bearer(uid),
+            body = emptyMap(),
+        )
+    assertTrue("Beginning transaction failed with HTTP $status", status in 200..299)
+    return Regex("\"transaction\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
+        ?: error("Firestore emulator did not return a transaction ID: $body")
+  }
+
+  fun getInTransaction(path: String, transaction: String, uid: String): Pair<Int, String> =
+      requestWithBody(
+          "GET",
+          "${docUrl(path)}?transaction=${java.net.URLEncoder.encode(transaction, Charsets.UTF_8)}",
+          token = bearer(uid),
+      )
+
+  fun commitInTransaction(
+      transaction: String,
+      uid: String,
+      vararg writes: Map<String, Any?>,
+  ): () -> Int = {
+    request(
+        "POST",
+        "$host/v1/projects/$projectId/databases/(default)/documents:commit",
+        token = bearer(uid),
+        body = mapOf("transaction" to transaction, "writes" to writes.toList()),
+    )
+  }
+
   private fun commitAs(token: String?, vararg writes: Map<String, Any?>): Int =
       request(
           "POST",
@@ -445,6 +543,11 @@ private class FirestoreEmulatorClient(
   fun assertSucceeds(uid: String?, op: (String?) -> Int) {
     val code = op(uid)
     assertTrue("Expected success for uid=$uid but HTTP $code", code in 200..299)
+  }
+
+  fun assertSucceeds(op: () -> Int) {
+    val code = op()
+    assertTrue("Expected success but HTTP $code", code in 200..299)
   }
 
   fun assertFails(uid: String?, op: (String?) -> Int) {
