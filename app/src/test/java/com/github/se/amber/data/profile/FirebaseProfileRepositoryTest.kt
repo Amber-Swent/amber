@@ -18,12 +18,12 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 
@@ -56,12 +56,17 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
-  fun createProfile_createsPatientProfileForAuthenticatedUser() = runBlocking {
+  fun createProfile_createsPatientProfileForAuthenticatedUser() = runTest {
     val capturedProfile = stubSuccessfulTransaction()
 
     val result =
         repository.createProfile(
-            Person(id = "untrusted-id", firstName = "Ada", lastName = "Lovelace", nickname = "Ada"),
+            Person(
+                id = "untrusted-id",
+                firstName = " Ada ",
+                lastName = " Lovelace ",
+                nickname = "Ada",
+            ),
             Role.PATIENT,
         )
 
@@ -78,7 +83,7 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
-  fun createProfile_createsCaregiverProfile() = runBlocking {
+  fun createProfile_createsCaregiverProfile() = runTest {
     val capturedProfile = stubSuccessfulTransaction()
 
     val result = repository.createProfile(Person(firstName = "Grace"), Role.CAREGIVER)
@@ -91,108 +96,118 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
-  fun createProfile_rejectsBlankFirstNameBeforeAccessingFirebase() = runBlocking {
+  fun createProfile_rejectsBlankFirstNameBeforeAccessingFirebase() = runTest {
     val result = repository.createProfile(Person(firstName = "   "), Role.PATIENT)
 
-    assertFailure<ProfileCreationError.InvalidPersonDetails>(result)
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.InvalidPersonDetails>(result)
     verify(exactly = 0) { firestore.collection(any()) }
   }
 
   @Test
-  fun createProfile_rejectsSignedOutUserBeforeAccessingFirestore() = runBlocking {
+  fun createProfile_rejectsSignedOutUserBeforeAccessingFirestore() = runTest {
     every { auth.currentUser } returns null
 
     val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
 
-    assertFailure<ProfileCreationError.NotAuthenticated>(result)
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.NotAuthenticated>(result)
     verify(exactly = 0) { firestore.collection(any()) }
   }
 
   @Test
-  fun createProfile_rejectsExistingProfileWithoutWriting() = runBlocking {
+  fun createProfile_rejectsExistingProfileWithoutWriting() = runTest {
     val snapshot = mockk<DocumentSnapshot>()
     every { snapshot.exists() } returns true
     every { transaction.get(document) } returns snapshot
     every { firestore.runTransaction<Unit>(any()) } answers
         {
-          firstArg<Transaction.Function<Unit>>().apply(transaction)
-          Tasks.forResult(Unit)
+          runTransactionFunction(firstArg(), transaction)
         }
 
     val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
 
-    assertFailure<ProfileCreationError.ProfileAlreadyExists>(result)
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.ProfileAlreadyExists>(result)
     verify(exactly = 0) { transaction.set(any(), any()) }
   }
 
   @Test
-  fun createProfile_rethrowsCancellationException() {
+  fun createProfile_rethrowsCancellationException() = runTest {
     val cancellation = CancellationException("profile creation cancelled")
     stubFailedTransaction(cancellation)
 
-    val thrown =
-        assertThrows(CancellationException::class.java) {
-          runBlocking { repository.createProfile(Person(firstName = "Ada"), Role.PATIENT) }
-        }
-
-    assertSame(cancellation, thrown)
+    try {
+      repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
+      fail("Expected cancellation to be rethrown")
+    } catch (thrown: CancellationException) {
+      assertSame(cancellation, thrown)
+    }
   }
 
   @Test
-  fun createProfile_mapsPermissionDeniedFirestoreFailure() = runBlocking {
-    stubFailedTransaction(
-        FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+  fun createProfile_mapsPermissionDeniedFirestoreFailure() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.PermissionDenied>(
+        createProfileFailingWith(
+            firestoreFailure(FirebaseFirestoreException.Code.PERMISSION_DENIED)
+        )
     )
-
-    val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
-
-    assertFailure<ProfileCreationError.PermissionDenied>(result)
   }
 
   @Test
-  fun createProfile_mapsUnauthenticatedFirestoreFailure() = runBlocking {
-    stubFailedTransaction(
-        FirebaseFirestoreException("signed out", FirebaseFirestoreException.Code.UNAUTHENTICATED)
+  fun createProfile_mapsUnauthenticatedFirestoreFailure() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.NotAuthenticated>(
+        createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAUTHENTICATED))
     )
-
-    val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
-
-    assertFailure<ProfileCreationError.NotAuthenticated>(result)
   }
 
   @Test
-  fun createProfile_mapsUnavailableFirestoreFailureToNetwork() = runBlocking {
-    stubFailedTransaction(
-        FirebaseFirestoreException("offline", FirebaseFirestoreException.Code.UNAVAILABLE)
+  fun createProfile_mapsUnavailableFirestoreFailureToNetwork() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.Network>(
+        createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAVAILABLE))
     )
-
-    val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
-
-    assertFailure<ProfileCreationError.Network>(result)
   }
 
   @Test
-  fun createProfile_mapsDeadlineExceededFirestoreFailureToNetwork() = runBlocking {
-    stubFailedTransaction(
-        FirebaseFirestoreException("timed out", FirebaseFirestoreException.Code.DEADLINE_EXCEEDED)
+  fun createProfile_mapsDeadlineExceededFirestoreFailureToNetwork() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.Network>(
+        createProfileFailingWith(
+            firestoreFailure(FirebaseFirestoreException.Code.DEADLINE_EXCEEDED)
+        )
     )
-
-    val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
-
-    assertFailure<ProfileCreationError.Network>(result)
   }
 
   @Test
-  fun createProfile_mapsOtherFirestoreFailureToUnknown() = runBlocking {
-    val source = FirebaseFirestoreException("failed", FirebaseFirestoreException.Code.INTERNAL)
-    stubFailedTransaction(source)
+  fun createProfile_mapsAbortedFirestoreFailureToNetwork() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.Network>(
+        createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.ABORTED))
+    )
+  }
 
-    val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
+  @Test
+  fun createProfile_mapsAlreadyExistsFirestoreFailure() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileCreationError.ProfileAlreadyExists>(
+        createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.ALREADY_EXISTS))
+    )
+  }
+
+  @Test
+  fun createProfile_mapsOtherFirestoreFailureToUnknown() = runTest {
+    val source = firestoreFailure(FirebaseFirestoreException.Code.INTERNAL)
+    val result = createProfileFailingWith(source)
 
     assertFalse(result.isSuccess)
     val error = result.exceptionOrNull()
-    assertTrue(error is ProfileCreationError.Unknown)
-    assertSame(source, (error as ProfileCreationError.Unknown).source)
+    assertTrue(error is FirebaseProfileRepository.ProfileCreationError.Unknown)
+    assertSame(source, (error as FirebaseProfileRepository.ProfileCreationError.Unknown).source)
+  }
+
+  @Test
+  fun createProfile_mapsUnexpectedExceptionToUnknown() = runTest {
+    val source = IllegalStateException("boom")
+    val result = createProfileFailingWith(source)
+
+    assertFalse(result.isSuccess)
+    val error = result.exceptionOrNull()
+    assertTrue(error is FirebaseProfileRepository.ProfileCreationError.Unknown)
+    assertSame(source, (error as FirebaseProfileRepository.ProfileCreationError.Unknown).source)
   }
 
   private fun stubSuccessfulTransaction() =
@@ -203,13 +218,31 @@ class FirebaseProfileRepositoryTest {
         every { transaction.set(document, capture(capturedProfile)) } returns transaction
         every { firestore.runTransaction<Unit>(any()) } answers
             {
-              firstArg<Transaction.Function<Unit>>().apply(transaction)
-              Tasks.forResult(Unit)
+              runTransactionFunction(firstArg(), transaction)
             }
+      }
+
+  private fun runTransactionFunction(
+      function: Transaction.Function<Unit>,
+      transaction: Transaction,
+  ) =
+      try {
+        function.apply(transaction)
+        Tasks.forResult(Unit)
+      } catch (error: Exception) {
+        Tasks.forException(error)
       }
 
   private fun stubFailedTransaction(error: Exception) {
     every { firestore.runTransaction<Unit>(any()) } returns Tasks.forException(error)
+  }
+
+  private fun firestoreFailure(code: FirebaseFirestoreException.Code) =
+      FirebaseFirestoreException("error", code)
+
+  private suspend fun createProfileFailingWith(error: Exception): Result<Unit> {
+    stubFailedTransaction(error)
+    return repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
   }
 
   private inline fun <reified T : Throwable> assertFailure(result: Result<Unit>) {

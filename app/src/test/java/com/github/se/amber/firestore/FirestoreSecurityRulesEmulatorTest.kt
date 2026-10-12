@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.invitation.universalInvitationPayload
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Base64
@@ -93,6 +94,19 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(peer, fs.patch("users/$peer", mapOf("circleIds" to listOf(circleId))))
 
+    val peerCircleId = "c-peer"
+    fs.assertSucceeds(
+        peer,
+        fs.commit(
+            fs.setWrite("users/$peer", user(peer, "CAREGIVER", listOf(peerCircleId), "Bob")),
+            fs.setWrite(
+                "careCircles/$peerCircleId",
+                circle(peerCircleId, peer, listOf(peer), patientId = ""),
+            ),
+        ),
+    )
+    fs.assertSucceeds(peer, fs.get("careCircles/$peerCircleId"))
+
     // Admin SDK seeds membership (stands in for Cloud Functions redeem in PR #83).
     fs.adminSet(
         "careCircles/$circleId",
@@ -110,6 +124,38 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(peer, fs.listInvitations(care, circleId))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
+  }
+
+  @Test
+  fun universalInvitationPayload_isAcceptedAndStoredRoleFree_enforcedByEmulator() {
+    val circleId = "c-universal"
+    val care = "care"
+    val code = "UNIVERSAL"
+    fs.assertSucceeds(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, care, listOf(care), patientId = ""),
+            ),
+        ),
+    )
+
+    val payload =
+        universalInvitationPayload(
+            code = code,
+            circleId = circleId,
+            createdBy = care,
+            createdAt = now,
+            expiresAt = now + 60_000,
+        )
+    fs.assertSucceeds(care, fs.set("invitations/$code", payload))
+
+    val (status, body) = fs.adminGet("invitations/$code")
+    assertEquals(200, status)
+    assertTrue(body.contains("\"$code\""))
+    assertFalse(body.contains("\"role\""))
   }
 
   @Test
@@ -377,15 +423,14 @@ class FirestoreSecurityRulesEmulatorTest {
         createdBy: String,
         expiresAt: Long,
         usedBy: String? = null,
-    ) =
-        mapOf(
-            "code" to code,
-            "circleId" to circleId,
-            "createdBy" to createdBy,
-            "createdAt" to now,
-            "expiresAt" to expiresAt,
-            "usedBy" to usedBy,
-        )
+        ) =
+            universalInvitationPayload(
+                code = code,
+                circleId = circleId,
+                createdBy = createdBy,
+                createdAt = now,
+                expiresAt = expiresAt,
+            ) + ("usedBy" to usedBy)
 
     private fun media(id: String, authorId: String, storagePath: String) =
         mapOf(
