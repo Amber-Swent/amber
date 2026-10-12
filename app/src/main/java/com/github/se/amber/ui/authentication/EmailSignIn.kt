@@ -45,22 +45,21 @@ import com.github.se.amber.ui.theme.lightOrange
  * Authentication state is provided by [EmailSignInViewModel]. Navigation is handled outside this
  * composable through callbacks.
  *
+ * @param modifier Modifier applied to the root authentication layout.
  * @param context Android context used for Google authentication.
  * @param credentialManager Credential Manager used for Google authentication.
- * @param modifier Modifier applied to the root authentication layout.
  * @param emailSignInViewModel ViewModel holding the state of the screen.
  * @param onContinue Called when the user presses the Continue button.
  * @param onGoogleSignIn Called after Google authentication succeeds.
  */
 @Composable
 fun EmailSignInScreen(
+    modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
     credentialManager: CredentialManager = CredentialManager.create(context),
     onContinue: () -> Unit = {},
     onGoogleSignIn: () -> Unit = {},
-    emailSignInViewModel: EmailSignInViewModel = viewModel(),
-    modifier: Modifier = Modifier
-
+    emailSignInViewModel: EmailSignInViewModel = viewModel()
 ) {
   val uiState by emailSignInViewModel.uiState.collectAsState()
 
@@ -69,6 +68,7 @@ fun EmailSignInScreen(
       onGoogleSignIn()
     }
   }
+
   EmailSignInContent(
       uiState = uiState,
       onEmailChange = emailSignInViewModel::onEmailChange,

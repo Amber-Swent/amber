@@ -19,17 +19,17 @@ import com.github.se.amber.ui.theme.AmberAppTheme
  * If the caregiver forgets their password, the screen indicates that a password-reset link will be
  * sent to them.
  *
+ * @param modifier Modifier applied to the screen.
  * @param onContinue Called when the user presses the Continue button.
  * @param onForgotPassword Called when the user presses the forgotten-password button.
  * @param caregiverPasswordViewModel ViewModel holding the email and password state for this screen.
- * @param modifier Modifier applied to the screen.
  */
 @Composable
 fun CaregiverPasswordScreen(
+    modifier: Modifier = Modifier,
     onContinue: () -> Unit = {},
     onForgotPassword: () -> Unit = {},
-    caregiverPasswordViewModel: CaregiverPasswordViewModel = viewModel(),
-    modifier: Modifier = Modifier,
+    caregiverPasswordViewModel: CaregiverPasswordViewModel = viewModel()
 ) {
   val uiState by caregiverPasswordViewModel.uiState.collectAsState()
 

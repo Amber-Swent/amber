@@ -19,17 +19,17 @@ import com.github.se.amber.ui.theme.AmberAppTheme
  * If the patient forgets their password, the screen indicates that a help message will be sent to
  * their loved ones.
  *
+ * @param modifier Modifier applied to the screen.
  * @param onContinue Called when the user presses the Continue button.
  * @param onForgotPassword Called when the user presses the forgotten-password button.
  * @param patientPasswordViewModel ViewModel holding the email and password state for this screen.
- * @param modifier Modifier applied to the screen.
  */
 @Composable
 fun PatientPasswordScreen(
+    modifier: Modifier = Modifier,
     onContinue: () -> Unit = {},
     onForgotPassword: () -> Unit = {},
-    patientPasswordViewModel: PatientPasswordViewModel = viewModel(),
-    modifier: Modifier = Modifier,
+    patientPasswordViewModel: PatientPasswordViewModel = viewModel()
 ) {
   val uiState by patientPasswordViewModel.uiState.collectAsState()
 
