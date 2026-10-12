@@ -157,11 +157,11 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.adminSet(
         "invitations/CREATOR",
-        invite("CREATOR", sharedCircleId, "PATIENT", creator, expiresAt = now + 60_000),
+        invite("CREATOR", sharedCircleId, creator, expiresAt = now + 60_000),
     )
     fs.adminSet(
         "invitations/OTHER",
-        invite("OTHER", sharedCircleId, "CAREGIVER", otherCaregiver, expiresAt = now + 60_000),
+        invite("OTHER", sharedCircleId, otherCaregiver, expiresAt = now + 60_000),
     )
 
     fs.assertFails(creator, fs.list("invitations"))
