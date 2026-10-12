@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
+// Modified by Neha Chakraborty and Copilot.
 rules_version = '2';
 
 service cloud.firestore {
@@ -198,7 +199,9 @@ service cloud.firestore {
 
     match /invitations/{code} {
       allow get: if isSignedIn();
-      allow list: if false;
+      allow list: if isCaregiver()
+        && resource.data.createdBy == request.auth.uid
+        && isMember(resource.data.circleId);
 
       allow create: if isCaregiver()
         && isMember(request.resource.data.circleId)

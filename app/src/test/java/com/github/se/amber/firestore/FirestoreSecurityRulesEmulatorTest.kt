@@ -59,6 +59,15 @@ class FirestoreSecurityRulesEmulatorTest {
         ),
     )
     fs.assertFails(care, fs.list("invitations"))
+    fs.assertSucceeds(care, fs.listInvitations(care, circleId))
+    fs.assertFails(null, fs.listInvitations(care, circleId))
+    fs.assertFails(
+        care,
+        fs.set(
+            "invitations/WITHROLE",
+            invite("WITHROLE", circleId, care, expiresAt = now + 60_000).plus("role" to "PATIENT"),
+        ),
+    )
 
     // Stranger is denied circle and caregiver profile reads.
     fs.assertFails(stranger, fs.get("careCircles/$circleId"))
@@ -104,6 +113,15 @@ class FirestoreSecurityRulesEmulatorTest {
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertSucceeds(
+        peer,
+        fs.set(
+            "invitations/PEER01",
+            invite("PEER01", circleId, peer, expiresAt = now + 60_000),
+        ),
+    )
+    fs.assertFails(care, fs.listInvitations(peer, circleId))
+    fs.assertFails(peer, fs.listInvitations(care, circleId))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
   }
@@ -200,37 +218,12 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun concurrentProfileTransactions_preserveTheFirstCommittedProfile_enforcedByEmulator() {
-    val uid = "concurrent-user"
-    val firstTransaction = fs.beginTransaction(uid)
-    val secondTransaction = fs.beginTransaction(uid)
+  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+    val uid = "existing-user"
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
 
-    assertEquals(404, fs.getInTransaction("users/$uid", firstTransaction, uid).first)
-    assertEquals(404, fs.getInTransaction("users/$uid", secondTransaction, uid).first)
-
-    fs.assertSucceeds(
-        fs.commitInTransaction(
-            firstTransaction,
-            uid,
-            fs.setWrite("users/$uid", user(uid, "PATIENT", emptyList(), "First")),
-        )
-    )
-    val conflictingCommit =
-        fs.commitInTransaction(
-            secondTransaction,
-            uid,
-            fs.setWrite("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second")),
-        )
-    assertEquals(
-        "The stale transaction must abort instead of overwriting the first profile",
-        409,
-        conflictingCommit(),
-    )
-
-    val (status, body) = fs.adminGet("users/$uid")
-    assertEquals(200, status)
-    assertTrue(body.contains("\"firstName\":{\"stringValue\":\"First\"}"))
-    assertFalse(body.contains("\"firstName\":{\"stringValue\":\"Second\"}"))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
   }
 
   @Test
@@ -501,6 +494,60 @@ private class FirestoreEmulatorClient(
     request("GET", docUrl(collectionId), token = bearer(uid))
   }
 
+  fun listInvitations(createdBy: String, circleId: String): (String?) -> Int = { uid ->
+    requestWithBody(
+            "POST",
+            "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
+            token = bearer(uid),
+            body =
+                mapOf(
+                    "structuredQuery" to
+                        mapOf(
+                            "from" to listOf(mapOf("collectionId" to "invitations")),
+                            "where" to
+                                mapOf(
+                                    "compositeFilter" to
+                                        mapOf(
+                                            "op" to "AND",
+                                            "filters" to
+                                                listOf(
+                                                    mapOf(
+                                                        "fieldFilter" to
+                                                            mapOf(
+                                                                "field" to
+                                                                    mapOf(
+                                                                        "fieldPath" to "createdBy"
+                                                                    ),
+                                                                "op" to "EQUAL",
+                                                                "value" to
+                                                                    mapOf(
+                                                                        "stringValue" to createdBy
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                    mapOf(
+                                                        "fieldFilter" to
+                                                            mapOf(
+                                                                "field" to
+                                                                    mapOf(
+                                                                        "fieldPath" to "circleId"
+                                                                    ),
+                                                                "op" to "EQUAL",
+                                                                "value" to
+                                                                    mapOf(
+                                                                        "stringValue" to circleId
+                                                                    ),
+                                                            ),
+                                                    ),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                ),
+        )
+        .first
+  }
+
   fun delete(path: String): (String?) -> Int = { uid ->
     commitAs(bearer(uid), mapOf("delete" to docName(path)))
   }
@@ -510,39 +557,6 @@ private class FirestoreEmulatorClient(
 
   fun commit(vararg writes: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(bearer(uid), *writes)
-  }
-
-  fun beginTransaction(uid: String): String {
-    val (status, body) =
-        requestWithBody(
-            "POST",
-            "$host/v1/projects/$projectId/databases/(default)/documents:beginTransaction",
-            token = bearer(uid),
-            body = emptyMap(),
-        )
-    assertTrue("Beginning transaction failed with HTTP $status", status in 200..299)
-    return Regex("\"transaction\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-        ?: error("Firestore emulator did not return a transaction ID: $body")
-  }
-
-  fun getInTransaction(path: String, transaction: String, uid: String): Pair<Int, String> =
-      requestWithBody(
-          "GET",
-          "${docUrl(path)}?transaction=${java.net.URLEncoder.encode(transaction, Charsets.UTF_8)}",
-          token = bearer(uid),
-      )
-
-  fun commitInTransaction(
-      transaction: String,
-      uid: String,
-      vararg writes: Map<String, Any?>,
-  ): () -> Int = {
-    request(
-        "POST",
-        "$host/v1/projects/$projectId/databases/(default)/documents:commit",
-        token = bearer(uid),
-        body = mapOf("transaction" to transaction, "writes" to writes.toList()),
-    )
   }
 
   private fun commitAs(token: String?, vararg writes: Map<String, Any?>): Int =
@@ -603,8 +617,8 @@ private class FirestoreEmulatorClient(
   ): Pair<Int, String> {
     val connection = URL(url).openConnection() as HttpURLConnection
     connection.requestMethod = method
-    connection.connectTimeout = 5_000
-    connection.readTimeout = 5_000
+    connection.connectTimeout = REQUEST_TIMEOUT_MS
+    connection.readTimeout = REQUEST_TIMEOUT_MS
     if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
     if (body != null) {
       connection.doOutput = true
@@ -655,4 +669,8 @@ private class FirestoreEmulatorClient(
         is List<*> -> value.joinToString(",", "[", "]") { jsonEncode(it) }
         else -> error("Cannot JSON-encode ${value::class}")
       }
+
+  private companion object {
+    const val REQUEST_TIMEOUT_MS = 5_000
+  }
 }
