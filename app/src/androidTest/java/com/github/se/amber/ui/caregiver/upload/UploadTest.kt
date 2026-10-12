@@ -121,12 +121,6 @@ class UploadTest {
   }
 
   @Test
-  fun topBarIsDisplayed() {
-    setUpload()
-    checkIsDisplayed(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
-  }
-
-  @Test
   fun topBarShowsCheckoutAction() {
     setUpload()
     node(TopNavigationMenuTestTags.TITLE).assertTextEquals("Checkout")

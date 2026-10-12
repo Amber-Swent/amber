@@ -1,7 +1,10 @@
 package com.github.se.amber.ui.caregiver
 
+import android.R.attr.fontWeight
+import android.R.attr.text
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,13 +22,11 @@ import com.github.se.amber.ui.theme.orange
  */
 @Composable
 fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
-  Spacer(modifier = Modifier.height(PADDING_SMALL))
   Text(
-      modifier = modifier,
+      modifier = Modifier.padding(top = PADDING_SMALL, bottom = PADDING_MEDIUM),
       text = title,
       color = orange,
       style = MaterialTheme.typography.headlineSmall,
       fontWeight = FontWeight.Bold,
   )
-  Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 }

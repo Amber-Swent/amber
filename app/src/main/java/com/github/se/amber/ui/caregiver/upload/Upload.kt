@@ -43,6 +43,7 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.CaregiverTab.Companion.caregiverTabs
 import com.github.se.amber.ui.navigation.NavigationActions
+import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -76,8 +77,8 @@ fun UploadScreen(
     onUploadTextClick: () -> Unit = {},
     onUploadPictureClick: () -> Unit = {},
     onUploadAudioClick: () -> Unit = {},
+    onTabSelected: (Tab) -> Unit = {tab -> },
     checkout: () -> Unit = {},
-    navigationActions: NavigationActions? = null,
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val errorMessage = uiState.errorMsg
@@ -104,7 +105,7 @@ fun UploadScreen(
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = CaregiverTab.Upload,
-            onTabSelected = { tab -> navigationActions?.navigateTo(tab.destination) },
+            onTabSelected = onTabSelected,
             caregiverTabs,
             Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
         )
