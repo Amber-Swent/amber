@@ -56,72 +56,76 @@ import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import java.time.LocalDate
+
 private const val VISIBLE_ITEMS = 5 // number of rows visible at once in the picker
 
 internal object DatePickerTestTags {
-    const val DIVIDER = "date_picker_divider"
+  const val DIVIDER = "date_picker_divider"
 
-    const val DIALOG = "date_picker_dialog"
-    fun dialogTitle(field: DateField) = "date_picker_dialog_title_${field.name}"
+  const val DIALOG = "date_picker_dialog"
 
-    const val DIALOG_LIST = "date_picker_dialog_list"
-    const val DONE_BUTTON = "date_picker_done_button"
-    const val CANCEL_BUTTON = "date_picker_ancel_button"
+  fun dialogTitle(field: DateField) = "date_picker_dialog_title_${field.name}"
 
-    fun box(field: DateField) = "date_picker_box_${field.name}"
-    fun boxValue(field: DateField) = "date_picker_box_value_${field.name}"
-    fun item(index: Int) = "date_picker_item_$index"
+  const val DIALOG_LIST = "date_picker_dialog_list"
+  const val DONE_BUTTON = "date_picker_done_button"
+  const val CANCEL_BUTTON = "date_picker_ancel_button"
+
+  fun box(field: DateField) = "date_picker_box_${field.name}"
+
+  fun boxValue(field: DateField) = "date_picker_box_value_${field.name}"
+
+  fun item(index: Int) = "date_picker_item_$index"
 }
+
 enum class DateField(val label: String) {
-    YEAR("Year"),
-    MONTH("Month"),
-    DAY("Day");
+  YEAR("Year"),
+  MONTH("Month"),
+  DAY("Day");
 
-    /**
-     * Returns the valid values for this date field.
-     *
-     * @param date date used to determine the valid range
-     */
-    fun range(date: LocalDate): IntRange =
-        when (this) {
-            YEAR -> date.year - 100..date.year + 100
-            MONTH -> 1..12
-            DAY -> 1..date.lengthOfMonth()
-        }
+  /**
+   * Returns the valid values for this date field.
+   *
+   * @param date date used to determine the valid range
+   */
+  fun range(date: LocalDate): IntRange =
+      when (this) {
+        YEAR -> date.year - 100..date.year + 100
+        MONTH -> 1..12
+        DAY -> 1..date.lengthOfMonth()
+      }
 
-    /**
-     * Returns this field's value from the given date.
-     *
-     * @param date date from which to read the value
-     */
-    fun valueIn(date: LocalDate): Int =
-        when (this) {
-            YEAR -> date.year
-            MONTH -> date.monthValue
-            DAY -> date.dayOfMonth
-        }
+  /**
+   * Returns this field's value from the given date.
+   *
+   * @param date date from which to read the value
+   */
+  fun valueIn(date: LocalDate): Int =
+      when (this) {
+        YEAR -> date.year
+        MONTH -> date.monthValue
+        DAY -> date.dayOfMonth
+      }
 
-    /**
-     * Returns a date with this field replaced by [value].
-     *
-     * @param date date to update
-     * @param value new value for this field
-     */
-    fun applyTo(date: LocalDate, value: Int): LocalDate =
-        when (this) {
-            YEAR -> date.withYear(value)
-            MONTH -> date.withMonth(value)
-            DAY -> date.withDayOfMonth(value)
-        }
+  /**
+   * Returns a date with this field replaced by [value].
+   *
+   * @param date date to update
+   * @param value new value for this field
+   */
+  fun applyTo(date: LocalDate, value: Int): LocalDate =
+      when (this) {
+        YEAR -> date.withYear(value)
+        MONTH -> date.withMonth(value)
+        DAY -> date.withDayOfMonth(value)
+      }
 
-    /**
-     * Formats a value for display in the picker.
-     *
-     * @param value value to format
-     */
-    fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
+  /**
+   * Formats a value for display in the picker.
+   *
+   * @param value value to format
+   */
+  fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
 }
-
 
 /**
  * Displays a picker for selecting a date. The dates go from ( Today ±100 ).
@@ -130,55 +134,54 @@ enum class DateField(val label: String) {
  */
 @Composable
 fun DisplayScrollableDatePicker(
-    modifier : Modifier = Modifier,
+    modifier: Modifier = Modifier,
     initialDate: LocalDate = LocalDate.now(),
     onDateSelected: (year: Int, month: Int, day: Int) -> Unit = { _, _, _ -> },
 ) {
-    var date by remember { mutableStateOf(initialDate) } // The default date is Today
-    var openField by remember { mutableStateOf<DateField?>(null) }
+  var date by remember { mutableStateOf(initialDate) } // The default date is Today
+  var openField by remember { mutableStateOf<DateField?>(null) }
 
-    // Displays the date field (c.f year, month, and day)
-    Row(
-        modifier =
-            modifier.fillMaxWidth()
-                .border(
-                    width = BORDER_THICKNESS,
-                    color = lightGray,
-                    shape = RoundedCornerShape(size = ROUND_CORNER),
-                )
-                .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-                .padding(PADDING_SMALL),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        DateField.entries.forEach { field ->
-            DateBox(
-                field = field,
-                value = field.format(field.valueIn(date)),
-                onClick = { openField = field },
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(DatePickerTestTags.box(field)),
-            )
-        }
+  // Displays the date field (c.f year, month, and day)
+  Row(
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .border(
+                  width = BORDER_THICKNESS,
+                  color = lightGray,
+                  shape = RoundedCornerShape(size = ROUND_CORNER),
+              )
+              .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
+              .padding(PADDING_SMALL),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.SpaceBetween,
+  ) {
+    DateField.entries.forEach { field ->
+      DateBox(
+          field = field,
+          value = field.format(field.valueIn(date)),
+          onClick = { openField = field },
+          modifier = Modifier.weight(1f).testTag(DatePickerTestTags.box(field)),
+      )
     }
+  }
 
-    // Displayed a window when a date field is clicked.
-    // This window allows you to select a value for the field in question
-    openField?.let { field ->
-        val range = field.range(date)
-        ScrollablePickerDialog(
-            field = field,
-            items = range.map(field::format),
-            initialIndex = field.valueIn(date) - range.first,
-            onDismiss = { openField = null },
-            onSelected = { index ->
-                date = field.applyTo(date, range.first + index)
-                onDateSelected(date.year, date.monthValue, date.dayOfMonth)
-                openField = null
-            },
-        )
-    }
+  // Displayed a window when a date field is clicked.
+  // This window allows you to select a value for the field in question
+  openField?.let { field ->
+    val range = field.range(date)
+    ScrollablePickerDialog(
+        field = field,
+        items = range.map(field::format),
+        initialIndex = field.valueIn(date) - range.first,
+        onDismiss = { openField = null },
+        onSelected = { index ->
+          date = field.applyTo(date, range.first + index)
+          onDateSelected(date.year, date.monthValue, date.dayOfMonth)
+          openField = null
+        },
+    )
+  }
 }
 
 /**
@@ -196,35 +199,36 @@ private fun DateBox(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+  val interactionSource = remember { MutableInteractionSource() }
+  val isPressed by interactionSource.collectIsPressedAsState()
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-                .background(if (isPressed) lightGray else Color.Transparent)
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onClick,
-                ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-    ) {
-        Text(text = field.label, color = Color.Black)
+  Column(
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
+              .background(if (isPressed) lightGray else Color.Transparent)
+              .clickable(
+                  interactionSource = interactionSource,
+                  indication = null,
+                  onClick = onClick,
+              ),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+  ) {
+    Text(text = field.label, color = Color.Black)
 
-        HorizontalDivider(
-            modifier = Modifier.testTag(DatePickerTestTags.DIVIDER),
-            thickness = DIVIDER_THICKNESS,
-            color = lightGray,
-        )
-        Text(
-            modifier = Modifier.testTag(DatePickerTestTags.boxValue(field)),
-            text = value,
-            color = Color.Black)
-    }
+    HorizontalDivider(
+        modifier = Modifier.testTag(DatePickerTestTags.DIVIDER),
+        thickness = DIVIDER_THICKNESS,
+        color = lightGray,
+    )
+    Text(
+        modifier = Modifier.testTag(DatePickerTestTags.boxValue(field)),
+        text = value,
+        color = Color.Black,
+    )
+  }
 }
 
 /**
@@ -244,117 +248,117 @@ private fun ScrollablePickerDialog(
     onDismiss: () -> Unit,
     onSelected: (Int) -> Unit,
 ) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        // lets the dialog use the width we give it.
-        // The size depends on the Screen of the user's Android
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+  Dialog(
+      onDismissRequest = onDismiss,
+      // lets the dialog use the width we give it.
+      // The size depends on the Screen of the user's Android
+      properties = DialogProperties(usePlatformDefaultWidth = false),
+  ) {
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+
+    // Snapping guarantees the list always rests with one item exactly in the
+    // highlighted slot, so the first visible item index IS the selected one.
+    val snapFling = rememberSnapFlingBehavior(listState)
+    val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
+
+    // Better than [LocalConfiguration.current.screenHeightDp] because
+    // Responds to real-time window size changes
+    // But require conversion from Float to Dp
+    val screenHeight =
+        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val listHeight = screenHeight * 0.3f
+    val itemHeight = listHeight / VISIBLE_ITEMS
+
+    Column(
+        modifier =
+            Modifier.fillMaxWidth(fraction = 0.7f)
+                .testTag(DIALOG)
+                .background(color = Color.White, shape = RoundedCornerShape(size = ROUND_CORNER))
+                .padding(PADDING_MEDIUM),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
     ) {
-        val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
+      // display "Select <dateFieldName>"
+      Text(
+          modifier = Modifier.testTag(DatePickerTestTags.dialogTitle(field)),
+          text = "Select ${field.label}",
+          style = MaterialTheme.typography.titleLarge,
+          color = Color.Black,
+      )
 
-        // Snapping guarantees the list always rests with one item exactly in the
-        // highlighted slot, so the first visible item index IS the selected one.
-        val snapFling = rememberSnapFlingBehavior(listState)
-        val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
-
-        // Better than [LocalConfiguration.current.screenHeightDp] because
-        // Responds to real-time window size changes
-        // But require conversion from Float to Dp
-        val screenHeight =
-            with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-        val listHeight = screenHeight * 0.3f
-        val itemHeight = listHeight / VISIBLE_ITEMS
-
-        Column(
-            modifier =
-                Modifier.fillMaxWidth(fraction = 0.7f).testTag(DIALOG)
-                    .background(color = Color.White, shape = RoundedCornerShape(size = ROUND_CORNER))
-                    .padding(PADDING_MEDIUM),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
+      Box(
+          modifier =
+              Modifier.height(listHeight)
+                  .border(
+                      width = BORDER_THICKNESS,
+                      color = Color.LightGray,
+                      shape = RoundedCornerShape(ROUND_CORNER),
+                  )
+      ) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = snapFling,
+            // Lets the first and last items reach the center slot
+            contentPadding = PaddingValues(vertical = (listHeight - itemHeight) / 2),
+            modifier = Modifier.fillMaxWidth().testTag(DIALOG_LIST),
         ) {
-            // display "Select <dateFieldName>"
+          itemsIndexed(items) { index, item ->
+            val isSelected = (index == selectedIndex)
             Text(
-                modifier = Modifier.testTag(DatePickerTestTags.dialogTitle(field)),
-                text = "Select ${field.label}",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.Black,
-            )
-
-            Box(
                 modifier =
-                    Modifier.height(listHeight)
-                        .border(
-                            width = BORDER_THICKNESS,
-                            color = Color.LightGray,
-                            shape = RoundedCornerShape(ROUND_CORNER),
-                        )
-            ) {
-                LazyColumn(
-                    state = listState,
-                    flingBehavior = snapFling,
-                    // Lets the first and last items reach the center slot
-                    contentPadding = PaddingValues(vertical = (listHeight - itemHeight) / 2),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(DIALOG_LIST),
-                ) {
-                    itemsIndexed(items) { index, item ->
-                        val isSelected = (index == selectedIndex)
-                        Text(
-                            modifier = Modifier.fillMaxWidth()
-                                .height(itemHeight)
-                                .clickable { onSelected(index) }
-                                .wrapContentHeight(Alignment.CenterVertically)
-                                .testTag(DatePickerTestTags.item(index)),
-                            text = item,
-                            style =
-                                if (isSelected) MaterialTheme.typography.bodyLarge
-                                else MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color.Black else darkGray,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-            ) {
-                // Done Button
-                Button(
-                    modifier = Modifier.weight(1f).testTag(DONE_BUTTON),
-                    onClick = { onSelected(selectedIndex) },
-                    colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-                ) {
-                    Text(
-                        text = "Done",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-                // Cancel Button
-                Button(
-                    modifier = Modifier.weight(1f).testTag(CANCEL_BUTTON),
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-                ) {
-                    Text(
-                        text = "Cancel",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-            }
+                    Modifier.fillMaxWidth()
+                        .height(itemHeight)
+                        .clickable { onSelected(index) }
+                        .wrapContentHeight(Alignment.CenterVertically)
+                        .testTag(DatePickerTestTags.item(index)),
+                text = item,
+                style =
+                    if (isSelected) MaterialTheme.typography.bodyLarge
+                    else MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) Color.Black else darkGray,
+                textAlign = TextAlign.Center,
+            )
+          }
         }
+      }
+
+      Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+      ) {
+        // Done Button
+        Button(
+            modifier = Modifier.weight(1f).testTag(DONE_BUTTON),
+            onClick = { onSelected(selectedIndex) },
+            colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+        ) {
+          Text(
+              text = "Done",
+              color = Color.Black,
+              style = MaterialTheme.typography.labelLarge,
+          )
+        }
+        // Cancel Button
+        Button(
+            modifier = Modifier.weight(1f).testTag(CANCEL_BUTTON),
+            onClick = onDismiss,
+            colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+        ) {
+          Text(
+              text = "Cancel",
+              color = Color.Black,
+              style = MaterialTheme.typography.labelLarge,
+          )
+        }
+      }
     }
+  }
 }
 
 /** Preview of [DisplayScrollableDatePicker] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun DisplayScrollableDatePickerPreview() {
-    AmberAppTheme(dynamicColor = false) { DisplayScrollableDatePicker() }
+  AmberAppTheme(dynamicColor = false) { DisplayScrollableDatePicker() }
 }

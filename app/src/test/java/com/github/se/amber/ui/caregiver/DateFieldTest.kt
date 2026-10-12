@@ -6,9 +6,7 @@ import java.time.Month
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class CaregiverUtilsTest {
-
-}
+class CaregiverUtilsTest {}
 
 /** Pure JVM tests for [DateField]: no Android, no network, no UI. */
 class DateFieldTest {
@@ -86,35 +84,41 @@ class DateFieldTest {
 
   @Test
   fun applyTo_year_replacesOnlyTheYear() {
-    assertEquals(LocalDate.of(2030, Month.APRIL, 10),
-      DateField.YEAR.applyTo(thirtyMonth, 2030))
+    assertEquals(
+        LocalDate.of(2030, Month.APRIL, 10),
+        DateField.YEAR.applyTo(thirtyMonth, 2030),
+    )
   }
 
   @Test
   fun applyTo_month_replacesOnlyTheMonth() {
-    assertEquals(LocalDate.of(2024, Month.MARCH, 10),
-      DateField.MONTH.applyTo(thirtyMonth, Month.MARCH.value),)
+    assertEquals(
+        LocalDate.of(2024, Month.MARCH, 10),
+        DateField.MONTH.applyTo(thirtyMonth, Month.MARCH.value),
+    )
   }
 
   @Test
   fun applyTo_day_replacesOnlyTheDay() {
-    assertEquals(LocalDate.of(2024, Month.APRIL, 1),
-      DateField.DAY.applyTo(thirtyMonth, 1))
+    assertEquals(
+        LocalDate.of(2024, Month.APRIL, 1),
+        DateField.DAY.applyTo(thirtyMonth, 1),
+    )
   }
 
   @Test
   fun applyTo_month_clampsDayWhenTargetMonthIsShorter() {
     assertEquals(
-      LocalDate.of(2024, Month.FEBRUARY, 29),
-      DateField.MONTH.applyTo(thirtyOneMonth, Month.FEBRUARY.value),
+        LocalDate.of(2024, Month.FEBRUARY, 29),
+        DateField.MONTH.applyTo(thirtyOneMonth, Month.FEBRUARY.value),
     )
   }
 
   @Test
   fun applyTo_year_clampsLeapDayWhenTargetYearIsNotLeap() {
     assertEquals(
-      LocalDate.of(2023, Month.FEBRUARY, 28),
-      DateField.YEAR.applyTo(leapDay, 2023),
+        LocalDate.of(2023, Month.FEBRUARY, 28),
+        DateField.YEAR.applyTo(leapDay, 2023),
     )
   }
 
