@@ -64,30 +64,30 @@ fun RoleLoadingScreen(
     is RoleState.NoProfile -> Unit
     // what is displayed if the user is not connected or if Firestore has failed
     is RoleState.Error -> {
-        var signingOut by remember { mutableStateOf(false) }
-        Column {
-            Text(
-                "Could not load your profile. Try again.",
-                modifier = Modifier.testTag(RoleLoadingTestTags.ERROR_MESSAGE),
-            )
-            Button(
-                onClick = { viewModel.loadRole() },
-                modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
-            ) {
-                Text("Retry")
-            }
-            Button(
-                onClick = {
-                    signingOut = true
-                    viewModel.signOut()
-                    onSignedOut()
-                },
-                enabled = !signingOut,
-                modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),
-            ) {
-                Text("Back to login")
-            }
+      var signingOut by remember { mutableStateOf(false) }
+      Column {
+        Text(
+            "Could not load your profile. Try again.",
+            modifier = Modifier.testTag(RoleLoadingTestTags.ERROR_MESSAGE),
+        )
+        Button(
+            onClick = { viewModel.loadRole() },
+            modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
+        ) {
+          Text("Retry")
         }
+        Button(
+            onClick = {
+              signingOut = true
+              viewModel.signOut()
+              onSignedOut()
+            },
+            enabled = !signingOut,
+            modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),
+        ) {
+          Text("Back to login")
+        }
+      }
     }
     // when the role is loaded it displays nothing because being redirected
     is RoleState.Loaded -> Unit
