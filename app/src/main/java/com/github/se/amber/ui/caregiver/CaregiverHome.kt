@@ -45,23 +45,23 @@ object CaregiverHomeTestTags {
  * of navigation.
  *
  * @param viewModel ViewModel providing the patient information displayed on the screen.
- * @param signOut Callback invoked when the user selects the back action in the top bar.
+ * @param checkout Callback invoked when the user selects the back action in the top bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaregiverHomeScreen(
     viewModel: CaregiverHomeViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = { tab -> },
-    signOut: () -> Unit = {},
+    checkout: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = signOut,
+              onBackClick = checkout,
           )
           DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
         }
