@@ -1,27 +1,31 @@
-// This file was written by Neha Chakraborty and Copilot
+// This file was written by Neha Chakraborty and Copilot, with assistance from
+// Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.invitation
 
-/** Typed failures returned by [InvitationRedemptionRepository.redeemInvitation]. */
+/**
+ * Typed failures returned by [InvitationRedemptionRepository.redeemInvitation].
+ *
+ * Messages are developer-facing diagnostics. The UI must map each subtype to a string resource
+ * instead of displaying [message].
+ */
 sealed class InvitationError(message: String) : Exception(message) {
-  data object InvalidCode : InvitationError("The invitation code is invalid")
+  data object InvalidCode : InvitationError("Invalid invitation code")
 
-  data object InvitationNotFound : InvitationError("The invitation was not found")
+  data object InvitationNotFound : InvitationError("Invitation not found")
 
-  data object InvitationExpired : InvitationError("The invitation has expired")
+  data object InvitationExpired : InvitationError("Invitation expired")
 
-  data object InvitationAlreadyUsed : InvitationError("The invitation has already been used")
+  data object InvitationAlreadyUsed : InvitationError("Invitation already used")
 
-  data object UserAlreadyBelongsToCircle : InvitationError("You already belong to this care circle")
+  data object UserAlreadyBelongsToCircle : InvitationError("User already belongs to circle")
 
-  data object MissingOrInvalidUserProfile :
-      InvitationError("Your user profile is missing or invalid")
+  data object MissingOrInvalidUserProfile : InvitationError("User profile missing or invalid")
 
-  data object InvalidOrUnavailableCareCircle :
-      InvitationError("The invitation's care circle is unavailable")
+  data object InvalidOrUnavailableCareCircle : InvitationError("Care circle unavailable")
 
-  data object PatientSlotAlreadyOccupied : InvitationError("This care circle already has a patient")
+  data object PatientSlotAlreadyOccupied : InvitationError("Patient slot already occupied")
 
-  data object Network : InvitationError("Unable to redeem the invitation while offline")
+  data object Network : InvitationError("Network unavailable")
 
-  data class Unknown(val source: Throwable) : InvitationError("Unable to redeem the invitation")
+  data class Unknown(val source: Throwable) : InvitationError("Unknown redemption failure")
 }

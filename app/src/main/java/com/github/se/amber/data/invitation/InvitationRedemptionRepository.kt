@@ -1,8 +1,9 @@
-// This file was written by Neha Chakraborty and Copilot
+// This file was written by Neha Chakraborty and Copilot, with assistance from
+// Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.invitation
 
 /** Redeems an invitation for the currently authenticated user. */
-interface InvitationRedemptionRepository {
+fun interface InvitationRedemptionRepository {
 
   /**
    * Redeems [code] and adds the current user to its care circle.

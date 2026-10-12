@@ -1,4 +1,5 @@
-// This file was written by Neha Chakraborty and Copilot
+// This file was written by Neha Chakraborty and Copilot, with assistance from
+// Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.invitation
 
 import com.github.se.amber.model.user.Role
@@ -103,47 +104,61 @@ class FirebaseInvitationRedemptionRepositoryTest {
 
   @Test
   fun redeemInvitationMapsAlreadyRedeemedPrecondition() = runBlocking {
-    assertPreconditionMaps(
-        "Invitation has already been redeemed",
-        InvitationError.InvitationAlreadyUsed,
-    )
+    assertPreconditionMaps("INVITATION_ALREADY_REDEEMED", InvitationError.InvitationAlreadyUsed)
   }
 
   @Test
   fun redeemInvitationMapsExpiredPrecondition() = runBlocking {
-    assertPreconditionMaps("Invitation has expired", InvitationError.InvitationExpired)
+    assertPreconditionMaps("INVITATION_EXPIRED", InvitationError.InvitationExpired)
   }
 
   @Test
   fun redeemInvitationMapsExistingMemberPrecondition() = runBlocking {
-    assertPreconditionMaps(
-        "User is already a circle member",
-        InvitationError.UserAlreadyBelongsToCircle,
-    )
+    assertPreconditionMaps("ALREADY_CIRCLE_MEMBER", InvitationError.UserAlreadyBelongsToCircle)
   }
 
   @Test
   fun redeemInvitationMapsProfilePrecondition() = runBlocking {
-    assertPreconditionMaps(
-        "User profile is missing or invalid",
-        InvitationError.MissingOrInvalidUserProfile,
-    )
+    assertPreconditionMaps("PROFILE_INVALID", InvitationError.MissingOrInvalidUserProfile)
   }
 
   @Test
   fun redeemInvitationMapsPatientSlotPrecondition() = runBlocking {
-    assertPreconditionMaps(
-        "Care circle already has a patient",
-        InvitationError.PatientSlotAlreadyOccupied,
-    )
+    assertPreconditionMaps("PATIENT_SLOT_TAKEN", InvitationError.PatientSlotAlreadyOccupied)
   }
 
   @Test
   fun redeemInvitationMapsCirclePrecondition() = runBlocking {
-    assertPreconditionMaps(
-        "Invitation references an unavailable circle",
-        InvitationError.InvalidOrUnavailableCareCircle,
+    assertPreconditionMaps("CIRCLE_UNAVAILABLE", InvitationError.InvalidOrUnavailableCareCircle)
+  }
+
+  @Test
+  fun redeemInvitationIgnoresMessageWhenMappingPrecondition() = runBlocking {
+    respondWithFailure(
+        FirebaseFunctionsException.Code.FAILED_PRECONDITION,
+        "User profile is in a circle that has expired",
+        mapOf("reason" to "PATIENT_SLOT_TAKEN"),
     )
+
+    assertSame(
+        InvitationError.PatientSlotAlreadyOccupied,
+        repository.redeemInvitation("valid-code").exceptionOrNull(),
+    )
+  }
+
+  @Test
+  fun redeemInvitationMapsUnrecognizedReasonToUnknown() = runBlocking {
+    assertPreconditionIsUnknown(mapOf("reason" to "INVITATION_INVALID"))
+  }
+
+  @Test
+  fun redeemInvitationMapsPreconditionWithoutReasonToUnknown() = runBlocking {
+    assertPreconditionIsUnknown(null)
+  }
+
+  @Test
+  fun redeemInvitationMapsMalformedPreconditionDetailsToUnknown() = runBlocking {
+    assertPreconditionIsUnknown("INVITATION_EXPIRED")
   }
 
   @Test
@@ -173,13 +188,19 @@ class FirebaseInvitationRedemptionRepositoryTest {
   private fun callableResult(data: Any?): HttpsCallableResult =
       HttpsCallableResult::class.java.getConstructor(Any::class.java).newInstance(data)
 
-  private fun respondWithFailure(code: FirebaseFunctionsException.Code, message: String) {
-    `when`(callable.call(any())).thenReturn(Tasks.forException(functionsException(code, message)))
+  private fun respondWithFailure(
+      code: FirebaseFunctionsException.Code,
+      message: String,
+      details: Any? = null,
+  ) {
+    `when`(callable.call(any()))
+        .thenReturn(Tasks.forException(functionsException(code, message, details)))
   }
 
   private fun functionsException(
       code: FirebaseFunctionsException.Code,
       message: String,
+      details: Any? = null,
   ): FirebaseFunctionsException =
       FirebaseFunctionsException::class
           .java
@@ -188,11 +209,29 @@ class FirebaseInvitationRedemptionRepositoryTest {
               FirebaseFunctionsException.Code::class.java,
               Any::class.java,
           )
-          .newInstance(message, code, null)
+          .newInstance(message, code, details)
 
-  private suspend fun assertPreconditionMaps(message: String, expected: InvitationError) {
-    respondWithFailure(FirebaseFunctionsException.Code.FAILED_PRECONDITION, message)
+  private suspend fun assertPreconditionMaps(reason: String, expected: InvitationError) {
+    respondWithFailure(
+        FirebaseFunctionsException.Code.FAILED_PRECONDITION,
+        "Precondition failed",
+        mapOf("reason" to reason),
+    )
 
     assertSame(expected, repository.redeemInvitation("valid-code").exceptionOrNull())
+  }
+
+  private suspend fun assertPreconditionIsUnknown(details: Any?) {
+    val failure =
+        functionsException(
+            FirebaseFunctionsException.Code.FAILED_PRECONDITION,
+            "Invitation has expired",
+            details,
+        )
+    `when`(callable.call(any())).thenReturn(Tasks.forException(failure))
+
+    val error = repository.redeemInvitation("valid-code").exceptionOrNull()
+
+    assertSame(failure, (error as InvitationError.Unknown).source)
   }
 }

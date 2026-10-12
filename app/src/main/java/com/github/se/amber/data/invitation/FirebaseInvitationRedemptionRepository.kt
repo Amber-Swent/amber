@@ -1,4 +1,5 @@
-// This file was written by Neha Chakraborty and Copilot
+// This file was written by Neha Chakraborty and Copilot, with assistance from
+// Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.invitation
 
 import com.github.se.amber.model.user.Role
@@ -64,20 +65,15 @@ class FirebaseInvitationRedemptionRepository(
         else -> InvitationError.Unknown(this)
       }
 
+  /** Maps the backend's machine-readable `details.reason`; the message is for logs only. */
   private fun FirebaseFunctionsException.toPreconditionError(): InvitationError =
-      when {
-        message.orEmpty().contains("already been redeemed", ignoreCase = true) ->
-            InvitationError.InvitationAlreadyUsed
-        message.orEmpty().contains("has expired", ignoreCase = true) ->
-            InvitationError.InvitationExpired
-        message.orEmpty().contains("already a circle member", ignoreCase = true) ->
-            InvitationError.UserAlreadyBelongsToCircle
-        message.orEmpty().contains("profile", ignoreCase = true) ->
-            InvitationError.MissingOrInvalidUserProfile
-        message.orEmpty().contains("already has a patient", ignoreCase = true) ->
-            InvitationError.PatientSlotAlreadyOccupied
-        message.orEmpty().contains("circle", ignoreCase = true) ->
-            InvitationError.InvalidOrUnavailableCareCircle
+      when ((details as? Map<*, *>)?.get(REASON_KEY)) {
+        "INVITATION_ALREADY_REDEEMED" -> InvitationError.InvitationAlreadyUsed
+        "INVITATION_EXPIRED" -> InvitationError.InvitationExpired
+        "ALREADY_CIRCLE_MEMBER" -> InvitationError.UserAlreadyBelongsToCircle
+        "PROFILE_INVALID" -> InvitationError.MissingOrInvalidUserProfile
+        "PATIENT_SLOT_TAKEN" -> InvitationError.PatientSlotAlreadyOccupied
+        "CIRCLE_UNAVAILABLE" -> InvitationError.InvalidOrUnavailableCareCircle
         else -> InvitationError.Unknown(this)
       }
 
@@ -87,5 +83,6 @@ class FirebaseInvitationRedemptionRepository(
     const val INVITATION_CODE_KEY = "code"
     const val CARE_CIRCLE_ID_KEY = "circleId"
     const val ROLE_KEY = "role"
+    const val REASON_KEY = "reason"
   }
 }
