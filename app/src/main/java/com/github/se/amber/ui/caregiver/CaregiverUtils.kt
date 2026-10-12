@@ -14,7 +14,7 @@ import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.orange
 
 /**
- * Displays the title for caregiver's [Screen]
+ * Displays the title for caregiver's Screen
  *
  * @param title title to display
  * @param modifier modifier to apply to the text (can for e.g. contains the necessary TestTag)

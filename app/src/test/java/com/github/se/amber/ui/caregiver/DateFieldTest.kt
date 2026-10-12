@@ -6,8 +6,6 @@ import java.time.Month
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class CaregiverUtilsTest {}
-
 /** Pure JVM tests for [DateField]: no Android, no network, no UI. */
 class DateFieldTest {
 
