@@ -1,6 +1,5 @@
 package com.github.se.amber.ui.caregiver
 
-import android.R.attr.text
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -26,7 +25,6 @@ import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
-import com.github.se.amber.ui.navigation.NavigationActions
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -52,8 +50,8 @@ object CaregiverHomeTestTags {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaregiverHomeScreen(
-    viewModel: HomeViewModel = viewModel(),
-    onTabSelected : (Tab) -> Unit = { tab ->},
+    viewModel: CaregiverHomeViewModel = viewModel(),
+    onTabSelected: (Tab) -> Unit = { tab -> },
     signOut: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()

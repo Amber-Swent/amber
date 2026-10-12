@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class HomeUIState(
+data class CaregiverHomeUIState(
     val patient: UserProfile =
         UserProfile(
             uid = "",
@@ -20,9 +20,9 @@ data class HomeUIState(
 
 // TODO: unExtract repository once it's implement
 /** ViewModel responsible for providing data to the caregiver home screen. */
-class HomeViewModel(
+class CaregiverHomeViewModel(
     // private val repository: MediaRepository = MediaRepositoryProvider.repository,
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(HomeUIState())
-  val uiState: StateFlow<HomeUIState> = _uiState.asStateFlow()
+  private val _uiState = MutableStateFlow(CaregiverHomeUIState())
+  val uiState: StateFlow<CaregiverHomeUIState> = _uiState.asStateFlow()
 }

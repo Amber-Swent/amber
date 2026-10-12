@@ -10,27 +10,26 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-class CaregiverHomeTest {
+class CaregiverHomeScreenTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
-  private lateinit var viewModel: HomeViewModel
+  private lateinit var viewModel: CaregiverHomeViewModel
 
   @Before
   fun setUp() {
-    viewModel = HomeViewModel()
+    viewModel = CaregiverHomeViewModel()
   }
 
   private fun setScreen(signOut: () -> Unit = {}) {
     composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel, signOut = signOut) }
   }
 
-  // UnExtract once Utils.kt is merge
-  //  @Test
-  //  fun title_isDisplayed() {
-  //    setScreen()
-  //    composeTestRule.onNodeWithTag(CaregiverHomeTestTags.TITLE).assertIsDisplayed()
-  //  }
+  @Test
+  fun title_isDisplayed() {
+    setScreen()
+    composeTestRule.onNodeWithTag(CaregiverHomeTestTags.TITLE).assertIsDisplayed()
+  }
 
   @Test
   fun welcomeText_isDisplayed() {

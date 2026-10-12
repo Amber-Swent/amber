@@ -6,11 +6,11 @@ import org.junit.Before
 import org.junit.Test
 
 class CaregiverHomeViewModelTest {
-  private lateinit var viewModel: HomeViewModel
+  private lateinit var viewModel: CaregiverHomeViewModel
 
   @Before
   fun setUp() {
-    viewModel = HomeViewModel()
+    viewModel = CaregiverHomeViewModel()
   }
 
   @Test
