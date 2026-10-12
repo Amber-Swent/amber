@@ -8,7 +8,7 @@ description: 'Implement Kotlin Android and Jetpack Compose features using MVVM o
 Use this workflow when implementing a feature or fixing a bug. The developer launches and orchestrates the other roles separately.
 
 1. Read `AGENTS.md`, inspect the relevant implementation and tests, and identify the smallest owning layer.
-2. Work directly on the developer's current feature branch in their checkout. Do not switch branches, commit, or push unless the developer asks.
+2. Work directly in the developer's checkout on the current feature branch. Do not switch branches, commit, or push unless the developer asks.
 3. Follow MVVM and Compose conventions. Keep composables focused on rendering, state/events in ViewModels, and external services in repositories/data sources. A ViewModel must never import Firebase.
 4. Use camelCase for variables, properties, and parameters. Do not edit generated files or anything under the repository-root `/generated` directory.
 5. Keep the change focused and within the sizing guidance in `AGENTS.md`. Include the required contributor acknowledgement at the top of each changed source file; preserve existing attributions and do not invent identities.

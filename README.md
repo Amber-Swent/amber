@@ -8,7 +8,7 @@
 
 ## App Description
 
-Over 50 million people worldwide live with dementia, facing cognitive decline, short-term memory loss and severe isolation, while their families carry an intense psychological and financial burden. Dementia is irreversible, but structured social engagement can ease its symptoms and help preserve a person's sense of self. **Amber** is an Android app built on two clinically recognised approaches, Cognitive Stimulation Therapy and Reminiscence Therapy. Patients revisit their life through interactive photo storytelling. Family members and other loved ones capture memories straight from their phone: they take photos with the **camera**, record voice memos with the **microphone**, and **location** tagging anchors each memory to the place it happened, so the patient can browse stories by person, time and place.
+Over 50 million people worldwide live with dementia, facing cognitive decline, short-term memory loss and severe isolation, while their families carry an intense psychological and financial burden. Dementia is irreversible, but structured social engagement can ease its symptoms and help preserve a person's sense of self. **Amber** is an Android app built on two clinically recognised approaches, Cognitive Stimulation Therapy and Reminiscence Therapy. Patients revisit their life through interactive photo storytelling. Family members and other loved ones capture memories on their phone: they take photos with the **camera**, record voice memos with the **microphone**, and **location** tagging anchors each memory to where it happened.
 
 Amber targets two user groups, represented by two fictional personas: patients in the early-to-moderate stages of dementia, like **Arthur**, who need a simple, frustration-free way to reminisce and stay mentally active, and caregivers (family members and other loved ones), like **Sarah**, who want a simple way to help their loved one through dementia by sharing photos and voice memos of past memories. Amber is meant for the whole family, not just one person assigned to the patient.
 
@@ -43,11 +43,11 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 
 ## Sensor Use
 
-The phone's sensors are at the heart of how memories are created and revisited in Amber:
+Amber uses the phone's sensors to capture and revisit memories:
 
 | Sensor | Feature it supports |
 |---|---|
-| **Camera** | Caregivers capture new photos (or digitise old printed ones) directly in the app to add to the family's memory library |
+| **Camera** | Caregivers capture new photos directly in the app to add to the family's memory library |
 | **Microphone** | Recording voice memos of shared memories (other microphone-based features may be added later) |
 | **Location (Fused Location Provider API)** | Memories are tagged with the place they were captured, so the patient can revisit them by place (e.g. "our house by the lake") |
 
