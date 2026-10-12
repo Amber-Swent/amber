@@ -49,7 +49,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
-import com.github.se.amber.ui.caregiver.DisplayScrollableDatePicker
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -150,14 +149,8 @@ fun UploadPictureScreen(
               modifier = Modifier.height(TEXT_FIELD),
           )
 
-          // Optional field: no error message
-          //                DisplayTextField(
-          //                    value = uiState.date,
-          //                    onValueChange = { viewModel.setDate(it) },
-          //                    label = "Date",
-          //                )
-
-          DisplayScrollableDatePicker()
+          // TODO : use DisplayScrollableDatePicker() once merge
+          // and should update the uiState accordingly
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
@@ -222,7 +215,7 @@ private fun DisplayTextField(
       maxLines = maxLines,
   )
   // TODO: should show message when reach max-line
-  // TODO: should grow descritpion textField size when lines take more space that the alocate one
+  // TODO: should grow description textField size when lines take more space that the locate one
   // TODO: should keep the area focus on where the user click
 
   if (emptyErrorMessage != null && value.isBlank() && hasBeenFocused) {
