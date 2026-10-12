@@ -4,7 +4,7 @@ package com.github.se.amber.data.onboarding
 import com.github.se.amber.model.circle.CareCircle
 
 /** Creates the signed-in caregiver's first care circle during onboarding. */
-interface OnboardingRepository {
+fun interface OnboardingRepository {
 
   /**
    * Creates the first care circle with a nonblank [name].
