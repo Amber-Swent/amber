@@ -54,7 +54,8 @@ private sealed interface FileState {
  * Limitations: a failure stays shown as long as the same [mediaId] is displayed, even if the
  * connection returns; the file is loaded again only when the image leaves the screen and comes
  * back, or gets a new [mediaId]. When the image appears, [loading] shows at least for its first
- * frame, while [loadFile] runs, even if the picture is already in Coil's memory cache.
+ * frame, while [loadFile] runs, even if the picture is already in Coil's memory cache. The slots
+ * are drawn behind the picture, so for one frame [loading] may be composed under a cached picture.
  *
  * @param mediaId the id of the media; a new id loads a new file.
  * @param loadFile returns the local file of the media; it may throw (for example offline and not
@@ -63,7 +64,8 @@ private sealed interface FileState {
  *   whenever possible.
  * @param modifier the modifier of the whole component, slots included.
  * @param contentScale how the picture fills the space given by [modifier].
- * @param loading shown, centered, while the file is loaded or decoded.
+ * @param loading shown, centered, while the file is loaded or decoded; it stays the same
+ *   composition through both steps.
  * @param failed shown, centered, if the file can't be loaded or decoded.
  */
 @Composable
@@ -94,35 +96,32 @@ fun MediaImage(
         }
   }
 
+  val file = (fileState as? FileState.Ready)?.file
+  // Coil's state for the current file; Empty until Coil starts, which is after the first frame.
+  var imageState by
+      remember(file) { mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty) }
+
   Box(modifier = modifier, contentAlignment = Alignment.Center) {
-    when (val state = fileState) {
-      FileState.Loading -> loading()
-      FileState.Failed -> failed()
-      is FileState.Ready -> {
-        var imageState by
-            remember(state.file) {
-              mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty)
-            }
-        // Until the picture is decoded, it is hidden from TalkBack and from tests.
-        val shown = imageState is AsyncImagePainter.State.Success
-        AsyncImage(
-            model = state.file,
-            contentDescription = if (shown) contentDescription else null,
-            modifier =
-                Modifier.fillMaxSize()
-                    .then(if (shown) Modifier.testTag(MediaImageTestTags.IMAGE) else Modifier),
-            contentScale = contentScale,
-            onState = { imageState = it },
-        )
-        // AsyncImage draws nothing while it decodes the file or if decoding fails, so the slots
-        // cover those cases too. Not while Empty: that is only the frame before Coil starts, and
-        // a picture in Coil's memory cache goes straight to Success.
-        when (imageState) {
-          is AsyncImagePainter.State.Loading -> loading()
-          is AsyncImagePainter.State.Error -> failed()
-          else -> Unit
-        }
-      }
+    // One call site per slot, so the same loading slot stays from loading the file to decoding
+    // it (an animated spinner doesn't restart). The slots come before the picture, so they are
+    // drawn behind it: a picture in Coil's memory cache is drawn over loading in the frame where
+    // Coil starts, while for any other file AsyncImage draws nothing and loading stays visible.
+    when {
+      fileState is FileState.Failed || imageState is AsyncImagePainter.State.Error -> failed()
+      imageState !is AsyncImagePainter.State.Success -> loading()
+    }
+    if (file != null) {
+      // Until the picture is decoded, it is hidden from TalkBack and from tests.
+      val shown = imageState is AsyncImagePainter.State.Success
+      AsyncImage(
+          model = file,
+          contentDescription = if (shown) contentDescription else null,
+          modifier =
+              Modifier.fillMaxSize()
+                  .then(if (shown) Modifier.testTag(MediaImageTestTags.IMAGE) else Modifier),
+          contentScale = contentScale,
+          onState = { imageState = it },
+      )
     }
   }
 }

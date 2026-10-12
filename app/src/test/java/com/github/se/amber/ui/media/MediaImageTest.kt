@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -194,6 +195,42 @@ class MediaImageTest {
     waitForImage()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
+  }
+
+  @Test
+  fun keepsTheSameLoadingSlotFromLoadingTheFileToDecodingIt() {
+    // Counts how often the loading slot enters the composition: a second entry would restart an
+    // animated spinner, or mean a frame without any slot in between.
+    var loadingEntries = 0
+    val file = CompletableDeferred<File>()
+    decoder.gate = CompletableDeferred()
+    composeTestRule.setContent {
+      MediaImage(
+          mediaId = "m1",
+          loadFile = { file.await() },
+          contentDescription = DESCRIPTION,
+          modifier = Modifier.size(100.dp),
+          loading = {
+            DisposableEffect(Unit) {
+              loadingEntries++
+              onDispose {}
+            }
+            Text(LOADING)
+          },
+      )
+    }
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+
+    // The file is loaded, and Coil is held while decoding it.
+    file.complete(photo)
+    composeTestRule.waitUntil(TIMEOUT_MS) { decoder.requested.isNotEmpty() }
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+
+    decoder.gate!!.complete(Unit)
+    waitForImage()
+
+    composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
+    assertEquals(1, loadingEntries)
   }
 
   @Test
