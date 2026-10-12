@@ -53,8 +53,10 @@ Amber has **no self-hosted backend or custom server code**. It is a fully native
 
 ## Offline Mode
 
-- Story metadata is cached by Firestore's built-in offline persistence, and photos are cached on disk by **Coil**, so the patient can keep browsing and reminiscing without a connection.
-- Changes made offline are **queued locally** and **synchronised automatically** once connectivity returns: Firestore queues its own writes, and photo and voice memo uploads to Firebase Storage are retried in the background.
+- **Viewing:** story and media metadata are cached by Firestore's built-in offline persistence. Photos and voice memos already opened or added on this phone are kept in an on-device media cache, which removes the least recently used ones first when it is full. This lets the patient keep browsing and reminiscing without a connection. **Coil** only decodes and displays these files; it doesn't download them or keep them on disk.
+- **Adding:** a new photo or voice memo is first saved on the phone, in an **outbox** that is never cleared to free space, so it can be added offline. **WorkManager** sends it once connectivity returns, even if the app was closed in the meantime: the file goes to Firebase Storage before its metadata goes to Firestore, so a media item never points at a missing file.
+- **Editing and deleting** a media item already sent need a connection; one not sent yet can be removed offline.
+- **Privacy:** signing out or leaving a family erases its media from the device (cache and outbox). Media not sent yet would be lost, so the app warns first.
 - Offline availability of the AI features depends on the model choice (see *Split-App Model*).
 
 ---

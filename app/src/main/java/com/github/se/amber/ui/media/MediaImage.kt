@@ -51,6 +51,11 @@ private sealed interface FileState {
  * `MediaItem.Picture`), so the image keeps the same size while loading and the list doesn't jump
  * when it appears.
  *
+ * Limitations: a failure stays shown as long as the same [mediaId] is displayed, even if the
+ * connection returns; the file is loaded again only when the image leaves the screen and comes
+ * back, or gets a new [mediaId]. When the image appears, [loading] shows at least for its first
+ * frame, while [loadFile] runs, even if the picture is already in Coil's memory cache.
+ *
  * @param mediaId the id of the media; a new id loads a new file.
  * @param loadFile returns the local file of the media; it may throw (for example offline and not
  *   cached), which shows [failed].
@@ -110,11 +115,12 @@ fun MediaImage(
             onState = { imageState = it },
         )
         // AsyncImage draws nothing while it decodes the file or if decoding fails, so the slots
-        // cover those cases too.
+        // cover those cases too. Not while Empty: that is only the frame before Coil starts, and
+        // a picture in Coil's memory cache goes straight to Success.
         when (imageState) {
+          is AsyncImagePainter.State.Loading -> loading()
           is AsyncImagePainter.State.Error -> failed()
-          is AsyncImagePainter.State.Success -> Unit
-          else -> loading()
+          else -> Unit
         }
       }
     }

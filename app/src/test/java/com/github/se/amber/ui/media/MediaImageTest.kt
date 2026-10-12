@@ -33,7 +33,10 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -124,12 +127,10 @@ class MediaImageTest {
 
   @Test
   fun showsFailedWhenLoadFileGivesUpWithACancellation() {
-    // Like a withTimeout in the loader: its TimeoutCancellationException is a
-    // CancellationException, but the image itself was not cancelled. Rethrowing it blindly would
-    // leave the image loading forever, so it must show the failed slot.
-    // (TimeoutCancellationException
-    // can't be created outside kotlinx.coroutines, so a plain CancellationException stands in.)
-    setImage { throw CancellationException("timed out") }
+    // withTimeout throws a TimeoutCancellationException, which is a CancellationException, but the
+    // image itself was not cancelled. Rethrowing it blindly would leave the image loading forever,
+    // so it must show the failed slot.
+    setImage { withTimeout(1) { awaitCancellation() } }
 
     waitForText(FAILED)
     composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
@@ -238,8 +239,8 @@ class MediaImageTest {
     var mediaId by mutableStateOf("m1")
     var calls = 0
     composeTestRule.setContent {
-      // Each composition passes a new lambda returning the file of the current id, so loading
-      // otherPhoto proves the latest loadFile was used.
+      // Each composition passes a lambda returning the file of the current id, so decoding
+      // otherPhoto shows that the new id's loader ran.
       val file = if (mediaId == "m1") photo else otherPhoto
       MediaImage(
           mediaId = mediaId,
@@ -302,9 +303,11 @@ class MediaImageTest {
   @Test
   fun aCancelledLoadThatFailsLateDoesNotShowFailedForTheNewMedia() {
     // Changing mediaId cancels the m1 load. Here the m1 loader turns that cancellation into an
-    // IOException, which arrives after the m2 load has started; it must not mark m2 as failed.
+    // IOException, thrown only once the m2 load has started; it must not mark m2 as failed.
     var mediaId by mutableStateOf("m1")
     val firstStarted = CompletableDeferred<Unit>()
+    val secondStarted = CompletableDeferred<Unit>()
+    var firstFailed = false
     val second = CompletableDeferred<File>()
     composeTestRule.setContent {
       MediaImage(
@@ -317,9 +320,14 @@ class MediaImageTest {
               try {
                 awaitCancellation()
               } catch (e: CancellationException) {
+                // A cancelled coroutine can still wait, but only in NonCancellable. Waiting for
+                // the m2 load to start forces the order in which the bug appeared.
+                withContext(NonCancellable) { secondStarted.await() }
+                firstFailed = true
                 throw IOException("download stopped", e)
               }
             } else {
+              secondStarted.complete(Unit)
               second.await()
             }
           },
@@ -332,6 +340,10 @@ class MediaImageTest {
     composeTestRule.waitUntil(TIMEOUT_MS) { firstStarted.isCompleted }
 
     mediaId = "m2"
+    // waitForIdle recomposes with "m2" (waitUntil alone didn't). Then wait until the late
+    // IOException was really thrown, and let its result reach the UI.
+    composeTestRule.waitForIdle()
+    composeTestRule.waitUntil(TIMEOUT_MS) { firstFailed }
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
