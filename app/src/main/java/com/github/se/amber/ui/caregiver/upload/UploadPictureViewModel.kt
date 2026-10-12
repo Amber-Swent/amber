@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class UploadPictureUIState(
     val title: String = "",
     val description: String = "",
-    // TODO :
+    // TODO : will need to be adapt according to the Repo
     val date: String = "",
     val involvedName: String = "", // is the String version of Person, must be Map to shownIds
     val picture: MediaItem.Picture =
@@ -44,22 +44,9 @@ data class UploadPictureUIState(
     val errorMsg: String? = null,
 )
 
-// data class Picture(
-//  override val id: String = "",
-//  override val authorId: String = "",
-//  override val storagePath: String = "",
-//  override val createdAt: Long = 0L,
-//  override val description: String = "",
-//  override val date: MemoryDate? = null,
-//  override val location: GeoLocation? = null,
-//  override val shownIds: List<String> = emptyList(),
-//  override val authorizedIds: List<String> = emptyList(),
-//  override val status: MediaStatus = MediaStatus.APPROVED,
-//  val width: Int = 0, // pixels, of the stored file; lets the UI reserve space before loading
-//  val height: Int = 0,
-// ) : MediaItem
 
 /** Manages the state and user actions for the picture upload screen. */
+// TODO: use Repo once available
 class UploadPictureViewModel(
     // private val repository: MediaRepository = MediaRepositoryProvider.repository,
 ) : ViewModel() {
