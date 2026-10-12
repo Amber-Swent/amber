@@ -154,14 +154,16 @@ test("rejects unauthenticated and malformed redemption requests", async (t) => {
   }
 });
 
-test("rejects an invitation already redeemed by the same user without writes", async () => {
-  setupRedeem({invitationData: invitation({usedBy: "user-1"})});
+test("returns the original result when the same user retries a redeemed invitation without writes", async () => {
+  setupRedeem({
+    invitationData: invitation({usedBy: "user-1"}),
+    user: {role: "CAREGIVER", circleIds: ["circle-1"]},
+  });
   const {redeemInvitation} = callableModule();
 
-  await expectHttpsError(
-    redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1"}}),
-    "failed-precondition",
-    "Invitation has already been redeemed",
+  assert.deepEqual(
+    await redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1"}}),
+    {circleId: "circle-1", role: "CAREGIVER"},
   );
   assert.deepEqual(state.updates, []);
   assert.deepEqual(state.creates, []);

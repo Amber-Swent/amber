@@ -99,6 +99,15 @@ class FirestoreSecurityRulesEmulatorTest {
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertSucceeds(
+        peer,
+        fs.set(
+            "invitations/PEER01",
+            invite("PEER01", circleId, peer, expiresAt = now + 60_000),
+        ),
+    )
+    fs.assertFails(care, fs.listInvitations(peer, circleId))
+    fs.assertFails(peer, fs.listInvitations(care, circleId))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
   }
@@ -539,7 +548,7 @@ private class FirestoreEmulatorClient(
             body = emptyMap(),
         )
     assertTrue("Beginning transaction failed with HTTP $status", status in 200..299)
-    return Regex("\"transaction\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
+    return Regex("\"transaction\"\\s*:\\s*\"([^\"]+)\"").find(body)?.groupValues?.get(1)
         ?: error("Firestore emulator did not return a transaction ID: $body")
   }
 

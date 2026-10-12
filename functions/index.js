@@ -116,6 +116,7 @@ exports.redeemInvitation = onCall(async (request) => {
 
   const uid = request.auth.uid;
   const invitationRef = db.doc(`invitations/${code}`);
+  const userRef = db.doc(`users/${uid}`);
   return db.runTransaction(async (transaction) => {
     const invitationSnapshot = await transaction.get(invitationRef);
     if (!invitationSnapshot.exists) {
@@ -123,6 +124,17 @@ exports.redeemInvitation = onCall(async (request) => {
     }
 
     const invitation = invitationSnapshot.data();
+    if (invitation.usedBy === uid) {
+      const userSnapshot = await transaction.get(userRef);
+      if (!userSnapshot.exists) {
+        throw new HttpsError("failed-precondition", "User profile was not found");
+      }
+      const role = userSnapshot.data().role;
+      if (!["CAREGIVER", "PATIENT"].includes(role)) {
+        throw new HttpsError("failed-precondition", "User profile has an invalid role");
+      }
+      return { circleId: invitation.circleId, role };
+    }
     if (invitation.usedBy != null) {
       throw new HttpsError("failed-precondition", "Invitation has already been redeemed");
     }
@@ -136,12 +148,10 @@ exports.redeemInvitation = onCall(async (request) => {
     if (!Number.isFinite(expirationMs) || expirationMs <= Date.now()) {
       throw new HttpsError("failed-precondition", "Invitation has expired");
     }
-
     if (typeof invitation.circleId !== "string" || invitation.circleId.length === 0) {
       throw new HttpsError("failed-precondition", "Invitation has an invalid circle");
     }
     const circleRef = db.doc(`careCircles/${invitation.circleId}`);
-    const userRef = db.doc(`users/${uid}`);
     const [circleSnapshot, userSnapshot] = await Promise.all([
       transaction.get(circleRef),
       transaction.get(userRef),

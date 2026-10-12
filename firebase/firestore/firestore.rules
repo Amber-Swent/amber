@@ -180,8 +180,8 @@ service cloud.firestore {
     match /invitations/{code} {
       allow get: if isSignedIn();
       allow list: if isCaregiver()
-        && resource.createdBy == request.auth.uid
-        && isMember(resource.circleId);
+        && resource.data.createdBy == request.auth.uid
+        && isMember(resource.data.circleId);
 
       allow create: if isCaregiver()
         && isMember(request.resource.data.circleId)
