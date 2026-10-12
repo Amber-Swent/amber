@@ -4,7 +4,6 @@ package com.github.se.amber.ui.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
@@ -12,15 +11,16 @@ import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
+import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
+import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
@@ -101,12 +101,12 @@ fun BottomNavigationMenu(
   ) {
     HorizontalDivider(
         modifier = Modifier.testTag(BottomNavigationMenuTestTags.DIVIDER),
-        thickness = 1.dp,
+        thickness = DIVIDER_THICKNESS,
         color = lightGray,
     )
 
     NavigationBar(
-        containerColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.primary,
         content = {
           tabs.forEach { tab ->
             NavigationBarItem(
@@ -114,14 +114,13 @@ fun BottomNavigationMenu(
                   Icon(
                       tab.icon,
                       contentDescription = tab.name,
-                      modifier = Modifier.size(32.dp),
                       tint = if (tab == selectedTab) orange else lightOrange,
                   )
                 },
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
                 modifier =
-                    Modifier.clip(RoundedCornerShape(50.dp))
+                    Modifier.clip(RoundedCornerShape(ROUND_CORNER))
                         .testTag(BottomNavigationMenuTestTags.tabTag(tab)),
             )
           }

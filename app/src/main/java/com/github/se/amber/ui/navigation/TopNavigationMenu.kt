@@ -10,14 +10,14 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
+import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
 
@@ -73,11 +73,12 @@ fun TopNavigationMenu(
             )
           }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
-    )
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        ),    )
     HorizontalDivider(
         Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
-        thickness = 1.dp,
+        thickness = DIVIDER_THICKNESS,
         color = lightGray,
     )
   }
