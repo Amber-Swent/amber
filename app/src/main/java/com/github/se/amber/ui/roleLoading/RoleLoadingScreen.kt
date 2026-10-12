@@ -9,6 +9,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,8 +28,9 @@ object RoleLoadingTestTags {
 @Composable
 fun RoleLoadingScreen(
     onRoleLoaded: (Role) -> Unit,
-    viewModel: RoleLoadingViewModel = viewModel(),
+    noProfile: () -> Unit,
     onSignedOut: () -> Unit,
+    viewModel: RoleLoadingViewModel = viewModel(),
 ) {
   val state by viewModel.state.collectAsState()
 
@@ -35,11 +39,19 @@ fun RoleLoadingScreen(
       viewModel.loadRole()
     }
   }
-  // when the state changes to Loaded
+  // Fires the callbacks as soon as the state is Loaded or NoProfile.
   LaunchedEffect(state) {
     val s = state
+    // Callback fires immediately when the Loaded state is reached, passing the user's role
+    // so that the app navigates to the matching graph (caregiver or patient) without showing
+    // any UI.
     if (s is RoleState.Loaded) {
       onRoleLoaded(s.role)
+    }
+    // For NoProfile, the callback fires immediately when the state is reached,
+    // triggering navigation to onboarding without showing any UI.
+    else if (s is RoleState.NoProfile) {
+      noProfile()
     }
   }
   when (state) {
@@ -48,31 +60,35 @@ fun RoleLoadingScreen(
         CircularProgressIndicator(
             modifier = Modifier.testTag(RoleLoadingTestTags.LOADING_INDICATOR)
         )
-    // what is displayed when the user is connected but there are no user document with this uid
-    is RoleState.NoProfile ->
+    // when there is no profile it displays nothing because being redirected
+    is RoleState.NoProfile -> Unit
+    // what is displayed if the user is not connected or if Firestore has failed
+    is RoleState.Error -> {
+      var signingOut by remember { mutableStateOf(false) }
+      Column {
+        Text(
+            "Could not load your profile. Try again.",
+            modifier = Modifier.testTag(RoleLoadingTestTags.ERROR_MESSAGE),
+        )
+        Button(
+            onClick = { viewModel.loadRole() },
+            modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
+        ) {
+          Text("Retry")
+        }
         Button(
             onClick = {
+              signingOut = true
               viewModel.signOut()
               onSignedOut()
             },
+            enabled = !signingOut,
             modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),
         ) {
           Text("Back to login")
         }
-    // what is displayed if the user is not connected or if Firestore has failed
-    is RoleState.Error ->
-        Column {
-          Text(
-              "Could not load your profile. Try again.",
-              modifier = Modifier.testTag(RoleLoadingTestTags.ERROR_MESSAGE),
-          )
-          Button(
-              onClick = { viewModel.loadRole() },
-              modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
-          ) {
-            Text("Retry")
-          }
-        }
+      }
+    }
     // when the role is loaded it displays nothing because being redirected
     is RoleState.Loaded -> Unit
   }

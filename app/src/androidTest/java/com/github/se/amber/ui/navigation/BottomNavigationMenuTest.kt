@@ -69,7 +69,7 @@ class BottomNavigationMenuTest {
 
   // ---------- Check helpers ----------
   private fun tabNode(tab: Tab): SemanticsNodeInteraction =
-      composeTestRule.onNodeWithTag(BottomNavigationTestTags.tabTag(tab))
+      composeTestRule.onNodeWithTag(BottomNavigationMenuTestTags.tabTag(tab))
 
   private fun checkTabIsDisplayed(tab: Tab) {
     tabNode(tab).assertIsDisplayed()
@@ -93,14 +93,14 @@ class BottomNavigationMenuTest {
   fun menuIsDisplayed() {
     setMenu()
     composeTestRule
-        .onNodeWithTag(BottomNavigationTestTags.BOTTOM_NAVIGATION_MENU)
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
   }
 
   @Test
   fun dividerIsDisplayed() {
     setMenu()
-    composeTestRule.onNodeWithTag(BottomNavigationTestTags.DIVIDER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(BottomNavigationMenuTestTags.DIVIDER).assertIsDisplayed()
   }
 
   // ---------- Caregiver tabs display ----------
