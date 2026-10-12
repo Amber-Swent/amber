@@ -187,6 +187,40 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
+  fun concurrentProfileTransactions_preserveTheFirstCommittedProfile_enforcedByEmulator() {
+    val uid = "concurrent-user"
+    val firstTransaction = fs.beginTransaction(uid)
+    val secondTransaction = fs.beginTransaction(uid)
+
+    assertEquals(404, fs.getInTransaction("users/$uid", firstTransaction, uid).first)
+    assertEquals(404, fs.getInTransaction("users/$uid", secondTransaction, uid).first)
+
+    fs.assertSucceeds(
+        fs.commitInTransaction(
+            firstTransaction,
+            uid,
+            fs.setWrite("users/$uid", user(uid, "PATIENT", emptyList(), "First")),
+        )
+    )
+    val conflictingCommit =
+        fs.commitInTransaction(
+            secondTransaction,
+            uid,
+            fs.setWrite("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second")),
+        )
+    assertEquals(
+        "The stale transaction must abort instead of overwriting the first profile",
+        409,
+        conflictingCommit(),
+    )
+
+    val (status, body) = fs.adminGet("users/$uid")
+    assertEquals(200, status)
+    assertTrue(body.contains("\"firstName\":{\"stringValue\":\"First\"}"))
+    assertFalse(body.contains("\"firstName\":{\"stringValue\":\"Second\"}"))
+  }
+
+  @Test
   fun inviteClientRedeemBatch_rejectedLeavesStateUnchanged_enforcedByEmulator() {
     val circleId = "c-batch"
     val care = "care"
@@ -465,6 +499,39 @@ private class FirestoreEmulatorClient(
     commitAs(bearer(uid), *writes)
   }
 
+  fun beginTransaction(uid: String): String {
+    val (status, body) =
+        requestWithBody(
+            "POST",
+            "$host/v1/projects/$projectId/databases/(default)/documents:beginTransaction",
+            token = bearer(uid),
+            body = emptyMap(),
+        )
+    assertTrue("Beginning transaction failed with HTTP $status", status in 200..299)
+    return Regex("\"transaction\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
+        ?: error("Firestore emulator did not return a transaction ID: $body")
+  }
+
+  fun getInTransaction(path: String, transaction: String, uid: String): Pair<Int, String> =
+      requestWithBody(
+          "GET",
+          "${docUrl(path)}?transaction=${java.net.URLEncoder.encode(transaction, Charsets.UTF_8)}",
+          token = bearer(uid),
+      )
+
+  fun commitInTransaction(
+      transaction: String,
+      uid: String,
+      vararg writes: Map<String, Any?>,
+  ): () -> Int = {
+    request(
+        "POST",
+        "$host/v1/projects/$projectId/databases/(default)/documents:commit",
+        token = bearer(uid),
+        body = mapOf("transaction" to transaction, "writes" to writes.toList()),
+    )
+  }
+
   private fun commitAs(token: String?, vararg writes: Map<String, Any?>): Int =
       request(
           "POST",
@@ -476,6 +543,11 @@ private class FirestoreEmulatorClient(
   fun assertSucceeds(uid: String?, op: (String?) -> Int) {
     val code = op(uid)
     assertTrue("Expected success for uid=$uid but HTTP $code", code in 200..299)
+  }
+
+  fun assertSucceeds(op: () -> Int) {
+    val code = op()
+    assertTrue("Expected success but HTTP $code", code in 200..299)
   }
 
   fun assertFails(uid: String?, op: (String?) -> Int) {
