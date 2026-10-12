@@ -85,6 +85,19 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(peer, fs.patch("users/$peer", mapOf("circleIds" to listOf(circleId))))
 
+    val peerCircleId = "c-peer"
+    fs.assertSucceeds(
+        peer,
+        fs.commit(
+            fs.setWrite("users/$peer", user(peer, "CAREGIVER", listOf(peerCircleId), "Bob")),
+            fs.setWrite(
+                "careCircles/$peerCircleId",
+                circle(peerCircleId, peer, listOf(peer), patientId = ""),
+            ),
+        ),
+    )
+    fs.assertSucceeds(peer, fs.get("careCircles/$peerCircleId"))
+
     // Admin SDK seeds membership (stands in for Cloud Functions redeem in PR #83).
     fs.adminSet(
         "careCircles/$circleId",

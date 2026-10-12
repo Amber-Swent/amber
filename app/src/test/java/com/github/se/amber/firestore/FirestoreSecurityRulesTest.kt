@@ -205,8 +205,19 @@ class FirestoreSecurityRulesTest {
     db.putUser(onboard)
     val personOnly = onboard.copy(person = Person(id = "new", firstName = "Newer"))
     assertTrue(db.rulesFor("new").canUpdateUser(onboard, personOnly))
+    val newCircle =
+        CareCircle(
+            id = "c2",
+            memberIds = listOf("new"),
+            createdBy = "new",
+            createdAt = 1L,
+        )
+    db.stageCircle(newCircle)
+    assertTrue(
+        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf(newCircle.id))),
+    )
     assertFalse(
-        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("c1"))),
+        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("other"))),
     )
     assertFalse(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
     assertFalse(db.rulesFor("new").canDeleteUser())
@@ -546,12 +557,22 @@ private class FirestoreSecurityRules(
   fun canUpdateUser(before: UserProfile, after: UserProfile): Boolean {
     if (!isSelf(before.uid) || after.uid != before.uid) return false
     if (after.role != before.role) return false
-    if (after.circleIds != before.circleIds) return false
     val affected = affectedUserKeys(before, after)
-    return affected.all { it == "person" }
+    return (affected.all { it == "person" } && after.circleIds == before.circleIds) ||
+        (affected == setOf("circleIds") && isInitialCareCircleLink(before, after))
   }
 
   fun canDeleteUser(): Boolean = false
+
+  private fun isInitialCareCircleLink(before: UserProfile, after: UserProfile): Boolean {
+    val circleId = after.circleIds.singleOrNull() ?: return false
+    val createdCircle = lookup.circleAfter(circleId) ?: return false
+    return before.role == Role.CAREGIVER &&
+        before.circleIds.isEmpty() &&
+        lookup.circle(circleId) == null &&
+        createdCircle.createdBy == authUid &&
+        createdCircle.memberIds == listOf(authUid)
+  }
 
   /** Rules also require `createdAt is int`; CareCircle always carries a Long when mirrored. */
   fun canCreateCircle(resource: CareCircle): Boolean =
