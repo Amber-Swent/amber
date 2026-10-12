@@ -630,8 +630,8 @@ private class FirestoreEmulatorClient(
   ): Pair<Int, String> {
     val connection = URL(url).openConnection() as HttpURLConnection
     connection.requestMethod = method
-    connection.connectTimeout = 5_000
-    connection.readTimeout = 5_000
+    connection.connectTimeout = REQUEST_TIMEOUT_MS
+    connection.readTimeout = REQUEST_TIMEOUT_MS
     if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
     if (body != null) {
       connection.doOutput = true
@@ -682,4 +682,8 @@ private class FirestoreEmulatorClient(
         is List<*> -> value.joinToString(",", "[", "]") { jsonEncode(it) }
         else -> error("Cannot JSON-encode ${value::class}")
       }
+
+  private companion object {
+    const val REQUEST_TIMEOUT_MS = 15_000
+  }
 }
