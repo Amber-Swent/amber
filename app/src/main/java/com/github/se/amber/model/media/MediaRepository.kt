@@ -37,22 +37,54 @@ interface MediaRepository {
   suspend fun getMedia(circleId: String, mediaId: String): MediaItem?
 
   /**
-   * Adds [item] to [circle], with [file] as its bytes: the file is uploaded first, then the
-   * metadata is written, so a [MediaItem] never points at a missing file. [item]'s id comes from
-   * [newMediaId]. [file] is moved into the local cache, so it never needs to be downloaded.
+   * Adds [item] to [circle], with [file] as its bytes. Returns as soon as both are saved in the
+   * outbox on the phone, even offline: this doesn't mean they are in Firebase yet. They are sent
+   * later in the background, the file first, then the metadata, so a [MediaItem] never points at a
+   * missing file. Until then, the media appears in [observeOutbox], not in [observeApprovedMedia].
+   *
+   * [item]'s id comes from [newMediaId]. [file] is moved into the outbox: pass a file the app owns,
+   * and don't use it afterwards.
+   *
+   * @throws IllegalArgumentException if [circle]'s bucket isn't assigned yet, [item] isn't a media
+   *   of [circle], or [file] doesn't exist.
+   * @throws java.io.IOException if the media can't be saved on the phone (e.g. disk full).
    */
   suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File)
+
+  /**
+   * The media of [circleId] added on this phone and not sent yet, oldest first. Emits again
+   * whenever one is added, changes [SendState] or leaves the outbox (once sent or discarded).
+   */
+  fun observeOutbox(circleId: String): Flow<List<OutboxEntry>>
+
+  /**
+   * Sends again the media [mediaId] of [circleId] whose send failed ([SendState.FAILED]). No effect
+   * if it isn't in the outbox or hasn't failed.
+   */
+  suspend fun retrySend(circleId: String, mediaId: String)
+
+  /**
+   * Removes the unsent media [mediaId] of [circleId] from the outbox, with its file, and cancels
+   * its send. It is then lost, so ask the user first. No effect if it isn't in the outbox.
+   *
+   * @throws java.io.IOException if its file can't be deleted.
+   */
+  suspend fun discardUnsent(circleId: String, mediaId: String)
 
   /** Saves [item]'s new metadata in [circleId]; its file doesn't change. Only its author may. */
   suspend fun updateMedia(circleId: String, item: MediaItem)
 
-  /** Deletes [item] from [circle]: its metadata, its file and its cached copy. */
+  /**
+   * Deletes [item] from [circle]: its metadata, its file and its cached copy. A media not sent yet
+   * is just removed from the outbox, like [discardUnsent].
+   */
   suspend fun deleteMedia(circle: CareCircle, item: MediaItem)
 
   /**
-   * The local copy of [item]'s file, downloaded from [circle]'s bucket only if it isn't cached, so
-   * media already loaded also opens offline. Open it right away rather than keeping the [File]: it
-   * may be evicted later to make room.
+   * The local copy of [item]'s file: the outbox's one if it isn't sent yet, else the cached one,
+   * downloaded from [circle]'s bucket only if it isn't cached, so media already loaded also opens
+   * offline. Open it right away rather than keeping the [File]: it may be evicted later to make
+   * room.
    *
    * @throws IllegalArgumentException if [item] isn't a media of [circle].
    * @throws Exception if the file isn't cached and the download fails (e.g. offline).
@@ -60,17 +92,20 @@ interface MediaRepository {
   suspend fun getFile(circle: CareCircle, item: MediaItem): File
 
   /**
-   * Deletes the cached files of [circleId]. Call it when the user leaves that circle.
+   * Deletes the media of [circleId] kept on the phone: its cached files and its unsent media, whose
+   * sends are cancelled. Call it when the user leaves that circle. Unsent media is lost, so warn
+   * the user first if [observeOutbox] isn't empty.
    *
    * @throws java.io.IOException if some files can't be deleted: that circle's private media may
    *   then still be on the device, so report it rather than ignore it.
    */
-  suspend fun clearCachedMedia(circleId: String)
+  suspend fun clearLocalMedia(circleId: String)
 
   /**
-   * Deletes the cached files of every circle. Call it on sign-out.
+   * Deletes the media of every circle kept on the phone, like the other [clearLocalMedia]. Call it
+   * on sign-out.
    *
-   * @throws java.io.IOException if some files can't be deleted, like the other [clearCachedMedia].
+   * @throws java.io.IOException if some files can't be deleted, like the other [clearLocalMedia].
    */
-  suspend fun clearCachedMedia()
+  suspend fun clearLocalMedia()
 }
