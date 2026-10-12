@@ -22,9 +22,11 @@ import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
 import com.github.se.amber.ui.navigation.NavigationActions
+import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.PatientScreen
-import com.github.se.amber.ui.navigation.graphForAuthState
+import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
+import com.github.se.amber.ui.navigation.startDestinationForAuthState
 import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -46,10 +48,11 @@ class MainActivity : ComponentActivity() {
   }
 }
 
+@Suppress("java:S1135")
 @Composable
 fun AmberApp(
     // TODO add context and credential manager
-    startDestination: String = graphForAuthState(FirebaseAuth.getInstance().currentUser)
+    startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser)
 ) {
   val navController: NavHostController = rememberNavController()
   val navigationActions = NavigationActions(navController)
@@ -58,12 +61,6 @@ fun AmberApp(
       navController = navController,
       startDestination = startDestination,
   ) {
-    composable(route = NavGraphs.ROLE_LOADING) {
-      RoleLoadingScreen(
-          onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
-          onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
-      )
-    }
 
     // Authentication Graph
     navigation(
@@ -71,8 +68,41 @@ fun AmberApp(
         route = NavGraphs.AUTH,
     ) {
       // SignInScreen
+      @Suppress("java:S1135")
       composable(route = AuthScreen.Auth.route) {
         // TODO
+      }
+    }
+
+    // Loading Screen
+    composable(route = TransitionScreen.RoleLoading.route) {
+      RoleLoadingScreen(
+          onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
+          noProfile = { navigationActions.navigateToGraph(NavGraphs.ONBOARDING) },
+          onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+      )
+    }
+
+    // Onboarding Screen
+    navigation(
+        startDestination = OnboardingScreen.CreateProfile.route,
+        route = NavGraphs.ONBOARDING,
+    ) {
+      @Suppress("java:S1135")
+      composable(route = OnboardingScreen.CreateProfile.route) {
+        // TODO
+      }
+      @Suppress("java:S1135")
+      composable(route = OnboardingScreen.CaregiverChoice.route) {
+        // Todo
+      }
+      @Suppress("java:S1135")
+      composable(route = OnboardingScreen.CreateCareCircle.route) {
+        // Todo
+      }
+      @Suppress("java:S1135")
+      composable(route = OnboardingScreen.EnterInvitation.route) {
+        // Todo
       }
     }
 
@@ -81,19 +111,32 @@ fun AmberApp(
         startDestination = CaregiverScreen.Home.route,
         route = NavGraphs.CAREGIVER,
     ) {
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Home.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Upload.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadText.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadPicture.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadAudio.route) {
+        // TODO
+      }
+      @Suppress("java:S1135")
+      composable(route = CaregiverScreen.Parameters.route) {
+        // TODO
+      }
+      @Suppress("java:S1135")
+      composable(route = CaregiverScreen.SeeInvitationCode.route) {
         // TODO
       }
     }
@@ -103,9 +146,11 @@ fun AmberApp(
         startDestination = PatientScreen.Home.route,
         route = NavGraphs.PATIENT,
     ) {
+      @Suppress("java:S1135")
       composable(route = PatientScreen.Home.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = PatientScreen.SeePictures.route) {
         // TODO
       }
