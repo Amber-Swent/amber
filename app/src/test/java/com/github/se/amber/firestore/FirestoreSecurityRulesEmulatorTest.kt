@@ -141,6 +141,45 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
+  fun invitationList_requiresCreatorAndCircleMembership_enforcedByEmulator() {
+    val sharedCircleId = "shared-circle"
+    val outsideCircleId = "outside-circle"
+    val creator = "creator"
+    val otherCaregiver = "other-caregiver"
+
+    fs.adminSet("users/$creator", user(creator, "CAREGIVER", listOf(sharedCircleId), "Ada"))
+    fs.adminSet(
+        "users/$otherCaregiver",
+        user(otherCaregiver, "CAREGIVER", listOf(sharedCircleId), "Bea"),
+    )
+    fs.adminSet(
+        "careCircles/$sharedCircleId",
+        circle(sharedCircleId, creator, listOf(creator, otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "careCircles/$outsideCircleId",
+        circle(outsideCircleId, creator, listOf(creator), patientId = ""),
+    )
+    fs.adminSet(
+        "invitations/CREATOR",
+        invite("CREATOR", sharedCircleId, creator, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/OTHER",
+        invite("OTHER", sharedCircleId, otherCaregiver, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/OUTSIDE",
+        invite("OUTSIDE", outsideCircleId, creator, expiresAt = now + 60_000),
+    )
+
+    fs.assertSucceeds(creator, fs.listInvitations(creator, sharedCircleId))
+    fs.assertSucceeds(otherCaregiver, fs.listInvitations(otherCaregiver, sharedCircleId))
+    fs.assertFails(otherCaregiver, fs.listInvitations(creator, sharedCircleId))
+    fs.assertFails(creator, fs.listInvitations(creator, outsideCircleId))
+  }
+
+  @Test
   fun crossFamilyAccess_requiresMatchingProfileAndCircleFamilyIds_enforcedByEmulator() {
     val familyA = "family-a"
     val familyB = "family-b"
