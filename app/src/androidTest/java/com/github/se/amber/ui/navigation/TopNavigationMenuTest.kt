@@ -43,7 +43,7 @@ class TopNavigationMenuTest {
   @Test
   fun rootIsDisplayed() {
     setMenu()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.ROOT).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
   }
 
   @Test
