@@ -172,37 +172,27 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun concurrentProfileTransactions_preserveTheFirstCommittedProfile_enforcedByEmulator() {
+  fun concurrentProfileCreates_preserveTheFirstCommittedProfile_enforcedByEmulator() {
     val uid = "concurrent-user"
-    val firstTransaction = fs.beginTransaction(uid)
-    val secondTransaction = fs.beginTransaction(uid)
-
-    assertEquals(404, fs.getInTransaction("users/$uid", firstTransaction, uid).first)
-    assertEquals(404, fs.getInTransaction("users/$uid", secondTransaction, uid).first)
-
-    fs.assertSucceeds(
-        fs.commitInTransaction(
-            firstTransaction,
-            uid,
-            fs.setWrite("users/$uid", user(uid, "PATIENT", emptyList(), "First")),
-        )
-    )
-    val conflictingCommit =
-        fs.commitInTransaction(
-            secondTransaction,
-            uid,
-            fs.setWrite("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second")),
-        )
+    fs.assertSucceeds(uid, fs.create("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
+    val conflictingCreate = fs.create("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second"))
     assertEquals(
-        "The stale transaction must abort instead of overwriting the first profile",
+        "A concurrent profile creation must not overwrite the first profile",
         409,
-        conflictingCommit(),
+        conflictingCreate(uid),
     )
 
     val (status, body) = fs.adminGet("users/$uid")
     assertEquals(200, status)
-    assertTrue(body.contains("\"firstName\":{\"stringValue\":\"First\"}"))
-    assertFalse(body.contains("\"firstName\":{\"stringValue\":\"Second\"}"))
+    assertTrue(
+        "Expected the first profile value in $body",
+        Regex("\"firstName\"\\s*:\\s*\\{\\s*\"stringValue\"\\s*:\\s*\"First\"")
+            .containsMatchIn(body),
+    )
+    assertFalse(
+        Regex("\"firstName\"\\s*:\\s*\\{\\s*\"stringValue\"\\s*:\\s*\"Second\"")
+            .containsMatchIn(body)
+    )
   }
 
   @Test
@@ -456,6 +446,10 @@ private class FirestoreEmulatorClient(
     commitAs(bearer(uid), setWrite(path, fields))
   }
 
+  fun create(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
+    commitAs(bearer(uid), createWrite(path, fields))
+  }
+
   fun patch(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(
         bearer(uid),
@@ -535,41 +529,11 @@ private class FirestoreEmulatorClient(
   fun setWrite(path: String, fields: Map<String, Any?>): Map<String, Any?> =
       mapOf("update" to mapOf("name" to docName(path), "fields" to encodeFields(fields)))
 
+  private fun createWrite(path: String, fields: Map<String, Any?>): Map<String, Any?> =
+      setWrite(path, fields) + ("currentDocument" to mapOf("exists" to false))
+
   fun commit(vararg writes: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(bearer(uid), *writes)
-  }
-
-  fun beginTransaction(uid: String): String {
-    val (status, body) =
-        requestWithBody(
-            "POST",
-            "$host/v1/projects/$projectId/databases/(default)/documents:beginTransaction",
-            token = bearer(uid),
-            body = emptyMap(),
-        )
-    assertTrue("Beginning transaction failed with HTTP $status", status in 200..299)
-    return Regex("\"transaction\"\\s*:\\s*\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-        ?: error("Firestore emulator did not return a transaction ID: $body")
-  }
-
-  fun getInTransaction(path: String, transaction: String, uid: String): Pair<Int, String> =
-      requestWithBody(
-          "GET",
-          "${docUrl(path)}?transaction=${java.net.URLEncoder.encode(transaction, Charsets.UTF_8)}",
-          token = bearer(uid),
-      )
-
-  fun commitInTransaction(
-      transaction: String,
-      uid: String,
-      vararg writes: Map<String, Any?>,
-  ): () -> Int = {
-    request(
-        "POST",
-        "$host/v1/projects/$projectId/databases/(default)/documents:commit",
-        token = bearer(uid),
-        body = mapOf("transaction" to transaction, "writes" to writes.toList()),
-    )
   }
 
   private fun commitAs(token: String?, vararg writes: Map<String, Any?>): Int =
