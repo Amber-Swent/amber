@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
   }
 }
 
+@Suppress("java:S1135")
 @Composable
 fun AmberApp(
     // TODO add context and credential manager
@@ -67,6 +68,7 @@ fun AmberApp(
         route = NavGraphs.AUTH,
     ) {
       // SignInScreen
+      @Suppress("java:S1135")
       composable(route = AuthScreen.Auth.route) {
         // TODO
       }
@@ -86,15 +88,19 @@ fun AmberApp(
         startDestination = OnboardingScreen.CreateProfile.route,
         route = NavGraphs.ONBOARDING,
     ) {
+      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateProfile.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CaregiverChoice.route) {
         // Todo
       }
+      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateCareCircle.route) {
         // Todo
       }
+      @Suppress("java:S1135")
       composable(route = OnboardingScreen.EnterInvitation.route) {
         // Todo
       }
@@ -105,24 +111,31 @@ fun AmberApp(
         startDestination = CaregiverScreen.Home.route,
         route = NavGraphs.CAREGIVER,
     ) {
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Home.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Upload.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadText.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadPicture.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadAudio.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Parameters.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = CaregiverScreen.SeeInvitationCode.route) {
         // TODO
       }
@@ -133,9 +146,11 @@ fun AmberApp(
         startDestination = PatientScreen.Home.route,
         route = NavGraphs.PATIENT,
     ) {
+      @Suppress("java:S1135")
       composable(route = PatientScreen.Home.route) {
         // TODO
       }
+      @Suppress("java:S1135")
       composable(route = PatientScreen.SeePictures.route) {
         // TODO
       }

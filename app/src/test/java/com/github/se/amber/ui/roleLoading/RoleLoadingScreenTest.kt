@@ -155,6 +155,17 @@ class RoleLoadingScreenTest {
     assertTrue(loadedRoles.isEmpty())
   }
 
+  @Test
+  fun error_doubleClickOnBackToLogin_signsOutOnlyOnce() {
+    setScreen(RoleState.Error)
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
+
+    verify(exactly = 1) { viewModel.signOut() }
+    assertEquals(1, signedOutCount)
+  }
+
   // ---------- NoProfile ----------
 
   @Test
