@@ -58,7 +58,7 @@ import com.github.se.amber.ui.theme.lightOrange
  * @param context Android context used for Google authentication.
  * @param credentialManager Credential Manager used for Google authentication.
  * @param emailSignInViewModel ViewModel holding the state of the screen.
- * @param onContinue Called when the user presses the Continue button.
+ * @param onContinue Called when the user presses Continue with a nonblank email address.
  * @param onGoogleSignIn Called after Google authentication succeeds.
  */
 @Composable
@@ -97,7 +97,17 @@ fun EmailSignInScreen(
   )
 }
 
-/** Renders the email sign-in UI from state supplied by the caller. */
+/**
+ * Renders the email entry and Google sign-in options without owning authentication state.
+ *
+ * The caller supplies the current state and handles each user action through callbacks.
+ *
+ * @param uiState Email value and Google sign-in loading state to display.
+ * @param onEmailChange Called when the email field changes.
+ * @param onContinue Called when the user presses Continue.
+ * @param onGoogleClick Called when the user presses the Google sign-in button.
+ * @param modifier Modifier applied to the authentication layout.
+ */
 @Composable
 private fun EmailSignInContent(
     uiState: EmailSignInUiState,

@@ -208,7 +208,18 @@ internal fun AuthenticationButton(
   }
 }
 
-/** Displays authentication copy with a consistent text, style, weight, and modifier interface. */
+/**
+ * Displays text used by the authentication screens with optional presentation overrides.
+ *
+ * When [color] is unspecified, the text uses the style's color or the surrounding content color.
+ *
+ * @param modifier Modifier applied to the text.
+ * @param text Content to display.
+ * @param textAlign Alignment of lines within the text when it wraps.
+ * @param style Typography style applied to the text.
+ * @param fontWeight Optional weight overriding the style's weight.
+ * @param color Optional text color; defaults to [Color.Unspecified].
+ */
 @Composable
 internal fun AuthenticationText(
     modifier: Modifier = Modifier,
