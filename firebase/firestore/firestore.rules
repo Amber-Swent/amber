@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
+// Modified by Neha Chakraborty and Copilot.
 rules_version = '2';
 
 service cloud.firestore {
@@ -53,6 +54,16 @@ service cloud.firestore {
       return isSignedIn()
         && existsAfter(userPath(request.auth.uid))
         && getAfter(userPath(request.auth.uid)).data.role == 'CAREGIVER';
+    }
+
+    function isInitialCareCircleLink() {
+      let circleId = request.resource.data.circleIds[0];
+      return resource.data.role == 'CAREGIVER'
+        && resource.data.circleIds.size() == 0
+        && request.resource.data.circleIds.size() == 1
+        && !exists(circlePath(circleId))
+        && circleDocAfter(circleId).createdBy == request.auth.uid
+        && circleDocAfter(circleId).memberIds == [request.auth.uid];
     }
 
     function sharesCircleWith() {
@@ -112,9 +123,19 @@ service cloud.firestore {
       allow update: if isSelf(uid)
         && request.resource.data.uid == uid
         && request.resource.data.role == resource.data.role
-        && request.resource.data.circleIds == resource.data.circleIds
-        && request.resource.data.diff(resource.data)
-             .affectedKeys().hasOnly(['person']);
+        && (
+          (
+            request.resource.data.circleIds == resource.data.circleIds
+            && request.resource.data.diff(resource.data)
+                 .affectedKeys().hasOnly(['person'])
+          )
+          || (
+            request.resource.data.person == resource.data.person
+            && request.resource.data.diff(resource.data)
+                 .affectedKeys().hasOnly(['circleIds'])
+            && isInitialCareCircleLink()
+          )
+        );
 
       allow delete: if false;
     }
@@ -178,7 +199,9 @@ service cloud.firestore {
 
     match /invitations/{code} {
       allow get: if isSignedIn();
-      allow list: if false;
+      allow list: if isCaregiver()
+        && resource.data.createdBy == request.auth.uid
+        && isMember(resource.data.circleId);
 
       allow create: if isCaregiver()
         && isMember(request.resource.data.circleId)

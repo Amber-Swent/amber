@@ -59,6 +59,15 @@ class FirestoreSecurityRulesEmulatorTest {
         ),
     )
     fs.assertFails(care, fs.list("invitations"))
+    fs.assertSucceeds(care, fs.listInvitations(care, circleId))
+    fs.assertFails(null, fs.listInvitations(care, circleId))
+    fs.assertFails(
+        care,
+        fs.set(
+            "invitations/WITHROLE",
+            invite("WITHROLE", circleId, care, expiresAt = now + 60_000).plus("role" to "PATIENT"),
+        ),
+    )
 
     // Stranger is denied circle and caregiver profile reads.
     fs.assertFails(stranger, fs.get("careCircles/$circleId"))
@@ -85,12 +94,34 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(peer, fs.patch("users/$peer", mapOf("circleIds" to listOf(circleId))))
 
+    val peerCircleId = "c-peer"
+    fs.assertSucceeds(
+        peer,
+        fs.commit(
+            fs.setWrite("users/$peer", user(peer, "CAREGIVER", listOf(peerCircleId), "Bob")),
+            fs.setWrite(
+                "careCircles/$peerCircleId",
+                circle(peerCircleId, peer, listOf(peer), patientId = ""),
+            ),
+        ),
+    )
+    fs.assertSucceeds(peer, fs.get("careCircles/$peerCircleId"))
+
     // Admin SDK seeds membership (stands in for Cloud Functions redeem in PR #83).
     fs.adminSet(
         "careCircles/$circleId",
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertSucceeds(
+        peer,
+        fs.set(
+            "invitations/PEER01",
+            invite("PEER01", circleId, peer, expiresAt = now + 60_000),
+        ),
+    )
+    fs.assertFails(care, fs.listInvitations(peer, circleId))
+    fs.assertFails(peer, fs.listInvitations(care, circleId))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
   }
@@ -125,6 +156,83 @@ class FirestoreSecurityRulesEmulatorTest {
     assertEquals(200, status)
     assertTrue(body.contains("\"$code\""))
     assertFalse(body.contains("\"role\""))
+  }
+
+  @Test
+  fun invitationList_creatorQueryReturnsOnlyOwnCircleInvitations_enforcedByEmulator() {
+    val sharedCircleId = "shared-circle"
+    val outsideCircleId = "outside-circle"
+    val creator = "creator"
+    val otherCaregiver = "other-caregiver"
+
+    fs.adminSet("users/$creator", user(creator, "CAREGIVER", listOf(sharedCircleId), "Ada"))
+    fs.adminSet(
+        "users/$otherCaregiver",
+        user(otherCaregiver, "CAREGIVER", listOf(sharedCircleId), "Bea"),
+    )
+    fs.adminSet(
+        "careCircles/$sharedCircleId",
+        circle(sharedCircleId, creator, listOf(creator, otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "careCircles/$outsideCircleId",
+        circle(outsideCircleId, otherCaregiver, listOf(otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "invitations/CREATOR_ACTIVE",
+        invite("CREATOR_ACTIVE", sharedCircleId, creator, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/CREATOR_USED",
+        invite("CREATOR_USED", sharedCircleId, creator, expiresAt = now + 60_000, usedBy = "u"),
+    )
+    fs.adminSet(
+        "invitations/OTHER",
+        invite("OTHER", sharedCircleId, otherCaregiver, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/OUTSIDE",
+        invite("OUTSIDE", outsideCircleId, otherCaregiver, expiresAt = now + 60_000),
+    )
+
+    val (code, body) = fs.queryInvitations(creator, createdBy = creator, circleId = sharedCircleId)
+
+    assertTrue("Expected creator query to succeed but HTTP $code", code in 200..299)
+    assertEquals(setOf("CREATOR_ACTIVE", "CREATOR_USED"), invitationCodes(body))
+  }
+
+  @Test
+  fun invitationList_deniesQueriesForOtherCreatorsOrForeignCircles_enforcedByEmulator() {
+    val sharedCircleId = "shared-circle"
+    val outsideCircleId = "outside-circle"
+    val creator = "creator"
+    val otherCaregiver = "other-caregiver"
+
+    fs.adminSet("users/$creator", user(creator, "CAREGIVER", listOf(sharedCircleId), "Ada"))
+    fs.adminSet(
+        "users/$otherCaregiver",
+        user(otherCaregiver, "CAREGIVER", listOf(sharedCircleId, outsideCircleId), "Bea"),
+    )
+    fs.adminSet(
+        "careCircles/$sharedCircleId",
+        circle(sharedCircleId, creator, listOf(creator, otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "careCircles/$outsideCircleId",
+        circle(outsideCircleId, otherCaregiver, listOf(otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "invitations/CREATOR",
+        invite("CREATOR", sharedCircleId, creator, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/OUTSIDE",
+        invite("OUTSIDE", outsideCircleId, creator, expiresAt = now + 60_000),
+    )
+
+    fs.assertFails(otherCaregiver, fs.listInvitations(creator, sharedCircleId))
+    fs.assertFails(creator, fs.listInvitations(creator, outsideCircleId))
+    fs.assertFails(creator, fs.list("invitations"))
   }
 
   @Test
@@ -187,37 +295,12 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun concurrentProfileTransactions_preserveTheFirstCommittedProfile_enforcedByEmulator() {
-    val uid = "concurrent-user"
-    val firstTransaction = fs.beginTransaction(uid)
-    val secondTransaction = fs.beginTransaction(uid)
+  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+    val uid = "existing-user"
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
 
-    assertEquals(404, fs.getInTransaction("users/$uid", firstTransaction, uid).first)
-    assertEquals(404, fs.getInTransaction("users/$uid", secondTransaction, uid).first)
-
-    fs.assertSucceeds(
-        fs.commitInTransaction(
-            firstTransaction,
-            uid,
-            fs.setWrite("users/$uid", user(uid, "PATIENT", emptyList(), "First")),
-        )
-    )
-    val conflictingCommit =
-        fs.commitInTransaction(
-            secondTransaction,
-            uid,
-            fs.setWrite("users/$uid", user(uid, "CAREGIVER", emptyList(), "Second")),
-        )
-    assertEquals(
-        "The stale transaction must abort instead of overwriting the first profile",
-        409,
-        conflictingCommit(),
-    )
-
-    val (status, body) = fs.adminGet("users/$uid")
-    assertEquals(200, status)
-    assertTrue(body.contains("\"firstName\":{\"stringValue\":\"First\"}"))
-    assertFalse(body.contains("\"firstName\":{\"stringValue\":\"Second\"}"))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
   }
 
   @Test
@@ -411,6 +494,13 @@ class FirestoreSecurityRulesEmulatorTest {
             "createdAt" to 1L,
         )
 
+    /** Extracts invitation codes from a `runQuery` response body. */
+    private fun invitationCodes(runQueryBody: String): Set<String> =
+        Regex(""""name"\s*:\s*"[^"]*/documents/invitations/([^"]+)"""")
+            .findAll(runQueryBody)
+            .map { it.groupValues[1] }
+            .toSet()
+
     private fun invite(
         code: String,
         circleId: String,
@@ -488,6 +578,55 @@ private class FirestoreEmulatorClient(
     request("GET", docUrl(collectionId), token = bearer(uid))
   }
 
+  fun listInvitations(createdBy: String, circleId: String): (String?) -> Int = { uid ->
+    queryInvitations(uid, createdBy, circleId).first
+  }
+
+  /** Runs the repository's `createdBy` + `circleId` query and returns HTTP status and JSON body. */
+  fun queryInvitations(uid: String?, createdBy: String, circleId: String): Pair<Int, String> =
+      requestWithBody(
+          "POST",
+          "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
+          token = bearer(uid),
+          body =
+              mapOf(
+                  "structuredQuery" to
+                      mapOf(
+                          "from" to listOf(mapOf("collectionId" to "invitations")),
+                          "where" to
+                              mapOf(
+                                  "compositeFilter" to
+                                      mapOf(
+                                          "op" to "AND",
+                                          "filters" to
+                                              listOf(
+                                                  mapOf(
+                                                      "fieldFilter" to
+                                                          mapOf(
+                                                              "field" to
+                                                                  mapOf("fieldPath" to "createdBy"),
+                                                              "op" to "EQUAL",
+                                                              "value" to
+                                                                  mapOf("stringValue" to createdBy),
+                                                          ),
+                                                  ),
+                                                  mapOf(
+                                                      "fieldFilter" to
+                                                          mapOf(
+                                                              "field" to
+                                                                  mapOf("fieldPath" to "circleId"),
+                                                              "op" to "EQUAL",
+                                                              "value" to
+                                                                  mapOf("stringValue" to circleId),
+                                                          ),
+                                                  ),
+                                              ),
+                                      ),
+                              ),
+                      ),
+              ),
+      )
+
   fun delete(path: String): (String?) -> Int = { uid ->
     commitAs(bearer(uid), mapOf("delete" to docName(path)))
   }
@@ -497,39 +636,6 @@ private class FirestoreEmulatorClient(
 
   fun commit(vararg writes: Map<String, Any?>): (String?) -> Int = { uid ->
     commitAs(bearer(uid), *writes)
-  }
-
-  fun beginTransaction(uid: String): String {
-    val (status, body) =
-        requestWithBody(
-            "POST",
-            "$host/v1/projects/$projectId/databases/(default)/documents:beginTransaction",
-            token = bearer(uid),
-            body = emptyMap(),
-        )
-    assertTrue("Beginning transaction failed with HTTP $status", status in 200..299)
-    return Regex("\"transaction\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-        ?: error("Firestore emulator did not return a transaction ID: $body")
-  }
-
-  fun getInTransaction(path: String, transaction: String, uid: String): Pair<Int, String> =
-      requestWithBody(
-          "GET",
-          "${docUrl(path)}?transaction=${java.net.URLEncoder.encode(transaction, Charsets.UTF_8)}",
-          token = bearer(uid),
-      )
-
-  fun commitInTransaction(
-      transaction: String,
-      uid: String,
-      vararg writes: Map<String, Any?>,
-  ): () -> Int = {
-    request(
-        "POST",
-        "$host/v1/projects/$projectId/databases/(default)/documents:commit",
-        token = bearer(uid),
-        body = mapOf("transaction" to transaction, "writes" to writes.toList()),
-    )
   }
 
   private fun commitAs(token: String?, vararg writes: Map<String, Any?>): Int =
@@ -590,8 +696,8 @@ private class FirestoreEmulatorClient(
   ): Pair<Int, String> {
     val connection = URL(url).openConnection() as HttpURLConnection
     connection.requestMethod = method
-    connection.connectTimeout = 5_000
-    connection.readTimeout = 5_000
+    connection.connectTimeout = REQUEST_TIMEOUT_MS
+    connection.readTimeout = REQUEST_TIMEOUT_MS
     if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
     if (body != null) {
       connection.doOutput = true
@@ -642,4 +748,8 @@ private class FirestoreEmulatorClient(
         is List<*> -> value.joinToString(",", "[", "]") { jsonEncode(it) }
         else -> error("Cannot JSON-encode ${value::class}")
       }
+
+  private companion object {
+    const val REQUEST_TIMEOUT_MS = 5_000
+  }
 }

@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.model.user
 
 /**
@@ -21,4 +22,6 @@ data class Person(
     val firstName: String = "",
     val lastName: String = "",
     val nickname: String? = null, // default nickname; per-viewer ones are in CareCircle.nicknames
-)
+) {
+  fun hasValidName(): Boolean = firstName.isNotBlank()
+}

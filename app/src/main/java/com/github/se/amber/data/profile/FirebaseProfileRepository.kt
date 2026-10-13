@@ -53,14 +53,17 @@ class FirebaseProfileRepository(
       Result.success(Unit)
     } catch (exception: CancellationException) {
       throw exception
-    } catch (error: ProfileCreationError) {
-      Result.failure(error)
-    } catch (exception: FirebaseFirestoreException) {
-      Result.failure(exception.toProfileCreationError())
     } catch (exception: Exception) {
-      Result.failure(ProfileCreationError.Unknown(exception))
+      Result.failure(exception.toProfileCreationError())
     }
   }
+
+  private fun Exception.toProfileCreationError(): ProfileCreationError =
+      when (this) {
+        is ProfileCreationError -> this
+        is FirebaseFirestoreException -> toProfileCreationError()
+        else -> ProfileCreationError.Unknown(this)
+      }
 
   private fun FirebaseFirestoreException.toProfileCreationError(): ProfileCreationError =
       when (code) {
