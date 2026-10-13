@@ -7,43 +7,63 @@ import com.github.se.amber.model.media.SendState
 
 /** How a [MediaSender.send] attempt ended. */
 enum class SendResult {
-  /** The media is in Firebase (or no longer in the outbox): nothing left to do. */
+  /**
+   * The media is in Firebase, or no longer in the outbox (e.g. discarded, or sent by an earlier
+   * attempt): nothing left to do.
+   */
   DONE,
 
   /** It failed for a reason that may go away (e.g. offline): try again later. */
   RETRY,
 
-  /** Firebase refused it: trying again won't help. Its outbox entry is now [SendState.FAILED]. */
+  /**
+   * Trying again won't help (e.g. permission denied). Its outbox entry is now [SendState.FAILED].
+   */
   FAILED,
 }
 
 /**
- * Sends one media of the outbox to Firebase: its file to Storage first, then its metadata to
- * Firestore. Implemented by [MediaRepositoryFirebase] and called only by the background send job,
- * never by ViewModels, which is why it isn't part of [MediaRepository].
+ * Sends one media of the outbox to Firebase. Implemented by [MediaRepositoryFirebase] and called
+ * only by the background send job, never by ViewModels, which is why it isn't part of
+ * [MediaRepository].
  */
 fun interface MediaSender {
   /**
-   * Sends the media [mediaId] of [circleId] from the outbox. Safe to call again after any failure
-   * or crash: every step writes to the same Storage path and the same document.
+   * Sends the media [mediaId] of [circleId] from the outbox: marks it [SendState.SENDING], uploads
+   * its file to Storage, writes its metadata to Firestore, then moves the file into the cache and
+   * removes it from the outbox. The file goes first so a Firestore document never points at a
+   * missing Storage file.
+   *
+   * Idempotent (doing it twice has the same effect as once): every attempt writes to the same
+   * Storage path and the same document, so it can be called again after any failure or crash.
+   *
+   * Never throws, except [kotlinx.coroutines.CancellationException]: unexpected errors give
+   * [SendResult.RETRY], so a bug never loses a media.
    */
   suspend fun send(circleId: String, mediaId: String): SendResult
 }
 
 /**
- * Runs [MediaSender.send] in the background, once a connection is available, even if the app was
- * closed meanwhile. Being an interface, it can be replaced by a fake in tests.
+ * Runs [MediaSender.send] in the background once a connection is available, even if the app was
+ * closed meanwhile, and runs it again later (waiting longer each time) while it gives
+ * [SendResult.RETRY]. Being an interface, it can be replaced by a fake in tests.
+ *
+ * Cancelling never touches the outbox: the entry stays, only its send stops. A send already under
+ * way may still complete.
  */
 interface MediaSendScheduler {
-  /** Plans the send of the media [mediaId] of [circleId]; no effect if it is already planned. */
+  /**
+   * Schedules the send of the media [mediaId] of [circleId]; no effect if it is already scheduled
+   * or running.
+   */
   fun schedule(circleId: String, mediaId: String)
 
-  /** Cancels the planned send of the media [mediaId] of [circleId], if any. */
+  /** Cancels the scheduled send of the media [mediaId] of [circleId], if any. */
   fun cancel(circleId: String, mediaId: String)
 
-  /** Cancels the planned sends of every media of [circleId]. */
+  /** Cancels the scheduled sends of every media of [circleId]. */
   fun cancelCircle(circleId: String)
 
-  /** Cancels every planned send, of every circle. */
+  /** Cancels every scheduled send, of every circle. */
   fun cancelAll()
 }

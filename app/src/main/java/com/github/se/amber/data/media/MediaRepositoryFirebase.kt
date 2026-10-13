@@ -14,8 +14,9 @@ import kotlinx.coroutines.flow.Flow
  * bucket through [fileStorage], with local copies kept in [cache]. Also the [MediaSender] the
  * background send job calls.
  *
- * Only the downloads are implemented so far ([getFile] and the cache clears). The metadata, outbox
- * and send methods throw [NotImplementedError] until the outbox and the Firestore part are added.
+ * Only the cache is implemented so far: [getFile] (without the outbox yet) and the clears. The
+ * metadata, outbox and send methods throw [NotImplementedError] until the outbox and the Firestore
+ * part are added.
  */
 class MediaRepositoryFirebase(
     private val fileStorage: MediaFileStorage,
