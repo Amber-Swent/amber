@@ -5,11 +5,11 @@ import com.github.se.amber.model.user.Role
 import com.google.firebase.auth.FirebaseUser
 
 /**
- * Navigation to the sign in screen if not connected, or to the charging screen the time to get the
+ * Navigation to the sign in screen if not connected, or to the loading screen the time to get the
  * role of the user
  */
-fun graphForAuthState(user: FirebaseUser?): String =
-    if (user == null) NavGraphs.AUTH else NavGraphs.ROLE_LOADING
+fun startDestinationForAuthState(user: FirebaseUser?): String =
+    if (user == null) NavGraphs.AUTH else TransitionScreen.RoleLoading.route
 
 /** Navigation to the Graph once we know the role */
 fun graphForRole(role: Role): String =

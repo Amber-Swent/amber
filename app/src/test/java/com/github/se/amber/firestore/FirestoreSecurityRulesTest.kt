@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
+// Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.model.appointment.Appointment
@@ -205,8 +206,19 @@ class FirestoreSecurityRulesTest {
     db.putUser(onboard)
     val personOnly = onboard.copy(person = Person(id = "new", firstName = "Newer"))
     assertTrue(db.rulesFor("new").canUpdateUser(onboard, personOnly))
+    val newCircle =
+        CareCircle(
+            id = "c2",
+            memberIds = listOf("new"),
+            createdBy = "new",
+            createdAt = 1L,
+        )
+    db.stageCircle(newCircle)
+    assertTrue(
+        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf(newCircle.id))),
+    )
     assertFalse(
-        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("c1"))),
+        db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("other"))),
     )
     assertFalse(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
     assertFalse(db.rulesFor("new").canDeleteUser())
@@ -359,7 +371,6 @@ class FirestoreSecurityRulesTest {
         Invitation(
             code = "ABC123",
             circleId = "c1",
-            role = Role.PATIENT,
             createdBy = "care",
             createdAt = now - 10,
             expiresAt = now + 60_000,
@@ -367,7 +378,9 @@ class FirestoreSecurityRulesTest {
         )
 
     assertTrue(db.rulesFor("care", now).canGetInvitation())
-    assertFalse(db.rulesFor("care", now).canListInvitations())
+    assertTrue(db.rulesFor("care", now).canListInvitation(invite))
+    assertFalse(db.rulesFor("pat", now).canListInvitation(invite))
+    assertFalse(db.rulesFor("care", now).canListInvitation(invite.copy(createdBy = "other")))
     assertTrue(db.rulesFor("care", now).canCreateInvitation(invite))
     assertFalse(db.rulesFor("pat", now).canCreateInvitation(invite.copy(createdBy = "pat")))
 
@@ -546,12 +559,22 @@ private class FirestoreSecurityRules(
   fun canUpdateUser(before: UserProfile, after: UserProfile): Boolean {
     if (!isSelf(before.uid) || after.uid != before.uid) return false
     if (after.role != before.role) return false
-    if (after.circleIds != before.circleIds) return false
     val affected = affectedUserKeys(before, after)
-    return affected.all { it == "person" }
+    return (affected.all { it == "person" } && after.circleIds == before.circleIds) ||
+        (affected == setOf("circleIds") && isInitialCareCircleLink(before, after))
   }
 
   fun canDeleteUser(): Boolean = false
+
+  private fun isInitialCareCircleLink(before: UserProfile, after: UserProfile): Boolean {
+    val circleId = after.circleIds.singleOrNull() ?: return false
+    val createdCircle = lookup.circleAfter(circleId) ?: return false
+    return before.role == Role.CAREGIVER &&
+        before.circleIds.isEmpty() &&
+        lookup.circle(circleId) == null &&
+        createdCircle.createdBy == authUid &&
+        createdCircle.memberIds == listOf(authUid)
+  }
 
   /** Rules also require `createdAt is int`; CareCircle always carries a Long when mirrored. */
   fun canCreateCircle(resource: CareCircle): Boolean =
@@ -595,7 +618,8 @@ private class FirestoreSecurityRules(
 
   fun canGetInvitation(): Boolean = isSignedIn()
 
-  fun canListInvitations(): Boolean = false
+  fun canListInvitation(resource: Invitation): Boolean =
+      isCaregiver() && resource.createdBy == authUid && isMember(resource.circleId)
 
   fun canCreateInvitation(resource: Invitation): Boolean =
       isCaregiver() &&

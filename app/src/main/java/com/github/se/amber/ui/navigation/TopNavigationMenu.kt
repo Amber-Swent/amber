@@ -10,22 +10,22 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
+import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
 
 object TopNavigationMenuTestTags {
-  const val ROOT = "topNavigationMenuRoot"
-  const val TITLE = "topNavigationMenuTitle"
-  const val BACK_BUTTON = "topNavigationMenuBackButton"
-  const val DIVIDER = "topNavigationMenuDivider"
+  const val TOP_NAVIGATION_MENU = "top_navigation_menu"
+  const val TITLE = "top_navigation_menu_title"
+  const val BACK_BUTTON = "top_navigation_menu_back_button"
+  const val DIVIDER = "top_navigation_menu_divider"
 }
 
 /** Text actions that can be displayed in the top navigation menu. */
@@ -50,7 +50,9 @@ fun TopNavigationMenu(
     action: TopNavigationAction,
     onBackClick: () -> Unit,
 ) {
-  Column(modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.ROOT)) {
+  Column(
+      modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
+  ) {
     TopAppBar(
         title = {
           Text(
@@ -71,11 +73,12 @@ fun TopNavigationMenu(
             )
           }
         },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+        colors =
+            TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
     )
     HorizontalDivider(
         Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
-        thickness = 1.dp,
+        thickness = DIVIDER_THICKNESS,
         color = lightGray,
     )
   }
