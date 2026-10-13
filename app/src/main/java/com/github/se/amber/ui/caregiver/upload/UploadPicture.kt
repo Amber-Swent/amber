@@ -149,8 +149,7 @@ fun UploadPictureScreen(
               modifier = Modifier.height(TEXT_FIELD),
           )
 
-          // TODO : use DisplayScrollableDatePicker() once merge
-          // and should update the uiState accordingly
+          // TODO : use DisplayScrollableDatePicker() once merge and update the uiState accordingly
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 

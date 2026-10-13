@@ -5,6 +5,8 @@ package com.github.se.amber.ui.caregiver.upload
 
 import androidx.lifecycle.ViewModel
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MediaStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +49,7 @@ data class UploadPictureUIState(
 /** Manages the state and user actions for the picture upload screen. */
 // TODO: use Repo once available
 class UploadPictureViewModel(
-    // private val repository: MediaRepository = MediaRepositoryProvider.repository,
+    private val repository: MediaRepository = MediaRepositoryProvider.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
