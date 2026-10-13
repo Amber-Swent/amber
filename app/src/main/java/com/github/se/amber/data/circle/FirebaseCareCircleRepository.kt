@@ -15,7 +15,7 @@ class FirebaseCareCircleRepository(
 ) : CareCircleRepository {
 
   override suspend fun getCircle(circleId: String): Result<CareCircle> {
-    if (circleId.isBlank()) {
+    if (!isValidId(circleId)) {
       return Result.failure(CareCircleError.InvalidCircleId)
     }
 
@@ -24,7 +24,8 @@ class FirebaseCareCircleRepository(
       val circle =
           snapshot.takeIf { it.exists() }?.toObject(CareCircle::class.java)
               ?: return Result.failure(CareCircleError.NotFound)
-      Result.success(circle)
+      // toObject leaves id at its default: the document id is not a stored field.
+      Result.success(circle.copy(id = snapshot.id))
     } catch (exception: CancellationException) {
       throw exception
     } catch (exception: FirebaseFirestoreException) {
@@ -34,8 +35,12 @@ class FirebaseCareCircleRepository(
     }
   }
 
+  // A '/' would make document() resolve to a nested path and read a different document.
+  private fun isValidId(id: String): Boolean = id.isNotBlank() && id == id.trim() && '/' !in id
+
   private fun FirebaseFirestoreException.toCareCircleError(): CareCircleError =
       when (code) {
+        FirebaseFirestoreException.Code.NOT_FOUND -> CareCircleError.NotFound
         FirebaseFirestoreException.Code.PERMISSION_DENIED -> CareCircleError.PermissionDenied
         FirebaseFirestoreException.Code.UNAUTHENTICATED -> CareCircleError.NotAuthenticated
         FirebaseFirestoreException.Code.UNAVAILABLE,

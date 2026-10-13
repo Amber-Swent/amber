@@ -367,15 +367,16 @@ class FirestoreSecurityRulesEmulatorTest {
     val care = "care"
     val pat = "pat"
     val stranger = "stranger"
-    fs.adminSet("careCircles/$circleId", circle(circleId, care, listOf(care, pat), patientId = pat))
+    val circlePath = "careCircles/$circleId"
+    fs.adminSet(circlePath, circle(circleId, care, listOf(care, pat), patientId = pat))
     fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
     fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
     fs.adminSet("users/$stranger", user(stranger, "CAREGIVER", emptyList(), "Eve"))
 
-    fs.assertSucceeds(care, fs.get("careCircles/$circleId"))
-    fs.assertSucceeds(pat, fs.get("careCircles/$circleId"))
-    fs.assertFails(stranger, fs.get("careCircles/$circleId"))
-    fs.assertFails(null, fs.get("careCircles/$circleId"))
+    fs.assertSucceeds(care, fs.get(circlePath))
+    fs.assertSucceeds(pat, fs.get(circlePath))
+    fs.assertFails(stranger, fs.get(circlePath))
+    fs.assertFails(null, fs.get(circlePath))
     // A missing circle is denied rather than reported as not found, even to a signed-in user who
     // lists it in their profile, so the repository surfaces it as PermissionDenied.
     fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId, "c-missing"), "Ada"))

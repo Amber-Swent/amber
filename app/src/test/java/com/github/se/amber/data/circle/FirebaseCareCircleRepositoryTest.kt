@@ -2,6 +2,7 @@
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
+import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
@@ -12,7 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -50,7 +51,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_returnsStoredCircle() = runBlocking {
+  fun getCircle_returnsStoredCircle() = runTest {
     stubSnapshot(circleSnapshot(circle))
 
     val result = repository.getCircle(circleId)
@@ -60,7 +61,16 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_rejectsBlankIdBeforeAccessingFirestore() = runBlocking {
+  fun getCircle_takesIdFromDocumentIdRatherThanStoredFields() = runTest {
+    stubSnapshot(circleSnapshot(circle.copy(id = "")))
+
+    val result = repository.getCircle(circleId)
+
+    assertEquals(circleId, result.getOrThrow().id)
+  }
+
+  @Test
+  fun getCircle_rejectsBlankIdBeforeAccessingFirestore() = runTest {
     val result = repository.getCircle("  ")
 
     assertFailure<CareCircleError.InvalidCircleId>(result)
@@ -68,7 +78,23 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_reportsMissingDocumentAsNotFound() = runBlocking {
+  fun getCircle_rejectsUntrimmedIdBeforeAccessingFirestore() = runTest {
+    val result = repository.getCircle(" $circleId ")
+
+    assertFailure<CareCircleError.InvalidCircleId>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun getCircle_rejectsIdWithSlashBeforeAccessingFirestore() = runTest {
+    val result = repository.getCircle("$circleId/media/m1")
+
+    assertFailure<CareCircleError.InvalidCircleId>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun getCircle_reportsMissingDocumentAsNotFound() = runTest {
     stubSnapshot(circleSnapshot(circle = null, exists = false))
 
     val result = repository.getCircle(circleId)
@@ -77,7 +103,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_reportsUndecodableDocumentAsNotFound() = runBlocking {
+  fun getCircle_reportsNullMappedObjectAsNotFound() = runTest {
     stubSnapshot(circleSnapshot(circle = null))
 
     val result = repository.getCircle(circleId)
@@ -86,7 +112,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_wrapsDecodingFailure() = runBlocking {
+  fun getCircle_wrapsDecodingFailure() = runTest {
     val source = RuntimeException("Could not deserialize object")
     stubSnapshot(
         mockk {
@@ -101,8 +127,15 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_rethrowsCancellation() = runBlocking {
-    every { circleDocument.get() } throws CancellationException("cancelled")
+  fun getCircle_rethrowsCancellationFromCancelledTask() = runTest {
+    // A cancelled task, so the cancellation comes from await() rather than from get() itself.
+    val cancelled =
+        mockk<Task<DocumentSnapshot>> {
+          every { isComplete } returns true
+          every { isCanceled } returns true
+          every { exception } returns null
+        }
+    every { circleDocument.get() } returns cancelled
 
     try {
       repository.getCircle(circleId)
@@ -111,7 +144,16 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_mapsPermissionDeniedFirestoreFailure() = runBlocking {
+  fun getCircle_mapsNotFoundFirestoreFailure() = runTest {
+    stubFailure(FirebaseFirestoreException("missing", FirebaseFirestoreException.Code.NOT_FOUND))
+
+    val result = repository.getCircle(circleId)
+
+    assertFailure<CareCircleError.NotFound>(result)
+  }
+
+  @Test
+  fun getCircle_mapsPermissionDeniedFirestoreFailure() = runTest {
     stubFailure(
         FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
     )
@@ -122,7 +164,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_mapsUnauthenticatedFirestoreFailure() = runBlocking {
+  fun getCircle_mapsUnauthenticatedFirestoreFailure() = runTest {
     stubFailure(
         FirebaseFirestoreException("signed out", FirebaseFirestoreException.Code.UNAUTHENTICATED)
     )
@@ -133,7 +175,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_mapsUnavailableFirestoreFailureToNetwork() = runBlocking {
+  fun getCircle_mapsUnavailableFirestoreFailureToNetwork() = runTest {
     stubFailure(FirebaseFirestoreException("offline", FirebaseFirestoreException.Code.UNAVAILABLE))
 
     val result = repository.getCircle(circleId)
@@ -142,7 +184,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_mapsDeadlineExceededFirestoreFailureToNetwork() = runBlocking {
+  fun getCircle_mapsDeadlineExceededFirestoreFailureToNetwork() = runTest {
     stubFailure(
         FirebaseFirestoreException("timed out", FirebaseFirestoreException.Code.DEADLINE_EXCEEDED)
     )
@@ -153,7 +195,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_wrapsUnexpectedFirestoreFailure() = runBlocking {
+  fun getCircle_wrapsUnexpectedFirestoreFailure() = runTest {
     val source = FirebaseFirestoreException("failed", FirebaseFirestoreException.Code.INTERNAL)
     stubFailure(source)
 
@@ -163,7 +205,7 @@ class FirebaseCareCircleRepositoryTest {
   }
 
   @Test
-  fun getCircle_wrapsUnexpectedFailure() = runBlocking {
+  fun getCircle_wrapsUnexpectedFailure() = runTest {
     val source = IllegalStateException("failed")
     stubFailure(source)
 
@@ -183,6 +225,7 @@ class FirebaseCareCircleRepositoryTest {
   private fun circleSnapshot(circle: CareCircle?, exists: Boolean = true): DocumentSnapshot =
       mockk {
         every { this@mockk.exists() } returns exists
+        every { id } returns circleId
         every { toObject(CareCircle::class.java) } returns circle
       }
 

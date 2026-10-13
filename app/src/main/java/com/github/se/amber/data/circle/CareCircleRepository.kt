@@ -18,7 +18,7 @@ fun interface CareCircleRepository {
 
 /** Typed failures returned by [CareCircleRepository.getCircle]. */
 sealed class CareCircleError(message: String) : Exception(message) {
-  data object InvalidCircleId : CareCircleError("A care circle ID is required")
+  data object InvalidCircleId : CareCircleError("A valid care circle ID is required")
 
   data object NotFound : CareCircleError("The care circle does not exist")
 
