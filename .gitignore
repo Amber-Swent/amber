@@ -15,4 +15,3 @@ ui-debug.log
 functions/.env*
 !functions/.env.example
 functions/node_modules/
-.kotlin/
