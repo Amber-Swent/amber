@@ -124,6 +124,5 @@ class CreateProfileViewModel(
     }
   }
 
-  private fun Throwable.toSubmitErrorMessage(): String =
-      message ?: "Unable to create a profile"
+  private fun Throwable.toSubmitErrorMessage(): String = message ?: "Unable to create a profile"
 }
