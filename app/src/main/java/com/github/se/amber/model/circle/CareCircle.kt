@@ -19,9 +19,9 @@ typealias ViewerNicknames = Map<String, Map<String, String>>
  * Written:
  * - created by a caregiver, at onboarding or later (memberIds = [their uid], patientId = ""); its
  *   id is added to the creator's UserProfile.circleIds at the same time.
- * - memberIds (and patientId for a PATIENT code): only when an invitation is redeemed, together
- *   with the Invitation and the user's UserProfile.circleIds, so they always stay consistent.
- *   Members are added one at a time, never by rewriting the whole list.
+ * - memberIds (and patientId for a joining PATIENT profile): only when an invitation is redeemed,
+ *   together with the Invitation and the user's UserProfile.circleIds, so they always stay
+ *   consistent. Members are added one at a time, never by rewriting the whole list.
  * - people: one entry added, changed or removed at a time, never the whole map, so concurrent edits
  *   by two members don't overwrite each other's entries.
  * - nicknames: each member edits only their own entry (keyed by their uid).
