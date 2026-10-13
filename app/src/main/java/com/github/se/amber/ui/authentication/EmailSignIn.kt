@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -45,6 +46,15 @@ import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
+
+internal object EmailSignInTestTags {
+  const val HEADING = "emailSignInHeading"
+  const val EMAIL_FIELD = "emailSignInEmailField"
+  const val CONTINUE_BUTTON = "emailSignInContinueButton"
+  const val GOOGLE_BUTTON = "emailSignInGoogleButton"
+  const val SIGN_UP_PROMPT = "emailSignInSignUpPrompt"
+  const val SIGN_UP_LINK = "emailSignInSignUpLink"
+}
 
 /**
  * Displays the initial authentication screen where the user can enter an email address or
@@ -117,6 +127,7 @@ private fun EmailSignInContent(
   // Parameter spacing spaces the layout content (heading, email field, action group)
   AuthenticationLayout(modifier = modifier, spacing = SIZE_REGULAR) {
     AuthenticationText(
+        modifier = Modifier.testTag(EmailSignInTestTags.HEADING),
         text = "Enter your email to sign in with Amber",
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.bodyLarge,
@@ -126,6 +137,7 @@ private fun EmailSignInContent(
         value = uiState.email,
         onValueChange = onEmailChange,
         placeholder = "email@domain.com",
+        modifier = Modifier.testTag(EmailSignInTestTags.EMAIL_FIELD),
         keyboardOptions =
             KeyboardOptions(
                 keyboardType = KeyboardType.Email,
@@ -140,7 +152,11 @@ private fun EmailSignInContent(
     ) {
       // This button redirects the user to the Amber sign in page
       // This is an alternative to Google sign in
-      AuthenticationButton(text = "Continue", onClick = onContinue)
+      AuthenticationButton(
+          text = "Continue",
+          onClick = onContinue,
+          modifier = Modifier.testTag(EmailSignInTestTags.CONTINUE_BUTTON),
+      )
       OrDivider()
 
       // Google section
@@ -152,7 +168,10 @@ private fun EmailSignInContent(
         Button(
             onClick = onGoogleClick,
             enabled = !uiState.isLoading,
-            modifier = Modifier.fillMaxWidth().height(SIZE_ENORMOUS),
+            modifier =
+                Modifier.fillMaxWidth()
+                    .height(SIZE_ENORMOUS)
+                    .testTag(EmailSignInTestTags.GOOGLE_BUTTON),
             shape = RoundedCornerShape(SMALL_ROUND_CORNER),
             colors =
                 ButtonDefaults.buttonColors(
@@ -174,12 +193,14 @@ private fun EmailSignInContent(
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
           AuthenticationText(
+              modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_PROMPT),
               text = "Don't have an Amber account?",
               // TextAlign is added in case the text has to wrap around in a narrow screen
               textAlign = TextAlign.Center,
               style = MaterialTheme.typography.labelLarge,
           )
           AuthenticationText(
+              modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_LINK),
               text = "Click here to sign up.",
               textAlign = TextAlign.Center,
               style = MaterialTheme.typography.labelLarge,

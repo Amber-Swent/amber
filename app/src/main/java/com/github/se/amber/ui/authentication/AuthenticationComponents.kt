@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +40,11 @@ import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
+
+internal object AuthenticationComponentTestTags {
+  const val HEADER = "authenticationHeader"
+  const val TERMS_FOOTER = "authenticationTermsFooter"
+}
 
 /**
  * Provides the common layout shared by all authentication screens.
@@ -100,7 +106,7 @@ internal fun AuthenticationHeader(
     modifier: Modifier = Modifier,
 ) {
   Column(
-      modifier = modifier,
+      modifier = modifier.testTag(AuthenticationComponentTestTags.HEADER),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(SIZE_REGULAR),
   ) {
@@ -246,7 +252,7 @@ internal fun TermsFooter(
     modifier: Modifier = Modifier,
 ) {
   Column(
-      modifier = modifier,
+      modifier = modifier.testTag(AuthenticationComponentTestTags.TERMS_FOOTER),
       horizontalAlignment = Alignment.CenterHorizontally,
   ) {
     AuthenticationText(
