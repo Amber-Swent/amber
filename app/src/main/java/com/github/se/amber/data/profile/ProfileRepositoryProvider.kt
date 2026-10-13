@@ -3,12 +3,20 @@
 package com.github.se.amber.data.profile
 
 /**
- * Holds the app's single [ProfileRepository], built lazily on first access.
+ * Holds a single [ProfileRepository], built lazily by `factory` on first access.
  *
- * ViewModels should receive the repository as a constructor parameter (their factory reads it
- * here), so tests can pass a fake instead. The default Firebase app must be initialized before
- * [repository] is first accessed; if building fails, the next access tries again.
+ * ViewModels should receive the repository as a constructor parameter (their factory reads it from
+ * [default]), so tests can pass a fake instead. With the default factory, the default Firebase app
+ * must be initialized before [repository] is first accessed; if building fails, the next access
+ * tries again.
  */
-object ProfileRepositoryProvider {
-  val repository: ProfileRepository by lazy { FirebaseProfileRepository() }
+class ProfileRepositoryProvider(
+    factory: () -> ProfileRepository = { FirebaseProfileRepository() },
+) {
+  val repository: ProfileRepository by lazy(factory)
+
+  companion object {
+    /** The app-wide instance. Don't use it in tests. */
+    val default = ProfileRepositoryProvider()
+  }
 }

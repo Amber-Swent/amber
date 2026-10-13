@@ -11,16 +11,10 @@ import io.mockk.unmockkStatic
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
-import org.junit.Before
 import org.junit.Test
 
 class OnboardingRepositoryProviderTest {
-  @Before
-  fun setUp() {
-    mockkStatic(FirebaseAuth::class, FirebaseFirestore::class)
-    every { FirebaseAuth.getInstance() } returns mockk()
-    every { FirebaseFirestore.getInstance() } returns mockk()
-  }
+  private val fake: OnboardingRepository = mockk()
 
   @After
   fun tearDown() {
@@ -28,10 +22,47 @@ class OnboardingRepositoryProviderTest {
   }
 
   @Test
-  fun providerBuildsAndSharesFirebaseRepository() {
-    val repository = OnboardingRepositoryProvider.repository
+  fun repositoryIsBuiltByFactory() {
+    val provider = OnboardingRepositoryProvider { fake }
 
-    assertEquals(FirebaseOnboardingRepository::class.java, repository.javaClass)
-    assertSame(repository, OnboardingRepositoryProvider.repository)
+    assertSame(fake, provider.repository)
+  }
+
+  @Test
+  fun repositoryIsBuiltOnlyOnce() {
+    var builds = 0
+    val provider = OnboardingRepositoryProvider {
+      builds++
+      fake
+    }
+
+    provider.repository
+    provider.repository
+
+    assertEquals(1, builds)
+  }
+
+  @Test
+  fun repositoryIsRebuiltAfterFactoryFailure() {
+    var attempts = 0
+    val provider = OnboardingRepositoryProvider {
+      if (attempts++ == 0) throw IllegalStateException("Firebase not initialized")
+      fake
+    }
+
+    runCatching { provider.repository }
+
+    assertSame(fake, provider.repository)
+  }
+
+  @Test
+  fun defaultFactoryBuildsFirebaseRepository() {
+    mockkStatic(FirebaseAuth::class, FirebaseFirestore::class)
+    every { FirebaseAuth.getInstance() } returns mockk()
+    every { FirebaseFirestore.getInstance() } returns mockk()
+
+    val provider = OnboardingRepositoryProvider()
+
+    assertEquals(FirebaseOnboardingRepository::class.java, provider.repository.javaClass)
   }
 }

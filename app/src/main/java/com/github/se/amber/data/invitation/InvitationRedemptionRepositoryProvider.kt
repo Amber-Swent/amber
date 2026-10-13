@@ -3,14 +3,20 @@
 package com.github.se.amber.data.invitation
 
 /**
- * Holds the app's single [InvitationRedemptionRepository], built lazily on first access.
+ * Holds a single [InvitationRedemptionRepository], built lazily by `factory` on first access.
  *
- * ViewModels should receive the repository as a constructor parameter (their factory reads it
- * here), so tests can pass a fake instead. The default Firebase app must be initialized before
- * [repository] is first accessed; if building fails, the next access tries again.
+ * ViewModels should receive the repository as a constructor parameter (their factory reads it from
+ * [default]), so tests can pass a fake instead. With the default factory, the default Firebase app
+ * must be initialized before [repository] is first accessed; if building fails, the next access
+ * tries again.
  */
-object InvitationRedemptionRepositoryProvider {
-  val repository: InvitationRedemptionRepository by lazy {
-    FirebaseInvitationRedemptionRepository()
+class InvitationRedemptionRepositoryProvider(
+    factory: () -> InvitationRedemptionRepository = { FirebaseInvitationRedemptionRepository() },
+) {
+  val repository: InvitationRedemptionRepository by lazy(factory)
+
+  companion object {
+    /** The app-wide instance. Don't use it in tests. */
+    val default = InvitationRedemptionRepositoryProvider()
   }
 }
