@@ -11,11 +11,13 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 
@@ -54,6 +56,7 @@ class FirebaseCareCircleRepositoryTest {
     val result = repository.getCircle(circleId)
 
     assertEquals(circle, result.getOrThrow())
+    verify(exactly = 1) { circles.document(circleId) }
   }
 
   @Test
@@ -80,6 +83,31 @@ class FirebaseCareCircleRepositoryTest {
     val result = repository.getCircle(circleId)
 
     assertFailure<CareCircleError.NotFound>(result)
+  }
+
+  @Test
+  fun getCircle_wrapsDecodingFailure() = runBlocking {
+    val source = RuntimeException("Could not deserialize object")
+    stubSnapshot(
+        mockk {
+          every { exists() } returns true
+          every { toObject(CareCircle::class.java) } throws source
+        }
+    )
+
+    val result = repository.getCircle(circleId)
+
+    assertUnknownFailure(result, source)
+  }
+
+  @Test
+  fun getCircle_rethrowsCancellation() = runBlocking {
+    every { circleDocument.get() } throws CancellationException("cancelled")
+
+    try {
+      repository.getCircle(circleId)
+      fail("Cancellation should be rethrown")
+    } catch (_: CancellationException) {}
   }
 
   @Test

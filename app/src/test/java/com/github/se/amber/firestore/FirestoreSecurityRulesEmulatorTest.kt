@@ -1,6 +1,7 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
+// Modified by Neha Chakraborty and Claude Code.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
@@ -357,6 +358,28 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(pat, fs.delete("careCircles/$circleId/appointments/a1"))
     fs.assertSucceeds(care, fs.delete("careCircles/$circleId/appointments/a1"))
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
+  }
+
+  /** The reads behind CareCircleRepository.getCircle(circleId). */
+  @Test
+  fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
+    val circleId = "c-read"
+    val care = "care"
+    val pat = "pat"
+    val stranger = "stranger"
+    fs.adminSet("careCircles/$circleId", circle(circleId, care, listOf(care, pat), patientId = pat))
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    fs.adminSet("users/$stranger", user(stranger, "CAREGIVER", emptyList(), "Eve"))
+
+    fs.assertSucceeds(care, fs.get("careCircles/$circleId"))
+    fs.assertSucceeds(pat, fs.get("careCircles/$circleId"))
+    fs.assertFails(stranger, fs.get("careCircles/$circleId"))
+    fs.assertFails(null, fs.get("careCircles/$circleId"))
+    // A missing circle is denied rather than reported as not found, even to a signed-in user who
+    // lists it in their profile, so the repository surfaces it as PermissionDenied.
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId, "c-missing"), "Ada"))
+    fs.assertFails(care, fs.get("careCircles/c-missing"))
   }
 
   companion object {
