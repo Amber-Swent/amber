@@ -1,9 +1,9 @@
 // This file was written with the aid of AI
 package com.github.se.amber.ui.authentication
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,105 +26,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.SIZE_ENORMOUS
-import com.github.se.amber.ui.theme.SIZE_MINI
 import com.github.se.amber.ui.theme.SIZE_REGULAR
 import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
-
-/**
- * Displays the shared password authentication UI used by patient and caregiver screens.
- *
- * The screen shows the selected email address, a password field, a Continue button, and a
- * forgotten-password action. Role-specific behavior is represented through
- * [forgotPasswordExplanation].
- *
- * This function is made internal so that it is accessible from the Amber module.
- *
- * @param email Email address displayed to the user.
- * @param password Current value of the password input field.
- * @param onPasswordChange Called whenever the user modifies the password input.
- * @param onContinue Called when the user presses the Continue button.
- * @param onForgotPassword Called when the user presses the forgotten-password button.
- * @param forgotPasswordExplanation Explanation displayed below the forgotten-password button.
- * @param modifier Modifier applied to the root authentication layout.
- */
-@Composable
-internal fun PasswordScreen(
-    modifier: Modifier = Modifier,
-    email: String = "",
-    password: String = "",
-    onPasswordChange: (String) -> Unit = {},
-    onContinue: () -> Unit  = {},
-    onForgotPassword: () -> Unit = {},
-    forgotPasswordExplanation: String = "",
-) {
-  AuthenticationLayout(modifier = modifier) {
-    Text(
-        text = "You are logged in with",
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
-    )
-
-    Text(
-        text = "<$email>",
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold
-    )
-
-    Spacer(modifier = Modifier.height(SIZE_MINI))
-
-    Text(
-        text = "Enter your password to sign up",
-        style = MaterialTheme.typography.bodySmall
-    )
-
-    Spacer(modifier = Modifier.height(SIZE_REGULAR))
-
-    AuthenticationTextField(
-        value = password,
-        onValueChange = onPasswordChange,
-        placeholder = "Enter your password",
-        visualTransformation = PasswordVisualTransformation(),
-        keyboardOptions =
-            KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done,
-            )
-    )
-
-    Spacer(modifier = Modifier.height(SIZE_REGULAR))
-
-      AuthenticationButton(
-        text = "Continue",
-        onClick = onContinue
-    )
-
-    Spacer(modifier = Modifier.height(SIZE_ENORMOUS))
-
-      AuthenticationButton(
-        text = "Password Forgotten ?",
-        onClick = onForgotPassword,
-    )
-
-    Spacer(modifier = Modifier.height(SIZE_REGULAR))
-
-    Text(
-      text = forgotPasswordExplanation,
-      style = MaterialTheme.typography.bodySmall,
-      modifier = Modifier.fillMaxWidth(),
-    )
-  }
-}
 
 /**
  * Provides the common layout shared by all authentication screens.
@@ -133,18 +50,20 @@ internal fun PasswordScreen(
  * center, and the terms and privacy notice at the bottom.
  *
  * @param modifier Modifier applied to the root layout.
+ * @param spacing Vertical space between screen-specific content groups.
  * @param content Screen-specific composable content displayed in the center of the layout.
  */
 @Composable
 internal fun AuthenticationLayout(
     modifier: Modifier = Modifier,
+    spacing: Dp,
     content: @Composable () -> Unit,
 ) {
   // Surface will be the background/container for the screen
   Surface(
       modifier = modifier.fillMaxSize(),
-      color = Color.White,
-      contentColor = Color.Black,
+      color = MaterialTheme.colorScheme.background,
+      contentColor = MaterialTheme.colorScheme.onBackground,
   ) {
     // Use Box, a Column would stack every items sequentially
     Box(
@@ -161,6 +80,7 @@ internal fun AuthenticationLayout(
       Column(
           modifier = Modifier.align(Alignment.Center).fillMaxWidth(),
           horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(spacing), // Remove abusive use of Spacers
           content = { content() },
       )
 
@@ -185,6 +105,7 @@ internal fun AuthenticationHeader(
   Column(
       modifier = modifier,
       horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(SIZE_REGULAR),
   ) {
     Surface(
         modifier = Modifier.size(SURFACE_BIG),
@@ -193,7 +114,7 @@ internal fun AuthenticationHeader(
         color = lightOrange,
     ) {
       Box(contentAlignment = Alignment.Center) {
-        Text(
+        AuthenticationText(
             text = "logo",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
@@ -201,9 +122,7 @@ internal fun AuthenticationHeader(
       }
     }
 
-    Spacer(modifier = Modifier.height(SIZE_REGULAR))
-
-    Text(
+    AuthenticationText(
         text = "Amber",
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
@@ -241,7 +160,7 @@ internal fun AuthenticationTextField(
       modifier = modifier.fillMaxWidth().height(SIZE_ENORMOUS),
       singleLine = true,
       placeholder = {
-        Text(
+        AuthenticationText(
             text = placeholder,
             style = MaterialTheme.typography.bodySmall,
             color = darkGray,
@@ -282,11 +201,31 @@ internal fun AuthenticationButton(
               contentColor = Color.Black,
           ),
   ) {
-    Text(
+    AuthenticationText(
         text = text,
         style = MaterialTheme.typography.labelLarge,
     )
   }
+}
+
+/** Displays authentication copy with a consistent text, style, weight, and modifier interface. */
+@Composable
+internal fun AuthenticationText(
+    modifier: Modifier = Modifier,
+    text: String,
+    textAlign: TextAlign ?= null,
+    style: TextStyle,
+    fontWeight: FontWeight? = null,
+    color: Color = Color.Unspecified
+) {
+  Text(
+      text = text,
+      textAlign = textAlign,
+      modifier = modifier,
+      style = style,
+      fontWeight = fontWeight,
+      color = color
+  )
 }
 
 /**
@@ -302,14 +241,10 @@ internal fun TermsFooter(
       modifier = modifier,
       horizontalAlignment = Alignment.CenterHorizontally,
   ) {
-    Text(
-        text = "By clicking continue, you agree to our Terms of Service",
-        style = MaterialTheme.typography.bodySmall,
-        color = darkGray,
-    )
-
-    Text(
-        text = "and Privacy Policy",
+    AuthenticationText(
+        text = "By clicking continue, you agree to our Terms of Service and Privacy Policy",
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth(),
         style = MaterialTheme.typography.bodySmall,
         color = darkGray,
     )

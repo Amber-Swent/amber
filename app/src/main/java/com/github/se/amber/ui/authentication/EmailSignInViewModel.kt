@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
@@ -105,12 +106,20 @@ class EmailSignInViewModel(
 
     _uiState.update { state -> state.copy(isLoading = true, errorMessage = null) }
 
+    /*
+        Extract the context.getString outside of viewModelScope.launch
+        Context can be destroyed at any moment: if the Activity owning the context is destroyed
+        before the coroutine runs, accessing context inside the asynchronous code could fail
+        or reference a dead context.
+     */
+    val clientId = context.getString(R.string.default_web_client_id)
+
     viewModelScope.launch {
       try {
         // default_web...: web/server OAuth client associated with the Firebase
         // configuration: tells Google which client the sign-in is for
         val googleOption =
-            GetSignInWithGoogleOption.Builder(context.getString(R.string.default_web_client_id))
+            GetSignInWithGoogleOption.Builder(clientId)
                 .build()
 
         // Wraps the option in a request
@@ -131,9 +140,16 @@ class EmailSignInViewModel(
               errorMessage = null,
           )
         }
-      } catch (e: GetCredentialCancellationException) {
+      } catch (_: GetCredentialCancellationException) {
         _uiState.update { state -> state.copy(isLoading = false) }
-      } catch (e: CancellationException) {
+      } catch (_: NoCredentialException) { // Handle: no matching credentials found on device
+        _uiState.update { state ->
+            state.copy(
+                isLoading = false,
+                errorMessage = "No Google account found. Please add one to your device."
+            )
+        }
+      } catch (e: CancellationException) { // Propagate to caller
         throw e
       } catch (e: Exception) {
         _uiState.update { state ->
