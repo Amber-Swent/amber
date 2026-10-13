@@ -33,7 +33,7 @@ class MediaRepositoryFirebase(
   override suspend fun getMedia(circleId: String, mediaId: String): MediaItem? =
       TODO(FIRESTORE_TODO)
 
-  override suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File): Unit =
+  override suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?): Unit =
       TODO(FIRESTORE_TODO)
 
   override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = TODO(OUTBOX_TODO)
@@ -42,7 +42,8 @@ class MediaRepositoryFirebase(
 
   override suspend fun discardUnsent(circleId: String, mediaId: String): Unit = TODO(OUTBOX_TODO)
 
-  override suspend fun send(circleId: String, mediaId: String): SendResult = TODO(OUTBOX_TODO)
+  override suspend fun send(circleId: String, mediaId: String, lastAttempt: Boolean): SendResult =
+      TODO(OUTBOX_TODO)
 
   override suspend fun updateMedia(circleId: String, item: MediaItem): Unit = TODO(FIRESTORE_TODO)
 

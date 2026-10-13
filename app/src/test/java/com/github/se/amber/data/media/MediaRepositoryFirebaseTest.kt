@@ -87,6 +87,31 @@ class MediaRepositoryFirebaseTest {
   }
 
   @Test
+  fun methodsNotImplementedYetThrowNotImplementedError() = runTest {
+    val repository = newRepository()
+    val item = picture("c1", "m1")
+    val calls: Map<String, suspend () -> Unit> =
+        mapOf(
+            "newMediaId" to { repository.newMediaId("c1") },
+            "observeApprovedMedia" to { repository.observeApprovedMedia("c1") },
+            "observeMediaShowing" to { repository.observeMediaShowing("c1", "u1") },
+            "getMedia" to { repository.getMedia("c1", "m1") },
+            "addMedia" to { repository.addMedia(c1, item, tmp.newFile()) },
+            "observeOutbox" to { repository.observeOutbox("c1") },
+            "retrySend" to { repository.retrySend("c1", "m1") },
+            "discardUnsent" to { repository.discardUnsent("c1", "m1") },
+            "send" to { repository.send("c1", "m1", lastAttempt = false) },
+            "updateMedia" to { repository.updateMedia("c1", item) },
+            "deleteMedia" to { repository.deleteMedia(c1, item) },
+        )
+
+    for ((name, call) in calls) {
+      val error = runCatching { call() }.exceptionOrNull()
+      assertTrue("$name didn't throw NotImplementedError", error is NotImplementedError)
+    }
+  }
+
+  @Test
   fun clearLocalMediaDeletesEveryCircle() = runTest {
     val repository = newRepository()
     repository.getFile(c1, picture("c1", "m1"))

@@ -16,9 +16,9 @@ import kotlinx.coroutines.flow.Flow
  * sent, it is listed by [observeOutbox] only, not by [observeApprovedMedia] or
  * [observeMediaShowing].
  *
- * Calls that touch a file take the whole [CareCircle], since its files live in its own Storage
+ * Calls that may touch a file take the whole [CareCircle], since its files live in its own Storage
  * bucket ([CareCircle.storageBucket]); those that need the bucket throw [IllegalArgumentException]
- * while it isn't assigned yet.
+ * while it isn't assigned yet. A [MediaItem.Text] has no file: its content is its text.
  */
 interface MediaRepository {
 
@@ -44,19 +44,24 @@ interface MediaRepository {
   suspend fun getMedia(circleId: String, mediaId: String): MediaItem?
 
   /**
-   * Adds [item] to [circle], with [file] as its bytes. Returns as soon as both are saved in the
-   * outbox on the phone, even offline: this doesn't mean they are in Firebase yet. They are sent
-   * later in the background, the file first, then the metadata, so a Firestore document never
-   * points at a missing Storage file.
+   * Adds [item] to [circle]. Returns as soon as it is saved in the outbox on the phone, even
+   * offline: this doesn't mean it is in Firebase yet. It is sent later in the background, its file
+   * first, then its metadata, so a Firestore document never points at a missing Storage file. If
+   * sending keeps failing, it ends [SendState.FAILED] (see [observeOutbox]).
    *
-   * [item]'s id comes from [newMediaId]. [file] is moved into the outbox: pass a file the app owns,
-   * and don't use it afterwards.
+   * [item]'s id comes from [newMediaId]. [file] holds its bytes:
+   * - for a [MediaItem.Picture] or a [MediaItem.Audio], required, and [item]'s storagePath must be
+   *   inside [circle];
+   * - for a [MediaItem.Text], null: its content is its text, and its storagePath stays empty.
    *
-   * @throws IllegalArgumentException if [circle]'s bucket isn't assigned yet, [item] isn't a media
-   *   of [circle], or [file] doesn't exist.
+   * [file] is moved into the outbox: pass a file the app owns, and don't use it afterwards.
+   *
+   * @throws IllegalArgumentException if [file] is null or doesn't exist for a media that needs one,
+   *   or is given for a [MediaItem.Text]; if [item]'s storagePath doesn't follow the rule above; or
+   *   if [item] has a file and [circle]'s bucket isn't assigned yet.
    * @throws java.io.IOException if the media can't be saved on the phone (e.g. disk full).
    */
-  suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File)
+  suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?)
 
   /**
    * The media of [circleId] added on this phone and not sent yet, oldest first. Emits again
@@ -66,14 +71,14 @@ interface MediaRepository {
 
   /**
    * Puts the media [mediaId] of [circleId] whose send failed ([SendState.FAILED]) back to
-   * [SendState.WAITING] and schedules its send again; returns without waiting for it. No effect if
-   * it isn't in the outbox or hasn't failed.
+   * [SendState.WAITING] and schedules its send again, with a new series of attempts; returns
+   * without waiting for it. No effect if it isn't in the outbox or hasn't failed.
    */
   suspend fun retrySend(circleId: String, mediaId: String)
 
   /**
-   * Removes the media [mediaId] of [circleId] from the outbox, with its file, and cancels its send.
-   * No effect if it isn't in the outbox.
+   * Removes the media [mediaId] of [circleId] from the outbox, with its file if it has one, and
+   * cancels its send. No effect if it isn't in the outbox.
    *
    * The media is then lost, so ask the user first. Except if its send was already under way
    * ([SendState.SENDING]): cancelling may come too late, and the media may still reach Firebase. It
@@ -93,12 +98,12 @@ interface MediaRepository {
   suspend fun updateMedia(circleId: String, item: MediaItem)
 
   /**
-   * Deletes [item] from [circle]: its metadata first, then its file and its cached copy, so a
-   * Firestore document never points at a missing Storage file. Needs a connection. Not defined yet
-   * for a media still in the outbox.
+   * Deletes [item] from [circle]: its metadata first, then its file and its cached copy if it has a
+   * file, so a Firestore document never points at a missing Storage file. Needs a connection. Not
+   * defined yet for a media still in the outbox.
    *
-   * @throws IllegalArgumentException if [item] isn't a media of [circle], or [circle]'s bucket
-   *   isn't assigned yet.
+   * @throws IllegalArgumentException if [item] has a file and either isn't a media of [circle] or
+   *   [circle]'s bucket isn't assigned yet.
    * @throws Exception if Firebase refuses it (only [item]'s author may delete it) or can't be
    *   reached.
    */
@@ -110,8 +115,8 @@ interface MediaRepository {
    * offline. Open it right away rather than keeping the [File]: it may be evicted later to make
    * room.
    *
-   * @throws IllegalArgumentException if [item] isn't a media of [circle], or its file must be
-   *   downloaded while [circle]'s bucket isn't assigned yet.
+   * @throws IllegalArgumentException if [item] is a [MediaItem.Text] (it has no file), isn't a
+   *   media of [circle], or its file must be downloaded while [circle]'s bucket isn't assigned yet.
    * @throws Exception if its file must be downloaded and the download fails (e.g. offline).
    */
   suspend fun getFile(circle: CareCircle, item: MediaItem): File
