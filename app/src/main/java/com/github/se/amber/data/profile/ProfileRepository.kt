@@ -10,9 +10,14 @@ fun interface ProfileRepository {
   /**
    * Atomically creates the current authenticated user's initial profile with [person] and [role].
    *
-   * A nonblank first name is required; last name and nickname may be omitted. The implementation
-   * derives both the profile UID and `person.id` from the current authenticated user, and rejects
-   * an attempt to overwrite an existing profile.
+   * The returned [Result] fails only with [ProfileCreationError]: `InvalidPersonDetails` when
+   * [person] has no valid name, `NotAuthenticated` when no user is authenticated,
+   * `ProfileAlreadyExists` when the user already has a profile, `PermissionDenied` when Firestore
+   * rejects the write, `Network` for unavailable or timed-out Firestore operations, and `Unknown`
+   * for other failures. Cancellation is rethrown.
+   *
+   * The implementation derives both the profile UID and `person.id` from the current authenticated
+   * user and rejects an attempt to overwrite an existing profile.
    */
   suspend fun createProfile(person: Person, role: Role): Result<Unit>
 }
