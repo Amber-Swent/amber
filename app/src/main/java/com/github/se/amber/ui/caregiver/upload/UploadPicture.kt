@@ -201,8 +201,7 @@ fun UploadPictureScreen(
 
           Button(
               onClick = { viewModel.uploadPicture() },
-              modifier = Modifier.fillMaxWidth()
-                  .testTag(UPLOAD_BUTTON),
+              modifier = Modifier.fillMaxWidth().testTag(UPLOAD_BUTTON),
               colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
               enabled = isFormValid,
           ) {

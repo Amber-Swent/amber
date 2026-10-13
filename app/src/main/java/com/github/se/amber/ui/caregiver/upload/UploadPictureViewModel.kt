@@ -5,6 +5,10 @@ package com.github.se.amber.ui.caregiver.upload
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
@@ -59,9 +63,8 @@ data class UploadPictureUIState(
 class UploadPictureViewModel(
     private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
     private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
-    // TODO: UnExtract once repoProvider are implement
-    //    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.repository,
-    //    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.repository,
+    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
@@ -76,9 +79,10 @@ class UploadPictureViewModel(
   // id -> label shown on the "who is involved" chips.
   // All the names in the care circle are clickable, using chips.
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
-  // TODO :The button for adding a person has not yet been implemented. This will be done in M2.
+  // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
   val involvedOptions: StateFlow<Map<String, String>> =
-      careCircle.map { circle ->
+      careCircle
+          .map { circle ->
             if (circle == null) emptyMap()
             else
                 circle.people.mapValues { it.value.displayName() } +
@@ -97,23 +101,22 @@ class UploadPictureViewModel(
       setErrorMsg("Your identity can't be verified")
       return
     }
-    // TODO: UnExtract once repoProvider are implement
-    //    viewModelScope.launch {
-    //      val profile =
-    //          profileRepo.getProfile(uid).getOrElse {
-    //            setErrorMsg("Could not load your profile: ${it.message}")
-    //            return@launch
-    //          }
-    //      val circleId = profile?.circleIds?.firstOrNull()
-    //      if (circleId == null) {
-    //        setErrorMsg("Your care circle isn't set up")
-    //        return@launch
-    //      }
-    //      circleRepo
-    //          .getCircle(circleId)
-    //          .onSuccess { _careCircle.value = it }
-    //          .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
-    //    }
+    viewModelScope.launch {
+      val profile =
+          profileRepo.getProfile(uid).getOrElse {
+            setErrorMsg("Could not load your profile: ${it.message}")
+            return@launch
+          }
+      val circleId = profile?.circleIds?.firstOrNull()
+      if (circleId == null) {
+        setErrorMsg("Your care circle isn't set up")
+        return@launch
+      }
+      circleRepo
+          .getCircle(circleId)
+          .onSuccess { _careCircle.value = it }
+          .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
+    }
   }
 
   /** Uploads the picture currently stored in the UI state. */
