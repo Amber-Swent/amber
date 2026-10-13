@@ -101,7 +101,7 @@ class FirebaseProfileRepositoryTest {
   fun createProfile_rejectsBlankFirstNameBeforeAccessingFirebase() = runTest {
     val result = repository.createProfile(Person(firstName = "   "), Role.PATIENT)
 
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.InvalidPersonDetails>(result)
+    assertFailure<ProfileCreationError.InvalidPersonDetails>(result)
     verify(exactly = 0) { firestore.collection(any()) }
   }
 
@@ -111,7 +111,7 @@ class FirebaseProfileRepositoryTest {
 
     val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
 
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.NotAuthenticated>(result)
+    assertFailure<ProfileCreationError.NotAuthenticated>(result)
     verify(exactly = 0) { firestore.collection(any()) }
   }
 
@@ -127,7 +127,7 @@ class FirebaseProfileRepositoryTest {
 
     val result = repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
 
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.ProfileAlreadyExists>(result)
+    assertFailure<ProfileCreationError.ProfileAlreadyExists>(result)
     verify(exactly = 0) { transaction.set(any(), any()) }
   }
 
@@ -146,7 +146,7 @@ class FirebaseProfileRepositoryTest {
 
   @Test
   fun createProfile_mapsPermissionDeniedFirestoreFailure() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.PermissionDenied>(
+    assertFailure<ProfileCreationError.PermissionDenied>(
         createProfileFailingWith(
             firestoreFailure(FirebaseFirestoreException.Code.PERMISSION_DENIED)
         )
@@ -155,21 +155,21 @@ class FirebaseProfileRepositoryTest {
 
   @Test
   fun createProfile_mapsUnauthenticatedFirestoreFailure() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.NotAuthenticated>(
+    assertFailure<ProfileCreationError.NotAuthenticated>(
         createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAUTHENTICATED))
     )
   }
 
   @Test
   fun createProfile_mapsUnavailableFirestoreFailureToNetwork() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.Network>(
+    assertFailure<ProfileCreationError.Network>(
         createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAVAILABLE))
     )
   }
 
   @Test
   fun createProfile_mapsDeadlineExceededFirestoreFailureToNetwork() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.Network>(
+    assertFailure<ProfileCreationError.Network>(
         createProfileFailingWith(
             firestoreFailure(FirebaseFirestoreException.Code.DEADLINE_EXCEEDED)
         )
@@ -178,14 +178,14 @@ class FirebaseProfileRepositoryTest {
 
   @Test
   fun createProfile_mapsAbortedFirestoreFailureToNetwork() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.Network>(
+    assertFailure<ProfileCreationError.Network>(
         createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.ABORTED))
     )
   }
 
   @Test
   fun createProfile_mapsAlreadyExistsFirestoreFailure() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileCreationError.ProfileAlreadyExists>(
+    assertFailure<ProfileCreationError.ProfileAlreadyExists>(
         createProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.ALREADY_EXISTS))
     )
   }
@@ -197,8 +197,8 @@ class FirebaseProfileRepositoryTest {
 
     assertFalse(result.isSuccess)
     val error = result.exceptionOrNull()
-    assertTrue(error is FirebaseProfileRepository.ProfileCreationError.Unknown)
-    assertSame(source, (error as FirebaseProfileRepository.ProfileCreationError.Unknown).source)
+    assertTrue(error is ProfileCreationError.Unknown)
+    assertSame(source, (error as ProfileCreationError.Unknown).source)
   }
 
   @Test
@@ -208,8 +208,8 @@ class FirebaseProfileRepositoryTest {
 
     assertFalse(result.isSuccess)
     val error = result.exceptionOrNull()
-    assertTrue(error is FirebaseProfileRepository.ProfileCreationError.Unknown)
-    assertSame(source, (error as FirebaseProfileRepository.ProfileCreationError.Unknown).source)
+    assertTrue(error is ProfileCreationError.Unknown)
+    assertSame(source, (error as ProfileCreationError.Unknown).source)
   }
 
   @Test
@@ -245,7 +245,7 @@ class FirebaseProfileRepositoryTest {
 
     val result = repository.getCurrentProfile()
 
-    assertFailure<FirebaseProfileRepository.ProfileReadError.NotAuthenticated>(result)
+    assertFailure<ProfileReadError.NotAuthenticated>(result)
     verify(exactly = 0) { firestore.collection(any()) }
   }
 
@@ -274,7 +274,7 @@ class FirebaseProfileRepositoryTest {
 
     val result = repository.getProfile(uid)
 
-    assertFailure<FirebaseProfileRepository.ProfileReadError.InvalidProfile>(result)
+    assertFailure<ProfileReadError.InvalidProfile>(result)
   }
 
   @Test
@@ -294,7 +294,7 @@ class FirebaseProfileRepositoryTest {
 
     val result = repository.getProfile(uid)
 
-    assertFailure<FirebaseProfileRepository.ProfileReadError.InvalidProfile>(result)
+    assertFailure<ProfileReadError.InvalidProfile>(result)
   }
 
   @Test
@@ -312,28 +312,28 @@ class FirebaseProfileRepositoryTest {
 
   @Test
   fun getProfile_mapsPermissionDeniedFirestoreFailure() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileReadError.PermissionDenied>(
+    assertFailure<ProfileReadError.PermissionDenied>(
         getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.PERMISSION_DENIED))
     )
   }
 
   @Test
   fun getProfile_mapsUnauthenticatedFirestoreFailure() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileReadError.NotAuthenticated>(
+    assertFailure<ProfileReadError.NotAuthenticated>(
         getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAUTHENTICATED))
     )
   }
 
   @Test
   fun getProfile_mapsUnavailableFirestoreFailureToNetwork() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileReadError.Network>(
+    assertFailure<ProfileReadError.Network>(
         getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAVAILABLE))
     )
   }
 
   @Test
   fun getProfile_mapsDeadlineExceededFirestoreFailureToNetwork() = runTest {
-    assertFailure<FirebaseProfileRepository.ProfileReadError.Network>(
+    assertFailure<ProfileReadError.Network>(
         getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.DEADLINE_EXCEEDED))
     )
   }
@@ -344,8 +344,8 @@ class FirebaseProfileRepositoryTest {
     val result = getProfileFailingWith(source)
 
     val error = result.exceptionOrNull()
-    assertTrue(error is FirebaseProfileRepository.ProfileReadError.Unknown)
-    assertSame(source, (error as FirebaseProfileRepository.ProfileReadError.Unknown).source)
+    assertTrue(error is ProfileReadError.Unknown)
+    assertSame(source, (error as ProfileReadError.Unknown).source)
   }
 
   @Test
@@ -354,8 +354,8 @@ class FirebaseProfileRepositoryTest {
     val result = getProfileFailingWith(source)
 
     val error = result.exceptionOrNull()
-    assertTrue(error is FirebaseProfileRepository.ProfileReadError.Unknown)
-    assertSame(source, (error as FirebaseProfileRepository.ProfileReadError.Unknown).source)
+    assertTrue(error is ProfileReadError.Unknown)
+    assertSame(source, (error as ProfileReadError.Unknown).source)
   }
 
   private fun stubProfileDocument(reference: DocumentReference, profile: UserProfile?) =

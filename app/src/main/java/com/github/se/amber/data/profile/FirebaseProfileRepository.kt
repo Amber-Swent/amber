@@ -14,10 +14,6 @@ import com.google.firebase.firestore.firestore
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.tasks.await
 
-typealias ProfileCreationError = FirebaseProfileRepository.ProfileCreationError
-
-typealias ProfileReadError = FirebaseProfileRepository.ProfileReadError
-
 /** Firebase-backed implementation of [ProfileRepository]. */
 class FirebaseProfileRepository(
     private val auth: FirebaseAuth = Firebase.auth,
@@ -70,26 +66,28 @@ class FirebaseProfileRepository(
     // e.g. CareCircle.patientId before the patient joins; document("") would throw
     if (uid.isBlank()) return Result.success(null)
 
-    val snapshot =
-        try {
-          firestore.collection(USERS_COLLECTION).document(uid).get().await()
-        } catch (exception: CancellationException) {
-          throw exception
-        } catch (exception: Exception) {
-          return Result.failure(exception.toProfileReadError())
+    return try {
+      val snapshot = firestore.collection(USERS_COLLECTION).document(uid).get().await()
+      when {
+        !snapshot.exists() -> Result.success(null)
+        // toObject() would silently fall back to the default role
+        !snapshot.contains(ROLE_FIELD) -> Result.failure(ProfileReadError.InvalidProfile)
+        else -> {
+          val profile =
+              try {
+                snapshot.toObject(UserProfile::class.java)
+              } catch (exception: RuntimeException) {
+                // the stored fields don't match UserProfile, e.g. an unknown role name
+                null
+              }
+          profile?.let { Result.success(it) } ?: Result.failure(ProfileReadError.InvalidProfile)
         }
-    if (!snapshot.exists()) return Result.success(null)
-    // toObject() would silently fall back to the default role
-    if (!snapshot.contains(ROLE_FIELD)) return Result.failure(ProfileReadError.InvalidProfile)
-
-    val profile =
-        try {
-          snapshot.toObject(UserProfile::class.java)
-        } catch (exception: RuntimeException) {
-          // the stored fields don't match UserProfile, e.g. an unknown role name
-          null
-        }
-    return profile?.let { Result.success(it) } ?: Result.failure(ProfileReadError.InvalidProfile)
+      }
+    } catch (exception: CancellationException) {
+      throw exception
+    } catch (exception: Exception) {
+      Result.failure(exception.toProfileReadError())
+    }
   }
 
   private fun Exception.toProfileReadError(): ProfileReadError =
@@ -123,39 +121,8 @@ class FirebaseProfileRepository(
         else -> ProfileCreationError.Unknown(this)
       }
 
-  /** Typed failures returned while creating a profile. */
-  sealed class ProfileCreationError(message: String) : Exception(message) {
-    data object InvalidPersonDetails : ProfileCreationError("A first name is required")
-
-    data object NotAuthenticated : ProfileCreationError("No user is signed in")
-
-    data object ProfileAlreadyExists :
-        ProfileCreationError("A profile already exists for this user")
-
-    data object PermissionDenied :
-        ProfileCreationError("You do not have permission to create a profile")
-
-    data object Network : ProfileCreationError("Unable to create a profile while offline")
-
-    data class Unknown(val source: Throwable) : ProfileCreationError("Unable to create a profile")
-  }
-
-  /** Typed failures returned while reading a profile. */
-  sealed class ProfileReadError(message: String) : Exception(message) {
-    data object NotAuthenticated : ProfileReadError("No user is signed in")
-
-    data object InvalidProfile : ProfileReadError("The stored profile is invalid")
-
-    data object PermissionDenied :
-        ProfileReadError("You do not have permission to read this profile")
-
-    data object Network : ProfileReadError("Unable to read the profile while offline")
-
-    data class Unknown(val source: Throwable) : ProfileReadError("Unable to read the profile")
-  }
-
   private companion object {
     const val USERS_COLLECTION = "users"
-    const val ROLE_FIELD = "role"
+    val ROLE_FIELD = UserProfile::role.name
   }
 }
