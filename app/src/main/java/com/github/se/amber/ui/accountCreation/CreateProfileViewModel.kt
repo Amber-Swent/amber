@@ -5,7 +5,6 @@ package com.github.se.amber.ui.accountCreation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.FirebaseProfileRepository
-import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -53,7 +52,7 @@ class CreateProfileViewModel(
     _uiState.value =
         _uiState.value.copy(
             name = value,
-            nameError = if (value.trim().isNotEmpty()) false else _uiState.value.nameError,
+            nameError = value.trim().isEmpty() && _uiState.value.nameError,
         )
   }
 
@@ -65,7 +64,7 @@ class CreateProfileViewModel(
     _uiState.value =
         _uiState.value.copy(
             surname = value,
-            surnameError = if (value.trim().isNotEmpty()) false else _uiState.value.surnameError,
+            surnameError = value.trim().isEmpty() && _uiState.value.surnameError,
         )
   }
 
@@ -126,8 +125,5 @@ class CreateProfileViewModel(
   }
 
   private fun Throwable.toSubmitErrorMessage(): String =
-      when (this) {
-        is ProfileCreationError -> message ?: "Unable to create a profile"
-        else -> message ?: "Unable to create a profile"
-      }
+      message ?: "Unable to create a profile"
 }
