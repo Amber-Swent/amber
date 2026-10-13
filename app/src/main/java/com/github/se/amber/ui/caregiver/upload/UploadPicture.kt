@@ -3,7 +3,7 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
-import android.R.attr.label
+import android.R.id.input
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -52,7 +52,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
@@ -104,20 +103,6 @@ fun UploadPictureScreen(
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
 
-  // Camera: the camera app writes into this file (exposed through a FileProvider)
-  // TODO: unExtract once the Backend as been set up for it - M2
-  //  var pendingCameraPath by rememberSaveable { mutableStateOf<String?>(null) }
-  //  val cameraLauncher =
-  //      rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-  //        val file = pendingCameraPath?.let(::File)
-  //        if (success && file != null) {
-  //          val (w, h) = imageSize(file)
-  //          viewModel.setPicture(file, w, h)
-  //        } else if (!success) {
-  //          viewModel.setErrorMsg("No picture was taken")
-  //        }
-  //      }
-
   // Gallery: copy the picked Uri to a local file so the repository can upload a File
   val galleryLauncher =
       rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -164,31 +149,18 @@ fun UploadPictureScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         ) {
+            // Display the "Take a new Picture with the camera"
           DisplayBoxWithIconText(
               modifier = Modifier.testTag(UploadPictureTestTags.TAKE_PICTURE),
               icon = Icons.Outlined.PhotoCamera,
               contentDescription = "Photo",
               label = "Take a new Picture",
               onClick = {},
-              // TODO: unExtract once the Backend as been set up for it - M2
-              // place it as function for onCLick
-              //                {
-              //            try {
-              //              val file = File.createTempFile("camera_", ".jpg", context.cacheDir)
-              //              pendingCameraPath = file.absolutePath
-              //              val uri =
-              //                  FileProvider.getUriForFile(context,
-              // "${context.packageName}.fileprovider", file)
-              //              cameraLauncher.launch(uri)
-              //            } catch (e: ActivityNotFoundException) {
-              //              viewModel.setErrorMsg("No camera app available")
-              //            } catch (e: Exception) {
-              //                Log.e("UploadPicture", "Camera launch failed", e)
-              //                viewModel.setErrorMsg("Camera error: ${e.message}")
-              //            }
-              //          }
+              // TODO: implement the Take a Picture function,
+              //  once the Backend as been set up for it - M2
           )
 
+            // Display the "Choose a picture from the galeri"
           DisplayBoxWithIconText(
               modifier = Modifier.testTag(UploadPictureTestTags.SELECT_PICTURE),
               icon = Icons.Outlined.Photo,
@@ -208,6 +180,7 @@ fun UploadPictureScreen(
             )
           }
 
+            // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
               value = uiState.description,
@@ -225,11 +198,11 @@ fun UploadPictureScreen(
               toggleShownId = viewModel::toggleShownId,
           )
 
-          // TODO : UnExtract once DatePicker's PR is merged
-          //            DisplayScrollableDatePicker(
-          //                onDateSelected = { year, month, day ->
-          //                viewModel.setDate(MemoryDate(year, month, day))}
-          //            )
+        // TODO : UnExtract once DatePicker's PR is merged
+//        DisplayScrollableDatePicker(
+//            onDateSelected = { year, month, day ->
+//            viewModel.setDate(MemoryDate(year, month, day))}
+//        )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
@@ -250,52 +223,36 @@ fun UploadPictureScreen(
 }
 
 /**
- * Displays the action for taking a new picture.
+ * Returns the pixel dimensions of an image file without decoding its bitmap data.
  *
- * @param modifier The modifier applied to the action container.
- * @param takePicture The callback invoked when the action is selected.
+ * @param file The image file whose dimensions should be read.
+ * @return A pair containing the image width and height in pixels.
  */
-@Composable
-fun DisplayTakePicture(modifier: Modifier, takePicture: () -> Unit) {
-  Row(
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .border(
-                  width = BORDER_THICKNESS,
-                  color = lightGray,
-                  shape = RoundedCornerShape(ROUND_CORNER),
-              )
-              .clip(RoundedCornerShape(ROUND_CORNER))
-              .padding(PADDING_MEDIUM),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(PADDING_BIG),
-  ) {
-    FilledIconButton(
-        onClick = takePicture,
-        shape = CircleShape,
-        colors = IconButtonDefaults.filledIconButtonColors(containerColor = lightOrange),
-    ) {
-      Icon(
-          imageVector = Icons.Outlined.PhotoCamera,
-          contentDescription = "Photo Camera",
-          tint = Color.Black,
-      )
-    }
-
-    Text(text = "Take a new Picture", color = Color.Black)
-  }
-}
-
 private fun imageSize(file: File): Pair<Int, Int> {
+    // creates decode options and enables bounds-only mode.
+// Android reads the image metadata but doesn’t create the full bitmap.
   val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-  BitmapFactory.decodeFile(file.absolutePath, opts)
-  return opts.outWidth to opts.outHeight
+    // asks Android to inspect the file at its absolute path and puts the image dimensions into opts.
+    BitmapFactory.decodeFile(file.absolutePath, opts)
+    // returns those dimensions as a Kotlin Pair, with width first and height second.
+    return opts.outWidth to opts.outHeight
 }
 
+/**
+ * Copies an image selected through a content URI to the application's cache directory.
+ *
+ * @param context The context used to access the content resolver and cache directory.
+ * @param uri The content URI of the selected image.
+ * @return The cached image file.
+ */
 private fun copyUriToCache(context: Context, uri: Uri): File {
+    //creates a uniquely named temporary file in the app’s cache directory.
+// Its name starts with picked_ and ends with .jpg.
   val file = File.createTempFile("picked_", ".jpg", context.cacheDir)
-  context.contentResolver.openInputStream(uri)!!.use { input ->
+    // opens a stream for reading the data at the Uri.
+    context.contentResolver.openInputStream(uri)!!.use { input ->
+        //opens an output stream for the new file and copies the input data into it.
+        // The output stream is also closed automatically.
     file.outputStream().use { input.copyTo(it) }
   }
   return file
@@ -304,12 +261,26 @@ private fun copyUriToCache(context: Context, uri: Uri): File {
 /** A picture copied to a local file, with its pixel dimensions. */
 private data class PickedImage(val file: File, val width: Int, val height: Int)
 
+/**
+ * Copies a selected image to the cache and reads its dimensions.
+ *
+ * @param context The context used to access the content resolver and cache directory.
+ * @param uri The content URI of the selected image.
+ * @return The cached image and its pixel dimensions.
+ */
 private fun readPickedImage(context: Context, uri: Uri): PickedImage {
   val file = copyUriToCache(context, uri)
   val (width, height) = imageSize(file)
   return PickedImage(file, width, height)
 }
 
+/**
+ * Displays selectable chips for people who are involved in a picture.
+ *
+ * @param options The available person IDs and labels.
+ * @param shownIds The IDs of the people currently selected.
+ * @param toggleShownId The callback used to select or deselect a person.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DisplayWhoIsInvolved(

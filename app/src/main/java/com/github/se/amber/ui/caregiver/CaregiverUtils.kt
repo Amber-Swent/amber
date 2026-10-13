@@ -50,6 +50,7 @@ import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 
+/** Test tags used by the caregiver text field components. */
 object DisplayTextFieldTestTags {
   const val TEXT = "display_textField_text"
   const val MAX_LINES_MESSAGE = "display_textField_max_lines"
@@ -77,10 +78,10 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
 /**
  * Displays a text field with optional validation feedback.
  *
+ * @param modifier The modifier applied to the text field.
  * @param value The current text field value.
  * @param onValueChange The callback invoked when the text changes.
  * @param label The label displayed for the text field.
- * @param modifier The modifier applied to the text field.
  * @param placeholder The optional placeholder displayed when the field is empty.
  * @param emptyErrorMessage The optional error message displayed when the field is empty after
  *   focus.
@@ -118,8 +119,7 @@ fun DisplayTextField(
               .focusRequester(focusRequester)
               .testTag(TEXT),
       shape = RoundedCornerShape(ROUND_CORNER),
-      colors =
-          OutlinedTextFieldDefaults.colors(
+      colors = OutlinedTextFieldDefaults.colors(
               focusedBorderColor = orange,
               unfocusedBorderColor = lightGray,
           ),
@@ -127,7 +127,7 @@ fun DisplayTextField(
       maxLines = maxLines,
   )
 
-  Column() {
+  Column {
     if (value.length >= maxChar && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_CHAR_MESSAGE),
