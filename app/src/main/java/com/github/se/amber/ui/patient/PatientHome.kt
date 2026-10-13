@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -24,10 +25,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -41,15 +44,19 @@ object PatientHomeScreenTestTags {
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
-    onBackClick: () -> Unit,
+    checkout: () -> Unit,
     onTabSelected: (Tab) -> Unit,
 ) {
-    val homeUIState by homeViewModel.uiState.collectAsState()
+    val uiState by homeViewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
-            Column(){
-                TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, onBackClick)
+            Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)){
+                TopNavigationMenu(
+                    modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+                    action = TopNavigationAction.CHECKOUT,
+                    onBackClick = checkout
+                )
                 Spacer(modifier = Modifier.height(PADDING_SMALL))
                 Text(
                     modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.TITLE),
@@ -64,21 +71,22 @@ fun PatientHomeScreen(
         },
         bottomBar = {
             BottomNavigationMenu(
-                PatientTab.Home,
-                onTabSelected,
-                PatientTab.patientTabs,
-                Modifier
+                selectedTab = PatientTab.Home,
+                onTabSelected = onTabSelected,
+                tabs = PatientTab.patientTabs,
+                modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
             )
         },
         content = { paddingValues ->
             Column(
                 modifier = Modifier.fillMaxSize().padding(paddingValues).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Spacer(modifier = Modifier.height(PADDING_SMALL))
                 Text(
                     modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.GREETINGS),
-                    // TODO add the name of the patient
-                    text = "Hello name !",
+                    text = "Hello" + uiState.patient.person.firstName + " !",
                     textAlign = TextAlign.Center,
                     color = Color.Black,
                     style = MaterialTheme.typography.headlineMedium
@@ -91,9 +99,9 @@ fun PatientHomeScreen(
 @Preview(showBackground = true)
 @Composable
 fun PatientHomeScreenPreview() {
-    AmberAppTheme {
+    AmberAppTheme(dynamicColor = false) {
         PatientHomeScreen(
-            onBackClick = {},
+            checkout = {},
             onTabSelected = {},
         )
     }
