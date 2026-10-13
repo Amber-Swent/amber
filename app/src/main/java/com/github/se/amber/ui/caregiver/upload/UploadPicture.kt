@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -34,10 +32,7 @@ import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -63,7 +58,6 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
-import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
@@ -149,7 +143,7 @@ fun UploadPictureScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         ) {
-            // Display the "Take a new Picture with the camera"
+          // Display the "Take a new Picture with the camera"
           DisplayBoxWithIconText(
               modifier = Modifier.testTag(UploadPictureTestTags.TAKE_PICTURE),
               icon = Icons.Outlined.PhotoCamera,
@@ -160,7 +154,7 @@ fun UploadPictureScreen(
               //  once the Backend as been set up for it - M2
           )
 
-            // Display the "Choose a picture from the galeri"
+          // Display the "Choose a picture from the galeri"
           DisplayBoxWithIconText(
               modifier = Modifier.testTag(UploadPictureTestTags.SELECT_PICTURE),
               icon = Icons.Outlined.Photo,
@@ -180,7 +174,7 @@ fun UploadPictureScreen(
             )
           }
 
-            // Display the Description field
+          // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
               value = uiState.description,
@@ -198,11 +192,11 @@ fun UploadPictureScreen(
               toggleShownId = viewModel::toggleShownId,
           )
 
-        // TODO : UnExtract once DatePicker's PR is merged
-//        DisplayScrollableDatePicker(
-//            onDateSelected = { year, month, day ->
-//            viewModel.setDate(MemoryDate(year, month, day))}
-//        )
+          // TODO : UnExtract once DatePicker's PR is merged
+          //        DisplayScrollableDatePicker(
+          //            onDateSelected = { year, month, day ->
+          //            viewModel.setDate(MemoryDate(year, month, day))}
+          //        )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
@@ -229,13 +223,13 @@ fun UploadPictureScreen(
  * @return A pair containing the image width and height in pixels.
  */
 private fun imageSize(file: File): Pair<Int, Int> {
-    // creates decode options and enables bounds-only mode.
-// Android reads the image metadata but doesn’t create the full bitmap.
+  // creates decode options and enables bounds-only mode.
+  // Android reads the image metadata but doesn’t create the full bitmap.
   val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    // asks Android to inspect the file at its absolute path and puts the image dimensions into opts.
-    BitmapFactory.decodeFile(file.absolutePath, opts)
-    // returns those dimensions as a Kotlin Pair, with width first and height second.
-    return opts.outWidth to opts.outHeight
+  // asks Android to inspect the file at its absolute path and puts the image dimensions into opts.
+  BitmapFactory.decodeFile(file.absolutePath, opts)
+  // returns those dimensions as a Kotlin Pair, with width first and height second.
+  return opts.outWidth to opts.outHeight
 }
 
 /**
@@ -246,13 +240,13 @@ private fun imageSize(file: File): Pair<Int, Int> {
  * @return The cached image file.
  */
 private fun copyUriToCache(context: Context, uri: Uri): File {
-    //creates a uniquely named temporary file in the app’s cache directory.
-// Its name starts with picked_ and ends with .jpg.
+  // creates a uniquely named temporary file in the app’s cache directory.
+  // Its name starts with picked_ and ends with .jpg.
   val file = File.createTempFile("picked_", ".jpg", context.cacheDir)
-    // opens a stream for reading the data at the Uri.
-    context.contentResolver.openInputStream(uri)!!.use { input ->
-        //opens an output stream for the new file and copies the input data into it.
-        // The output stream is also closed automatically.
+  // opens a stream for reading the data at the Uri.
+  context.contentResolver.openInputStream(uri)!!.use { input ->
+    // opens an output stream for the new file and copies the input data into it.
+    // The output stream is also closed automatically.
     file.outputStream().use { input.copyTo(it) }
   }
   return file
@@ -294,10 +288,10 @@ private fun DisplayWhoIsInvolved(
         horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        if ( options.isEmpty() ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
+      if (options.isEmpty()) {
+        Box(
+            modifier =
+                Modifier.fillMaxWidth()
                     .border(
                         width = BORDER_THICKNESS,
                         color = lightGray,
@@ -305,25 +299,24 @@ private fun DisplayWhoIsInvolved(
                     )
                     .clip(RoundedCornerShape(ROUND_CORNER))
                     .padding(PADDING_MEDIUM),
-                contentAlignment = Alignment.Center,
-                ) {
-                Text(
-                    text = "No one are part of your care circle",
-                    color = Color.Black
-                )
-            }
-
-        }else {
-            options.forEach { (id, label) ->
-                FilterChip(
-                    selected = id in shownIds,
-                    onClick = { toggleShownId(id) },
-                    label = { Text(label) },
-                    modifier = Modifier.testTag("involved_$id"),
-                )
-            }
+            contentAlignment = Alignment.Center,
+        ) {
+          Text(
+              text = "No one are part of your care circle",
+              color = Color.Black,
+          )
         }
-        // TODO: add a button to add other person in the care circle - M2
+      } else {
+        options.forEach { (id, label) ->
+          FilterChip(
+              selected = id in shownIds,
+              onClick = { toggleShownId(id) },
+              label = { Text(label) },
+              modifier = Modifier.testTag("involved_$id"),
+          )
+        }
+      }
+      // TODO: add a button to add other person in the care circle - M2
     }
   }
 }

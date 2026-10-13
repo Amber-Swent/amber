@@ -119,7 +119,8 @@ fun DisplayTextField(
               .focusRequester(focusRequester)
               .testTag(TEXT),
       shape = RoundedCornerShape(ROUND_CORNER),
-      colors = OutlinedTextFieldDefaults.colors(
+      colors =
+          OutlinedTextFieldDefaults.colors(
               focusedBorderColor = orange,
               unfocusedBorderColor = lightGray,
           ),

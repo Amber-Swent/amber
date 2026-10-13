@@ -5,8 +5,6 @@ package com.github.se.amber.ui.caregiver.upload
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
@@ -43,7 +41,8 @@ import kotlinx.coroutines.launch
 data class UploadPictureUIState(
     val description: String = "",
     val date: MemoryDate? = null,
-    val shownIds: Set<String> = setOf("hello", "tata", "mdrr j'en peux plus"), // ids of the people tagged on the picture
+    val shownIds: Set<String> =
+        setOf("hello", "tata", "mdrr j'en peux plus"), // ids of the people tagged on the picture
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
     val pictureHeight: Int = 0,
@@ -62,8 +61,8 @@ class UploadPictureViewModel(
     private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
     private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
     // TODO: UnExtract once repoProvider are implement
-//    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.repository,
-//    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.repository,
+    //    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.repository,
+    //    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
@@ -71,9 +70,9 @@ class UploadPictureViewModel(
   private val _careCircle = MutableStateFlow<CareCircle?>(null)
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
 
-    init {
-        loadCircle()
-    }
+  init {
+    loadCircle()
+  }
 
   // id -> label shown on the "who is involved" chips.
   // All the names in the care circle are clickable, using chips.
@@ -85,9 +84,7 @@ class UploadPictureViewModel(
             if (circle == null) emptyMap()
             else
                 circle.people.mapValues { it.value.displayName() } +
-                    circle.memberIds.associateWith {
-                      it
-                    }
+                    circle.memberIds.associateWith { it }
           }
           .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
@@ -102,23 +99,23 @@ class UploadPictureViewModel(
       setErrorMsg("Your identity can't be verified")
       return
     }
-      // TODO: UnExtract once repoProvider are implement
-//    viewModelScope.launch {
-//      val profile =
-//          profileRepo.getProfile(uid).getOrElse {
-//            setErrorMsg("Could not load your profile: ${it.message}")
-//            return@launch
-//          }
-//      val circleId = profile?.circleIds?.firstOrNull()
-//      if (circleId == null) {
-//        setErrorMsg("Your care circle isn't set up")
-//        return@launch
-//      }
-//      circleRepo
-//          .getCircle(circleId)
-//          .onSuccess { _careCircle.value = it }
-//          .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
-//    }
+    // TODO: UnExtract once repoProvider are implement
+    //    viewModelScope.launch {
+    //      val profile =
+    //          profileRepo.getProfile(uid).getOrElse {
+    //            setErrorMsg("Could not load your profile: ${it.message}")
+    //            return@launch
+    //          }
+    //      val circleId = profile?.circleIds?.firstOrNull()
+    //      if (circleId == null) {
+    //        setErrorMsg("Your care circle isn't set up")
+    //        return@launch
+    //      }
+    //      circleRepo
+    //          .getCircle(circleId)
+    //          .onSuccess { _careCircle.value = it }
+    //          .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
+    //    }
   }
 
   /** Uploads the picture currently stored in the UI state. */
@@ -180,11 +177,12 @@ class UploadPictureViewModel(
    * @param height The picture height in pixels.
    */
   fun setPicture(file: File, width: Int, height: Int) {
-    _uiState.value = _uiState.value.copy(
-        pictureFile = file,
-        pictureWidth = width,
-        pictureHeight = height
-    )
+    _uiState.value =
+        _uiState.value.copy(
+            pictureFile = file,
+            pictureWidth = width,
+            pictureHeight = height,
+        )
   }
 
   /** Clears the current error message from the UI state. */
