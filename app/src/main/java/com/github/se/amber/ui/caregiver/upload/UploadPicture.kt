@@ -3,6 +3,7 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
+import android.R.attr.label
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -12,6 +13,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -50,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
@@ -96,7 +99,7 @@ fun UploadPictureScreen(
     goBack: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
-    val options by viewModel.involvedOptions.collectAsState()
+  val options by viewModel.involvedOptions.collectAsState()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
@@ -216,11 +219,11 @@ fun UploadPictureScreen(
               maxChar = MAX_CHAR_DESCRIPTION,
           )
 
-            DisplayWhoIsInvolved(
-                options = options,
-                shownIds = uiState.shownIds,
-                toggleShownId = viewModel::toggleShownId,
-            )
+          DisplayWhoIsInvolved(
+              options = options,
+              shownIds = uiState.shownIds,
+              toggleShownId = viewModel::toggleShownId,
+          )
 
           // TODO : UnExtract once DatePicker's PR is merged
           //            DisplayScrollableDatePicker(
@@ -231,9 +234,7 @@ fun UploadPictureScreen(
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
           Button(
-              onClick = {
-                viewModel.uploadPicture()
-              },
+              onClick = { viewModel.uploadPicture() },
               modifier = Modifier.fillMaxWidth(),
               colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
               enabled = isFormValid,
@@ -316,12 +317,32 @@ private fun DisplayWhoIsInvolved(
     shownIds: Set<String>,
     toggleShownId: (String) -> Unit,
 ) {
-    Column {
-        Text("Who is involved (optional)")
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+  Column {
+    Text("Who is involved - optional", color = Color.Black)
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if ( options.isEmpty() ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = BORDER_THICKNESS,
+                        color = lightGray,
+                        shape = RoundedCornerShape(ROUND_CORNER),
+                    )
+                    .clip(RoundedCornerShape(ROUND_CORNER))
+                    .padding(PADDING_MEDIUM),
+                contentAlignment = Alignment.Center,
+                ) {
+                Text(
+                    text = "No one are part of your care circle",
+                    color = Color.Black
+                )
+            }
+
+        }else {
             options.forEach { (id, label) ->
                 FilterChip(
                     selected = id in shownIds,
@@ -331,7 +352,9 @@ private fun DisplayWhoIsInvolved(
                 )
             }
         }
+        // TODO: add a button to add other person in the care circle - M2
     }
+  }
 }
 
 /** Preview of [UploadPictureScreen] using the Amber application theme. */

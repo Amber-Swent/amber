@@ -32,7 +32,7 @@ import kotlinx.coroutines.launch
 data class UploadPictureUIState(
     val description: String = "",
     val date: MemoryDate? = null,
-    val shownIds: Set<String> = emptySet(), // ids of the people tagged on the picture
+    val shownIds: Set<String> = setOf("hello", "tata", "mdrr j'en peux plus"), // ids of the people tagged on the picture
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
     val pictureHeight: Int = 0,
@@ -45,109 +45,115 @@ data class UploadPictureUIState(
 class UploadPictureViewModel(
     private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
     private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
-    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.repository,
-    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.repository,
+    // TODO: UnExtract once repoProvider are implement
+//    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.repository,
+//    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
 
-    private val _userProfile = MutableStateFlow<UserProfile?>(null)
-    val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
+  private val _userProfile = MutableStateFlow<UserProfile?>(null)
+  val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
 
-    private val _careCircle = MutableStateFlow<CareCircle?>(null)
-    val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
+  private val _careCircle = MutableStateFlow<CareCircle?>(null)
+  val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
 
-    /** id -> label shown on the "who is involved" chips. */
-    val involvedOptions: StateFlow<Map<String, String>> =
-        careCircle
-            .map { circle ->
-                if (circle == null) emptyMap()
-                else
-                    circle.people.mapValues { it.value.displayName() } +
-                            circle.memberIds.associateWith { it } // members: raw uid until names are available
-            }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+  /** id -> label shown on the "who is involved" chips. */
+  val involvedOptions: StateFlow<Map<String, String>> =
+      careCircle
+          .map { circle ->
+            if (circle == null) emptyMap()
+            else
+                circle.people.mapValues { it.value.displayName() } +
+                    circle.memberIds.associateWith {
+                      it
+                    } // members: raw uid until names are available
+          }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-    private fun Person.displayName(): String =
-        nickname?.takeIf { it.isNotBlank() }
-            ?: listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
+  private fun Person.displayName(): String =
+      nickname?.takeIf { it.isNotBlank() }
+          ?: listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
 
-    init {
-        loadCircle()
+  init {
+    loadCircle()
+  }
+
+  private fun loadCircle() {
+    val uid = authRepo.currentUser?.uid
+    if (uid == null) {
+      setErrorMsg("Your identity can't be verified")
+      return
     }
+      // TODO: UnExtract once repoProvider are implement
+//    viewModelScope.launch {
+//      val profile =
+//          profileRepo.getProfile(uid).getOrElse {
+//            setErrorMsg("Could not load your profile: ${it.message}")
+//            return@launch
+//          }
+//      val circleId = profile?.circleIds?.firstOrNull()
+//      if (circleId == null) {
+//        setErrorMsg("Your care circle isn't set up")
+//        return@launch
+//      }
+//      circleRepo
+//          .getCircle(circleId)
+//          .onSuccess { _careCircle.value = it }
+//          .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
+//    }
+  }
 
-    private fun loadCircle() {
-        val uid = authRepo.currentUser?.uid
-        if (uid == null) {
-            setErrorMsg("Your identity can't be verified")
-            return
-        }
-        viewModelScope.launch {
-            val profile = profileRepo.getProfile(uid).getOrElse {
-                setErrorMsg("Could not load your profile: ${it.message}")
-                return@launch
-            }
-            val circleId = profile?.circleIds?.firstOrNull()
-            if (circleId == null) {
-                setErrorMsg("Your care circle isn't set up")
-                return@launch
-            }
-            circleRepo.getCircle(circleId)
-                .onSuccess { _careCircle.value = it }
-                .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
-        }
+  /** Uploads the picture currently stored in the UI state. */
+  fun uploadPicture() {
+    val authorId = authRepo.currentUser?.uid
+    if (authorId == null) {
+      setErrorMsg("Upload failed: your identity can't be verified")
+      return
     }
-
-    /** Uploads the picture currently stored in the UI state. */
-    fun uploadPicture() {
-        val authorId = authRepo.currentUser?.uid
-        if (authorId == null) {
-            setErrorMsg("Upload failed: your identity can't be verified")
-            return
-        }
-        val circle = _careCircle.value
-        if (circle == null) {
-            setErrorMsg("Your care circle is still loading, try again")
-            return
-        }
-        val state = _uiState.value
-        val file = state.pictureFile
-        if (file == null) {
-            setErrorMsg("Please select a picture first")
-            return
-        }
-        if (state.isUploading) return
-
-        _uiState.value = state.copy(isUploading = true)
-        viewModelScope.launch {
-            try {
-                val id = mediaRepo.newMediaId(circle.id)
-                val item =
-                    MediaItem.Picture(
-                        id = id,
-                        authorId = authorId,
-                        // must start with careCircles/<circleId>/ (see MediaRepositoryFirebase.getFile)
-                        storagePath = "careCircles/${circle.id}/media/$id.jpg",
-                        createdAt = System.currentTimeMillis(),
-                        description = state.description,
-                        date = state.date,
-                        location = null,
-                        shownIds = state.shownIds.toList(),
-                        authorizedIds = emptyList(), // empty = whole circle can see it
-                        status = MediaStatus.APPROVED,
-                        width = state.pictureWidth,
-                        height = state.pictureHeight,
-                    )
-                mediaRepo.addMedia(circle, item, file)
-                _uiState.value = _uiState.value.copy(isUploading = false, isUploaded = true)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isUploading = false)
-                setErrorMsg("Upload failed: ${e.message ?: "unknown error"}")
-            }
-        }
+    val circle = _careCircle.value
+    if (circle == null) {
+      setErrorMsg("Your care circle is still loading, try again")
+      return
     }
+    val state = _uiState.value
+    val file = state.pictureFile
+    if (file == null) {
+      setErrorMsg("Please select a picture first")
+      return
+    }
+    if (state.isUploading) return
+
+    _uiState.value = state.copy(isUploading = true)
+    viewModelScope.launch {
+      try {
+        val id = mediaRepo.newMediaId(circle.id)
+        val item =
+            MediaItem.Picture(
+                id = id,
+                authorId = authorId,
+                // must start with careCircles/<circleId>/ (see MediaRepositoryFirebase.getFile)
+                storagePath = "careCircles/${circle.id}/media/$id.jpg",
+                createdAt = System.currentTimeMillis(),
+                description = state.description,
+                date = state.date,
+                location = null,
+                shownIds = state.shownIds.toList(),
+                authorizedIds = emptyList(), // empty = whole circle can see it
+                status = MediaStatus.APPROVED,
+                width = state.pictureWidth,
+                height = state.pictureHeight,
+            )
+        mediaRepo.addMedia(circle, item, file)
+        _uiState.value = _uiState.value.copy(isUploading = false, isUploaded = true)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        _uiState.value = _uiState.value.copy(isUploading = false)
+        setErrorMsg("Upload failed: ${e.message ?: "unknown error"}")
+      }
+    }
+  }
 
   /** Called by the View once the camera or the gallery returned a local file. */
   fun setPicture(file: File, width: Int, height: Int) {
@@ -179,7 +185,7 @@ class UploadPictureViewModel(
     }
   }
 
-    fun giveAllPossibleId(): Set<String> {
-        return careCircle.value!!.people.keys + careCircle.value!!.memberIds
-    }
+  fun giveAllPossibleId(): Set<String> {
+    return careCircle.value!!.people.keys + careCircle.value!!.memberIds
+  }
 }
