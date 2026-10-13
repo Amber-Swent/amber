@@ -2,6 +2,7 @@
 
 package com.github.se.amber.ui.patient
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.FirebaseProfileRepository
@@ -47,14 +48,20 @@ class PatientHomeViewModel(
     /** Fetches the profile from the repository and updates the UI state. */
     private fun getProfile(){
         viewModelScope.launch{
-            // TODO replace with fold once ProfileRepository.getProfile() exists:
-            // profileRepository.getProfile().fold(
-            //   onSuccess = { profile -> _uiState.value = PatientHomeUIState(patientProfile = profile) },
-            //   onFailure = {e ->
-            //      Log.e("PatientHomeViewModel", "Error fetching profile", e)
-            //      setErrorMsg("Failed to load the profile: ${e.message}")
-            //   },
-            // )
+             profileRepository.getCurrentProfile().fold(
+               onSuccess = { profile ->
+                   if (profile != null) {
+                       _uiState.value = PatientHomeUIState(patientProfile = profile)
+                   }
+                   else {
+                       setErrorMsg("No profile found.")
+                   }
+               },
+               onFailure = {e ->
+                  Log.e("PatientHomeViewModel", "Error fetching profile", e)
+                  setErrorMsg("Failed to load the profile: ${e.message}")
+               },
+             )
         }
     }
 
