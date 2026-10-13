@@ -3,11 +3,13 @@
 package com.github.se.amber.ui.media
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -28,6 +30,11 @@ object MediaImageTestTags {
   /** The picture, only once it is decoded and shown. */
   const val IMAGE = "mediaImage"
 }
+
+/** What TalkBack reads for a [MediaImage] given a blank description: never nothing. */
+const val MEDIA_IMAGE_FALLBACK_TALKBACK = "Photo"
+
+private const val TAG = "MediaImage"
 
 /** Where [MediaImage] is in getting the local file of its media. */
 private sealed interface FileState {
@@ -51,22 +58,35 @@ private sealed interface FileState {
  * `MediaItem.Picture`), so the image keeps the same size while loading and the list doesn't jump
  * when it appears.
  *
- * Limitations: a failure stays shown as long as the same [mediaId] is displayed, even if the
- * connection returns; the file is loaded again only when the image leaves the screen and comes
- * back, or gets a new [mediaId]. When the image appears, [loading] shows at least for its first
- * frame, while [loadFile] runs, even if the picture is already in Coil's memory cache. The slots
- * are drawn behind the picture, so for one frame [loading] may be composed under a cached picture.
+ * A failure can be retried in two ways, which both load and decode the file again: [failed] gets a
+ * retry action (for example for a "Try again" button), and a change of [retryKey] retries the image
+ * if it is failed. [MediaImage] doesn't know why it should retry: a ViewModel decides it, for
+ * example by changing [retryKey] when the connection comes back.
+ *
+ * Limitations: when the image appears, [loading] shows at least for its first frame, while
+ * [loadFile] runs, even if the picture is already in Coil's memory cache. The slots are drawn
+ * behind the picture, so for one frame [loading] may be composed under a cached picture.
  *
  * @param mediaId the id of the media; a new id loads a new file.
  * @param loadFile returns the local file of the media; it may throw (for example offline and not
  *   cached), which shows [failed].
- * @param contentDescription what the picture shows, read by TalkBack once it is shown; give one
- *   whenever possible.
+ * @param contentDescription what the picture shows, read by TalkBack once it is shown; some users
+ *   rely on it, for them it is the content of the screen. Pass the media's description, even if
+ *   blank: a blank one is read as [MEDIA_IMAGE_FALLBACK_TALKBACK]. Pass `null` only on purpose, for
+ *   a decorative image whose content TalkBack already reads elsewhere (for example a thumbnail next
+ *   to its description).
  * @param modifier the modifier of the whole component, slots included.
  * @param contentScale how the picture fills the space given by [modifier].
+ * @param retryKey a new value retries the image if it is failed; an image that is loading or shown
+ *   is left as is. Only a change matters, not the value: usually a counter from the ViewModel's
+ *   state, incremented when failed images should try again (for example back online). Never a value
+ *   that changes on every recomposition, like `Any()`. `null` means no automatic retry.
  * @param loading shown, centered, while the file is loaded or decoded; it stays the same
  *   composition through both steps.
- * @param failed shown, centered, if the file can't be loaded or decoded.
+ * @param failed shown, centered, if the file can't be loaded or decoded, whatever the cause. It
+ *   gets a `retry` action that loads and decodes the file again. Each time [failed] is shown, its
+ *   `retry` is new and works; calling the same `retry` several times (for example a double tap)
+ *   still starts a single new load.
  */
 @Composable
 fun MediaImage(
@@ -75,14 +95,17 @@ fun MediaImage(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
+    retryKey: Any? = null,
     loading: @Composable () -> Unit = {},
-    failed: @Composable () -> Unit = {},
+    failed: @Composable (retry: () -> Unit) -> Unit = {},
 ) {
   val currentLoadFile by rememberUpdatedState(loadFile)
-  // One state per mediaId: the first frame with a new id already shows loading, never the
-  // previous media, and a late result of a previous load only reaches that previous state.
-  var fileState by remember(mediaId) { mutableStateOf<FileState>(FileState.Loading) }
-  LaunchedEffect(mediaId) {
+  // Each retry is a new attempt for the same mediaId.
+  var attempt by remember(mediaId) { mutableIntStateOf(0) }
+  // One state per attempt: the first frame with a new id (or a retry) already shows loading, never
+  // the previous media, and a late result of a previous load only reaches that previous state.
+  var fileState by remember(mediaId, attempt) { mutableStateOf<FileState>(FileState.Loading) }
+  LaunchedEffect(mediaId, attempt) {
     fileState =
         try {
           FileState.Ready(currentLoadFile())
@@ -90,8 +113,10 @@ fun MediaImage(
           // This image was cancelled (left the screen or got a new mediaId): just stop.
           ensureActive()
           // Otherwise loadFile gave up by itself, for example after a withTimeout.
+          logLoadFailure(mediaId, e)
           FileState.Failed
         } catch (e: Exception) {
+          logLoadFailure(mediaId, e)
           FileState.Failed
         }
   }
@@ -101,13 +126,23 @@ fun MediaImage(
   var imageState by
       remember(file) { mutableStateOf<AsyncImagePainter.State>(AsyncImagePainter.State.Empty) }
 
+  val isFailed = fileState is FileState.Failed || imageState is AsyncImagePainter.State.Error
+  // Read when retryKey changes, so it must be the latest value, not the one of the first frame.
+  val currentIsFailed by rememberUpdatedState(isFailed)
+
+  // A retry starts one new attempt: calling it again, or a retry kept from an earlier attempt,
+  // does nothing. The new attempt, if it fails, gives failed a new retry.
+  val failedAttempt = attempt
+  val retry = { if (attempt == failedAttempt) attempt++ }
+  LaunchedEffect(mediaId, retryKey) { if (currentIsFailed) retry() }
+
   Box(modifier = modifier, contentAlignment = Alignment.Center) {
     // One call site per slot, so the same loading slot stays from loading the file to decoding
     // it (an animated spinner doesn't restart). The slots come before the picture, so they are
     // drawn behind it: a picture in Coil's memory cache is drawn over loading in the frame where
     // Coil starts, while for any other file AsyncImage draws nothing and loading stays visible.
     when {
-      fileState is FileState.Failed || imageState is AsyncImagePainter.State.Error -> failed()
+      isFailed -> failed(retry)
       imageState !is AsyncImagePainter.State.Success -> loading()
     }
     if (file != null) {
@@ -115,21 +150,47 @@ fun MediaImage(
       val shown = imageState is AsyncImagePainter.State.Success
       AsyncImage(
           model = file,
-          contentDescription = if (shown) contentDescription else null,
+          contentDescription =
+              if (shown) contentDescription?.ifBlank { MEDIA_IMAGE_FALLBACK_TALKBACK } else null,
           modifier =
               Modifier.fillMaxSize()
                   .then(if (shown) Modifier.testTag(MediaImageTestTags.IMAGE) else Modifier),
           contentScale = contentScale,
-          onState = { imageState = it },
+          onState = {
+            imageState = it
+            if (it is AsyncImagePainter.State.Error) {
+              Log.w(TAG, "Couldn't decode media $mediaId", it.result.throwable)
+            }
+          },
       )
     }
   }
 }
 
 /**
+ * Logs why the file of [mediaId] couldn't be loaded, so that logcat tells the causes apart; only
+ * the id and the exception, never the media itself.
+ */
+private fun logLoadFailure(mediaId: String, e: Exception) {
+  if (e is IllegalArgumentException) {
+    // Not a network or disk problem: the caller asked for a media that isn't in the circle.
+    Log.e(TAG, "Couldn't load media $mediaId: bug in its loader", e)
+  } else {
+    Log.w(TAG, "Couldn't load media $mediaId", e)
+  }
+}
+
+/**
  * Removes every decoded image from Coil's memory cache, so that private photos don't stay in memory
- * after sign-out or after leaving a circle. Call it once, next to `MediaRepository`'s clearing of
- * local media, not from each screen.
+ * after sign-out or after leaving a circle.
+ *
+ * It belongs to the app-level session cleanup run on sign-out and when leaving a circle, which
+ * first clears the local media through `MediaRepository`, then calls this. Call it only from there,
+ * not from a screen or a ViewModel (it needs a [Context]). That cleanup doesn't exist yet, so
+ * nothing calls this function for now.
+ *
+ * It always clears the images of every circle, also when leaving a single one: Coil's cache keys
+ * are file paths, so it can't clear one circle only.
  */
 fun clearMediaImageMemoryCache(context: Context) {
   SingletonImageLoader.get(context).memoryCache?.clear()

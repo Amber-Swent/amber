@@ -4,6 +4,8 @@ package com.github.se.amber.ui.media
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.DisposableEffect
@@ -12,12 +14,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import coil3.ImageLoader
@@ -41,6 +48,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -48,6 +56,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 @OptIn(DelicateCoilApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -79,12 +88,16 @@ class MediaImageTest {
     SingletonImageLoader.reset()
   }
 
-  private fun setImage(mediaId: String = "m1", loadFile: suspend () -> File) {
+  private fun setImage(
+      mediaId: String = "m1",
+      description: String? = DESCRIPTION,
+      loadFile: suspend () -> File,
+  ) {
     composeTestRule.setContent {
       MediaImage(
           mediaId = mediaId,
           loadFile = loadFile,
-          contentDescription = DESCRIPTION,
+          contentDescription = description,
           modifier = Modifier.size(100.dp),
           loading = { Text(LOADING) },
           failed = { Text(FAILED) },
@@ -167,6 +180,8 @@ class MediaImageTest {
     composeTestRule.waitForIdle()
 
     assertTrue(cancelled)
+    // Leaving the screen is not a failure: nothing to log.
+    assertTrue(ShadowLog.getLogsForTag(LOG_TAG).isEmpty())
   }
 
   @Test
@@ -178,6 +193,28 @@ class MediaImageTest {
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
     composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
+  }
+
+  @Test
+  fun aBlankDescriptionIsReadAsTheFallback() {
+    // MediaItem.description defaults to "", which TalkBack would read as nothing.
+    setImage(description = " ") { photo }
+
+    waitForImage()
+    composeTestRule
+        .onNodeWithTag(MediaImageTestTags.IMAGE)
+        .assertContentDescriptionEquals(MEDIA_IMAGE_FALLBACK_TALKBACK)
+  }
+
+  @Test
+  fun aNullDescriptionShowsADecorativeImage() {
+    setImage(description = null) { photo }
+
+    waitForImage()
+    composeTestRule
+        .onNodeWithTag(MediaImageTestTags.IMAGE)
+        .assertIsDisplayed()
+        .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
   }
 
   @Test
@@ -387,6 +424,178 @@ class MediaImageTest {
     composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
   }
 
+  /** Shows an image whose failed slot is a [RETRY] button, with the given [retryKey]. */
+  private fun setRetryableImage(retryKey: () -> Any? = { null }, loadFile: suspend () -> File) {
+    composeTestRule.setContent {
+      MediaImage(
+          mediaId = "m1",
+          loadFile = loadFile,
+          contentDescription = DESCRIPTION,
+          modifier = Modifier.size(100.dp),
+          retryKey = retryKey(),
+          loading = { Text(LOADING) },
+          failed = { retry -> Text(RETRY, Modifier.clickable(onClick = retry)) },
+      )
+    }
+  }
+
+  @Test
+  fun retryingAfterALoadFailureShowsTheImage() {
+    var calls = 0
+    setRetryableImage {
+      calls++
+      if (calls == 1) throw IOException("offline and not cached") else photo
+    }
+    waitForText(RETRY)
+
+    composeTestRule.onNodeWithText(RETRY).performClick()
+
+    waitForImage()
+    assertEquals(2, calls)
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
+    composeTestRule.onNodeWithText(RETRY).assertDoesNotExist()
+  }
+
+  @Test
+  fun retryingAfterADecodeFailureDecodesTheFileAgain() {
+    decoder.broken += photo
+    setRetryableImage { photo }
+    waitForText(RETRY)
+
+    // The file is fine now, for example it was downloaded again.
+    decoder.broken -= photo
+    composeTestRule.onNodeWithText(RETRY).performClick()
+
+    waitForImage()
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
+  }
+
+  @Test
+  fun aRetryCalledTwiceStartsASingleNewLoad() {
+    var calls = 0
+    lateinit var retry: () -> Unit
+    composeTestRule.setContent {
+      MediaImage(
+          mediaId = "m1",
+          loadFile = {
+            calls++
+            if (calls == 1) throw IOException("offline") else awaitCancellation()
+          },
+          contentDescription = DESCRIPTION,
+          loading = { Text(LOADING) },
+          failed = {
+            retry = it
+            Text(FAILED)
+          },
+      )
+    }
+    waitForText(FAILED)
+
+    // A double tap: the second call comes while the retried load is still running.
+    composeTestRule.runOnIdle {
+      retry()
+      retry()
+    }
+    composeTestRule.waitForIdle()
+
+    assertEquals(2, calls)
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+  }
+
+  @Test
+  fun aNewRetryKeyRetriesAFailedImage() {
+    var retryKey by mutableStateOf(0)
+    var calls = 0
+    setRetryableImage(retryKey = { retryKey }) {
+      calls++
+      if (calls == 1) throw IOException("offline and not cached") else photo
+    }
+    waitForText(RETRY)
+
+    // What a ViewModel does when the connection comes back. waitForIdle recomposes with the new
+    // key (waitUntil alone doesn't).
+    retryKey++
+    composeTestRule.waitForIdle()
+
+    waitForImage()
+    assertEquals(2, calls)
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
+  }
+
+  @Test
+  fun aNewRetryKeyDoesNotReloadAShownImage() {
+    var retryKey by mutableStateOf(0)
+    var calls = 0
+    setRetryableImage(retryKey = { retryKey }) {
+      calls++
+      photo
+    }
+    waitForImage()
+
+    retryKey++
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, calls)
+    assertEquals(listOf(photo), decoder.decoded)
+    composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
+  }
+
+  @Test
+  fun aNewRetryKeyDoesNotStartASecondLoadWhileLoading() {
+    var retryKey by mutableStateOf(0)
+    var calls = 0
+    setRetryableImage(retryKey = { retryKey }) {
+      calls++
+      awaitCancellation()
+    }
+    composeTestRule.waitUntil(TIMEOUT_MS) { calls == 1 }
+
+    retryKey++
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, calls)
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+  }
+
+  /** Waits for the first log of MediaImage and returns it. */
+  private fun waitForLog(): ShadowLog.LogItem {
+    composeTestRule.waitUntil(TIMEOUT_MS) { ShadowLog.getLogsForTag(LOG_TAG).isNotEmpty() }
+    return ShadowLog.getLogsForTag(LOG_TAG).single()
+  }
+
+  @Test
+  fun aLoadFailureIsLoggedAsAWarningWithItsCause() {
+    val offline = IOException("offline and not cached")
+    setImage { throw offline }
+
+    val log = waitForLog()
+    assertEquals(Log.WARN, log.type)
+    assertSame(offline, log.throwable)
+    assertTrue(log.msg.contains("m1"))
+  }
+
+  @Test
+  fun aMediaNotInTheCircleIsLoggedAsAnError() {
+    // What getFile throws when the ViewModel passed the wrong circle: a bug, not being offline.
+    val wrongCircle = IllegalArgumentException("media m1 is not in circle c1")
+    setImage { throw wrongCircle }
+
+    val log = waitForLog()
+    assertEquals(Log.ERROR, log.type)
+    assertSame(wrongCircle, log.throwable)
+  }
+
+  @Test
+  fun aDecodeFailureIsLoggedWithCoilsCause() {
+    decoder.broken += photo
+    setImage { photo }
+
+    val log = waitForLog()
+    assertEquals(Log.WARN, log.type)
+    assertEquals("not an image", log.throwable?.message)
+    assertTrue(log.msg.contains("m1"))
+  }
+
   @Test
   fun clearMediaImageMemoryCacheEmptiesCoilsMemoryCache() {
     // An entry put directly in the cache stands in for a decoded private photo.
@@ -437,6 +646,8 @@ class MediaImageTest {
     const val DESCRIPTION = "A photo of the garden"
     const val LOADING = "Loading"
     const val FAILED = "Not available offline"
+    const val RETRY = "Try again"
+    const val LOG_TAG = "MediaImage"
     const val TIMEOUT_MS = 5_000L
 
     /**
