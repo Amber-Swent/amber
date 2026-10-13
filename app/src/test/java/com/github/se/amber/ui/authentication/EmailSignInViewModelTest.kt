@@ -2,12 +2,17 @@
 package com.github.se.amber.ui.authentication
 
 import android.content.Context
+import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -28,8 +33,10 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests [EmailSignInViewModel] directly. These tests call its methods and assert state changes,
- * validation results, and Google sign-in error handling with mocked external dependencies.
+ * Tests [EmailSignInViewModel] state, email validation, and Google sign-in behavior.
+ *
+ * Mocked Credential Manager and repository responses cover successful sign-in, failures,
+ * cancellation, missing credentials, and repeated attempts without live services.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class EmailSignInViewModelTest {
@@ -37,6 +44,16 @@ class EmailSignInViewModelTest {
   private val context = mockk<Context>()
   private val credentialManager = mockk<CredentialManager>()
   private lateinit var viewModel: EmailSignInViewModel
+
+  /** Stubs Credential Manager to return a credential for repository sign-in tests. */
+  private fun stubCredential(): Credential {
+    val credential = mockk<Credential>()
+    val response = mockk<GetCredentialResponse>()
+    every { response.credential } returns credential
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } returns
+        response
+    return credential
+  }
 
   @Before
   fun setUp() {
@@ -130,6 +147,9 @@ class EmailSignInViewModelTest {
     advanceUntilIdle()
   }
 
+  // This test confirms that loading stay true and ends with "failed"
+  // To prove the second sign-in attempt was ignored, we verify that Credential Manager was called
+  // Exactly once: otherwise, the final error cannot tell one attempt from two correctly
   @Test
   fun secondGoogleAttemptWhileLoadingKeepsFirstAttempt() = runTest {
     val pending = CompletableDeferred<Unit>()
@@ -146,6 +166,89 @@ class EmailSignInViewModelTest {
     assertTrue(viewModel.uiState.value.isLoading)
     pending.complete(Unit)
     advanceUntilIdle()
-    assertEquals("failed", viewModel.uiState.value.errorMessage)
+    coVerify(exactly = 1) { credentialManager.getCredential(context, any<GetCredentialRequest>()) }
+  }
+
+  @Test
+  fun successfulGoogleSignInStoresUser() = runTest {
+    val user = AuthUser("signed-in")
+    val credential = stubCredential()
+    coEvery { repository.signInWithGoogle(credential) } returns Result.success(user)
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals(user, viewModel.uiState.value.user)
+  }
+
+  @Test
+  fun successfulGoogleSignInStopsLoading() = runTest {
+    val credential = stubCredential()
+    coEvery { repository.signInWithGoogle(credential) } returns
+        Result.success(AuthUser("signed-in"))
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertFalse(viewModel.uiState.value.isLoading)
+  }
+
+  @Test
+  fun repositoryFailureShowsItsMessage() = runTest {
+    val credential = stubCredential()
+    coEvery { repository.signInWithGoogle(credential) } returns
+        Result.failure(IllegalStateException("Repository failed"))
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals("Repository failed", viewModel.uiState.value.errorMessage)
+  }
+
+  @Test
+  fun cancelledAccountPickerStopsLoading() = runTest {
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        GetCredentialCancellationException()
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertFalse(viewModel.uiState.value.isLoading)
+  }
+
+  @Test
+  fun cancelledAccountPickerShowsNoError() = runTest {
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        GetCredentialCancellationException()
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertNull(viewModel.uiState.value.errorMessage)
+  }
+
+  @Test
+  fun missingGoogleAccountShowsDedicatedMessage() = runTest {
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        NoCredentialException()
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals(
+        "No Google account found. Please add one to your device.",
+        viewModel.uiState.value.errorMessage,
+    )
+  }
+
+  @Test
+  fun exceptionWithoutMessageShowsDefaultMessage() = runTest {
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        IllegalStateException()
+
+    viewModel.signInWithGoogle(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals("Sign-in failed. Please try again.", viewModel.uiState.value.errorMessage)
   }
 }

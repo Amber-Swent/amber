@@ -14,6 +14,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -23,9 +24,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Tests the Compose screen and shared authentication UI. These tests find elements by test tag and
- * verify rendering and user interactions. A real [EmailSignInViewModel] is used where needed to
- * check that UI input and clicks reach the ViewModel and invoke the screen callbacks.
+ * Tests the email sign-in screen's rendering, input, loading state, and callbacks with Compose.
+ *
+ * A real [EmailSignInViewModel] covers email entry, Continue validation, and existing-user
+ * navigation. Mocked ViewModels isolate Google button clicks and error-clearing behavior.
  */
 @RunWith(RobolectricTestRunner::class)
 class EmailSignInScreenTest {
@@ -37,6 +39,12 @@ class EmailSignInScreenTest {
   private var continueCount = 0
   private var googleSignInCount = 0
 
+  /** Creates a ViewModel with a fixed [state] for UI states and interaction checks. */
+  private fun mockViewModel(state: EmailSignInUiState): EmailSignInViewModel =
+      mockk<EmailSignInViewModel>(relaxed = true).also {
+        every { it.uiState } returns MutableStateFlow(state)
+      }
+
   @Before
   fun setUp() {
     every { repository.currentUser } returns null
@@ -45,6 +53,7 @@ class EmailSignInScreenTest {
     googleSignInCount = 0
   }
 
+  /** Composes the screen with [model] and counts navigation callback invocations. */
   private fun setScreen(model: EmailSignInViewModel = viewModel) {
     composeTestRule.setContent {
       EmailSignInScreen(
@@ -56,22 +65,53 @@ class EmailSignInScreenTest {
     }
   }
 
+  // Many small tests so that debugging is easier if several assertions fail
   @Test
-  fun screenShowsSharedAuthenticationContent() {
+  fun screenShowsHeader() {
     setScreen()
-
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertIsDisplayed()
+  }
+
+  @Test
+  fun screenShowsTermsFooter() {
+    setScreen()
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertIsDisplayed()
   }
 
   @Test
-  fun screenShowsEmailAndBothActions() {
+  fun screenShowsHeading() {
     setScreen()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertIsDisplayed()
+  }
 
+  @Test
+  fun screenShowsEmailField() {
+    setScreen()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD).assertIsDisplayed()
+  }
+
+  @Test
+  fun continueButtonIsEnabledByDefault() {
+    setScreen()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
+  }
+
+  @Test
+  fun googleButtonIsEnabledByDefault() {
+    setScreen()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsEnabled()
+  }
+
+  @Test
+  fun signUpPromptIsDisplayed() {
+    setScreen()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.SIGN_UP_PROMPT).assertIsDisplayed()
+  }
+
+  @Test
+  fun signUpLinkIsDisplayed() {
+    setScreen()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.SIGN_UP_LINK).assertIsDisplayed()
   }
 
   @Test
@@ -111,12 +151,13 @@ class EmailSignInScreenTest {
 
   @Test
   fun googleButtonIsDisabledDuringLoading() {
-    val state = MutableStateFlow(EmailSignInUiState(isLoading = true))
-    val loadingModel = mockk<EmailSignInViewModel>(relaxed = true)
-    every { loadingModel.uiState } returns state
-    setScreen(loadingModel)
-
+    setScreen(mockViewModel(EmailSignInUiState(isLoading = true)))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun continueButtonStaysEnabledDuringLoading() {
+    setScreen(mockViewModel(EmailSignInUiState(isLoading = true)))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
   }
 
@@ -130,10 +171,29 @@ class EmailSignInScreenTest {
   }
 
   @Test
-  fun screenShowsSignUpPrompt() {
-    setScreen()
+  fun googleButtonClickStartsGoogleSignIn() {
+    val model = mockViewModel(EmailSignInUiState())
+    setScreen(model)
 
-    composeTestRule.onNodeWithTag(EmailSignInTestTags.SIGN_UP_PROMPT).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(EmailSignInTestTags.SIGN_UP_LINK).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).performClick()
+
+    verify(exactly = 1) { model.signInWithGoogle(any(), credentialManager) }
+  }
+
+  @Test
+  fun displayedErrorIsClearedInViewModel() {
+    val model = mockViewModel(EmailSignInUiState(errorMessage = "Something failed"))
+    setScreen(model)
+    composeTestRule.waitForIdle()
+
+    verify(exactly = 1) { model.clearError() }
+  }
+
+  @Test
+  fun noExistingUserDoesNotInvokeGoogleNavigationCallback() {
+    setScreen()
+    composeTestRule.waitForIdle()
+
+    assertEquals(0, googleSignInCount)
   }
 }

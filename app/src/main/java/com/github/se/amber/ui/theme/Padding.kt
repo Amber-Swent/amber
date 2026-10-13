@@ -17,11 +17,3 @@ val BIG_ROUND_CORNER = 32.dp
 val DIVIDER_THICKNESS = 1.dp
 
 val SURFACE_BIG = 84.dp
-
-// Used for spacers, sizes, heights
-val SIZE_MINI = 4.dp
-val SIZE_SMALL = 8.dp
-val SIZE_REGULAR = 12.dp
-val SIZE_MEDIUM = 16.dp
-val SIZE_BIG = 24.dp
-val SIZE_ENORMOUS = 48.dp

@@ -37,11 +37,10 @@ import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.PADDING_BIG
+import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.SIZE_BIG
-import com.github.se.amber.ui.theme.SIZE_ENORMOUS
-import com.github.se.amber.ui.theme.SIZE_MEDIUM
-import com.github.se.amber.ui.theme.SIZE_REGULAR
+import com.github.se.amber.ui.theme.PADDING_REGULAR
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
@@ -125,7 +124,7 @@ private fun EmailSignInContent(
 ) {
 
   // Parameter spacing spaces the layout content (heading, email field, action group)
-  AuthenticationLayout(modifier = modifier, spacing = SIZE_REGULAR) {
+  AuthenticationLayout(modifier = modifier, spacing = PADDING_REGULAR) {
     AuthenticationText(
         modifier = Modifier.testTag(EmailSignInTestTags.HEADING),
         text = "Enter your email to sign in with Amber",
@@ -148,7 +147,7 @@ private fun EmailSignInContent(
     // Action group
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SIZE_MEDIUM),
+        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
     ) {
       // This button redirects the user to the Amber sign in page
       // This is an alternative to Google sign in
@@ -163,14 +162,14 @@ private fun EmailSignInContent(
       Column(
           modifier = Modifier.fillMaxWidth(),
           horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(SIZE_ENORMOUS),
+          verticalArrangement = Arrangement.spacedBy(PADDING_ENORMOUS),
       ) {
         Button(
             onClick = onGoogleClick,
             enabled = !uiState.isLoading,
             modifier =
                 Modifier.fillMaxWidth()
-                    .height(SIZE_ENORMOUS)
+                    .height(PADDING_ENORMOUS)
                     .testTag(EmailSignInTestTags.GOOGLE_BUTTON),
             shape = RoundedCornerShape(SMALL_ROUND_CORNER),
             colors =
@@ -182,9 +181,9 @@ private fun EmailSignInContent(
           Image(
               painter = painterResource(R.drawable.google_logo),
               contentDescription = null, // no need to put a description for the logo
-              modifier = Modifier.size(SIZE_BIG),
+              modifier = Modifier.size(PADDING_BIG),
           )
-          Spacer(modifier = Modifier.size(SIZE_REGULAR))
+          Spacer(modifier = Modifier.size(PADDING_REGULAR))
           AuthenticationText(
               text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
               style = MaterialTheme.typography.labelLarge,

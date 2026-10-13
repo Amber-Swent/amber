@@ -33,8 +33,7 @@ import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MINI
-import com.github.se.amber.ui.theme.SIZE_ENORMOUS
-import com.github.se.amber.ui.theme.SIZE_REGULAR
+import com.github.se.amber.ui.theme.PADDING_REGULAR
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.darkGray
@@ -108,7 +107,7 @@ internal fun AuthenticationHeader(
   Column(
       modifier = modifier.testTag(AuthenticationComponentTestTags.HEADER),
       horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(SIZE_REGULAR),
+      verticalArrangement = Arrangement.spacedBy(PADDING_REGULAR),
   ) {
     Surface(
         modifier = Modifier.size(SURFACE_BIG),
@@ -160,7 +159,7 @@ internal fun AuthenticationTextField(
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      modifier = modifier.fillMaxWidth().height(SIZE_ENORMOUS),
+      modifier = modifier.fillMaxWidth().height(PADDING_ENORMOUS),
       singleLine = true,
       placeholder = {
         AuthenticationText(
@@ -196,7 +195,7 @@ internal fun AuthenticationButton(
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.fillMaxWidth().height(SIZE_ENORMOUS),
+      modifier = modifier.fillMaxWidth().height(PADDING_ENORMOUS),
       shape = RoundedCornerShape(SMALL_ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
