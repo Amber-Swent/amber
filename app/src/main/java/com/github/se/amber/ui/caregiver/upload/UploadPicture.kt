@@ -3,7 +3,6 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
-import android.R.id.input
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -202,12 +201,12 @@ fun UploadPictureScreen(
 
           Button(
               onClick = { viewModel.uploadPicture() },
-              modifier = Modifier.fillMaxWidth(),
+              modifier = Modifier.fillMaxWidth()
+                  .testTag(UPLOAD_BUTTON),
               colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
               enabled = isFormValid,
           ) {
             Text(
-                modifier = Modifier.testTag(UPLOAD_BUTTON),
                 text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
             )
           }
@@ -302,7 +301,7 @@ private fun DisplayWhoIsInvolved(
             contentAlignment = Alignment.Center,
         ) {
           Text(
-              text = "No one are part of your care circle",
+              text = "No one is part of your care circle",
               color = Color.Black,
           )
         }

@@ -41,8 +41,7 @@ import kotlinx.coroutines.launch
 data class UploadPictureUIState(
     val description: String = "",
     val date: MemoryDate? = null,
-    val shownIds: Set<String> =
-        setOf("hello", "tata", "mdrr j'en peux plus"), // ids of the people tagged on the picture
+    val shownIds: Set<String> = emptySet(),
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
     val pictureHeight: Int = 0,
@@ -79,8 +78,7 @@ class UploadPictureViewModel(
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
   // TODO :The button for adding a person has not yet been implemented. This will be done in M2.
   val involvedOptions: StateFlow<Map<String, String>> =
-      careCircle
-          .map { circle ->
+      careCircle.map { circle ->
             if (circle == null) emptyMap()
             else
                 circle.people.mapValues { it.value.displayName() } +
