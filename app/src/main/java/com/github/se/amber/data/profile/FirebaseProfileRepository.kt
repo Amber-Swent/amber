@@ -66,22 +66,31 @@ class FirebaseProfileRepository(
     return getProfile(uid)
   }
 
-  override suspend fun getProfile(uid: String): Result<UserProfile?> =
-      try {
-        val snapshot = firestore.collection(USERS_COLLECTION).document(uid).get().await()
-        when {
-          !snapshot.exists() -> Result.success(null)
-          // toObject() would silently fall back to the default role
-          !snapshot.contains(ROLE_FIELD) -> Result.failure(ProfileReadError.InvalidProfile)
-          else ->
-              snapshot.toObject(UserProfile::class.java)?.let { Result.success(it) }
-                  ?: Result.failure(ProfileReadError.InvalidProfile)
+  override suspend fun getProfile(uid: String): Result<UserProfile?> {
+    // e.g. CareCircle.patientId before the patient joins; document("") would throw
+    if (uid.isBlank()) return Result.success(null)
+
+    val snapshot =
+        try {
+          firestore.collection(USERS_COLLECTION).document(uid).get().await()
+        } catch (exception: CancellationException) {
+          throw exception
+        } catch (exception: Exception) {
+          return Result.failure(exception.toProfileReadError())
         }
-      } catch (exception: CancellationException) {
-        throw exception
-      } catch (exception: Exception) {
-        Result.failure(exception.toProfileReadError())
-      }
+    if (!snapshot.exists()) return Result.success(null)
+    // toObject() would silently fall back to the default role
+    if (!snapshot.contains(ROLE_FIELD)) return Result.failure(ProfileReadError.InvalidProfile)
+
+    val profile =
+        try {
+          snapshot.toObject(UserProfile::class.java)
+        } catch (exception: RuntimeException) {
+          // the stored fields don't match UserProfile, e.g. an unknown role name
+          null
+        }
+    return profile?.let { Result.success(it) } ?: Result.failure(ProfileReadError.InvalidProfile)
+  }
 
   private fun Exception.toProfileReadError(): ProfileReadError =
       when (this) {

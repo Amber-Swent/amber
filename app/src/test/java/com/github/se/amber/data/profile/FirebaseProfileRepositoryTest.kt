@@ -226,6 +226,7 @@ class FirebaseProfileRepositoryTest {
     val result = repository.getCurrentProfile()
 
     assertEquals(profile, result.getOrThrow())
+    verify(exactly = 1) { collection.document(uid) }
   }
 
   @Test
@@ -277,6 +278,26 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
+  fun getProfile_returnsNullForBlankUidWithoutAccessingFirestore() = runTest {
+    val result = repository.getProfile("")
+
+    assertTrue(result.isSuccess)
+    assertNull(result.getOrThrow())
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun getProfile_rejectsDocumentThatCannotBeDeserialized() = runTest {
+    val snapshot = stubProfileDocument(document, UserProfile(uid = uid))
+    every { snapshot.toObject(UserProfile::class.java) } throws
+        RuntimeException("No enum constant Role.DOCTOR")
+
+    val result = repository.getProfile(uid)
+
+    assertFailure<FirebaseProfileRepository.ProfileReadError.InvalidProfile>(result)
+  }
+
+  @Test
   fun getProfile_rethrowsCancellationException() = runTest {
     val cancellation = CancellationException("profile read cancelled")
     every { document.get() } returns Tasks.forException(cancellation)
@@ -318,7 +339,17 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
-  fun getProfile_mapsOtherFailureToUnknown() = runTest {
+  fun getProfile_mapsOtherFirestoreFailureToUnknown() = runTest {
+    val source = firestoreFailure(FirebaseFirestoreException.Code.INTERNAL)
+    val result = getProfileFailingWith(source)
+
+    val error = result.exceptionOrNull()
+    assertTrue(error is FirebaseProfileRepository.ProfileReadError.Unknown)
+    assertSame(source, (error as FirebaseProfileRepository.ProfileReadError.Unknown).source)
+  }
+
+  @Test
+  fun getProfile_mapsUnexpectedExceptionToUnknown() = runTest {
     val source = IllegalStateException("boom")
     val result = getProfileFailingWith(source)
 
