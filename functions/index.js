@@ -1,5 +1,6 @@
 // Written by GitHub Copilot.
-// Modified by Neha Chakraborty and Copilot.
+// Modified by Neha Chakraborty and Copilot, with assistance from
+// Claude (Anthropic) via Claude Code.
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -17,20 +18,25 @@ const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
 const db = getFirestore();
 const VALID_ROLES = ["CAREGIVER", "PATIENT"];
 
+// Clients map redemption failures on `details.reason`; messages are for logs only.
+function redemptionFailed(reason, message) {
+  return new HttpsError("failed-precondition", message, { reason });
+}
+
 function validInvitationCircleId(invitation) {
   if (typeof invitation.circleId !== "string" || invitation.circleId.length === 0) {
-    throw new HttpsError("failed-precondition", "Invitation has an invalid circle");
+    throw redemptionFailed("CIRCLE_UNAVAILABLE", "Invitation has an invalid circle");
   }
   return invitation.circleId;
 }
 
 function validUser(userSnapshot) {
   if (!userSnapshot.exists) {
-    throw new HttpsError("failed-precondition", "User profile was not found");
+    throw redemptionFailed("PROFILE_INVALID", "User profile was not found");
   }
   const user = userSnapshot.data();
   if (!VALID_ROLES.includes(user.role)) {
-    throw new HttpsError("failed-precondition", "User profile has an invalid role");
+    throw redemptionFailed("PROFILE_INVALID", "User profile has an invalid role");
   }
   return user;
 }
@@ -153,17 +159,17 @@ exports.redeemInvitation = onCall(async (request) => {
       return { circleId, role: user.role };
     }
     if (invitation.usedBy != null) {
-      throw new HttpsError("failed-precondition", "Invitation has already been redeemed");
+      throw redemptionFailed("INVITATION_ALREADY_REDEEMED", "Invitation has already been redeemed");
     }
     if (Object.hasOwn(invitation, "role")) {
-      throw new HttpsError("failed-precondition", "Invitation must not specify a role");
+      throw redemptionFailed("INVITATION_INVALID", "Invitation must not specify a role");
     }
 
     const expirationMs = typeof invitation.expiresAt === "number"
       ? invitation.expiresAt
       : invitation.expiresAt?.toMillis?.();
     if (!Number.isFinite(expirationMs) || expirationMs <= Date.now()) {
-      throw new HttpsError("failed-precondition", "Invitation has expired");
+      throw redemptionFailed("INVITATION_EXPIRED", "Invitation has expired");
     }
     const circleId = validInvitationCircleId(invitation);
     const circleRef = db.doc(`careCircles/${circleId}`);
@@ -172,20 +178,20 @@ exports.redeemInvitation = onCall(async (request) => {
       transaction.get(userRef),
     ]);
     if (!circleSnapshot.exists) {
-      throw new HttpsError("failed-precondition", "Invitation circle no longer exists");
+      throw redemptionFailed("CIRCLE_UNAVAILABLE", "Invitation circle no longer exists");
     }
 
     const user = validUser(userSnapshot);
     if (!Array.isArray(user.circleIds)) {
-      throw new HttpsError("failed-precondition", "User profile has invalid circle membership");
+      throw redemptionFailed("PROFILE_INVALID", "User profile has invalid circle membership");
     }
 
     const circle = circleSnapshot.data();
     if (!Array.isArray(circle.memberIds) || circle.memberIds.includes(uid)) {
-      throw new HttpsError("failed-precondition", "User is already a circle member");
+      throw redemptionFailed("ALREADY_CIRCLE_MEMBER", "User is already a circle member");
     }
     if (user.role === "PATIENT" && circle.patientId) {
-      throw new HttpsError("failed-precondition", "Circle already has a patient");
+      throw redemptionFailed("PATIENT_SLOT_TAKEN", "Circle already has a patient");
     }
 
     transaction.update(invitationRef, { usedBy: uid });
