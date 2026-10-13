@@ -24,87 +24,91 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class PatientHomeScreenTest {
 
-    @get:Rule val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createComposeRule()
 
-    private lateinit var viewModel: PatientHomeViewModel
-    private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
+  private lateinit var viewModel: PatientHomeViewModel
+  private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
 
-    // Spies: permettent de vérifier les appels aux callbacks
-    private var checkoutCount = 0
-    private val selectedTabs = mutableListOf<Tab>()
+  // Spies: permettent de vérifier les appels aux callbacks
+  private var checkoutCount = 0
+  private val selectedTabs = mutableListOf<Tab>()
 
-    private fun profileOf(firstName: String) =
-        UserProfile(
-            uid = "1",
-            role = Role.PATIENT,
-            person = Person(firstName = firstName),
-            circleIds = emptyList(),
-        )
+  private fun profileOf(firstName: String) =
+      UserProfile(
+          uid = "1",
+          role = Role.PATIENT,
+          person = Person(firstName = firstName),
+          circleIds = emptyList(),
+      )
 
-    @Before
-    fun setUp() {
-        checkoutCount = 0
-        selectedTabs.clear()
-        stateFlow = MutableStateFlow(PatientHomeUIState(patientProfile = profileOf("Alice")))
-        viewModel = mockk(relaxed = true)
-        every { viewModel.uiState } returns stateFlow
+  @Before
+  fun setUp() {
+    checkoutCount = 0
+    selectedTabs.clear()
+    stateFlow = MutableStateFlow(PatientHomeUIState(patientProfile = profileOf("Alice")))
+    viewModel = mockk(relaxed = true)
+    every { viewModel.uiState } returns stateFlow
+  }
+
+  private fun setScreen() {
+    composeTestRule.setContent {
+      PatientHomeScreen(
+          homeViewModel = viewModel,
+          checkout = { checkoutCount++ },
+          onTabSelected = { selectedTabs.add(it) },
+      )
     }
+  }
 
-    private fun setScreen() {
-        composeTestRule.setContent {
-            PatientHomeScreen(
-                homeViewModel = viewModel,
-                checkout = { checkoutCount++ },
-                onTabSelected = { selectedTabs.add(it) },
-            )
-        }
-    }
+  @Test
+  fun displaysTitle() {
+    setScreen()
 
-    @Test
-    fun displaysTitle() {
-        setScreen()
+    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertTextEquals("Home")
+  }
 
-        composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertTextEquals("Home")
-    }
+  @Test
+  fun displaysGreetingWithFirstName() {
+    setScreen()
 
-    @Test
-    fun displaysGreetingWithFirstName() {
-        setScreen()
+    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.GREETINGS).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
+        .assertTextEquals("Hello Alice !")
+  }
 
-        composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.GREETINGS).assertIsDisplayed()
-        composeTestRule
-            .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
-            .assertTextEquals("Hello Alice !")
-    }
+  @Test
+  fun greetingUpdatesWhenStateChanges() {
+    setScreen()
+    composeTestRule
+        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
+        .assertTextEquals("Hello Alice !")
 
-    @Test
-    fun greetingUpdatesWhenStateChanges() {
-        setScreen()
-        composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.GREETINGS).assertTextEquals("Hello Alice !")
+    stateFlow.value = PatientHomeUIState(patientProfile = profileOf("Bob"))
+    composeTestRule.waitForIdle()
 
-        stateFlow.value = PatientHomeUIState(patientProfile = profileOf("Bob"))
-        composeTestRule.waitForIdle()
+    composeTestRule
+        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
+        .assertTextEquals("Hello Bob !")
+  }
 
-        composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.GREETINGS).assertTextEquals("Hello Bob !")
-    }
+  @Test
+  fun navigationBarsAreDisplayed() {
+    setScreen()
 
-    @Test
-    fun navigationBarsAreDisplayed() {
-        setScreen()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
 
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
-        composeTestRule
-            .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
-            .assertIsDisplayed()
-    }
+  @Test
+  fun noCallbackIsCalledAtStart() {
+    setScreen()
+    composeTestRule.waitForIdle()
 
-    @Test
-    fun noCallbackIsCalledAtStart() {
-        setScreen()
-        composeTestRule.waitForIdle()
-
-        assertEquals(0, checkoutCount)
-        assertEquals(emptyList<Tab>(), selectedTabs)
-    }
+    assertEquals(0, checkoutCount)
+    assertEquals(emptyList<Tab>(), selectedTabs)
+  }
 }
