@@ -12,6 +12,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,6 +56,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -80,7 +82,6 @@ object UploadPictureTestTags {
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
   const val UPLOAD_BUTTON = "upload_picture_button"
-  const val MAX_LINES_MESSAGE = "upload_picture_max_lines"
 }
 
 /**
@@ -142,8 +143,8 @@ fun UploadPictureScreen(
           uiState.title.isNotBlank() &&
           uiState.description.isNotBlank() &&
           uiState.involvedName.isNotBlank() &&
-          // TDODO : unExtract once DisplayDatePicker is merge
-          // uiState.date != null &&
+          // TODO : unExtract once DisplayDatePicker is merge
+          //  uiState.date != null &&
           !uiState.isUploading
 
   Scaffold(
@@ -213,13 +214,13 @@ fun UploadPictureScreen(
               value = uiState.involvedName,
               onValueChange = { viewModel.setInvolvedName(it) },
               label = "Who is Involved",
-              placeholder = "Name all person involved",
+              placeholder = "Name all person involved - separate them with comma",
               emptyErrorMessage = "They can't be no-one involved",
           )
-          // UnExtract once DatePicker's PR is merged
+          // TODO : UnExtract once DatePicker's PR is merged
           //            DisplayScrollableDatePicker(
           //                onDateSelected = { year, month, day ->
-          // viewModel.setDate(MemoryDate(year, month, day))}
+          //                viewModel.setDate(MemoryDate(year, month, day))}
           //            )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
@@ -233,7 +234,10 @@ fun UploadPictureScreen(
               colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
               enabled = isFormValid,
           ) {
-            Text(if (uiState.isUploading) "Uploading…" else "Upload Picture")
+            Text(
+                modifier = Modifier.testTag(UPLOAD_BUTTON),
+                text = if (uiState.isUploading) "Uploading…" else "Upload Picture"
+            )
           }
         }
       },

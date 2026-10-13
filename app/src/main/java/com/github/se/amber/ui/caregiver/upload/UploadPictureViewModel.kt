@@ -4,29 +4,28 @@
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
+import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Represents the state displayed by the picture upload screen.
- *
- * @param title The title entered for the picture.
- * @param description The description entered for the picture.
- * @param date The date associated with the picture.
- * @param involvedName The name of the person involved in the picture.
- * @param picture The picture selected for upload.
- * @param errorMsg The error message to display, or `null` when there is no error.
  */
 data class UploadPictureUIState(
+    // TODO: currently, the Media doesn't have a title parameter...
     val title: String = "",
     val description: String = "",
     val date: MemoryDate? = null,
@@ -46,10 +45,53 @@ class UploadPictureViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
-  val authorId = authRepo.currentUser?.uid
 
   /** Uploads the picture currently stored in the UI state. */
-  fun uploadPicture() {}
+  fun uploadPicture(circle: CareCircle) {
+        val authorId = authRepo.currentUser?.uid
+        if (authorId == null) {
+            setErrorMsg("Upload failed: you identity can't be verified")
+            return
+        }
+        val state = _uiState.value
+        val file = state.pictureFile
+        if (file == null) {
+            setErrorMsg("Please select a picture first")
+            return
+        }
+        if (state.isUploading) return
+
+        _uiState.value = state.copy(isUploading = true)
+        viewModelScope.launch {
+            try {
+                val id = mediaRepo.newMediaId(circle.id)
+                val item =
+                    MediaItem.Picture(
+                        id = id,
+                        authorId = authorId,
+                        // must start with careCircles/<circleId>/ (see MediaRepositoryFirebase.getFile)
+                        storagePath = "careCircles/${circle.id}/media/$id.jpg",
+                        createdAt = System.currentTimeMillis() ,
+                        description = state.description,
+                        date = state.date,
+                        location = null,
+                        shownIds = fromStringToShownIds(circle, state.involvedName),
+                        authorizedIds = emptyList(),
+                        status = MediaStatus.APPROVED,
+                        width = state.pictureWidth,
+                        height = state.pictureHeight,
+                    )
+                mediaRepo.addMedia(circle, item, file)
+                _uiState.value = _uiState.value.copy(isUploading = false, isUploaded = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isUploading = false)
+                setErrorMsg("Upload failed: ${e.message ?: "unknown error"}")
+            }
+        }
+    }
+
 
   /** Called by the View once the camera or the gallery returned a local file. */
   fun setPicture(file: File, width: Int, height: Int) {
@@ -102,7 +144,7 @@ fun extractPersonName(input: String): List<String> {
   for (i in input.indices) {
     if (input[i] == ',') {
       if (previousCommaIndex != -1 && i > 0) {
-        result.add(input.slice(previousCommaIndex..i))
+        result.add(input.slice(previousCommaIndex..i).trim())
       }
       previousCommaIndex = i
     }

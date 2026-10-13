@@ -22,7 +22,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
+import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
+import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
+import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.MAX_CHAR_DEFAULT
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
@@ -31,6 +36,13 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.darkOrange
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
+
+object DisplayTextFieldTestTags {
+    const val TEXT = "display_textField_text"
+    const val MAX_LINES_MESSAGE = "display_textField_max_lines"
+    const val MAX_CHAR_MESSAGE = "display_textField_max_lines"
+    const val ERROR_MESSAGE = "display_textField_max_lines"
+}
 
 /**
  * Displays the title for caregiver's Screen
@@ -92,7 +104,8 @@ fun DisplayTextField(
             modifier
                 .fillMaxWidth()
                 .onFocusChanged { focusState -> if (focusState.isFocused) hasBeenFocused = true }
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .testTag(TEXT),
         shape = RoundedCornerShape(ROUND_CORNER),
         colors =
             OutlinedTextFieldDefaults.colors(
@@ -106,13 +119,15 @@ fun DisplayTextField(
     Column() {
     if (value.length >= maxChar && hasBeenFocused) {
         Text(
-            text = "Maximum $maxChar characters reached",
+            modifier = Modifier.testTag(MAX_CHAR_MESSAGE),
+                    text = "Maximum $maxChar characters reached",
             color = darkOrange,
             style = MaterialTheme.typography.bodySmall,
         )
     }
     if (value.lines().size >= maxLines && hasBeenFocused) {
         Text(
+            modifier = Modifier.testTag(MAX_LINES_MESSAGE),
             text = "Maximum $maxLines lines reached",
             color = darkOrange,
             style = MaterialTheme.typography.bodySmall,
@@ -120,7 +135,8 @@ fun DisplayTextField(
     }
     if (emptyErrorMessage != null && value.isBlank() && hasBeenFocused) {
         Text(
-            text = emptyErrorMessage,
+            modifier = Modifier.testTag(ERROR_MESSAGE),
+                    text = emptyErrorMessage,
             color = darkOrange,
             style = MaterialTheme.typography.bodySmall,
         )
