@@ -3,9 +3,14 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
-import android.R.attr.onClick
-import android.provider.SyncStateContract.Helpers.update
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,9 +34,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,38 +41,46 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
-import com.github.se.amber.ui.caregiver.DisplayScrollableDatePicker
+import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
-import com.github.se.amber.ui.theme.MAX_LINE
+import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
+import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
-import com.github.se.amber.ui.theme.darkOrange
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
-import com.github.se.amber.ui.theme.orange
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object UploadPictureTestTags {
   const val TITLE = "upload_picture_title"
+  const val TAKE_PICTURE = "upload_picture_take"
+  const val SELECT_PICTURE = "upload_picture_select"
+  const val PICTURE_SELECTED = "upload_picture_selected"
+  const val UPLOAD_BUTTON = "upload_picture_button"
+  const val MAX_LINES_MESSAGE = "upload_picture_max_lines"
 }
 
 /**
@@ -90,6 +100,32 @@ fun UploadPictureScreen(
   val uiState by viewModel.uiState.collectAsState()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
+  val scope = rememberCoroutineScope() // TODO: check what is this
+
+  // Camera: the camera app writes into this file (exposed through a FileProvider)
+  var pendingCameraPath by rememberSaveable { mutableStateOf<String?>(null) }
+  val cameraLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        val file = pendingCameraPath?.let(::File)
+        if (success && file != null) {
+          val (w, h) = imageSize(file)
+          viewModel.setPicture(file, w, h)
+        } else if (!success) {
+          viewModel.setErrorMsg("No picture was taken")
+        }
+      }
+
+  // Gallery: copy the picked Uri to a local file so the repository can upload a File
+  val galleryLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+          scope.launch {
+            runCatching { withContext(Dispatchers.IO) { readPickedImage(context, uri) } }
+                .onSuccess { viewModel.setPicture(it.file, it.width, it.height) }
+                .onFailure { viewModel.setErrorMsg("Could not read the selected picture") }
+          }
+        }
+      }
 
   LaunchedEffect(errorMessage) {
     if (errorMessage != null) {
@@ -98,13 +134,17 @@ fun UploadPictureScreen(
     }
   }
 
-  // FIXME : need to verified there is a picture select
-  //  Don't know how.
-  //  Will have to see depending on how we implement the UploadPictureViewModel
+  // The upload is over: leave the screen only once it really succeeded
+  LaunchedEffect(uiState.isUploaded) { if (uiState.isUploaded) onUpload() }
+
   val isFormValid =
-      uiState.title.isNotBlank() &&
+      uiState.pictureFile != null &&
+          uiState.title.isNotBlank() &&
           uiState.description.isNotBlank() &&
-          uiState.involvedName.isNotBlank()
+          uiState.involvedName.isNotBlank() &&
+          // TDODO : unExtract once DisplayDatePicker is merge
+          // uiState.date != null &&
+          !uiState.isUploading
 
   Scaffold(
       topBar = {
@@ -123,39 +163,64 @@ fun UploadPictureScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         ) {
-            // TODO : will have to add the function
-          DisplayTakePicture(Modifier, {  })
-          DisplaySelectPicture(Modifier, { })
+          DisplayTakePicture(Modifier.testTag(UploadPictureTestTags.TAKE_PICTURE)) {
+            val file = File.createTempFile("camera_", ".jpg", context.cacheDir)
+            pendingCameraPath = file.absolutePath
+            val uri =
+                FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            try {
+              cameraLauncher.launch(uri)
+            } catch (e: ActivityNotFoundException) {
+              viewModel.setErrorMsg("No camera app available")
+            } catch (e: Exception) {
+              viewModel.setErrorMsg("An error occurs, retry")
+            }
+          }
+          DisplaySelectPicture(Modifier.testTag(UploadPictureTestTags.SELECT_PICTURE)) {
+            galleryLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+          }
+          if (uiState.pictureFile != null) {
+            Text(
+                "Picture selected",
+                modifier = Modifier.testTag(UploadPictureTestTags.PICTURE_SELECTED),
+            )
+          }
 
-          DisplayTextField(
+            DisplayTextField(
+              modifier = Modifier.height(TEXT_FIELD),
               value = uiState.title,
               onValueChange = { viewModel.setTitle(it) },
               label = "Title",
               placeholder = "Name the story",
               emptyErrorMessage = "Title cannot be empty",
-              modifier = Modifier.height(TEXT_FIELD),
           )
 
-          DisplayTextField(
+            DisplayTextField(
+              modifier = Modifier.height(TEXT_FIELD_BIG),
               value = uiState.description,
               onValueChange = { viewModel.setDescription(it) },
               label = "Description",
               placeholder = "Enter a one-line description",
               emptyErrorMessage = "Description cannot be empty",
-              modifier = Modifier.height(TEXT_FIELD_BIG),
+              maxLines = MAX_LINE_DESCRIPTION,
+              maxChar = MAX_CHAR_DESCRIPTION
           )
 
           DisplayTextField(
+              modifier = Modifier.height(TEXT_FIELD),
               value = uiState.involvedName,
               onValueChange = { viewModel.setInvolvedName(it) },
               label = "Who is Involved",
               placeholder = "Name all person involved",
               emptyErrorMessage = "They can't be no-one involved",
-              modifier = Modifier.height(TEXT_FIELD),
           )
-            DisplayScrollableDatePicker(
-                onDateSelected = { year, month, day -> viewModel.setDate(MemoryDate(year, month, day))}
-            )
+          // UnExtract once DatePicker's PR is merged
+          //            DisplayScrollableDatePicker(
+          //                onDateSelected = { year, month, day ->
+          // viewModel.setDate(MemoryDate(year, month, day))}
+          //            )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
@@ -168,68 +233,11 @@ fun UploadPictureScreen(
               colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
               enabled = isFormValid,
           ) {
-            Text("Upload Picture")
+            Text(if (uiState.isUploading) "Uploading…" else "Upload Picture")
           }
         }
       },
   )
-}
-
-/**
- * Displays a text field with optional validation feedback.
- *
- * @param value The current text field value.
- * @param onValueChange The callback invoked when the text changes.
- * @param label The label displayed for the text field.
- * @param modifier The modifier applied to the text field.
- * @param placeholder The optional placeholder displayed when the field is empty.
- * @param emptyErrorMessage The optional error message displayed when the field is empty after
- *   focus.
- * @param minLines The minimum number of lines displayed by the text field.
- * @param maxLines The maximum number of lines displayed by the text field.
- */
-@Composable
-private fun DisplayTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier,
-    placeholder: String? = null,
-    emptyErrorMessage: String? = null,
-    minLines: Int = 1,
-    maxLines: Int = MAX_LINE,
-) {
-  var hasBeenFocused by remember { mutableStateOf(false) }
-
-  OutlinedTextField(
-      value = value,
-      onValueChange = onValueChange,
-      label = { Text(text = label, color = Color.Black) },
-      placeholder = placeholder?.let { { Text(it) } },
-      modifier =
-          modifier.fillMaxWidth().onFocusChanged { focusState ->
-            if (focusState.isFocused) hasBeenFocused = true
-          },
-      shape = RoundedCornerShape(ROUND_CORNER),
-      colors =
-          OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = orange,
-              unfocusedBorderColor = lightGray,
-          ),
-      minLines = minLines,
-      maxLines = maxLines,
-  )
-  // TODO: should show message when reach max-line
-  // TODO: should grow description textField size when lines take more space that the locate one
-  // TODO: should keep the area focus on where the user click
-
-  if (emptyErrorMessage != null && value.isBlank() && hasBeenFocused) {
-    Text(
-        text = emptyErrorMessage,
-        color = darkOrange,
-        style = MaterialTheme.typography.bodySmall,
-    )
-  }
 }
 
 /**
@@ -309,6 +317,29 @@ fun DisplaySelectPicture(modifier: Modifier, selectPicture: () -> Unit) {
 
     Text(text = "Upload an existing Picture", color = Color.Black)
   }
+}
+
+private fun imageSize(file: File): Pair<Int, Int> {
+  val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+  BitmapFactory.decodeFile(file.absolutePath, opts)
+  return opts.outWidth to opts.outHeight
+}
+
+private fun copyUriToCache(context: Context, uri: Uri): File {
+  val file = File.createTempFile("picked_", ".jpg", context.cacheDir)
+  context.contentResolver.openInputStream(uri)!!.use { input ->
+    file.outputStream().use { input.copyTo(it) }
+  }
+  return file
+}
+
+/** A picture copied to a local file, with its pixel dimensions. */
+private data class PickedImage(val file: File, val width: Int, val height: Int)
+
+private fun readPickedImage(context: Context, uri: Uri): PickedImage {
+  val file = copyUriToCache(context, uri)
+  val (width, height) = imageSize(file)
+  return PickedImage(file, width, height)
 }
 
 /** Preview of [UploadPictureScreen] using the Amber application theme. */

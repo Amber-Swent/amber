@@ -182,10 +182,15 @@ dependencies {
   // ----------        Mockito        ------------
   testImplementation(libs.mockito.kotlin)
 
+  // ----------          Coil         ------------
+  // Decodes and displays local media files; the files themselves come from MediaFileCache.
+  implementation(libs.coil.compose)
+
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))
   androidTestImplementation(platform(libs.firebase.bom))
   implementation(libs.firebase.firestore)
+  implementation(libs.firebase.functions)
   implementation(libs.firebase.auth)
   implementation(libs.firebase.storage)
   // Task.await() for Firebase calls

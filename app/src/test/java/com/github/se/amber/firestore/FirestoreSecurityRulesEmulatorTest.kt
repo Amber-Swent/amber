@@ -1,6 +1,7 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
+// Modified by Neha Chakraborty and Claude Code.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
@@ -156,6 +157,83 @@ class FirestoreSecurityRulesEmulatorTest {
     assertEquals(200, status)
     assertTrue(body.contains("\"$code\""))
     assertFalse(body.contains("\"role\""))
+  }
+
+  @Test
+  fun invitationList_creatorQueryReturnsOnlyOwnCircleInvitations_enforcedByEmulator() {
+    val sharedCircleId = "shared-circle"
+    val outsideCircleId = "outside-circle"
+    val creator = "creator"
+    val otherCaregiver = "other-caregiver"
+
+    fs.adminSet("users/$creator", user(creator, "CAREGIVER", listOf(sharedCircleId), "Ada"))
+    fs.adminSet(
+        "users/$otherCaregiver",
+        user(otherCaregiver, "CAREGIVER", listOf(sharedCircleId), "Bea"),
+    )
+    fs.adminSet(
+        "careCircles/$sharedCircleId",
+        circle(sharedCircleId, creator, listOf(creator, otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "careCircles/$outsideCircleId",
+        circle(outsideCircleId, otherCaregiver, listOf(otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "invitations/CREATOR_ACTIVE",
+        invite("CREATOR_ACTIVE", sharedCircleId, creator, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/CREATOR_USED",
+        invite("CREATOR_USED", sharedCircleId, creator, expiresAt = now + 60_000, usedBy = "u"),
+    )
+    fs.adminSet(
+        "invitations/OTHER",
+        invite("OTHER", sharedCircleId, otherCaregiver, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/OUTSIDE",
+        invite("OUTSIDE", outsideCircleId, otherCaregiver, expiresAt = now + 60_000),
+    )
+
+    val (code, body) = fs.queryInvitations(creator, createdBy = creator, circleId = sharedCircleId)
+
+    assertTrue("Expected creator query to succeed but HTTP $code", code in 200..299)
+    assertEquals(setOf("CREATOR_ACTIVE", "CREATOR_USED"), invitationCodes(body))
+  }
+
+  @Test
+  fun invitationList_deniesQueriesForOtherCreatorsOrForeignCircles_enforcedByEmulator() {
+    val sharedCircleId = "shared-circle"
+    val outsideCircleId = "outside-circle"
+    val creator = "creator"
+    val otherCaregiver = "other-caregiver"
+
+    fs.adminSet("users/$creator", user(creator, "CAREGIVER", listOf(sharedCircleId), "Ada"))
+    fs.adminSet(
+        "users/$otherCaregiver",
+        user(otherCaregiver, "CAREGIVER", listOf(sharedCircleId, outsideCircleId), "Bea"),
+    )
+    fs.adminSet(
+        "careCircles/$sharedCircleId",
+        circle(sharedCircleId, creator, listOf(creator, otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "careCircles/$outsideCircleId",
+        circle(outsideCircleId, otherCaregiver, listOf(otherCaregiver), patientId = ""),
+    )
+    fs.adminSet(
+        "invitations/CREATOR",
+        invite("CREATOR", sharedCircleId, creator, expiresAt = now + 60_000),
+    )
+    fs.adminSet(
+        "invitations/OUTSIDE",
+        invite("OUTSIDE", outsideCircleId, creator, expiresAt = now + 60_000),
+    )
+
+    fs.assertFails(otherCaregiver, fs.listInvitations(creator, sharedCircleId))
+    fs.assertFails(creator, fs.listInvitations(creator, outsideCircleId))
+    fs.assertFails(creator, fs.list("invitations"))
   }
 
   @Test
@@ -359,6 +437,29 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
   }
 
+  /** The reads behind CareCircleRepository.getCircle(circleId). */
+  @Test
+  fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
+    val circleId = "c-read"
+    val care = "care"
+    val pat = "pat"
+    val stranger = "stranger"
+    val circlePath = "careCircles/$circleId"
+    fs.adminSet(circlePath, circle(circleId, care, listOf(care, pat), patientId = pat))
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    fs.adminSet("users/$stranger", user(stranger, "CAREGIVER", emptyList(), "Eve"))
+
+    fs.assertSucceeds(care, fs.get(circlePath))
+    fs.assertSucceeds(pat, fs.get(circlePath))
+    fs.assertFails(stranger, fs.get(circlePath))
+    fs.assertFails(null, fs.get(circlePath))
+    // A missing circle is denied rather than reported as not found, even to a signed-in user who
+    // lists it in their profile, so the repository surfaces it as PermissionDenied.
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId, "c-missing"), "Ada"))
+    fs.assertFails(care, fs.get("careCircles/c-missing"))
+  }
+
   companion object {
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long
@@ -416,6 +517,13 @@ class FirestoreSecurityRulesEmulatorTest {
             "createdBy" to createdBy,
             "createdAt" to 1L,
         )
+
+    /** Extracts invitation codes from a `runQuery` response body. */
+    private fun invitationCodes(runQueryBody: String): Set<String> =
+        Regex(""""name"\s*:\s*"[^"]*/documents/invitations/([^"]+)"""")
+            .findAll(runQueryBody)
+            .map { it.groupValues[1] }
+            .toSet()
 
     private fun invite(
         code: String,
@@ -495,58 +603,53 @@ private class FirestoreEmulatorClient(
   }
 
   fun listInvitations(createdBy: String, circleId: String): (String?) -> Int = { uid ->
-    requestWithBody(
-            "POST",
-            "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
-            token = bearer(uid),
-            body =
-                mapOf(
-                    "structuredQuery" to
-                        mapOf(
-                            "from" to listOf(mapOf("collectionId" to "invitations")),
-                            "where" to
-                                mapOf(
-                                    "compositeFilter" to
-                                        mapOf(
-                                            "op" to "AND",
-                                            "filters" to
-                                                listOf(
-                                                    mapOf(
-                                                        "fieldFilter" to
-                                                            mapOf(
-                                                                "field" to
-                                                                    mapOf(
-                                                                        "fieldPath" to "createdBy"
-                                                                    ),
-                                                                "op" to "EQUAL",
-                                                                "value" to
-                                                                    mapOf(
-                                                                        "stringValue" to createdBy
-                                                                    ),
-                                                            ),
-                                                    ),
-                                                    mapOf(
-                                                        "fieldFilter" to
-                                                            mapOf(
-                                                                "field" to
-                                                                    mapOf(
-                                                                        "fieldPath" to "circleId"
-                                                                    ),
-                                                                "op" to "EQUAL",
-                                                                "value" to
-                                                                    mapOf(
-                                                                        "stringValue" to circleId
-                                                                    ),
-                                                            ),
-                                                    ),
-                                                ),
-                                        ),
-                                ),
-                        ),
-                ),
-        )
-        .first
+    queryInvitations(uid, createdBy, circleId).first
   }
+
+  /** Runs the repository's `createdBy` + `circleId` query and returns HTTP status and JSON body. */
+  fun queryInvitations(uid: String?, createdBy: String, circleId: String): Pair<Int, String> =
+      requestWithBody(
+          "POST",
+          "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
+          token = bearer(uid),
+          body =
+              mapOf(
+                  "structuredQuery" to
+                      mapOf(
+                          "from" to listOf(mapOf("collectionId" to "invitations")),
+                          "where" to
+                              mapOf(
+                                  "compositeFilter" to
+                                      mapOf(
+                                          "op" to "AND",
+                                          "filters" to
+                                              listOf(
+                                                  mapOf(
+                                                      "fieldFilter" to
+                                                          mapOf(
+                                                              "field" to
+                                                                  mapOf("fieldPath" to "createdBy"),
+                                                              "op" to "EQUAL",
+                                                              "value" to
+                                                                  mapOf("stringValue" to createdBy),
+                                                          ),
+                                                  ),
+                                                  mapOf(
+                                                      "fieldFilter" to
+                                                          mapOf(
+                                                              "field" to
+                                                                  mapOf("fieldPath" to "circleId"),
+                                                              "op" to "EQUAL",
+                                                              "value" to
+                                                                  mapOf("stringValue" to circleId),
+                                                          ),
+                                                  ),
+                                              ),
+                                      ),
+                              ),
+                      ),
+              ),
+      )
 
   fun delete(path: String): (String?) -> Int = { uid ->
     commitAs(bearer(uid), mapOf("delete" to docName(path)))
