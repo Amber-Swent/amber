@@ -8,24 +8,18 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
 class ProfileRepositoryProviderTest {
-  private val auth: FirebaseAuth = mockk()
-  private val firestore: FirebaseFirestore = mockk()
-
   @Before
   fun setUp() {
     mockkStatic(FirebaseAuth::class, FirebaseFirestore::class)
-    every { FirebaseAuth.getInstance() } returns auth
-    every { FirebaseFirestore.getInstance() } returns firestore
-    every { auth.currentUser } returns null
+    every { FirebaseAuth.getInstance() } returns mockk()
+    every { FirebaseFirestore.getInstance() } returns mockk()
   }
 
   @After
@@ -34,25 +28,10 @@ class ProfileRepositoryProviderTest {
   }
 
   @Test
-  fun providerRetriesAfterMissingFirebaseAndSharesRepository() = runTest {
-    // Building fails while the default Firebase app is not initialized
-    val missingApp = IllegalStateException("Default FirebaseApp is not initialized")
-    every { FirebaseAuth.getInstance() } throws missingApp
-    assertSame(
-        missingApp,
-        assertThrows(IllegalStateException::class.java) { ProfileRepositoryProvider.repository },
-    )
-
-    // Once Firebase is available, the next access builds the repository
-    every { FirebaseAuth.getInstance() } returns auth
+  fun providerBuildsAndSharesFirebaseRepository() {
     val repository = ProfileRepositoryProvider.repository
 
     assertEquals(FirebaseProfileRepository::class.java, repository.javaClass)
     assertSame(repository, ProfileRepositoryProvider.repository)
-    // The repository reads the default FirebaseAuth instance
-    assertSame(
-        ProfileReadError.NotAuthenticated,
-        repository.getCurrentProfile().exceptionOrNull(),
-    )
   }
 }

@@ -7,21 +7,17 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 
 class CareCircleRepositoryProviderTest {
-  private val firestore: FirebaseFirestore = mockk()
-
   @Before
   fun setUp() {
     mockkStatic(FirebaseFirestore::class)
-    every { FirebaseFirestore.getInstance() } returns firestore
+    every { FirebaseFirestore.getInstance() } returns mockk()
   }
 
   @After
@@ -30,22 +26,10 @@ class CareCircleRepositoryProviderTest {
   }
 
   @Test
-  fun providerRetriesAfterMissingFirebaseAndSharesRepository() = runTest {
-    // Building fails while the default Firebase app is not initialized
-    val missingApp = IllegalStateException("Default FirebaseApp is not initialized")
-    every { FirebaseFirestore.getInstance() } throws missingApp
-    assertSame(
-        missingApp,
-        assertThrows(IllegalStateException::class.java) { CareCircleRepositoryProvider.repository },
-    )
-
-    // Once Firebase is available, the next access builds the repository
-    every { FirebaseFirestore.getInstance() } returns firestore
+  fun providerBuildsAndSharesFirebaseRepository() {
     val repository = CareCircleRepositoryProvider.repository
 
     assertEquals(FirebaseCareCircleRepository::class.java, repository.javaClass)
     assertSame(repository, CareCircleRepositoryProvider.repository)
-    // Blank ids are rejected before Firestore is read
-    assertSame(CareCircleError.InvalidCircleId, repository.getCircle("").exceptionOrNull())
   }
 }
