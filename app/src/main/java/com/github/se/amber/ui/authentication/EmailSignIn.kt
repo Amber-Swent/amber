@@ -18,7 +18,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -39,10 +38,10 @@ import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.SIZE_BIG
+import com.github.se.amber.ui.theme.SIZE_ENORMOUS
 import com.github.se.amber.ui.theme.SIZE_MEDIUM
 import com.github.se.amber.ui.theme.SIZE_REGULAR
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
-import com.github.se.amber.ui.theme.SIZE_ENORMOUS
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -68,7 +67,7 @@ fun EmailSignInScreen(
     credentialManager: CredentialManager = CredentialManager.create(context),
     onContinue: () -> Unit = {},
     onGoogleSignIn: () -> Unit = {},
-    emailSignInViewModel: EmailSignInViewModel = viewModel()
+    emailSignInViewModel: EmailSignInViewModel = viewModel(),
 ) {
   val uiState by emailSignInViewModel.uiState.collectAsState()
 
@@ -80,18 +79,16 @@ fun EmailSignInScreen(
 
   // Display a Toast when the errorMessage of the uiState is not null
   LaunchedEffect(uiState.errorMessage) {
-      uiState.errorMessage?.let { message ->
-          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-          emailSignInViewModel.clearError()
-      }
+    uiState.errorMessage?.let { message ->
+      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      emailSignInViewModel.clearError()
+    }
   }
 
   EmailSignInContent(
       uiState = uiState,
       onEmailChange = emailSignInViewModel::onEmailChange,
-      onContinue = {
-        if (emailSignInViewModel.validateEmail()) onContinue()
-      },
+      onContinue = { if (emailSignInViewModel.validateEmail()) onContinue() },
       onGoogleClick = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
       modifier = modifier,
   )
@@ -123,7 +120,7 @@ private fun EmailSignInContent(
         text = "Enter your email to sign in with Amber",
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
     )
     AuthenticationTextField(
         value = uiState.email,
@@ -214,7 +211,7 @@ private fun OrDivider() {
         modifier = Modifier.padding(horizontal = PADDING_MEDIUM),
         text = "or",
         style = MaterialTheme.typography.bodySmall,
-        color = darkGray
+        color = darkGray,
     )
 
     HorizontalDivider(
@@ -229,11 +226,11 @@ private fun OrDivider() {
 @Composable
 private fun EmailSignInScreenPreview() {
   AmberAppTheme(darkTheme = false, dynamicColor = false) {
-      EmailSignInContent(
-          uiState = EmailSignInUiState(),
-          onEmailChange = {},
-          onContinue = {},
-          onGoogleClick = {},
-      )
+    EmailSignInContent(
+        uiState = EmailSignInUiState(),
+        onEmailChange = {},
+        onContinue = {},
+        onGoogleClick = {},
+    )
   }
 }

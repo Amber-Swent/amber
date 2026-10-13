@@ -72,11 +72,11 @@ class EmailSignInViewModel(
 
   /** Returns whether an email was entered and reports an error if it was blank. */
   fun validateEmail(): Boolean {
-      if (_uiState.value.email.isBlank()) {
-          _uiState.update { it.copy(errorMessage = "Please enter your email address.") }
-          return false
-      }
-      return true
+    if (_uiState.value.email.isBlank()) {
+      _uiState.update { it.copy(errorMessage = "Please enter your email address.") }
+      return false
+    }
+    return true
   }
 
   /**
@@ -85,15 +85,15 @@ class EmailSignInViewModel(
    * This allows a later sign-in attempt to show the same error again.
    */
   fun clearError() {
-      _uiState.update { it.copy(errorMessage = null) }
+    _uiState.update { it.copy(errorMessage = null) }
   }
 
   /**
    * Starts Google authentication using Android Credential Manager.
    *
    * A successful authentication stores the authenticated user in [uiState]. Cancelling the Google
-   * account picker returns the screen to its idle state without displaying an error.
-   * Signing out will be handled in the ViewModel of the screen that allows sign-out.
+   * account picker returns the screen to its idle state without displaying an error. Signing out
+   * will be handled in the ViewModel of the screen that allows sign-out.
    *
    * @param context Android context used by Credential Manager and to access the OAuth client ID.
    * @param credentialManager Credential Manager used to request the Google credential.
@@ -107,20 +107,18 @@ class EmailSignInViewModel(
     _uiState.update { state -> state.copy(isLoading = true, errorMessage = null) }
 
     /*
-        Extract the context.getString outside of viewModelScope.launch
-        Context can be destroyed at any moment: if the Activity owning the context is destroyed
-        before the coroutine runs, accessing context inside the asynchronous code could fail
-        or reference a dead context.
-     */
+       Extract the context.getString outside of viewModelScope.launch
+       Context can be destroyed at any moment: if the Activity owning the context is destroyed
+       before the coroutine runs, accessing context inside the asynchronous code could fail
+       or reference a dead context.
+    */
     val clientId = context.getString(R.string.default_web_client_id)
 
     viewModelScope.launch {
       try {
         // default_web...: web/server OAuth client associated with the Firebase
         // configuration: tells Google which client the sign-in is for
-        val googleOption =
-            GetSignInWithGoogleOption.Builder(clientId)
-                .build()
+        val googleOption = GetSignInWithGoogleOption.Builder(clientId).build()
 
         // Wraps the option in a request
         val request = GetCredentialRequest.Builder().addCredentialOption(googleOption).build()
@@ -144,10 +142,10 @@ class EmailSignInViewModel(
         _uiState.update { state -> state.copy(isLoading = false) }
       } catch (_: NoCredentialException) { // Handle: no matching credentials found on device
         _uiState.update { state ->
-            state.copy(
-                isLoading = false,
-                errorMessage = "No Google account found. Please add one to your device."
-            )
+          state.copy(
+              isLoading = false,
+              errorMessage = "No Google account found. Please add one to your device.",
+          )
         }
       } catch (e: CancellationException) { // Propagate to caller
         throw e

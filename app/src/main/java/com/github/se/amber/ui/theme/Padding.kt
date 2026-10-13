@@ -25,4 +25,3 @@ val SIZE_REGULAR = 12.dp
 val SIZE_MEDIUM = 16.dp
 val SIZE_BIG = 24.dp
 val SIZE_ENORMOUS = 48.dp
-
