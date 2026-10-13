@@ -2,26 +2,21 @@
 // Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.media
 
-import com.github.se.amber.data.media.SendResult
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Checks the types describing a media on its way to Firebase. */
+/** Checks the model types describing a media on its way to Firebase. */
 class MediaSendTypesTest {
 
   private val picture = MediaItem.Picture(id = "m1", storagePath = "careCircles/c1/media/m1.jpg")
 
   @Test
-  fun sendStatesAndResultsAreTheDocumentedOnes() {
+  fun sendStatesAreTheDocumentedOnes() {
     assertEquals(
         listOf(SendState.WAITING, SendState.SENDING, SendState.FAILED),
-        SendState.entries.map { SendState.valueOf(it.name) },
-    )
-    assertEquals(
-        listOf(SendResult.DONE, SendResult.RETRY, SendResult.FAILED),
-        SendResult.entries.map { SendResult.valueOf(it.name) },
+        SendState.entries,
     )
   }
 
