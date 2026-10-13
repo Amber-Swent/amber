@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.ui.accountCreation.CreateProfile
 import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
@@ -29,7 +30,12 @@ import org.robolectric.RobolectricTestRunner
 class CreateProfileUITests {
   @get:Rule val composeTestRule = createComposeRule()
 
-  private fun setCreateProfile(viewModel: CreateProfileViewModel = CreateProfileViewModel()) {
+  private fun setCreateProfile(
+      viewModel: CreateProfileViewModel =
+          CreateProfileViewModel(
+              profileRepository = ProfileRepository { _, _ -> Result.success(Unit) },
+          ),
+  ) {
     composeTestRule.setContent { CreateProfile(viewModel = viewModel) }
   }
 
@@ -55,9 +61,7 @@ class CreateProfileUITests {
         CreateProfileTestTags.CAREGIVER_BUTTON,
     )
 
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name)
-        .assertHasClickAction()
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).assertHasClickAction()
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name)
         .assertHasClickAction()
@@ -150,9 +154,7 @@ class CreateProfileUITests {
   }
 
   private fun assertEmptyFieldValidationIsShown() {
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name)
-        .assert(hasErrorSemantics())
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).assert(hasErrorSemantics())
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
         .assert(hasErrorSemantics())

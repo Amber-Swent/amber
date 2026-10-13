@@ -21,10 +21,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,6 +32,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -50,12 +49,15 @@ enum class CreateProfileTestTags {
   SURNAME_ERROR,
   PATIENT_BUTTON,
   CAREGIVER_BUTTON,
+  SUBMIT_ERROR,
 }
 
 /** Grey color used for empty Name / Surname placeholders. */
 val CreateProfilePlaceholderColor: Color = darkGray
 
 private const val FILL_OUT_MESSAGE = "Please fill this out"
+
+private val ErrorRed = Color(0xFFB3261E)
 
 /**
  * Create-profile step of account creation.
@@ -64,15 +66,7 @@ private const val FILL_OUT_MESSAGE = "Please fill this out"
  */
 @Composable
 fun CreateProfile(viewModel: CreateProfileViewModel = viewModel()) {
-  var name by remember { mutableStateOf("") }
-  var surname by remember { mutableStateOf("") }
-  var nameError by remember { mutableStateOf(false) }
-  var surnameError by remember { mutableStateOf(false) }
-
-  fun onRoleSelected() {
-    nameError = name.isBlank()
-    surnameError = surname.isBlank()
-  }
+  val uiState by viewModel.uiState.collectAsState()
 
   Column(
       modifier =
@@ -118,31 +112,25 @@ fun CreateProfile(viewModel: CreateProfileViewModel = viewModel()) {
       Spacer(modifier = Modifier.height(PADDING_BIG))
 
       ProfileTextField(
-          value = name,
-          onValueChange = {
-            name = it
-            if (it.isNotBlank()) nameError = false
-          },
+          value = uiState.name,
+          onValueChange = viewModel::onNameChange,
           placeholder = "Name",
           inputTestTag = CreateProfileTestTags.NAME_INPUT.name,
           placeholderTestTag = CreateProfileTestTags.NAME_PLACEHOLDER.name,
           errorTestTag = CreateProfileTestTags.NAME_ERROR.name,
-          isError = nameError,
+          isError = uiState.nameError,
       )
 
       Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
       ProfileTextField(
-          value = surname,
-          onValueChange = {
-            surname = it
-            if (it.isNotBlank()) surnameError = false
-          },
+          value = uiState.surname,
+          onValueChange = viewModel::onSurnameChange,
           placeholder = "Surname",
           inputTestTag = CreateProfileTestTags.SURNAME_INPUT.name,
           placeholderTestTag = CreateProfileTestTags.SURNAME_PLACEHOLDER.name,
           errorTestTag = CreateProfileTestTags.SURNAME_ERROR.name,
-          isError = surnameError,
+          isError = uiState.surnameError,
       )
 
       Spacer(modifier = Modifier.height(PADDING_BIG))
@@ -161,7 +149,8 @@ fun CreateProfile(viewModel: CreateProfileViewModel = viewModel()) {
           horizontalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
       ) {
         Button(
-            onClick = { onRoleSelected() },
+            onClick = { viewModel.onRoleSelected(Role.PATIENT) },
+            enabled = !uiState.isSaving,
             modifier =
                 Modifier.weight(1f)
                     .height(48.dp)
@@ -177,7 +166,8 @@ fun CreateProfile(viewModel: CreateProfileViewModel = viewModel()) {
         }
 
         Button(
-            onClick = { onRoleSelected() },
+            onClick = { viewModel.onRoleSelected(Role.CAREGIVER) },
+            enabled = !uiState.isSaving,
             modifier =
                 Modifier.weight(1f)
                     .height(48.dp)
@@ -192,13 +182,24 @@ fun CreateProfile(viewModel: CreateProfileViewModel = viewModel()) {
           Text(text = "Caregiver", fontWeight = FontWeight.Medium)
         }
       }
+
+      uiState.submitError?.let { errorMessage ->
+        Text(
+            text = errorMessage,
+            color = ErrorRed,
+            fontSize = 12.sp,
+            modifier =
+                Modifier.padding(top = PADDING_SMALL)
+                    .testTag(CreateProfileTestTags.SUBMIT_ERROR.name),
+        )
+      }
     }
   }
 }
 
 /**
- * Name/surname field with externally tagged placeholder and error text so UI tests can find them
- * in the merged semantics tree (outside [OutlinedTextField]'s merged descendants).
+ * Name/surname field with externally tagged placeholder and error text so UI tests can find them in
+ * the merged semantics tree (outside [OutlinedTextField]'s merged descendants).
  */
 @Composable
 private fun ProfileTextField(
@@ -239,7 +240,7 @@ private fun ProfileTextField(
     if (isError) {
       Text(
           text = FILL_OUT_MESSAGE,
-          color = Color(0xFFB3261E),
+          color = ErrorRed,
           fontSize = 12.sp,
           modifier = Modifier.padding(start = 16.dp, top = 4.dp).testTag(errorTestTag),
       )
