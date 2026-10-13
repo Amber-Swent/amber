@@ -4,6 +4,7 @@ package com.github.se.amber.ui.media
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -29,17 +30,34 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.annotation.DelicateCoilApi
+import coil3.fetch.SourceFetchResult
+import coil3.request.Options
+import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.CircleMedia
+import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.OutboxEntry
 import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Checks [MediaImage] with Coil's real decoding of files written on the device. */
+/**
+ * Checks [MediaImage] and [MediaPictureFetcher] with Coil's real decoding of files written on the
+ * device.
+ */
+@OptIn(DelicateCoilApi::class)
 @RunWith(AndroidJUnit4::class)
 class MediaImageInstrumentedTest {
   @get:Rule val composeTestRule = createComposeRule()
@@ -47,24 +65,43 @@ class MediaImageInstrumentedTest {
   private val context: Context = ApplicationProvider.getApplicationContext()
   private lateinit var dir: File
 
+  /** The file [repository] gives for every picture. */
+  private lateinit var file: File
+  private val repository = FileRepository { file }
+
+  private val circle = CareCircle(id = "c1", storageBucket = "bucket-c1")
+  private val picture =
+      MediaItem.Picture(
+          id = "m1",
+          storagePath = "careCircles/c1/media/m1.jpg",
+          description = DESCRIPTION,
+      )
+
   @Before
   fun setUp() {
     dir = File(context.cacheDir, "media-image-test").apply { mkdirs() }
-    clearMediaImageMemoryCache(context)
+    // The app's loader would get files from the real repository: use this test's instead.
+    SingletonImageLoader.setUnsafe(
+        ImageLoader.Builder(context)
+            .components {
+              add(MediaPictureKeyer())
+              add(MediaPictureFetcher.Factory { repository })
+            }
+            .build()
+    )
   }
 
   @After
   fun tearDown() {
     dir.deleteRecursively()
-    clearMediaImageMemoryCache(context)
+    SingletonImageLoader.reset()
   }
 
-  private fun show(file: File) {
+  private fun show() {
     composeTestRule.setContent {
       MediaImage(
-          mediaId = file.name,
-          loadFile = { file },
-          contentDescription = DESCRIPTION,
+          circle = circle,
+          picture = picture,
           modifier = Modifier.size(100.dp),
           loading = { Text(LOADING) },
           failed = { Text(FAILED) },
@@ -92,7 +129,8 @@ class MediaImageInstrumentedTest {
 
   @Test
   fun decodesAndShowsARealPng() {
-    show(writePng("photo.png"))
+    file = writePng("photo.png")
+    show()
 
     waitUntilShown()
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
@@ -102,9 +140,8 @@ class MediaImageInstrumentedTest {
 
   @Test
   fun showsFailedForAFileThatIsNotAnImage() {
-    val notImage = File(dir, "photo.jpg").apply { writeText("not an image") }
-
-    show(notImage)
+    file = File(dir, "photo.jpg").apply { writeText("not an image") }
+    show()
 
     composeTestRule.waitUntil(TIMEOUT_MS) {
       composeTestRule.onAllNodesWithText(FAILED).fetchSemanticsNodes().isNotEmpty()
@@ -114,20 +151,30 @@ class MediaImageInstrumentedTest {
   }
 
   @Test
-  fun aPictureInCoilsMemoryCacheIsVisibleInTheFirstFrameAfterItsFileIsLoaded() {
-    val png = writePng("photo.png")
+  fun aFileDeletedAfterTheFetchIsStillDecoded() = runBlocking {
+    // What a send (moving the file) or an eviction (deleting it) does while Coil decodes.
+    file = writePng("photo.png")
+    val result =
+        MediaPictureFetcher.Factory { repository }
+            .create(MediaPicture(circle, picture), Options(context), ImageLoader(context))
+            .fetch() as SourceFetchResult
+
+    assertTrue(file.delete())
+
+    val bitmap = result.source.use { BitmapFactory.decodeStream(it.source().inputStream()) }
+    assertNotNull(bitmap)
+    assertEquals(Color.RED, bitmap.getPixel(4, 4))
+  }
+
+  @Test
+  fun aPictureInCoilsMemoryCacheIsVisibleInTheFirstFrameWithoutGettingItsFile() {
+    file = writePng("photo.png")
     var shown by mutableStateOf(true)
-    // Written by loadFile on the main thread, read by the test thread: atomic for visibility.
-    val fileLoaded = AtomicBoolean(false)
     composeTestRule.setContent {
       if (shown) {
         MediaImage(
-            mediaId = "m1",
-            loadFile = {
-              fileLoaded.set(true)
-              png
-            },
-            contentDescription = DESCRIPTION,
+            circle = circle,
+            picture = picture,
             modifier = Modifier.size(100.dp).testTag(CONTAINER),
             // A solid slot over the whole image, so a pixel tells which one is drawn on top.
             loading = { Box(Modifier.fillMaxSize().background(ComposeColor.Blue)) },
@@ -138,26 +185,60 @@ class MediaImageInstrumentedTest {
     waitUntilShown()
 
     // Leave and come back, like scrolling an item out of a list and back. The clock is paused so
-    // that the test runs the frames one by one.
+    // that the test runs a single frame.
     shown = false
     composeTestRule.waitForIdle()
-    fileLoaded.set(false)
     composeTestRule.mainClock.autoAdvance = false
     shown = true
     // A state written outside composition is only seen by Compose once published.
     Snapshot.sendApplyNotifications()
-    var frames = 0
-    while (!fileLoaded.get() && frames < MAX_FRAMES) {
-      composeTestRule.mainClock.advanceTimeByFrame()
-      frames++
-    }
-    assertTrue("loadFile didn't run within $MAX_FRAMES frames", fileLoaded.get())
-
-    // The first frame composed with the file: the cached picture must be drawn, over the loading
-    // slot, not the slot itself (blue) or nothing.
     composeTestRule.mainClock.advanceTimeByFrame()
+
+    // The first frame back: the cached picture must be drawn over the loading slot (blue), and
+    // the repository wasn't asked again.
     val bitmap = composeTestRule.onNodeWithTag(CONTAINER).captureToImage().asAndroidBitmap()
     assertEquals(Color.RED, bitmap.getPixel(bitmap.width / 2, bitmap.height / 2))
+    assertEquals(1, repository.calls.get())
+  }
+
+  /** Gives [file] for every picture and counts the calls; the other methods aren't used. */
+  private class FileRepository(private val file: () -> File) : MediaRepository {
+    // Called from Coil's threads, read by the test thread.
+    val calls = AtomicInteger()
+
+    override suspend fun getFile(circle: CareCircle, item: MediaItem): File {
+      calls.incrementAndGet()
+      return file()
+    }
+
+    override fun newMediaId(circleId: String): String = unused()
+
+    override fun observeApprovedMedia(circleId: String): Flow<List<MediaItem>> = unused()
+
+    override fun observeMediaShowing(circleId: String, shownId: String): Flow<List<MediaItem>> =
+        unused()
+
+    override fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>> = unused()
+
+    override suspend fun getMedia(circleId: String, mediaId: String): MediaItem? = unused()
+
+    override suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?) = unused()
+
+    override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = unused()
+
+    override suspend fun retrySend(circleId: String, mediaId: String) = unused()
+
+    override suspend fun discardUnsent(circleId: String, mediaId: String) = unused()
+
+    override suspend fun updateMedia(circleId: String, item: MediaItem) = unused()
+
+    override suspend fun deleteMedia(circle: CareCircle, item: MediaItem) = unused()
+
+    override suspend fun clearLocalMedia(circleId: String) = unused()
+
+    override suspend fun clearLocalMedia() = unused()
+
+    private fun unused(): Nothing = error("Not used by media pictures")
   }
 
   private companion object {
@@ -166,6 +247,5 @@ class MediaImageInstrumentedTest {
     const val FAILED = "Not available offline"
     const val TIMEOUT_MS = 10_000L
     const val CONTAINER = "mediaImageContainer"
-    const val MAX_FRAMES = 30
   }
 }

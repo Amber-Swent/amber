@@ -126,7 +126,8 @@ interface MediaRepository {
    * downloaded from [circle]'s bucket only if it isn't cached, so media already loaded also opens
    * offline. Open it right away rather than keeping the [File]: it may be evicted later to make
    * room, and an unsent media's file moves from the outbox to the cache once it is sent. A file
-   * already opened stays readable after either.
+   * already opened stays readable after either. If it is gone when opened (moved or evicted at that
+   * moment), call getFile again: it returns where the file is now.
    *
    * @throws IllegalArgumentException if [item] is a [MediaItem.Text] (it has no file), isn't a
    *   media of [circle], or its file must be downloaded while [circle]'s bucket isn't assigned yet.
