@@ -15,6 +15,7 @@ import io.mockk.verify
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Before
@@ -94,6 +95,15 @@ class FirebaseInvitationLookupRepositoryTest {
   }
 
   @Test
+  fun getInvitations_returnsEmptyListForCircleWithoutInvitations() = runBlocking {
+    stubInvitations()
+
+    val result = repository().getInvitations(circleId)
+
+    assertEquals(Result.success(emptyList<InvitationSummary>()), result)
+  }
+
+  @Test
   fun getInvitations_treatsExpiryBoundaryAsExpired() = runBlocking {
     stubInvitations(invitation(code = "EXPIRES_NOW", createdAt = now - 1, expiresAt = now))
 
@@ -119,32 +129,51 @@ class FirebaseInvitationLookupRepositoryTest {
   }
 
   @Test
-  fun getInvitations_failsForInvitationWithoutCreationTime() = runBlocking {
-    stubInvitations(invitation(code = "MISSING_CREATED", createdAt = null, expiresAt = now + 1_000))
-
-    val error = repository().getInvitations(circleId).exceptionOrNull()
-
-    assertEquals("Invitation MISSING_CREATED has an invalid format", error?.message)
-  }
-
-  @Test
-  fun getInvitations_failsForInvitationWithoutExpiryTime() = runBlocking {
-    stubInvitations(invitation(code = "MISSING_EXPIRY", createdAt = now - 1, expiresAt = null))
-
-    val error = repository().getInvitations(circleId).exceptionOrNull()
-
-    assertEquals("Invitation MISSING_EXPIRY has an invalid format", error?.message)
-  }
-
-  @Test
-  fun getInvitations_failsForInvitationWithInvalidUsedByType() = runBlocking {
+  fun getInvitations_failsWholeLookupForInvitationWithoutCreationTime() = runBlocking {
     stubInvitations(
-        invitation(code = "INVALID_USED_BY", createdAt = now - 1, expiresAt = now + 1, usedBy = 42)
+        invitation(code = "VALID", createdAt = now - 2, expiresAt = now + 1_000),
+        invitation(code = "MISSING_CREATED", createdAt = null, expiresAt = now + 1_000),
     )
 
-    val error = repository().getInvitations(circleId).exceptionOrNull()
+    val result = repository().getInvitations(circleId)
 
-    assertEquals("Invitation INVALID_USED_BY has an invalid format", error?.message)
+    assertNull(result.getOrNull())
+    assertEquals(
+        "Invitation MISSING_CREATED has an invalid format",
+        result.exceptionOrNull()?.message,
+    )
+  }
+
+  @Test
+  fun getInvitations_failsWholeLookupForInvitationWithoutExpiryTime() = runBlocking {
+    stubInvitations(
+        invitation(code = "VALID", createdAt = now - 2, expiresAt = now + 1_000),
+        invitation(code = "MISSING_EXPIRY", createdAt = now - 1, expiresAt = null),
+    )
+
+    val result = repository().getInvitations(circleId)
+
+    assertNull(result.getOrNull())
+    assertEquals(
+        "Invitation MISSING_EXPIRY has an invalid format",
+        result.exceptionOrNull()?.message,
+    )
+  }
+
+  @Test
+  fun getInvitations_failsWholeLookupForInvitationWithInvalidUsedByType() = runBlocking {
+    stubInvitations(
+        invitation(code = "VALID", createdAt = now - 2, expiresAt = now + 1_000),
+        invitation(code = "INVALID_USED_BY", createdAt = now - 1, expiresAt = now + 1, usedBy = 42),
+    )
+
+    val result = repository().getInvitations(circleId)
+
+    assertNull(result.getOrNull())
+    assertEquals(
+        "Invitation INVALID_USED_BY has an invalid format",
+        result.exceptionOrNull()?.message,
+    )
   }
 
   @Test
