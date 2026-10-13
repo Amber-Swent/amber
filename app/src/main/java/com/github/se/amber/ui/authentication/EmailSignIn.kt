@@ -2,6 +2,7 @@
 package com.github.se.amber.ui.authentication
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,11 +31,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.SIZE_BIG
+import com.github.se.amber.ui.theme.SIZE_MEDIUM
+import com.github.se.amber.ui.theme.SIZE_MINI
+import com.github.se.amber.ui.theme.SIZE_REGULAR
+import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
+import com.github.se.amber.ui.theme.SIZE_ENORMOUS
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -69,10 +77,20 @@ fun EmailSignInScreen(
     }
   }
 
+  // Display a Toast when the errorMessage of the uiState is not null
+  LaunchedEffect(uiState.errorMessage) {
+      uiState.errorMessage?.let { message ->
+          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+          emailSignInViewModel.clearError()
+      }
+  }
+
   EmailSignInContent(
       uiState = uiState,
       onEmailChange = emailSignInViewModel::onEmailChange,
-      onContinue = onContinue,
+      onContinue = {
+        if (emailSignInViewModel.validateEmail()) onContinue()
+      },
       onGoogleClick = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
       modifier = modifier,
   )
@@ -93,15 +111,13 @@ private fun EmailSignInContent(
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold,
     )
-
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(SIZE_MINI))
 
     Text(
         text = "Enter your email to sign up",
         style = MaterialTheme.typography.bodyLarge,
     )
-
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(SIZE_MEDIUM))
 
     AuthenticationTextField(
         value = uiState.email,
@@ -113,25 +129,25 @@ private fun EmailSignInContent(
                 imeAction = ImeAction.Done,
             ),
     )
+    Spacer(modifier = Modifier.height(SIZE_REGULAR))
 
-    Spacer(modifier = Modifier.height(12.dp))
-
+    // This button redirects the user to the sign up page
     AuthenticationButton(
         text = "Continue",
-        onClick = onContinue,
+        onClick = onContinue
     )
 
-    Spacer(modifier = Modifier.height(18.dp))
+    Spacer(modifier = Modifier.height(SIZE_MEDIUM))
 
     OrDivider()
 
-    Spacer(modifier = Modifier.height(18.dp))
+    Spacer(modifier = Modifier.height(SIZE_MEDIUM))
 
     Button(
         onClick = onGoogleClick,
         enabled = !uiState.isLoading,
-        modifier = Modifier.fillMaxWidth().height(44.dp),
-        shape = buttonShape,
+        modifier = Modifier.fillMaxWidth().height(SIZE_ENORMOUS),
+        shape = RoundedCornerShape(SMALL_ROUND_CORNER),
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = lightOrange,
@@ -141,14 +157,15 @@ private fun EmailSignInContent(
       Image(
           painter = painterResource(R.drawable.google_logo),
           contentDescription = null, // no need to put a description for the logo
-          modifier = Modifier.size(24.dp),
+          modifier = Modifier.size(SIZE_BIG),
       )
-      Spacer(modifier = Modifier.size(12.dp))
+      Spacer(modifier = Modifier.size(SIZE_REGULAR))
       Text(
-          text = "Sign in with Google",
+          text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
           style = MaterialTheme.typography.labelLarge,
       )
     }
+
   }
 }
 
@@ -171,7 +188,7 @@ private fun OrDivider() {
 
     Text(
         text = "or",
-        modifier = Modifier.padding(horizontal = 14.dp),
+        modifier = Modifier.padding(horizontal = PADDING_MEDIUM),
         color = darkGray,
         style = MaterialTheme.typography.bodySmall,
     )
@@ -187,11 +204,12 @@ private fun OrDivider() {
 @Preview(showBackground = true)
 @Composable
 private fun EmailSignInScreenPreview() {
-  AmberAppTheme(dynamicColor = false) {
+  AmberAppTheme(darkTheme = false, dynamicColor = false) {
       EmailSignInContent(
-          EmailSignInUiState(),
-          {},
-          {},
-          {})
+          uiState = EmailSignInUiState(),
+          onEmailChange = {},
+          onContinue = {},
+          onGoogleClick = {},
+      )
   }
 }

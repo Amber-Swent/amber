@@ -29,13 +29,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.dp
+import com.github.se.amber.ui.theme.PADDING_BIG
+import com.github.se.amber.ui.theme.PADDING_ENORMOUS
+import com.github.se.amber.ui.theme.PADDING_MINI
+import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
+import com.github.se.amber.ui.theme.SIZE_ENORMOUS
+import com.github.se.amber.ui.theme.SIZE_MINI
+import com.github.se.amber.ui.theme.SIZE_REGULAR
+import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
-
-private val fieldShape = RoundedCornerShape(8.dp) // Only used inside this file
-internal val buttonShape = RoundedCornerShape(7.dp)
 
 /**
  * Displays the shared password authentication UI used by patient and caregiver screens.
@@ -56,17 +60,17 @@ internal val buttonShape = RoundedCornerShape(7.dp)
  */
 @Composable
 internal fun PasswordScreen(
-    email: String,
-    password: String,
-    onPasswordChange: (String) -> Unit,
-    onContinue: () -> Unit,
-    onForgotPassword: () -> Unit,
-    forgotPasswordExplanation: String,
     modifier: Modifier = Modifier,
+    email: String = "",
+    password: String = "",
+    onPasswordChange: (String) -> Unit = {},
+    onContinue: () -> Unit  = {},
+    onForgotPassword: () -> Unit = {},
+    forgotPasswordExplanation: String = "",
 ) {
   AuthenticationLayout(modifier = modifier) {
     Text(
-        text = "Your are logged in with",
+        text = "You are logged in with",
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold,
     )
@@ -74,17 +78,17 @@ internal fun PasswordScreen(
     Text(
         text = "<$email>",
         style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Bold
     )
 
-    Spacer(modifier = Modifier.height(4.dp))
+    Spacer(modifier = Modifier.height(SIZE_MINI))
 
     Text(
         text = "Enter your password to sign up",
-        style = MaterialTheme.typography.bodySmall,
+        style = MaterialTheme.typography.bodySmall
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(SIZE_REGULAR))
 
     AuthenticationTextField(
         value = password,
@@ -95,29 +99,29 @@ internal fun PasswordScreen(
             KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
-            ),
+            )
     )
 
-    Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(SIZE_REGULAR))
 
-    AuthenticationButton(
+      AuthenticationButton(
         text = "Continue",
-        onClick = onContinue,
+        onClick = onContinue
     )
 
-    Spacer(modifier = Modifier.height(46.dp))
+    Spacer(modifier = Modifier.height(SIZE_ENORMOUS))
 
-    AuthenticationButton(
+      AuthenticationButton(
         text = "Password Forgotten ?",
         onClick = onForgotPassword,
     )
 
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(SIZE_REGULAR))
 
     Text(
-        text = forgotPasswordExplanation,
-        style = MaterialTheme.typography.bodySmall,
-        modifier = Modifier.fillMaxWidth(),
+      text = forgotPasswordExplanation,
+      style = MaterialTheme.typography.bodySmall,
+      modifier = Modifier.fillMaxWidth(),
     )
   }
 }
@@ -140,6 +144,7 @@ internal fun AuthenticationLayout(
   Surface(
       modifier = modifier.fillMaxSize(),
       color = Color.White,
+      contentColor = Color.Black,
   ) {
     // Use Box, a Column would stack every items sequentially
     Box(
@@ -147,10 +152,10 @@ internal fun AuthenticationLayout(
             Modifier.fillMaxSize()
                 .statusBarsPadding() // Avoids drawing underneath Android's top system bar
                 .navigationBarsPadding() // Avoid drawing underneath navigation area at the bottom
-                .padding(horizontal = 22.dp),
+                .padding(horizontal = PADDING_BIG),
     ) {
       AuthenticationHeader(
-          modifier = Modifier.align(Alignment.TopCenter).padding(top = 42.dp),
+          modifier = Modifier.align(Alignment.TopCenter).padding(top = PADDING_ENORMOUS),
       )
 
       Column(
@@ -160,7 +165,7 @@ internal fun AuthenticationLayout(
       )
 
       TermsFooter(
-          modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 4.dp),
+          modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = PADDING_MINI),
       )
     }
   }
@@ -182,7 +187,7 @@ internal fun AuthenticationHeader(
       horizontalAlignment = Alignment.CenterHorizontally,
   ) {
     Surface(
-        modifier = Modifier.size(84.dp),
+        modifier = Modifier.size(SURFACE_BIG),
         // TODO to modify when we will have our app logo
         shape = CircleShape,
         color = lightOrange,
@@ -196,7 +201,7 @@ internal fun AuthenticationHeader(
       }
     }
 
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(SIZE_REGULAR))
 
     Text(
         text = "Amber",
@@ -233,7 +238,7 @@ internal fun AuthenticationTextField(
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      modifier = modifier.fillMaxWidth().height(54.dp),
+      modifier = modifier.fillMaxWidth().height(SIZE_ENORMOUS),
       singleLine = true,
       placeholder = {
         Text(
@@ -244,7 +249,7 @@ internal fun AuthenticationTextField(
       },
       keyboardOptions = keyboardOptions,
       visualTransformation = visualTransformation,
-      shape = fieldShape,
+      shape = RoundedCornerShape(SMALL_ROUND_CORNER),
       colors =
           OutlinedTextFieldDefaults.colors(
               unfocusedBorderColor = lightGray,
@@ -269,8 +274,8 @@ internal fun AuthenticationButton(
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.fillMaxWidth().height(44.dp),
-      shape = buttonShape,
+      modifier = modifier.fillMaxWidth().height(SIZE_ENORMOUS),
+      shape = RoundedCornerShape(SMALL_ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
               containerColor = lightOrange,

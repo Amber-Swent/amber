@@ -69,11 +69,30 @@ class EmailSignInViewModel(
     }
   }
 
+  /** Returns whether an email was entered and reports an error if it was blank. */
+  fun validateEmail(): Boolean {
+      if (_uiState.value.email.isBlank()) {
+          _uiState.update { it.copy(errorMessage = "Please enter your email address.") }
+          return false
+      }
+      return true
+  }
+
+  /**
+   * Clears the current sign-in error after the screen has shown it to the user.
+   *
+   * This allows a later sign-in attempt to show the same error again.
+   */
+  fun clearError() {
+      _uiState.update { it.copy(errorMessage = null) }
+  }
+
   /**
    * Starts Google authentication using Android Credential Manager.
    *
    * A successful authentication stores the authenticated user in [uiState]. Cancelling the Google
    * account picker returns the screen to its idle state without displaying an error.
+   * Signing out will be handled in the ViewModel of the screen that allows sign-out.
    *
    * @param context Android context used by Credential Manager and to access the OAuth client ID.
    * @param credentialManager Credential Manager used to request the Google credential.
