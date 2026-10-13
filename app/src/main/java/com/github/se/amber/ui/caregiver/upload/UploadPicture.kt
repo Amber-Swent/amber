@@ -3,6 +3,8 @@
  */
 package com.github.se.amber.ui.caregiver.upload
 
+import android.R.attr.onClick
+import android.provider.SyncStateContract.Helpers.update
 import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -48,7 +50,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
+import com.github.se.amber.ui.caregiver.DisplayScrollableDatePicker
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -119,8 +123,9 @@ fun UploadPictureScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         ) {
-          DisplayTakePicture(Modifier, { viewModel.takePicture() })
-          DisplaySelectPicture(Modifier, { viewModel.selectPicture() })
+            // TODO : will have to add the function
+          DisplayTakePicture(Modifier, {  })
+          DisplaySelectPicture(Modifier, { })
 
           DisplayTextField(
               value = uiState.title,
@@ -148,8 +153,9 @@ fun UploadPictureScreen(
               emptyErrorMessage = "They can't be no-one involved",
               modifier = Modifier.height(TEXT_FIELD),
           )
-
-          // TODO : use DisplayScrollableDatePicker() once merge and update the uiState accordingly
+            DisplayScrollableDatePicker(
+                onDateSelected = { year, month, day -> viewModel.setDate(MemoryDate(year, month, day))}
+            )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
