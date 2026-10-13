@@ -86,7 +86,7 @@ fun PatientHomeScreen(
                 Spacer(modifier = Modifier.height(PADDING_SMALL))
                 Text(
                     modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.GREETINGS),
-                    text = "Hello" + uiState.patient.person.firstName + " !",
+                    text = "Hello " + uiState.patientProfile.person.firstName + " !",
                     textAlign = TextAlign.Center,
                     color = Color.Black,
                     style = MaterialTheme.typography.headlineMedium

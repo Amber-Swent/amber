@@ -3,28 +3,65 @@
 package com.github.se.amber.ui.patient
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.se.amber.data.profile.FirebaseProfileRepository
+import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class PatientHomeUIState(
-    val patient: UserProfile =
+    val patientProfile: UserProfile =
         UserProfile(
             uid = "",
             role = Role.PATIENT,
             person = Person(),
             circleIds = emptyList(),
         ),
-){
+    val errorMsg: String? = null,
+)
 
-}
-
-class PatientHomeViewModel() : ViewModel() {
+/**
+ * ViewModel for the Patient Home screen.
+ *
+ * Responsible for managing the UI state
+ *
+ * @property profileRepository The repository used to fetch the Profile.
+ */
+class PatientHomeViewModel(
+    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+) : ViewModel() {
 
     // Home UI state
     private val _uiState = MutableStateFlow(PatientHomeUIState())
     val uiState: StateFlow<PatientHomeUIState> = _uiState.asStateFlow()
+
+    init{
+        getProfile()
+    }
+
+    /** Fetches the profile from the repository and updates the UI state. */
+    private fun getProfile(){
+        viewModelScope.launch{
+            // TODO replace with fold once ProfileRepository.getProfile() exists:
+            // profileRepository.getProfile().fold(
+            //   onSuccess = { profile -> _uiState.value = PatientHomeUIState(patientProfile = profile) },
+            //   onFailure = {e ->
+            //      Log.e("PatientHomeViewModel", "Error fetching profile", e)
+            //      setErrorMsg("Failed to load the profile: ${e.message}")
+            //   },
+            // )
+        }
+    }
+
+    /** Sets an error message in the UI state. */
+    private fun setErrorMsg(errorMsg: String){
+        _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+    }
+
+
 }
