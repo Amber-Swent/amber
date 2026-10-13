@@ -3,6 +3,7 @@
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.OutboxEntry
@@ -37,6 +38,8 @@ class MediaRepositoryFirebase(
       TODO(FIRESTORE_TODO)
 
   override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = TODO(OUTBOX_TODO)
+
+  override fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>> = TODO(OUTBOX_TODO)
 
   override suspend fun retrySend(circleId: String, mediaId: String): Unit = TODO(OUTBOX_TODO)
 

@@ -98,6 +98,7 @@ class MediaRepositoryFirebaseTest {
             "getMedia" to { repository.getMedia("c1", "m1") },
             "addMedia" to { repository.addMedia(c1, item, tmp.newFile()) },
             "observeOutbox" to { repository.observeOutbox("c1") },
+            "observeCircleMedia" to { repository.observeCircleMedia("c1") },
             "retrySend" to { repository.retrySend("c1", "m1") },
             "discardUnsent" to { repository.discardUnsent("c1", "m1") },
             "send" to { repository.send("c1", "m1", lastAttempt = false) },

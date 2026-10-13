@@ -13,8 +13,10 @@ import kotlinx.coroutines.flow.Flow
  * in tests.
  *
  * A media added on this phone first waits in the outbox, pending its send to Firebase: until it is
- * sent, it is listed by [observeOutbox] only, not by [observeApprovedMedia] or
- * [observeMediaShowing].
+ * sent, it is listed by [observeOutbox], not by [observeApprovedMedia] or [observeMediaShowing].
+ * During its send, its Firestore document is written a moment before it leaves the outbox, so for
+ * that moment it is in both. A screen showing both kinds uses [observeCircleMedia], which lists it
+ * once.
  *
  * Calls that may touch a file take the whole [CareCircle], since its files live in its own Storage
  * bucket ([CareCircle.storageBucket]); those that need the bucket throw [IllegalArgumentException]
@@ -36,6 +38,16 @@ interface MediaRepository {
    * personId of [CareCircle.people]), newest first. Emits again whenever they change.
    */
   fun observeMediaShowing(circleId: String, shownId: String): Flow<List<MediaItem>>
+
+  /**
+   * The media of [circleId] a gallery shows: first those added on this phone and not sent yet
+   * ([observeOutbox]), then those in Firebase ([observeApprovedMedia]), each part newest first.
+   * Emits again whenever either part changes.
+   *
+   * A media being sent is listed once, as in Firebase, as soon as its document is there, so a list
+   * keyed by mediaId never sees the same key twice.
+   */
+  fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>>
 
   /**
    * The media [mediaId] of [circleId], or null if it doesn't exist (e.g. it was deleted) or is
@@ -113,7 +125,8 @@ interface MediaRepository {
    * The local copy of [item]'s file: the outbox's one if it isn't sent yet, else the cached one,
    * downloaded from [circle]'s bucket only if it isn't cached, so media already loaded also opens
    * offline. Open it right away rather than keeping the [File]: it may be evicted later to make
-   * room.
+   * room, and an unsent media's file moves from the outbox to the cache once it is sent. A file
+   * already opened stays readable after either.
    *
    * @throws IllegalArgumentException if [item] is a [MediaItem.Text] (it has no file), isn't a
    *   media of [circle], or its file must be downloaded while [circle]'s bucket isn't assigned yet.
