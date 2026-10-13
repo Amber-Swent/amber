@@ -1,4 +1,5 @@
 // This file was written by Neha Chakraborty and Copilot
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.profile
 
 import com.github.se.amber.model.user.Person
@@ -21,6 +22,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -210,6 +212,134 @@ class FirebaseProfileRepositoryTest {
     assertSame(source, (error as FirebaseProfileRepository.ProfileCreationError.Unknown).source)
   }
 
+  @Test
+  fun getCurrentProfile_returnsProfileOfAuthenticatedUser() = runTest {
+    val profile =
+        UserProfile(
+            uid = uid,
+            role = Role.PATIENT,
+            person = Person(id = uid, firstName = "Ada"),
+            circleIds = listOf("circle-1"),
+        )
+    stubProfileDocument(document, profile)
+
+    val result = repository.getCurrentProfile()
+
+    assertEquals(profile, result.getOrThrow())
+  }
+
+  @Test
+  fun getCurrentProfile_returnsNullWhenProfileDoesNotExist() = runTest {
+    stubProfileDocument(document, profile = null)
+
+    val result = repository.getCurrentProfile()
+
+    assertTrue(result.isSuccess)
+    assertNull(result.getOrThrow())
+  }
+
+  @Test
+  fun getCurrentProfile_rejectsSignedOutUserBeforeAccessingFirestore() = runTest {
+    every { auth.currentUser } returns null
+
+    val result = repository.getCurrentProfile()
+
+    assertFailure<FirebaseProfileRepository.ProfileReadError.NotAuthenticated>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun getProfile_readsProfileOfGivenUid() = runTest {
+    val otherDocument = mockk<DocumentReference>()
+    every { collection.document("other-user") } returns otherDocument
+    val profile =
+        UserProfile(
+            uid = "other-user",
+            role = Role.CAREGIVER,
+            person = Person(id = "other-user", firstName = "Grace"),
+            circleIds = listOf("circle-1"),
+        )
+    stubProfileDocument(otherDocument, profile)
+
+    val result = repository.getProfile("other-user")
+
+    assertEquals(profile, result.getOrThrow())
+  }
+
+  @Test
+  fun getProfile_rejectsDocumentWithoutRole() = runTest {
+    val snapshot = stubProfileDocument(document, UserProfile(uid = uid))
+    every { snapshot.contains("role") } returns false
+
+    val result = repository.getProfile(uid)
+
+    assertFailure<FirebaseProfileRepository.ProfileReadError.InvalidProfile>(result)
+  }
+
+  @Test
+  fun getProfile_rethrowsCancellationException() = runTest {
+    val cancellation = CancellationException("profile read cancelled")
+    every { document.get() } returns Tasks.forException(cancellation)
+
+    try {
+      repository.getProfile(uid)
+      fail("Expected cancellation to be rethrown")
+    } catch (thrown: CancellationException) {
+      assertSame(cancellation, thrown)
+    }
+  }
+
+  @Test
+  fun getProfile_mapsPermissionDeniedFirestoreFailure() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileReadError.PermissionDenied>(
+        getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.PERMISSION_DENIED))
+    )
+  }
+
+  @Test
+  fun getProfile_mapsUnauthenticatedFirestoreFailure() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileReadError.NotAuthenticated>(
+        getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAUTHENTICATED))
+    )
+  }
+
+  @Test
+  fun getProfile_mapsUnavailableFirestoreFailureToNetwork() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileReadError.Network>(
+        getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.UNAVAILABLE))
+    )
+  }
+
+  @Test
+  fun getProfile_mapsDeadlineExceededFirestoreFailureToNetwork() = runTest {
+    assertFailure<FirebaseProfileRepository.ProfileReadError.Network>(
+        getProfileFailingWith(firestoreFailure(FirebaseFirestoreException.Code.DEADLINE_EXCEEDED))
+    )
+  }
+
+  @Test
+  fun getProfile_mapsOtherFailureToUnknown() = runTest {
+    val source = IllegalStateException("boom")
+    val result = getProfileFailingWith(source)
+
+    val error = result.exceptionOrNull()
+    assertTrue(error is FirebaseProfileRepository.ProfileReadError.Unknown)
+    assertSame(source, (error as FirebaseProfileRepository.ProfileReadError.Unknown).source)
+  }
+
+  private fun stubProfileDocument(reference: DocumentReference, profile: UserProfile?) =
+      mockk<DocumentSnapshot>().also { snapshot ->
+        every { snapshot.exists() } returns (profile != null)
+        every { snapshot.contains("role") } returns (profile != null)
+        every { snapshot.toObject(UserProfile::class.java) } returns profile
+        every { reference.get() } returns Tasks.forResult(snapshot)
+      }
+
+  private suspend fun getProfileFailingWith(error: Exception): Result<UserProfile?> {
+    every { document.get() } returns Tasks.forException(error)
+    return repository.getProfile(uid)
+  }
+
   private fun stubSuccessfulTransaction() =
       slot<UserProfile>().also { capturedProfile ->
         val snapshot = mockk<DocumentSnapshot>()
@@ -245,7 +375,7 @@ class FirebaseProfileRepositoryTest {
     return repository.createProfile(Person(firstName = "Ada"), Role.PATIENT)
   }
 
-  private inline fun <reified T : Throwable> assertFailure(result: Result<Unit>) {
+  private inline fun <reified T : Throwable> assertFailure(result: Result<*>) {
     assertFalse(result.isSuccess)
     assertTrue(result.exceptionOrNull() is T)
   }

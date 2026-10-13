@@ -1,4 +1,5 @@
 // This file was written by Neha Chakraborty and Copilot
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.profile
 
 import com.github.se.amber.model.user.Person
@@ -14,6 +15,8 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.tasks.await
 
 typealias ProfileCreationError = FirebaseProfileRepository.ProfileCreationError
+
+typealias ProfileReadError = FirebaseProfileRepository.ProfileReadError
 
 /** Firebase-backed implementation of [ProfileRepository]. */
 class FirebaseProfileRepository(
@@ -58,6 +61,41 @@ class FirebaseProfileRepository(
     }
   }
 
+  override suspend fun getCurrentProfile(): Result<UserProfile?> {
+    val uid = auth.currentUser?.uid ?: return Result.failure(ProfileReadError.NotAuthenticated)
+    return getProfile(uid)
+  }
+
+  override suspend fun getProfile(uid: String): Result<UserProfile?> =
+      try {
+        val snapshot = firestore.collection(USERS_COLLECTION).document(uid).get().await()
+        when {
+          !snapshot.exists() -> Result.success(null)
+          // toObject() would silently fall back to the default role
+          !snapshot.contains(ROLE_FIELD) -> Result.failure(ProfileReadError.InvalidProfile)
+          else ->
+              snapshot.toObject(UserProfile::class.java)?.let { Result.success(it) }
+                  ?: Result.failure(ProfileReadError.InvalidProfile)
+        }
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: Exception) {
+        Result.failure(exception.toProfileReadError())
+      }
+
+  private fun Exception.toProfileReadError(): ProfileReadError =
+      when (this) {
+        is FirebaseFirestoreException ->
+            when (code) {
+              FirebaseFirestoreException.Code.PERMISSION_DENIED -> ProfileReadError.PermissionDenied
+              FirebaseFirestoreException.Code.UNAUTHENTICATED -> ProfileReadError.NotAuthenticated
+              FirebaseFirestoreException.Code.UNAVAILABLE,
+              FirebaseFirestoreException.Code.DEADLINE_EXCEEDED -> ProfileReadError.Network
+              else -> ProfileReadError.Unknown(this)
+            }
+        else -> ProfileReadError.Unknown(this)
+      }
+
   private fun Exception.toProfileCreationError(): ProfileCreationError =
       when (this) {
         is ProfileCreationError -> this
@@ -93,7 +131,22 @@ class FirebaseProfileRepository(
     data class Unknown(val source: Throwable) : ProfileCreationError("Unable to create a profile")
   }
 
+  /** Typed failures returned while reading a profile. */
+  sealed class ProfileReadError(message: String) : Exception(message) {
+    data object NotAuthenticated : ProfileReadError("No user is signed in")
+
+    data object InvalidProfile : ProfileReadError("The stored profile is invalid")
+
+    data object PermissionDenied :
+        ProfileReadError("You do not have permission to read this profile")
+
+    data object Network : ProfileReadError("Unable to read the profile while offline")
+
+    data class Unknown(val source: Throwable) : ProfileReadError("Unable to read the profile")
+  }
+
   private companion object {
     const val USERS_COLLECTION = "users"
+    const val ROLE_FIELD = "role"
   }
 }
