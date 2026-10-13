@@ -65,4 +65,14 @@ open class NavigationActions(private val navController: NavHostController) {
   open fun navigateToGraph(graphRoute: String) {
     navController.navigate(graphRoute) { popUpTo(navController.graph.id) { inclusive = true } }
   }
+
+  /**
+   * Navigate to the destination of the given bottom navigation tab.
+   *
+   * Tabs are top-level destinations, so this behaves like [navigateTo]: nothing happens if the tab
+   * is already displayed, otherwise any existing copy of it is removed from the back stack.
+   *
+   * @param tab The bottom navigation tab selected by the user
+   */
+  open fun navigateToTab(tab: Tab) = navigateTo(tab.destination)
 }
