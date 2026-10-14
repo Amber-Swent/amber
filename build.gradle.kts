@@ -17,9 +17,6 @@ sonar {
             "sonar.coverageReportPaths",
             layout.buildDirectory.file("reports/firestore-rules-coverage.xml").get().asFile,
         )
-        property(
-            "sonar.coverage.exclusions",
-            "**/scripts/**,**/MainActivity.kt",
-        )
+        property("sonar.coverage.exclusions", "**/scripts/**")
     }
 }
