@@ -102,11 +102,11 @@ class UploadPictureTest {
 
   // ---------- static content ----------
 
-    @Test
-    fun titleIsDisplayed() {
-      launchScreen()
-      composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
-    }
+  @Test
+  fun titleIsDisplayed() {
+    launchScreen()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
+  }
 
   @Test
   fun takePictureOptionIsDisplayed() {
