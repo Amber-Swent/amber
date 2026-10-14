@@ -4,6 +4,7 @@ package com.github.se.amber.ui.patient
 
 import android.util.Log
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -40,11 +41,13 @@ class PatientHomeViewModelTest {
 
   @get:Rule val mainRule = MainDispatcherRule()
 
-  private lateinit var repo: ProfileRepository
+  private lateinit var profileRepo: ProfileRepository
+  private lateinit var authRepo: AuthRepository
 
   @Before
   fun setup() {
-    repo = mockk()
+    profileRepo = mockk()
+    authRepo = mockk(relaxed = true)
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -61,9 +64,9 @@ class PatientHomeViewModelTest {
 
   @Test
   fun `success updates the profile`() = runTest {
-    coEvery { repo.getCurrentProfile() } returns Result.success(profile)
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
 
-    val vm = PatientHomeViewModel(repo) // init lance getProfile()
+    val vm = PatientHomeViewModel(profileRepo, authRepo) // init lance getProfile()
 
     assertEquals(profile, vm.uiState.value.patientProfile)
     assertNull(vm.uiState.value.errorMsg)
@@ -71,18 +74,18 @@ class PatientHomeViewModelTest {
 
   @Test
   fun `null profile sets error`() = runTest {
-    coEvery { repo.getCurrentProfile() } returns Result.success(null)
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(null)
 
-    val vm = PatientHomeViewModel(repo)
+    val vm = PatientHomeViewModel(profileRepo, authRepo)
 
     assertEquals("No profile found.", vm.uiState.value.errorMsg)
   }
 
   @Test
   fun `failure sets error with message`() = runTest {
-    coEvery { repo.getCurrentProfile() } returns Result.failure(Exception("boom"))
+    coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
-    val vm = PatientHomeViewModel(repo)
+    val vm = PatientHomeViewModel(profileRepo, authRepo)
 
     assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
   }
