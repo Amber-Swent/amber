@@ -47,11 +47,11 @@ import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.BIG_ROUND_CORNER
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
-import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -149,9 +149,9 @@ fun DisplayScrollableDatePicker(
               .border(
                   width = BORDER_THICKNESS,
                   color = lightGray,
-                  shape = RoundedCornerShape(size = ROUND_CORNER),
+                  shape = RoundedCornerShape(size = BIG_ROUND_CORNER),
               )
-              .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
+              .clip(shape = RoundedCornerShape(size = BIG_ROUND_CORNER))
               .padding(PADDING_SMALL),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.SpaceBetween,
@@ -206,7 +206,7 @@ private fun DateBox(
       modifier =
           modifier
               .fillMaxWidth()
-              .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
+              .clip(shape = RoundedCornerShape(size = BIG_ROUND_CORNER))
               .background(if (isPressed) lightGray else Color.Transparent)
               .clickable(
                   interactionSource = interactionSource,
@@ -273,7 +273,10 @@ private fun ScrollablePickerDialog(
         modifier =
             Modifier.fillMaxWidth(fraction = 0.7f)
                 .testTag(DIALOG)
-                .background(color = Color.White, shape = RoundedCornerShape(size = ROUND_CORNER))
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(size = BIG_ROUND_CORNER),
+                )
                 .padding(PADDING_MEDIUM),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
@@ -292,7 +295,7 @@ private fun ScrollablePickerDialog(
                   .border(
                       width = BORDER_THICKNESS,
                       color = Color.LightGray,
-                      shape = RoundedCornerShape(ROUND_CORNER),
+                      shape = RoundedCornerShape(BIG_ROUND_CORNER),
                   )
       ) {
         LazyColumn(
