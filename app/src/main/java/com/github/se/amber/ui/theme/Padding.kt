@@ -17,3 +17,7 @@ val BIG_ROUND_CORNER = 32.dp
 val DIVIDER_THICKNESS = 1.dp
 
 val SURFACE_BIG = 84.dp
+
+/* Caregiver parameters invitation buttons. */
+val INVITATION_BUTTON_WIDTH = 320.dp
+val INVITATION_BUTTON_HEIGHT = 100.dp

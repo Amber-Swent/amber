@@ -1,9 +1,10 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
  */
-package com.github.se.amber.ui.parameters
+package com.github.se.amber.ui.caregiver.parameters
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,13 +21,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.credentials.Credential
+import androidx.credentials.CredentialManager
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.DisplayButton
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
@@ -36,39 +46,53 @@ import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.INVITATION_BUTTON_HEIGHT
+import com.github.se.amber.ui.theme.INVITATION_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_SMALL
 
-object ParametersHomeTestTags {
-  const val TITLE = "parameters_home_title"
-  const val CREATE_INVITATION_BUTTON = "parameters_home_create_invitation_button"
-  const val ENTER_INVITATION_BUTTON = "parameters_home_enter_invitation_button"
-  const val INVITATION_HINT = "parameters_home_invitation_hint"
+object CaregiverParametersTestTags {
+  const val TITLE = "caregiver_parameters_title"
+  const val CREATE_INVITATION_BUTTON = "caregiver_parameters_create_invitation_button"
+  const val ENTER_INVITATION_BUTTON = "caregiver_parameters_enter_invitation_button"
+  const val INVITATION_HINT = "caregiver_parameters_invitation_hint"
 }
-
-/** Width of the create and enter invitation buttons, in dp. */
-private val invitationButtonWidth = 320.dp
-
-/** Height of the create and enter invitation buttons, in dp. */
-private val invitationButtonHeight = 100.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ParametersHomeScreen(
+fun CaregiverParameterScreen(
+    viewModel: CaregiverParameterViewModel = viewModel(),
+    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
+    onSignedOut: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = { tab -> },
     onCreateInvitationClick: () -> Unit = {},
     onEnterInvitationClick: () -> Unit = {},
-    checkout: () -> Unit = {},
 ) {
+  val context = LocalContext.current
+  val uiState by viewModel.uiState.collectAsState()
+
+  LaunchedEffect(uiState.errorMsg) {
+    uiState.errorMsg?.let { message ->
+      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      viewModel.clearErrorMsg()
+    }
+  }
+
+  LaunchedEffect(uiState.signedOut) {
+    if (uiState.signedOut) {
+      onSignedOut()
+    }
+  }
+
   Scaffold(
       topBar = {
         Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = checkout,
+              onBackClick = { viewModel.signOut(credentialManager) },
           )
-          DisplayCaregiverTitle("Parameters", Modifier.testTag(ParametersHomeTestTags.TITLE))
+          DisplayCaregiverTitle("Parameters", Modifier.testTag(CaregiverParametersTestTags.TITLE))
         }
       },
       bottomBar = {
@@ -90,9 +114,9 @@ fun ParametersHomeScreen(
           ) {
             DisplayButton(
                 modifier =
-                    Modifier.width(invitationButtonWidth)
-                        .height(invitationButtonHeight)
-                        .testTag(ParametersHomeTestTags.CREATE_INVITATION_BUTTON),
+                    Modifier.width(INVITATION_BUTTON_WIDTH)
+                        .height(INVITATION_BUTTON_HEIGHT)
+                        .testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
                 icon = Icons.Outlined.PersonAdd,
                 text = "Create Invitation",
                 description = "Create Invitation",
@@ -101,9 +125,9 @@ fun ParametersHomeScreen(
 
             DisplayButton(
                 modifier =
-                    Modifier.width(invitationButtonWidth)
-                        .height(invitationButtonHeight)
-                        .testTag(ParametersHomeTestTags.ENTER_INVITATION_BUTTON),
+                    Modifier.width(INVITATION_BUTTON_WIDTH)
+                        .height(INVITATION_BUTTON_HEIGHT)
+                        .testTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON),
                 icon = Icons.Outlined.Mail,
                 text = "Enter Invitation",
                 description = "Enter Invitation",
@@ -118,7 +142,7 @@ fun ParametersHomeScreen(
                       .fillMaxWidth()
                       .padding(horizontal = PADDING_ENORMOUS)
                       .padding(bottom = PADDING_ENORMOUS)
-                      .testTag(ParametersHomeTestTags.INVITATION_HINT),
+                      .testTag(CaregiverParametersTestTags.INVITATION_HINT),
               color = Color.Black,
               style = MaterialTheme.typography.bodyLarge,
               textAlign = TextAlign.Center,
@@ -128,9 +152,19 @@ fun ParametersHomeScreen(
   )
 }
 
-/** Preview of [ParametersHomeScreen] using the Amber application theme. */
+/** Preview of [CaregiverParameterScreen] using the Amber application theme. */
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
-private fun ParametersHomeScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { ParametersHomeScreen() }
+private fun CaregiverParameterScreenPreview() {
+  val fakeAuthRepository =
+      object : AuthRepository {
+        override val currentUser: AuthUser? = null
+
+        override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+            Result.failure(UnsupportedOperationException())
+
+        override suspend fun signOut(): Result<Unit> = Result.success(Unit)
+      }
+  val viewModel = remember { CaregiverParameterViewModel(authRepository = fakeAuthRepository) }
+  AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen(viewModel = viewModel) }
 }
