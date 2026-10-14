@@ -44,6 +44,10 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.Options
 import coil3.size.Size
+import com.github.se.amber.data.media.image.FakePictureRepository
+import com.github.se.amber.data.media.image.MEDIA_PICTURE_FETCHER_TAG
+import com.github.se.amber.data.media.image.MediaPictureFetcher
+import com.github.se.amber.data.media.image.MediaPictureKeyer
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import java.io.File
@@ -636,12 +640,14 @@ class MediaImageTest {
 
   /**
    * Waits until the image shows its failure, which comes after every log of its load, and returns
-   * the single log of the media pictures.
+   * the single log of the media pictures, by MediaImage or by its fetcher: never both.
    */
   private fun waitForLog(): ShadowLog.LogItem {
     waitForText(FAILED)
     composeTestRule.waitForIdle()
-    return ShadowLog.getLogsForTag(MEDIA_IMAGE_TAG).single()
+    return (ShadowLog.getLogsForTag(MEDIA_IMAGE_TAG) +
+            ShadowLog.getLogsForTag(MEDIA_PICTURE_FETCHER_TAG))
+        .single()
   }
 
   @Test
@@ -651,6 +657,7 @@ class MediaImageTest {
     setImage()
 
     val log = waitForLog()
+    assertEquals(MEDIA_PICTURE_FETCHER_TAG, log.tag)
     assertEquals(Log.WARN, log.type)
     assertSame(offline, log.throwable)
     assertTrue(log.msg.contains("m1"))
@@ -664,6 +671,7 @@ class MediaImageTest {
     setImage()
 
     val log = waitForLog()
+    assertEquals(MEDIA_PICTURE_FETCHER_TAG, log.tag)
     assertEquals(Log.ERROR, log.type)
     assertSame(wrongCircle, log.throwable)
   }
@@ -674,6 +682,7 @@ class MediaImageTest {
     setImage()
 
     val log = waitForLog()
+    assertEquals(MEDIA_IMAGE_TAG, log.tag)
     assertEquals(Log.WARN, log.type)
     assertEquals("not an image", log.throwable?.message)
     assertTrue(log.msg.contains("m1"))

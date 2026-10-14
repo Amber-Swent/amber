@@ -5,11 +5,12 @@ package com.github.se.amber
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import coil3.request.Options
+import com.github.se.amber.data.media.image.MediaPictureFetcher
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
-import com.github.se.amber.ui.media.MediaPicture
-import com.github.se.amber.ui.media.MediaPictureFetcher
+import com.github.se.amber.model.media.MediaPicture
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,5 +41,11 @@ class AmberApplicationTest {
           factory is MediaPictureFetcher.Factory && type == MediaPicture::class
         }
     )
+  }
+
+  @Test
+  fun keepsNoCopyOfTheMediaInCoilsDiskCache() {
+    // private photos are kept on disk only by the media repository's cache
+    assertNull(AmberApplication().newImageLoader(context).diskCache)
   }
 }

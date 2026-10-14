@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.media
+package com.github.se.amber.data.media.image
 
 import android.util.Log
 import coil3.ImageLoader
@@ -10,7 +10,9 @@ import coil3.fetch.FetchResult
 import coil3.fetch.Fetcher
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
+import com.github.se.amber.model.media.MediaPicture
 import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.isMediaOf
 import java.io.FileNotFoundException
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
@@ -29,12 +31,13 @@ import okio.source
  * If the file is gone between getFile and opening it (a send moved it, or an eviction deleted it,
  * at that moment), getFile is called once more and finds it where it is now.
  *
- * Any failure reaches Coil as a [MediaPictureUnavailableException], so [MediaImage] shows its
+ * Any failure reaches Coil as a [MediaPictureUnavailableException], so `MediaImage` shows its
  * `failed` slot: also a [CancellationException] thrown by getFile itself (e.g. a timeout) while
  * this load wasn't cancelled, which Coil would otherwise take for a cancellation and leave the
- * image loading forever. Each failure is logged, with the media id only, never the media: as an
- * error for a picture shown with the wrong circle (a bug), as a warning otherwise. A load that was
- * cancelled just stops, without failing or logging, whatever getFile threw.
+ * image loading forever. Each failure is logged under [MEDIA_PICTURE_FETCHER_TAG], with the media
+ * id only, never the media: as an error for a bug (a picture shown with the wrong circle, whether
+ * or not the circle has a bucket yet), as a warning otherwise (offline, no bucket yet). A load that
+ * was cancelled just stops, without failing or logging, whatever getFile threw.
  */
 class MediaPictureFetcher(
     private val data: MediaPicture,
@@ -76,14 +79,17 @@ class MediaPictureFetcher(
 
   private fun unavailable(e: Exception): MediaPictureUnavailableException {
     val mediaId = data.picture.id
-    if (e is IllegalArgumentException && data.circle.storageBucket.isBlank()) {
+    val tag = MEDIA_PICTURE_FETCHER_TAG
+    when {
+      e !is IllegalArgumentException -> Log.w(tag, "Couldn't load media $mediaId", e)
+      // a bug, checked first: a missing bucket must not hide it
+      !data.picture.isMediaOf(data.circle.id) ->
+          Log.e(tag, "Couldn't load media $mediaId: wrong circle", e)
       // a normal state: the circle is still being set up, and its file had to be downloaded
-      Log.w(MEDIA_IMAGE_TAG, "Couldn't load media $mediaId: its circle has no bucket yet", e)
-    } else if (e is IllegalArgumentException) {
-      // not a network or disk problem: a bug, the picture isn't a media of this circle
-      Log.e(MEDIA_IMAGE_TAG, "Couldn't load media $mediaId: wrong circle", e)
-    } else {
-      Log.w(MEDIA_IMAGE_TAG, "Couldn't load media $mediaId", e)
+      data.circle.storageBucket.isBlank() ->
+          Log.w(tag, "Couldn't load media $mediaId: its circle has no bucket yet", e)
+      // not a network or disk problem: a bug
+      else -> Log.e(tag, "Couldn't load media $mediaId: invalid media", e)
     }
     return MediaPictureUnavailableException(mediaId, e)
   }
@@ -97,6 +103,9 @@ class MediaPictureFetcher(
         MediaPictureFetcher(data, repository(), options)
   }
 }
+
+/** Logcat tag of [MediaPictureFetcher]. */
+internal const val MEDIA_PICTURE_FETCHER_TAG = "MediaPictureFetcher"
 
 /**
  * The file of media [mediaId] couldn't be got or opened; [cause] says why. Already logged by

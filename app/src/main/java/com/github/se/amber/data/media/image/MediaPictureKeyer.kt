@@ -1,21 +1,10 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.media
+package com.github.se.amber.data.media.image
 
 import coil3.key.Keyer
 import coil3.request.Options
-import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.media.MediaItem
-
-/** Logcat tag of the media pictures: [MediaImage] and [MediaPictureFetcher]. */
-internal const val MEDIA_IMAGE_TAG = "MediaImage"
-
-/**
- * What [MediaImage] asks Coil to show: [picture] of [circle]. The app's image loader gets its file
- * from the repository ([MediaPictureFetcher]) and keeps it decoded under its media id
- * ([MediaPictureKeyer]).
- */
-data class MediaPicture(val circle: CareCircle, val picture: MediaItem.Picture)
+import com.github.se.amber.model.media.MediaPicture
 
 /**
  * Keys a [MediaPicture] in Coil's memory cache by its media, "media/{circleId}/{mediaId}", not by

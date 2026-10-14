@@ -35,9 +35,12 @@ import coil3.SingletonImageLoader
 import coil3.annotation.DelicateCoilApi
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
+import com.github.se.amber.data.media.image.MediaPictureFetcher
+import com.github.se.amber.data.media.image.MediaPictureKeyer
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaPicture
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.OutboxEntry
 import java.io.File

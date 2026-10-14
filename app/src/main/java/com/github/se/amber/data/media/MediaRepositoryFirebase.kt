@@ -7,6 +7,7 @@ import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.OutboxEntry
+import com.github.se.amber.model.media.isMediaOf
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 
@@ -55,7 +56,7 @@ class MediaRepositoryFirebase(
   override suspend fun getFile(circle: CareCircle, item: MediaItem): File {
     // a file of another circle would be downloaded from the wrong bucket (and refused by its
     // rules), and clearLocalMedia(circle.id) would then miss its cached copy
-    require(item.storagePath.startsWith("careCircles/${circle.id}/")) {
+    require(item.isMediaOf(circle.id)) {
       "Media ${item.id} (${item.storagePath}) isn't a media of care circle ${circle.id}"
     }
     return cache.getFile(item.storagePath) {

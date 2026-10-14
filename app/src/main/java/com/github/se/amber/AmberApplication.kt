@@ -6,9 +6,9 @@ import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import com.github.se.amber.data.media.image.MediaPictureFetcher
+import com.github.se.amber.data.media.image.MediaPictureKeyer
 import com.github.se.amber.model.media.MediaRepositoryProvider
-import com.github.se.amber.ui.media.MediaPictureFetcher
-import com.github.se.amber.ui.media.MediaPictureKeyer
 
 /**
  * The app itself, created by Android before any activity.
@@ -26,5 +26,9 @@ class AmberApplication : Application(), SingletonImageLoader.Factory {
             add(MediaPictureKeyer())
             add(MediaPictureFetcher.Factory { MediaRepositoryProvider.repository })
           }
+          // The media repository's cache is the only place media files are kept on disk: they are
+          // private photos, so Coil must never keep its own copy. Our fetcher doesn't write to
+          // Coil's disk cache anyway; this keeps it that way if another fetcher is added later.
+          .diskCache(null)
           .build()
 }

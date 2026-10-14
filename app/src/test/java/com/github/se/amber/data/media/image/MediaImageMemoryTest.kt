@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.media
+package com.github.se.amber.data.media.image
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -11,6 +11,7 @@ import coil3.memory.MemoryCache
 import coil3.request.Options
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaPicture
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows

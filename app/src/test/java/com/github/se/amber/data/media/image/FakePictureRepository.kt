@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.media
+package com.github.se.amber.data.media.image
 
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.CircleMedia

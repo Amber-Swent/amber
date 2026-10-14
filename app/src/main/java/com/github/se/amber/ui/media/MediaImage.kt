@@ -24,8 +24,14 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.compose.rememberConstraintsSizeResolver
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
+import com.github.se.amber.data.media.image.MediaPictureUnavailableException
+import com.github.se.amber.data.media.image.mediaPictureKey
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaPicture
+
+/** Logcat tag of [MediaImage]; failures to get the file are logged by `MediaPictureFetcher`. */
+internal const val MEDIA_IMAGE_TAG = "MediaImage"
 
 /** Test tags of [MediaImage]. */
 object MediaImageTestTags {
@@ -40,7 +46,7 @@ const val MEDIA_IMAGE_FALLBACK_TALKBACK = "Photo"
  * Shows [picture], a media of [circle], whether it is sent or still in the outbox of this phone.
  *
  * The screen only passes data, usually from its ViewModel's state: the app's image loader gets the
- * file from the repository ([MediaPictureFetcher]), so no ViewModel builds a loader and composables
+ * file from the repository (`MediaPictureFetcher`), so no ViewModel builds a loader and composables
  * never call the repository. A picture already decoded is shown from memory without touching the
  * repository, and stays there after it is sent. It is decoded at the size it is laid out at.
  *
@@ -58,7 +64,10 @@ const val MEDIA_IMAGE_FALLBACK_TALKBACK = "Photo"
  *   as a picture is drawn (also a smaller copy from memory, see below): don't use it as an overlay.
  * @param failed shown, centered, if the file can't be got or decoded, whatever the cause. It gets a
  *   `retry` action that loads the picture again; calling it several times (for example a double
- *   tap) still starts a single new load.
+ *   tap) still starts a single new load. A failed picture isn't retried by itself when the
+ *   connection comes back: it loads again only through `retry`, when its circle gets a bucket or it
+ *   gets a new storage path, or when it is composed again (scrolled back into a list, or its screen
+ *   reopened).
  */
 @Composable
 fun MediaImage(
@@ -70,14 +79,11 @@ fun MediaImage(
     loading: @Composable () -> Unit = {},
     failed: @Composable (retry: () -> Unit) -> Unit = {},
 ) {
-  // Only what getting the file depends on: an edit of the circle's people or of the picture's
-  // description doesn't load it again.
-  val model =
-      remember(circle.id, circle.storageBucket, picture.id, picture.storagePath) {
-        MediaPicture(circle, picture)
-      }
-  // A new painter per media: the first frame of a new media shows loading, never the previous one.
-  key(model) {
+  // A new painter whenever what getting the file depends on changes, so the first frame of a new
+  // media shows loading, never the previous one. An edit of the circle's people or of the
+  // picture's description doesn't load it again.
+  key(circle.id, circle.storageBucket, picture.id, picture.storagePath) {
+    val model = remember { MediaPicture(circle, picture) }
     val context = LocalPlatformContext.current
     // Decodes the picture at the size it is laid out at, not at its full resolution: a camera
     // photo would otherwise take tens of MB in every grid cell.
@@ -122,14 +128,12 @@ fun MediaImage(
       // One call site per slot, so the same loading slot stays from getting the file to decoding
       // it (an animated spinner doesn't restart). The slots come before the picture, so they are
       // drawn behind it: a picture in Coil's memory cache is drawn over loading from its first
-      // frame.
-      when (state) {
-        is AsyncImagePainter.State.Error -> failed(retry)
-        is AsyncImagePainter.State.Success -> {}
-        else -> loading()
-      }
-      // Until the picture is decoded, it is hidden from TalkBack and from tests.
+      // frame. Until the picture is decoded, it is hidden from TalkBack and from tests.
       val shown = state is AsyncImagePainter.State.Success
+      when {
+        state is AsyncImagePainter.State.Error -> failed(retry)
+        !shown -> loading()
+      }
       Image(
           painter = painter,
           contentDescription =

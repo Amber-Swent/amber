@@ -1,6 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.media
+package com.github.se.amber.data.media.image
 
 import android.content.Context
 import android.util.Log
@@ -11,6 +11,7 @@ import coil3.fetch.SourceFetchResult
 import coil3.request.Options
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaPicture
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -39,6 +40,8 @@ class MediaPictureFetcherTest {
   private val repository = FakePictureRepository()
   private val circle = CareCircle(id = "c1", storageBucket = "bucket-c1")
   private val picture = MediaItem.Picture(id = "m1", storagePath = "careCircles/c1/media/m1.jpg")
+  // c10 starts with "c1": the circle check must not take it for c1
+  private val otherCirclePicture = picture.copy(storagePath = "careCircles/c10/media/m1.jpg")
 
   private fun fetcher() =
       MediaPictureFetcher.Factory { repository }
@@ -53,7 +56,7 @@ class MediaPictureFetcherTest {
   private suspend fun fetchError(): Throwable =
       runCatching { fetcher().fetch() }.exceptionOrNull()!!
 
-  private fun logs() = ShadowLog.getLogsForTag(MEDIA_IMAGE_TAG)
+  private fun logs() = ShadowLog.getLogsForTag(MEDIA_PICTURE_FETCHER_TAG)
 
   @Test
   fun givesTheBytesOfTheFileFromGetFile() = runTest {
@@ -120,15 +123,38 @@ class MediaPictureFetcherTest {
     assertTrue(log.msg.contains("m1"))
   }
 
+  private suspend fun fetchError(circle: CareCircle, picture: MediaItem.Picture): Throwable =
+      runCatching {
+        MediaPictureFetcher.Factory { repository }
+            .create(MediaPicture(circle, picture), Options(context), ImageLoader(context))
+            .fetch()
+      }
+          .exceptionOrNull()!!
+
   @Test
   fun aPictureOfAnotherCircleIsLoggedAsAnError() = runTest {
     val wrongCircle = IllegalArgumentException("m1 isn't a media of c1")
     repository.onGetFile = { throw wrongCircle }
 
-    val error = fetchError()
+    val error = fetchError(circle, otherCirclePicture)
 
     assertSame(wrongCircle, error.cause)
-    assertEquals(Log.ERROR, logs().single().type)
+    val log = logs().single()
+    assertEquals(Log.ERROR, log.type)
+    assertTrue(log.msg.contains("wrong circle"))
+  }
+
+  @Test
+  fun aPictureOfAnotherCircleIsAnErrorEvenWhenTheCircleHasNoBucketYet() = runTest {
+    val wrongCircle = IllegalArgumentException("m1 isn't a media of c1")
+    repository.onGetFile = { throw wrongCircle }
+
+    fetchError(circle.copy(storageBucket = ""), otherCirclePicture)
+
+    // the missing bucket must not hide the bug
+    val log = logs().single()
+    assertEquals(Log.ERROR, log.type)
+    assertTrue(log.msg.contains("wrong circle"))
   }
 
   @Test
@@ -137,22 +163,25 @@ class MediaPictureFetcherTest {
     val noBucket = IllegalArgumentException("c1 has no bucket yet")
     repository.onGetFile = { throw noBucket }
 
-    val error =
-        runCatching {
-          MediaPictureFetcher.Factory { repository }
-              .create(
-                  MediaPicture(circle.copy(storageBucket = ""), picture),
-                  Options(context),
-                  ImageLoader(context),
-              )
-              .fetch()
-        }
-            .exceptionOrNull()!!
+    val error = fetchError(circle.copy(storageBucket = ""), picture)
 
     assertSame(noBucket, error.cause)
     val log = logs().single()
     assertEquals(Log.WARN, log.type)
     assertTrue(log.msg.contains("no bucket"))
+  }
+
+  @Test
+  fun anotherInvalidArgumentOfAPictureOfTheCircleIsLoggedAsAnError() = runTest {
+    // e.g. a storage path the cache refuses: not offline, a bug
+    val invalid = IllegalArgumentException("invalid storage path")
+    repository.onGetFile = { throw invalid }
+
+    fetchError()
+
+    val log = logs().single()
+    assertEquals(Log.ERROR, log.type)
+    assertTrue(log.msg.contains("invalid media"))
   }
 
   @Test
