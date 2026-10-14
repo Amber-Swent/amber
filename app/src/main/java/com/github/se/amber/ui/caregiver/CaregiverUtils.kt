@@ -72,8 +72,8 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
 object DisplayTextFieldTestTags {
   const val TEXT = "display_textField_text"
   const val MAX_LINES_MESSAGE = "display_textField_max_lines"
-  const val MAX_CHAR_MESSAGE = "display_textField_max_lines"
-  const val ERROR_MESSAGE = "display_textField_max_lines"
+  const val MAX_CHAR_MESSAGE = "display_textField_max_char"
+  const val ERROR_MESSAGE = "display_textField_error_message"
 }
 
 /**
