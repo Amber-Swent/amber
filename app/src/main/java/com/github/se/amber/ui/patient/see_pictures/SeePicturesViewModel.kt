@@ -20,11 +20,8 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -39,7 +36,8 @@ data class SeePicturesUIState(
         ),
     val careCircle: CareCircle = CareCircle(),
     val errorMsg: String? = null,
-    val allPictures: List<MediaItem> = emptyList(),
+    val allMediaItems: List<MediaItem> = emptyList(),
+    val allPictures: List<MediaItem.Picture> = emptyList(),
 ){
 
 }
@@ -89,7 +87,10 @@ class SeePicturesViewModel(
                         .first()
 
                 mediaRepository.observeApprovedMedia(circleId).collect { medias ->
-                    _uiState.value = _uiState.value.copy(allPictures = medias)
+                    _uiState.value = _uiState.value.copy(
+                        allMediaItems = medias,
+                        allPictures = medias.filterIsInstance<MediaItem.Picture>(),
+                    )
                 }
             } catch (e: CancellationException) {
                 throw e

@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,7 +23,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -38,9 +35,19 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.orange
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.TextButton
+import com.github.se.amber.ui.media.MediaImage
+import com.github.se.amber.ui.media.aspectRatioOf
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
+import com.github.se.amber.ui.theme.darkGray
 
 object SeePicturesScreenTestTags {
     const val TITLE = "pictures_title"
+    const val NO_PICTURES = "no_pictures_text"
 }
 
 @Composable
@@ -52,13 +59,8 @@ fun SeePicturesScreen(
 
     val context = LocalContext.current
     val uiState by pictureViewModel.uiState.collectAsState()
-    // TODO remove comment when access to picture
-    //val allPictures = uiState.allPictures
+    val allPictures = uiState.allPictures
 
-    // Fetch the pictures when the screen is recomposed
-    LaunchedEffect(Unit) {
-        pictureViewModel.refreshUIState()
-    }
 
     // Show error message if fetching todos fails
     LaunchedEffect(uiState.errorMsg){
@@ -98,15 +100,52 @@ fun SeePicturesScreen(
             )
         },
         content = { paddingValues ->
+            when {
+                // we wait for the circle to be loaded
+                uiState.careCircle.id.isBlank() -> Unit
 
+                allPictures.isEmpty() -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(PADDING_BIG),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            modifier = Modifier.testTag(SeePicturesScreenTestTags.NO_PICTURES),
+                            text = "There are no pictures yet.",
+                            textAlign = TextAlign.Center,
+                            color = darkGray,
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
+                }
 
-
-            Column(
-                modifier = Modifier.fillMaxSize().padding(paddingValues).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-            ) {
-
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+                    ) {
+                        items(allPictures, key = { it.id }) { picture ->
+                            MediaImage(
+                                circle = uiState.careCircle,
+                                picture = picture,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatioOf(picture),
+                                loading = { CircularProgressIndicator() },
+                                failed = { retry ->
+                                    TextButton(onClick = retry) { Text("Retry") }
+                                },
+                            )
+                        }
+                    }
+                }
             }
+
         },
     )
 }
