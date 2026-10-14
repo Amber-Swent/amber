@@ -150,7 +150,8 @@ private class Fields(private val map: Map<String, Any?>) {
   }
 
   private fun status(): MediaStatus {
-    val name = stringOrNull("status") ?: return MediaStatus.APPROVED // MediaItem's default
+    // MediaItem's own default, so it follows when moderation switches that default to PENDING
+    val name = stringOrNull("status") ?: return MediaItem.Text().status
     return MediaStatus.entries.find { it.name == name } ?: throw BadFieldException("status")
   }
 

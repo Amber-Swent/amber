@@ -109,11 +109,16 @@ class MediaOutbox(
   /**
    * Adds [item] to the outbox of [circleId], [SendState.WAITING], with [file] as its file, or none
    * if [file] is null (a text). [file] is moved into the outbox: once the call returns it is gone
-   * from where it was. If the call fails, nothing is added, and [file] may already be gone.
+   * from where it was.
+   *
+   * If the call fails, nothing is added and [file] is back where it was: [item] is turned into JSON
+   * before [file] is touched, and if writing the entry fails after the move, [file] is moved back.
+   * Only if that move back fails too (logged) is [file] lost.
    *
    * @throws IllegalArgumentException if [circleId] or [item]'s id isn't a valid id (blank, `.`,
    *   `..`, or containing '/'), if [item] is already in the outbox, or if [file] doesn't exist.
    * @throws IOException if the media can't be written (e.g. disk full).
+   * @throws org.json.JSONException if [item] can't be written as JSON (e.g. a NaN latitude).
    */
   suspend fun add(circleId: String, item: MediaItem, file: File?) {
     requireValidId(circleId)
@@ -125,17 +130,29 @@ class MediaOutbox(
       require(file == null || file.isFile) { "No file to add at $file" }
       // mkdirs() doesn't do anything if the directory already exists
       val folder = File(dir, circleId).apply { mkdirs() }
-      val bin = binFile(circleId, item.id)
       val entry = OutboxEntry(item, SendState.WAITING)
+      // before touching file: bad data is refused while the file is still where it was
+      val json = entryJson(entry)
+      var moved: File? = null // where the caller's file is, once moved into the outbox
       try {
-        // moved into a temp file first: across storage volumes a move is really a copy, and a
-        // half-copied file must never appear under its name
         if (file != null) {
-          moveIntoPlace(folder, bin) { Files.move(file.toPath(), it.toPath(), REPLACE_EXISTING) }
+          // moved into a temp file first: across storage volumes a move is really a copy, and a
+          // half-copied file must never appear under its name
+          val temp = File.createTempFile("entry", TMP, folder)
+          try {
+            Files.move(file.toPath(), temp.toPath(), REPLACE_EXISTING)
+          } catch (e: Exception) {
+            temp.delete() // NOSONAR: a failed move leaves file where it was; a leftover is removed
+            throw e
+          }
+          moved = temp
+          val bin = binFile(circleId, item.id)
+          Files.move(temp.toPath(), bin.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
+          moved = bin
         }
-        writeEntry(circleId, entry)
-      } catch (e: Exception) { // also a JSONException, e.g. for a NaN latitude
-        bin.delete() // NOSONAR: a leftover .bin without .json is removed at the next start
+        writeJson(circleId, item.id, json)
+      } catch (e: Exception) {
+        if (moved != null) giveBack(moved, checkNotNull(file), item.id, e)
         throw e
       }
       entries.update { it + (circleId to (it[circleId].orEmpty() + (item.id to entry))) }
@@ -282,10 +299,39 @@ class MediaOutbox(
    * Writes [entry] to its `.json`, replacing the previous one at once. Must be called inside
    * [locked].
    */
-  private fun writeEntry(circleId: String, entry: OutboxEntry) {
-    val json = JSONObject().put(STATE, entry.state.name).put(ITEM, entry.item.toMap().toJson())
+  private fun writeEntry(circleId: String, entry: OutboxEntry) =
+      writeJson(circleId, entry.item.id, entryJson(entry))
+
+  /**
+   * The `.json` text of [entry].
+   *
+   * @throws org.json.JSONException if it can't be written as JSON (e.g. a NaN latitude).
+   */
+  private fun entryJson(entry: OutboxEntry): String =
+      JSONObject().put(STATE, entry.state.name).put(ITEM, entry.item.toMap().toJson()).toString()
+
+  /**
+   * Writes [json] to the `.json` of [mediaId], replacing the previous one at once. Must be called
+   * inside [locked].
+   */
+  private fun writeJson(circleId: String, mediaId: String, json: String) {
     val folder = File(dir, circleId).apply { mkdirs() }
-    moveIntoPlace(folder, jsonFile(circleId, entry.item.id)) { it.writeText(json.toString()) }
+    moveIntoPlace(folder, jsonFile(circleId, mediaId)) { it.writeText(json) }
+  }
+
+  /**
+   * Moves the file of a failed [add] back from [moved] to [source], where the caller had it. If
+   * even that fails, the file is lost: it is logged, and the reason is added to [cause]. Must be
+   * called inside [locked].
+   */
+  private fun giveBack(moved: File, source: File, mediaId: String, cause: Exception) {
+    try {
+      Files.move(moved.toPath(), source.toPath(), REPLACE_EXISTING)
+    } catch (e: Exception) {
+      cause.addSuppressed(e)
+      // its copy in the outbox is a leftover now, removed at the next start
+      Log.e(TAG, "Couldn't give back the file of media $mediaId after a failed add: it is lost", e)
+    }
   }
 
   /**

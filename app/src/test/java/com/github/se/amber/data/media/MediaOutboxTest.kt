@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.json.JSONException
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -244,6 +245,37 @@ class MediaOutboxTest {
     assertNull(outbox.get("c1", "m1"))
     assertTrue("the file was never moved", source.exists())
     assertNull(newOutbox().get("c1", "m1"))
+  }
+
+  @Test
+  fun aMediaThatCantBeWrittenAsJsonLeavesTheFileUntouched() = runTest {
+    val outbox = newOutbox()
+    val source = source("the only copy")
+    // org.json refuses NaN
+    val item = picture("m1").copy(location = GeoLocation(lat = Double.NaN, lng = 6.6))
+
+    val error = runCatching { outbox.add("c1", item, source) }.exceptionOrNull()
+
+    assertTrue(error is JSONException)
+    assertEquals("the only copy", source.readText())
+    assertNull(outbox.get("c1", "m1"))
+    assertFalse(fileOnDisk("c1", "m1.bin").exists())
+  }
+
+  @Test
+  fun anEntryThatCantBeWrittenAfterTheMoveGivesTheFileBack() = runTest {
+    val outbox = newOutbox()
+    outbox.idsOf("c1") // the outbox has read the disk
+    // something in the way of the entry's .json (e.g. a full disk would fail the same way)
+    makeUndeletable(fileOnDisk("c1", "m1.json"))
+    val source = source("the only copy")
+
+    val error = runCatching { outbox.add("c1", picture("m1"), source) }.exceptionOrNull()
+
+    assertTrue(error is IOException)
+    assertEquals("the file is back where it was", "the only copy", source.readText())
+    assertNull(outbox.get("c1", "m1"))
+    assertFalse(fileOnDisk("c1", "m1.bin").exists())
   }
 
   @Test
