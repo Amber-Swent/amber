@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.credentials.CredentialManager
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
@@ -107,6 +108,34 @@ class CaregiverParameterScreenTest {
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
     verify(exactly = 1) { viewModel.signOut(credentialManager) }
+  }
+
+  @Test
+  fun errorMessageIsClearedAfterItIsShown() {
+    val viewModel = fakeViewModel(CaregiverParameterUIState(errorMsg = "nope"))
+    composeTestRule.setContent {
+      CaregiverParameterScreen(
+          viewModel = viewModel,
+          credentialManager = mockk(relaxed = true),
+      )
+    }
+
+    composeTestRule.waitForIdle()
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON)
+        .performClick()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
+        .performClick()
+
+    verify(exactly = 1) { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  fun previewShowsTheParametersTitle() {
+    composeTestRule.setContent { CaregiverParameterScreenPreview() }
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
   }
 
   @Test

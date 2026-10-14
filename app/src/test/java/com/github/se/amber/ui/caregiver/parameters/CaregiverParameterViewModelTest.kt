@@ -9,6 +9,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -71,6 +72,21 @@ class CaregiverParameterViewModelTest {
 
         assertTrue(viewModel.uiState.value.signedOut)
         assertNull(viewModel.uiState.value.errorMsg)
+      }
+
+  @Test
+  fun signOutRethrowsCancellationFromCredentialClear() =
+      runTest(dispatcher) {
+        coEvery { authRepository.signOut() } returns Result.success(Unit)
+        coEvery {
+          credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
+        } throws CancellationException("stop")
+        val viewModel = CaregiverParameterViewModel(authRepository)
+
+        viewModel.signOut(credentialManager)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.signedOut)
       }
 
   @Test

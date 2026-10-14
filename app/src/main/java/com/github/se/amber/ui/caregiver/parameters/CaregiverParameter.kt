@@ -155,7 +155,7 @@ fun CaregiverParameterScreen(
 /** Preview of [CaregiverParameterScreen] using the Amber application theme. */
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
-private fun CaregiverParameterScreenPreview() {
+internal fun CaregiverParameterScreenPreview() {
   val fakeAuthRepository =
       object : AuthRepository {
         override val currentUser: AuthUser? = null
