@@ -48,6 +48,10 @@ class DisplayTextFieldTest {
     }
   }
 
+  private fun focusField() {
+    composeTestRule.onNodeWithTag(TEXT).performClick()
+  }
+
   @Test
   fun textField_isDisplayed() {
     setField()
@@ -63,6 +67,7 @@ class DisplayTextFieldTest {
   @Test
   fun maxCharMessage_isDisplayed_whenValueReachesMaxChar() {
     setField(value = "abc", maxChar = 3)
+    focusField()
     composeTestRule.onNodeWithTag(MAX_CHAR_MESSAGE).assertIsDisplayed()
   }
 
@@ -75,6 +80,7 @@ class DisplayTextFieldTest {
   @Test
   fun maxLinesMessage_isDisplayed_whenLineCountReachesMaxLines() {
     setField(value = "a\nb", maxLines = 2)
+    focusField()
     composeTestRule.onNodeWithTag(MAX_LINES_MESSAGE).assertIsDisplayed()
   }
 
@@ -87,6 +93,7 @@ class DisplayTextFieldTest {
   @Test
   fun errorMessage_isDisplayed_whenValueIsBlankAndMessageProvided() {
     setField(value = "", emptyErrorMessage = "Required")
+    focusField()
     composeTestRule.onNodeWithTag(ERROR_MESSAGE).assertIsDisplayed()
   }
 
@@ -100,6 +107,18 @@ class DisplayTextFieldTest {
   fun errorMessage_isNotDisplayed_whenValueIsNotBlank() {
     setField(value = "abc", emptyErrorMessage = "Required")
     composeTestRule.onNodeWithTag(ERROR_MESSAGE).assertDoesNotExist()
+  }
+
+  @Test
+  fun errorMessage_isNotDisplayed_beforeFieldIsFocused() {
+    setField(value = "", emptyErrorMessage = "Required")
+    composeTestRule.onNodeWithTag(ERROR_MESSAGE).assertDoesNotExist()
+  }
+
+  @Test
+  fun maxCharMessage_isNotDisplayed_beforeFieldIsFocused() {
+    setField(value = "abc", maxChar = 3)
+    composeTestRule.onNodeWithTag(MAX_CHAR_MESSAGE).assertDoesNotExist()
   }
 }
 

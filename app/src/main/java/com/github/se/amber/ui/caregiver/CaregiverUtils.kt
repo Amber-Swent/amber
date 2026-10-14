@@ -106,7 +106,6 @@ fun DisplayTextField(
   assert(minLines > 0)
 
   var hasBeenFocused by remember { mutableStateOf(false) }
-  val focusRequester = remember { FocusRequester() }
 
   OutlinedTextField(
       value = value,
@@ -117,7 +116,6 @@ fun DisplayTextField(
           modifier
               .fillMaxWidth()
               .onFocusChanged { focusState -> if (focusState.isFocused) hasBeenFocused = true }
-              .focusRequester(focusRequester)
               .testTag(TEXT),
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
@@ -155,8 +153,7 @@ fun DisplayTextField(
       )
     }
   }
-
-  LaunchedEffect(Unit) { focusRequester.requestFocus() }
+//  LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 /** Test tags used by the caregiver Box with IconText components. */
