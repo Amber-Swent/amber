@@ -47,11 +47,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.NO_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
@@ -131,8 +133,7 @@ fun UploadPictureScreen(
   val isFormValid =
       uiState.pictureFile != null &&
           uiState.description.isNotBlank() &&
-          // TODO : unExtract once DisplayDatePicker is merge
-          //  uiState.date != null &&
+          uiState.date != null &&
           !uiState.isUploading
 
   Scaffold(
@@ -204,12 +205,10 @@ fun UploadPictureScreen(
               toggleShownId = viewModel::toggleShownId,
           )
 
-          // TODO : UnExtract once DatePicker's PR is merged
-          //        DisplayScrollableDatePicker(
-          //            modifier =Modifier.testTag(SELECT_DATE)
-          //            onDateSelected = { year, month, day ->
-          //            viewModel.setDate(MemoryDate(year, month, day))}
-          //        )
+          DisplayScrollableDatePicker(
+              modifier =Modifier.testTag(SELECT_DATE),
+              onDateSelected =  { year, month, day -> viewModel.setDate(MemoryDate(year, month, day))}
+          )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
