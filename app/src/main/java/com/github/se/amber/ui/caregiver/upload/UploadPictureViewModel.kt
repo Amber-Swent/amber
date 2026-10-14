@@ -29,6 +29,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Error message used by the caregiver Upload Picture ViewModel. */
+enum class UploadPictureViewModelErrorMessage(val mess: String) {
+  UNVERIFIED(mess = "Your identity can't be verified"),
+  COULD_NOT_LOAD_PROFILE_ID(mess = "Could not load your profile: "),
+  COULD_NOT_LOAD_CARE_CIRCLE(mess = "Could not load your care Circle: "),
+  STILL_LOADING("Your care circle is still loading, try again"),
+  NOT_SET_CARE_CIRCLE(mess = "Your care circle isn't set up"),
+  SELECT_PICTURE(mess = "Please select a picture first"),
+  UNKNOW_ERROR(mess = "Upload failed: "),
+}
+
 /**
  * Represents the state displayed by the picture upload screen.
  *
@@ -98,24 +109,30 @@ class UploadPictureViewModel(
   private fun loadCircle() {
     val uid = authRepo.currentUser?.uid
     if (uid == null) {
-      setErrorMsg("Your identity can't be verified")
+      setErrorMsg(UploadPictureViewModelErrorMessage.UNVERIFIED.mess)
       return
     }
     viewModelScope.launch {
       val profile =
           profileRepo.getProfile(uid).getOrElse {
-            setErrorMsg("Could not load your profile: ${it.message}")
+            setErrorMsg(
+                UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "${it.message}"
+            )
             return@launch
           }
       val circleId = profile?.circleIds?.firstOrNull()
       if (circleId == null) {
-        setErrorMsg("Your care circle isn't set up")
+        setErrorMsg(UploadPictureViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess)
         return@launch
       }
       circleRepo
           .getCircle(circleId)
           .onSuccess { _careCircle.value = it }
-          .onFailure { setErrorMsg("Could not load your care circle: ${it.message}") }
+          .onFailure {
+            setErrorMsg(
+                UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "${it.message}"
+            )
+          }
     }
   }
 
@@ -123,18 +140,18 @@ class UploadPictureViewModel(
   fun uploadPicture() {
     val authorId = authRepo.currentUser?.uid
     if (authorId == null) {
-      setErrorMsg("Upload failed: your identity can't be verified")
+      setErrorMsg(UploadPictureViewModelErrorMessage.UNVERIFIED.mess)
       return
     }
     val circle = _careCircle.value
     if (circle == null) {
-      setErrorMsg("Your care circle is still loading, try again")
+      setErrorMsg(UploadPictureViewModelErrorMessage.STILL_LOADING.mess)
       return
     }
     val state = _uiState.value
     val file = state.pictureFile
     if (file == null) {
-      setErrorMsg("Please select a picture first")
+      setErrorMsg(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess)
       return
     }
     if (state.isUploading) return
@@ -165,7 +182,7 @@ class UploadPictureViewModel(
         throw e
       } catch (e: Exception) {
         _uiState.value = _uiState.value.copy(isUploading = false)
-        setErrorMsg("Upload failed: ${e.message ?: "unknown error"}")
+        setErrorMsg(UploadPictureViewModelErrorMessage.UNKNOW_ERROR.mess + (e.message ?: ""))
       }
     }
   }

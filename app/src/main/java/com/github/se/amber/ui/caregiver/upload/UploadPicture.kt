@@ -50,6 +50,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.NO_PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.SELECT_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -68,11 +71,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Test tags used by the caregiver Upload Picture components. */
 object UploadPictureTestTags {
   const val TITLE = "upload_picture_title"
   const val TAKE_PICTURE = "upload_picture_take"
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
+  const val SELECT_PERSON_INVOLVED = "upload_picture_selected_person_involved"
+  const val NO_PERSON_INVOLVED = "upload_picture_no_person_involved"
+  const val PERSON_INVOLVED = "upload_picture_person_involved"
+
+  const val SELECT_DATE = "upload_picture_selected_date"
+
   const val UPLOAD_BUTTON = "upload_picture_button"
 }
 
@@ -193,6 +203,7 @@ fun UploadPictureScreen(
 
           // TODO : UnExtract once DatePicker's PR is merged
           //        DisplayScrollableDatePicker(
+          //            modifier =Modifier.testTag(SELECT_DATE)
           //            onDateSelected = { year, month, day ->
           //            viewModel.setDate(MemoryDate(year, month, day))}
           //        )
@@ -284,12 +295,13 @@ private fun DisplayWhoIsInvolved(
     Text("Who is involved - optional", color = Color.Black)
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag(SELECT_PERSON_INVOLVED),
     ) {
       if (options.isEmpty()) {
         Box(
             modifier =
                 Modifier.fillMaxWidth()
+                    .testTag(NO_PERSON_INVOLVED)
                     .border(
                         width = BORDER_THICKNESS,
                         color = lightGray,
@@ -310,7 +322,7 @@ private fun DisplayWhoIsInvolved(
               selected = id in shownIds,
               onClick = { toggleShownId(id) },
               label = { Text(label) },
-              modifier = Modifier.testTag("involved_$id"),
+              modifier = Modifier.testTag(PERSON_INVOLVED),
           )
         }
       }

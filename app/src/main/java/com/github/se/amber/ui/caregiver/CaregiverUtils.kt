@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
@@ -50,14 +51,6 @@ import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
 
-/** Test tags used by the caregiver text field components. */
-object DisplayTextFieldTestTags {
-  const val TEXT = "display_textField_text"
-  const val MAX_LINES_MESSAGE = "display_textField_max_lines"
-  const val MAX_CHAR_MESSAGE = "display_textField_max_lines"
-  const val ERROR_MESSAGE = "display_textField_max_lines"
-}
-
 /**
  * Displays the title for caregiver's Screen
  *
@@ -73,6 +66,14 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
       style = MaterialTheme.typography.headlineSmall,
       fontWeight = FontWeight.Bold,
   )
+}
+
+/** Test tags used by the caregiver text field components. */
+object DisplayTextFieldTestTags {
+  const val TEXT = "display_textField_text"
+  const val MAX_LINES_MESSAGE = "display_textField_max_lines"
+  const val MAX_CHAR_MESSAGE = "display_textField_max_lines"
+  const val ERROR_MESSAGE = "display_textField_max_lines"
 }
 
 /**
@@ -158,6 +159,11 @@ fun DisplayTextField(
   LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
+/** Test tags used by the caregiver Box with IconText components. */
+object DisplayBoxWithIconTextTestTags {
+  const val ICON_BUTTON = "box_with_icon_text_icon_button"
+}
+
 /**
  * Displays a bordered row with a circular icon button and a label.
  *
@@ -190,6 +196,7 @@ fun DisplayBoxWithIconText(
       horizontalArrangement = Arrangement.spacedBy(PADDING_BIG),
   ) {
     FilledIconButton(
+        modifier = Modifier.testTag(ICON_BUTTON),
         onClick = onClick,
         shape = CircleShape,
         colors = IconButtonDefaults.filledIconButtonColors(containerColor = lightOrange),
