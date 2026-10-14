@@ -195,6 +195,10 @@ dependencies {
   implementation(libs.firebase.storage)
   // Task.await() for Firebase calls
   implementation(libs.kotlinx.coroutines.play.services)
+
+  // ----------      WorkManager      ------------
+  // background sends of the media outbox
+  implementation(libs.androidx.work.runtime)
 }
 
 tasks.withType<Test> {
