@@ -28,6 +28,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
+import io.mockk.coVerify
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(private val dispatcher: TestDispatcher = UnconfinedTestDispatcher()) :
@@ -88,5 +93,46 @@ class PatientHomeViewModelTest {
     val vm = PatientHomeViewModel(profileRepo, authRepo)
 
     assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun `signOut success sets signedOut and clears credentials`() = runTest {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+    val credentialManager = mockk<CredentialManager>(relaxed = true)
+
+    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    vm.signOut(credentialManager)
+
+    assertTrue(vm.uiState.value.signedOut)
+    coVerify { credentialManager.clearCredentialState(any<ClearCredentialStateRequest>()) }
+  }
+
+  @Test
+  fun `signOut failure sets error and does not sign out`() = runTest {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
+    coEvery { authRepo.signOut() } returns Result.failure(Exception("nope"))
+    val credentialManager = mockk<CredentialManager>(relaxed = true)
+
+    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    vm.signOut(credentialManager)
+
+    assertEquals("nope", vm.uiState.value.errorMsg)
+    assertFalse(vm.uiState.value.signedOut)
+    coVerify(exactly = 0) {
+      credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
+    }
+  }
+
+  @Test
+  fun `clearErrorMsg resets the error`() = runTest {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
+
+    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
+
+    vm.clearErrorMsg()
+
+    assertNull(vm.uiState.value.errorMsg)
   }
 }

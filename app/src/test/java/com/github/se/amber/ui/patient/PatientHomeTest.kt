@@ -20,6 +20,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import androidx.compose.ui.test.performClick
+import androidx.credentials.CredentialManager
+import io.mockk.verify
 
 @RunWith(RobolectricTestRunner::class)
 class PatientHomeScreenTest {
@@ -28,6 +31,8 @@ class PatientHomeScreenTest {
 
   private lateinit var viewModel: PatientHomeViewModel
   private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
+
+  private val credentialManager = mockk<CredentialManager>(relaxed = true)
 
   // Spies: permettent de vérifier les appels aux callbacks
   private var signedOutCount = 0
@@ -54,6 +59,7 @@ class PatientHomeScreenTest {
     composeTestRule.setContent {
       PatientHomeScreen(
           homeViewModel = viewModel,
+          credentialManager = credentialManager,
           onSignedOut = { signedOutCount++ },
           onTabSelected = { selectedTabs.add(it) },
       )
@@ -111,4 +117,33 @@ class PatientHomeScreenTest {
     assertEquals(0, signedOutCount)
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
+
+    @Test
+    fun clickingTopBarButtonCallsSignOut() {
+        setScreen()
+
+        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+        verify { viewModel.signOut(credentialManager) }
+    }
+
+    @Test
+    fun onSignedOutIsCalledWhenStateIsSignedOut() {
+        setScreen()
+
+        stateFlow.value = stateFlow.value.copy(signedOut = true)
+        composeTestRule.waitForIdle()
+
+        assertEquals(1, signedOutCount)
+    }
+
+    @Test
+    fun errorMessageIsClearedAfterBeingShown() {
+        setScreen()
+
+        stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
+        composeTestRule.waitForIdle()
+
+        verify { viewModel.clearErrorMsg() }
+    }
 }
