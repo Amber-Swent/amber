@@ -18,6 +18,8 @@ import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.theme.darkGray
+import io.mockk.coEvery
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -32,12 +34,15 @@ class CreateProfileUITests {
 
   private fun setCreateProfile(
       viewModel: CreateProfileViewModel =
-          CreateProfileViewModel(
-              profileRepository = ProfileRepository { _, _ -> Result.success(Unit) },
-          ),
+          CreateProfileViewModel(profileRepository = stubRepository()),
   ) {
     composeTestRule.setContent { CreateProfile(viewModel = viewModel) }
   }
+
+  private fun stubRepository(): ProfileRepository =
+      mockk<ProfileRepository>().also {
+        coEvery { it.createProfile(any(), any()) } returns Result.success(Unit)
+      }
 
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
