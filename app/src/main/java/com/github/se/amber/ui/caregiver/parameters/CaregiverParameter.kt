@@ -113,10 +113,7 @@ fun CaregiverParameterScreen(
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             DisplayButton(
-                modifier =
-                    Modifier.width(INVITATION_BUTTON_WIDTH)
-                        .height(INVITATION_BUTTON_HEIGHT)
-                        .testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
+                modifier =  Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
                 icon = Icons.Outlined.PersonAdd,
                 text = "Create Invitation",
                 description = "Create Invitation",
@@ -124,10 +121,7 @@ fun CaregiverParameterScreen(
             )
 
             DisplayButton(
-                modifier =
-                    Modifier.width(INVITATION_BUTTON_WIDTH)
-                        .height(INVITATION_BUTTON_HEIGHT)
-                        .testTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON),
+                modifier =  Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
                 icon = Icons.Outlined.Mail,
                 text = "Enter Invitation",
                 description = "Enter Invitation",
