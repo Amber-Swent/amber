@@ -86,3 +86,10 @@ sealed interface MediaItem {
       val transcript: String? = null, // filled later by the AI
   ) : MediaItem
 }
+
+/**
+ * Whether this media's file is stored under care circle [circleId]
+ * (careCircles/{circleId}/media/...). Always false for a [MediaItem.Text], which has no file.
+ */
+fun MediaItem.isMediaOf(circleId: String): Boolean =
+    storagePath.startsWith("careCircles/$circleId/")
