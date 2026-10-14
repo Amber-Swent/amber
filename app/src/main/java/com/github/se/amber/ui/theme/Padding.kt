@@ -21,3 +21,7 @@ val TEXT_FIELD_BIG = 200.dp
 const val MAX_LINE = 20
 
 val SURFACE_BIG = 84.dp
+
+/* Caregiver parameters invitation buttons. */
+val INVITATION_BUTTON_WIDTH = 320.dp
+val INVITATION_BUTTON_HEIGHT = 100.dp
