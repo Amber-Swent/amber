@@ -1,7 +1,8 @@
 // this code was written with the aid of AI
 
-package com.github.se.amber.ui.patient
+package com.github.se.amber.ui.patient.see_pictures
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -17,17 +18,22 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -43,12 +49,34 @@ fun SeePicturesScreen(
     onBackClick: () -> Unit,
     onTabSelected: (Tab) -> Unit,
 ) {
+
+    val context = LocalContext.current
     val uiState by pictureViewModel.uiState.collectAsState()
+    // TODO remove comment when access to picture
+    //val allPictures = uiState.allPictures
+
+    // Fetch the pictures when the screen is recomposed
+    LaunchedEffect(Unit) {
+        pictureViewModel.refreshUIState()
+    }
+
+    // Show error message if fetching todos fails
+    LaunchedEffect(uiState.errorMsg){
+        uiState.errorMsg?.let {message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            pictureViewModel.clearErrorMsg()
+        }
+    }
+
 
     Scaffold(
         topBar = {
             Column(){
-                TopNavigationMenu(Modifier, TopNavigationAction.CHECKOUT, onBackClick)
+                TopNavigationMenu(
+                    modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+                    action = TopNavigationAction.CANCEL,
+                    onBackClick = onBackClick
+                )
                 Spacer(modifier = Modifier.height(PADDING_SMALL))
                 Text(
                     modifier = Modifier.fillMaxWidth().testTag(SeePicturesScreenTestTags.TITLE),
@@ -63,13 +91,14 @@ fun SeePicturesScreen(
         },
         bottomBar = {
             BottomNavigationMenu(
-                PatientTab.SeePictures,
-                onTabSelected,
-                PatientTab.patientTabs,
-                Modifier
+                selectedTab = PatientTab.SeePictures,
+                onTabSelected = onTabSelected,
+                tabs = PatientTab.patientTabs,
+                modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
             )
         },
         content = { paddingValues ->
+
 
 
             Column(
