@@ -53,7 +53,6 @@ import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
-import com.github.se.amber.ui.theme.darkRed
 import com.github.se.amber.ui.theme.lightOrange
 import java.text.DateFormat
 import java.util.Date
@@ -67,8 +66,10 @@ private val hintBoxWidth = 150.dp
 private val hintBoxHeight = 103.dp
 private val sectionGap = 50.dp
 private val codeListHeight = 350.dp
+private val invitationBorder = Color(0xFFD32F2F)
 
 object CreateInvitationTestTags {
+  const val TITLE = "create_invitation_title"
   const val CREATE_CARD = "create_invitation_card"
   const val HINT_BOX = "create_invitation_hint_box"
   const val USAGE_TEXT = "create_invitation_usage_text"
@@ -94,12 +95,13 @@ fun CreateInvitationScreen(
               action = TopNavigationAction.CHECKOUT,
               onBackClick = checkout,
           )
-          DisplayCaregiverTitle("Parameters", Modifier.testTag(ParametersHomeTestTags.TITLE))
+          DisplayCaregiverTitle("Parameters", Modifier.testTag(CreateInvitationTestTags.TITLE))
         }
       },
       bottomBar = {
         BottomNavigationMenu(
-            selectedTab = CaregiverTab.Setting,
+            // The Setting tab arrives with the parameters home screen.
+            selectedTab = CaregiverTab.Home,
             onTabSelected = onTabSelected,
             tabs = CaregiverTab.caregiverTabs,
         )
@@ -130,7 +132,7 @@ fun CreateInvitationScreen(
                   ) {
                     Text(
                         text = circle.name,
-                        color = if (selected) darkRed else Color.Black,
+                        color = if (selected) invitationBorder else Color.Black,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                   }
@@ -180,7 +182,7 @@ fun CreateInvitationScreen(
                       Modifier.padding(top = 8.dp)
                           .width(hintBoxWidth)
                           .height(hintBoxHeight)
-                          .border(1.dp, darkRed, RoundedCornerShape(SMALL_ROUND_CORNER))
+                          .border(1.dp, invitationBorder, RoundedCornerShape(SMALL_ROUND_CORNER))
                           .padding(horizontal = 16.dp, vertical = 8.dp)
                           .testTag(CreateInvitationTestTags.HINT_BOX),
                   color = Color.Black,
@@ -204,7 +206,7 @@ fun CreateInvitationScreen(
                       Modifier.fillMaxWidth()
                           .padding(top = 8.dp)
                           .testTag(CreateInvitationTestTags.ERROR_MESSAGE),
-                  color = darkRed,
+                  color = invitationBorder,
                   fontSize = 14.sp,
                   textAlign = TextAlign.Center,
               )
@@ -215,7 +217,7 @@ fun CreateInvitationScreen(
                 modifier =
                     Modifier.fillMaxWidth()
                         .height(codeListHeight)
-                        .border(1.dp, darkRed, RoundedCornerShape(SMALL_ROUND_CORNER))
+                        .border(1.dp, invitationBorder, RoundedCornerShape(SMALL_ROUND_CORNER))
                         .verticalScroll(rememberScrollState())
                         .padding(top = 15.dp)
                         .testTag(CreateInvitationTestTags.CODE_LIST),
