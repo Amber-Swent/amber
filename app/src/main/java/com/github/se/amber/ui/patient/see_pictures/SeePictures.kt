@@ -48,6 +48,8 @@ import com.github.se.amber.ui.theme.orange
 object SeePicturesScreenTestTags {
   const val TITLE = "pictures_title"
   const val NO_PICTURES = "no_pictures_text"
+  const val PICTURES_LIST = "pictures_list"
+  fun picture(id: String) = "picture_$id"
 }
 
 @Composable
