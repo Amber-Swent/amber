@@ -105,7 +105,6 @@ class UploadPictureTest {
     launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.TITLE)
-        .performScrollTo()
         .assertIsDisplayed()
   }
 

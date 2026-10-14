@@ -12,7 +12,9 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -98,8 +100,9 @@ class UploadTest {
 
   @Test
   fun titleIsDisplayed() {
-    setUpload()
-    checkIsDisplayed(UploadTestTags.TITLE)
+    setUpload() // setContent must run first
+    composeTestRule.onRoot(useUnmergedTree = true).printToLog("UI")
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
   }
 
   @Test
