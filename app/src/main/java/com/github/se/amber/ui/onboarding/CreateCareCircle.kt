@@ -49,18 +49,29 @@ import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 
+/** Stable tags for locating the form controls and validation message in UI tests. */
 object CreateCareCircleTestTags {
   const val NAME_FIELD = "createCareCircle_nameField"
   const val NAME_ERROR = "createCareCircle_nameError"
   const val SUBMIT_BUTTON = "createCareCircle_submitButton"
 }
 
-/** Collects the first care circle's name and reports creation through [onCreated]. */
+/**
+ * Displays the first care circle form and connects it to [viewModel].
+ *
+ * A blank name appears below the field. Repository failures are shown as a toast, while successful
+ * creation calls [onCreated] once. The caller decides where to navigate afterward.
+ *
+ * @param modifier Modifier applied to the root care circle layout.
+ * @param context Used to display repository failures as a toast.
+ * @param onCreated Called after the repository creates the circle.
+ * @param viewModel ViewModel holding the form state and handling creation.
+ */
 @Composable
 fun CreateCareCircleScreen(
     modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
-    onCreated: () -> Unit,
+    onCreated: () -> Unit = {},
     viewModel: CreateCareCircleViewModel = viewModel(),
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -83,13 +94,22 @@ fun CreateCareCircleScreen(
   )
 }
 
-/** State-hoisted form matching the onboarding design. */
+/**
+ * Renders the care circle name field and Create button without owning submission state.
+ *
+ * The caller supplies the current state and handles user actions through callbacks.
+ *
+ * @param modifier Modifier applied to the root form layout.
+ * @param uiState Name, validation error, loading state, and creation status to display.
+ * @param onNameChange Called when the name field changes.
+ * @param onSubmit Called when the user presses Create.
+ */
 @Composable
 internal fun CreateCareCircleContent(
-    uiState: CreateCareCircleUiState,
-    onNameChange: (String) -> Unit,
-    onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
+    uiState: CreateCareCircleUiState = CreateCareCircleUiState(),
+    onNameChange: (String) -> Unit = {},
+    onSubmit: () -> Unit = {},
 ) {
   Column(
       modifier =

@@ -16,7 +16,15 @@ import kotlinx.coroutines.launch
 
 private const val NAME_REQUIRED_ERROR = "Circle name cannot be empty"
 
-/** State of the first care circle form. */
+/**
+ * State displayed by [CreateCareCircleScreen].
+ *
+ * @param name Care circle name currently entered by the user.
+ * @param nameError Validation message shown below the name field, or null when the name is valid.
+ * @param submitError Message for the latest creation failure, or null when there is no failure.
+ * @param isLoading Whether circle creation is currently running.
+ * @param isCreated Whether the first care circle was created successfully.
+ */
 data class CreateCareCircleUiState(
     val name: String = "",
     val nameError: String? = null,
@@ -25,7 +33,15 @@ data class CreateCareCircleUiState(
     val isCreated: Boolean = false,
 )
 
-/** Owns validation and creation; the screen's caller handles navigation. */
+/**
+ * Owns the UI state and creation action of [CreateCareCircleScreen].
+ *
+ * The ViewModel validates the name and creates the first circle through [OnboardingRepository]. It
+ * emits a success event after creation; navigation remains the responsibility of the caller
+ * displaying the screen.
+ *
+ * @param repository Repository used to create the first care circle.
+ */
 class CreateCareCircleViewModel(
     private val repository: OnboardingRepository = OnboardingRepositoryProvider.default.repository,
 ) : ViewModel() {
@@ -42,6 +58,13 @@ class CreateCareCircleViewModel(
   // receiveAsFlow() lets the screen observe the channel without being able to send into it
   val successEvents = successChannel.receiveAsFlow() // Tells the screen to call isCreated() once
 
+  /**
+   * Updates the name displayed by the screen and its validation message.
+   *
+   * Changes are ignored during submission and after creation.
+   *
+   * @param name New care circle name entered by the user.
+   */
   fun onNameChange(name: String) {
     if (_uiState.value.isLoading || _uiState.value.isCreated) return
     // Updates the supporting error while the user edits
@@ -54,12 +77,21 @@ class CreateCareCircleViewModel(
     }
   }
 
-  /** Clears a submission failure after its toast has been shown. */
+  /**
+   * Clears a submission failure after its toast has been shown.
+   *
+   * This allows a later attempt to show the same failure again.
+   */
   fun clearSubmitError() {
     _uiState.update { it.copy(submitError = null) }
   }
 
-  /** Validates locally before creating the circle. Repeated taps share one operation. */
+  /**
+   * Validates the trimmed name, then asks the repository to create the first care circle.
+   *
+   * A blank name sets a field error without contacting the repository. While creation is running or
+   * after it succeeds, further submissions are ignored. Failures leave the form ready for a retry.
+   */
   fun createCareCircle() {
     val state = _uiState.value
     if (state.isLoading || state.isCreated) return
