@@ -50,7 +50,6 @@ import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.BIG_ROUND_CORNER
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM

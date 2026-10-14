@@ -19,6 +19,7 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.MemoryDate
 import io.mockk.every
 import io.mockk.mockk
 import java.io.File
@@ -94,6 +95,7 @@ class UploadPictureTest {
               pictureWidth = 640,
               pictureHeight = 480,
               description = "Beach day",
+              date = MemoryDate(2000, 10, 10),
           )
     }
   }
@@ -103,9 +105,7 @@ class UploadPictureTest {
   @Test
   fun titleIsDisplayed() {
     launchScreen()
-    composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.TITLE)
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
   }
 
   // TODO: to debug the Ci - remove once path

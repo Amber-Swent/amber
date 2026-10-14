@@ -206,8 +206,10 @@ fun UploadPictureScreen(
           )
 
           DisplayScrollableDatePicker(
-              modifier =Modifier.testTag(SELECT_DATE),
-              onDateSelected =  { year, month, day -> viewModel.setDate(MemoryDate(year, month, day))}
+              modifier = Modifier.testTag(SELECT_DATE),
+              onDateSelected = { year, month, day ->
+                viewModel.setDate(MemoryDate(year, month, day))
+              },
           )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
