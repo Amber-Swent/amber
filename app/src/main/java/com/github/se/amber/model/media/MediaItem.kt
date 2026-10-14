@@ -5,14 +5,15 @@ package com.github.se.amber.model.media
 import com.github.se.amber.model.location.GeoLocation
 
 /**
- * A memory: one photo or voice memo, with its own description, date, place and people. Exists on
- * its own; it can be added to zero, one or several stories.
+ * A memory: one photo, voice memo or text, with its own description, date, place and people. Exists
+ * on its own; it can be added to zero, one or several stories.
  *
  * Stored in two places with the same mediaId:
  * - bytes in Firebase Storage at [storagePath] (careCircles/{circleId}/media/{mediaId}.jpg|.m4a);
- *   the circleId in the path lets Storage security rules check membership.
- * - metadata at careCircles/{circleId}/media/{mediaId}, with an extra "type" field ("picture" or
- *   "audio") telling which subclass to rebuild.
+ *   the circleId in the path lets Storage security rules check membership. A [Text] has no file:
+ *   its [storagePath] is empty.
+ * - metadata at careCircles/{circleId}/media/{mediaId}, with an extra "type" field ("picture",
+ *   "audio" or "text") telling which subclass to rebuild.
  *
  * Written: generate mediaId, upload the file to Storage first, then write this document. That order
  * guarantees a document never points at a missing file. Storage uploads aren't queued across app
@@ -24,8 +25,9 @@ import com.github.se.amber.model.location.GeoLocation
  * - "photos of X": query media where shownIds array-contains X's id.
  * - the file itself: Storage reference at storagePath, loaded only when its card is on screen.
  *
- * A sealed interface can't be read with toObject(): the repository maps the document manually,
- * switching on "type", and skips unknown types (e.g. "video" from a newer app version).
+ * A sealed interface can't be read with toObject(): the data layer maps it manually
+ * (`data/media/MediaItemMapping.kt`), switching on "type", and skips unknown types (e.g. "video"
+ * from a newer app version).
  */
 sealed interface MediaItem {
   val id: String // mediaId = document id; the Storage file is named {mediaId}.jpg or .m4a
