@@ -17,9 +17,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
@@ -52,7 +54,7 @@ object CaregiverHomeTestTags {
 fun CaregiverHomeScreen(
     viewModel: CaregiverHomeViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = { tab -> },
-    checkout: () -> Unit = {},
+    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
 ) {
   val uiState by viewModel.uiState.collectAsState()
   Scaffold(
@@ -61,7 +63,7 @@ fun CaregiverHomeScreen(
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = checkout,
+              onBackClick = { viewModel.signOut(credentialManager) },
           )
           DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
         }
