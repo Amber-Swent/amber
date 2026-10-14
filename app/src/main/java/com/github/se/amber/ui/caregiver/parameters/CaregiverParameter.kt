@@ -121,7 +121,7 @@ fun CaregiverParameterScreen(
             )
 
             DisplayButton(
-                modifier =  Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
+                modifier =  Modifier.testTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON),
                 icon = Icons.Outlined.Mail,
                 text = "Enter Invitation",
                 description = "Enter Invitation",
