@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
+// Modified by Neha Chakraborty and Copilot.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.model.appointment.Appointment
@@ -370,7 +371,6 @@ class FirestoreSecurityRulesTest {
         Invitation(
             code = "ABC123",
             circleId = "c1",
-            role = Role.PATIENT,
             createdBy = "care",
             createdAt = now - 10,
             expiresAt = now + 60_000,
@@ -378,7 +378,9 @@ class FirestoreSecurityRulesTest {
         )
 
     assertTrue(db.rulesFor("care", now).canGetInvitation())
-    assertFalse(db.rulesFor("care", now).canListInvitations())
+    assertTrue(db.rulesFor("care", now).canListInvitation(invite))
+    assertFalse(db.rulesFor("pat", now).canListInvitation(invite))
+    assertFalse(db.rulesFor("care", now).canListInvitation(invite.copy(createdBy = "other")))
     assertTrue(db.rulesFor("care", now).canCreateInvitation(invite))
     assertFalse(db.rulesFor("pat", now).canCreateInvitation(invite.copy(createdBy = "pat")))
 
@@ -616,7 +618,8 @@ private class FirestoreSecurityRules(
 
   fun canGetInvitation(): Boolean = isSignedIn()
 
-  fun canListInvitations(): Boolean = false
+  fun canListInvitation(resource: Invitation): Boolean =
+      isCaregiver() && resource.createdBy == authUid && isMember(resource.circleId)
 
   fun canCreateInvitation(resource: Invitation): Boolean =
       isCaregiver() &&
