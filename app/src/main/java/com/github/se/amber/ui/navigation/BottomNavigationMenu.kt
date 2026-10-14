@@ -19,8 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import com.github.se.amber.ui.theme.BIG_ROUND_CORNER
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
-import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
@@ -120,7 +120,7 @@ fun BottomNavigationMenu(
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
                 modifier =
-                    Modifier.clip(RoundedCornerShape(ROUND_CORNER))
+                    Modifier.clip(RoundedCornerShape(BIG_ROUND_CORNER))
                         .testTag(BottomNavigationMenuTestTags.tabTag(tab)),
             )
           }
