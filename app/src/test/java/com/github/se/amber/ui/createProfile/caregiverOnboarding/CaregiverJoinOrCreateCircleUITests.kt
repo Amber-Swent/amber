@@ -223,6 +223,23 @@ class CaregiverJoinOrCreateCircleUITests {
     assertEquals(CareCircleEntryChoice.None, viewModel.uiState.value.choice)
   }
 
+  @Test
+  fun screen_withDefaultCallbacks_rendersWithoutInvokingNavigation() {
+    composeTestRule.setContent {
+      CaregiverJoinOrCreateCircle(
+          viewModel = CaregiverJoinOrCreateCircleViewModel(displayName = DISPLAY_NAME),
+      )
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule
+        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
+        .assertIsDisplayed()
+  }
+
   private companion object {
     const val DISPLAY_NAME = "Sarah"
     const val CREATE_CIRCLE_LABEL = "Create a new care circle"

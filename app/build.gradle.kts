@@ -121,6 +121,7 @@ sonar {
         "sonar.coverage.jacoco.xmlReportPaths",
         "${project.layout.buildDirectory.get()}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml",
     )
+    property("sonar.coverage.exclusions", "**/scripts/**,**/MainActivity.kt")
   }
 }
 
@@ -217,6 +218,7 @@ tasks.register("jacocoTestReport", JacocoReport::class) {
           "**/Manifest*.*",
           "**/*Test*.*",
           "android/**/*.*",
+          "**/MainActivity*",
       )
 
   val debugKotlinClasses =

@@ -10,6 +10,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -258,5 +259,22 @@ class RedeemInviteViewModelTest {
     viewModel.onRedemptionResultHandled()
 
     assertNull(viewModel.uiState.value.redemptionResult)
+  }
+
+  @Test
+  fun onSubmit_cancellationException_doesNotCompleteRedeem() = runTest {
+    coEvery { invitationRedemptionRepository.redeemInvitation(any()) } coAnswers
+        {
+          throw CancellationException("redeem cancelled")
+        }
+    viewModel.onInviteCodeChange("code")
+
+    viewModel.onSubmit()
+    advanceUntilIdle()
+
+    // Catch rethrows cancellation before success/failure state is written.
+    assertTrue(viewModel.uiState.value.isRedeeming)
+    assertNull(viewModel.uiState.value.redemptionResult)
+    assertFalse(viewModel.uiState.value.showError)
   }
 }

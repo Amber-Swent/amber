@@ -10,9 +10,13 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
+import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.accountCreation.CreateProfile
 import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
@@ -22,6 +26,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -32,17 +37,34 @@ import org.robolectric.RobolectricTestRunner
 class CreateProfileUITests {
   @get:Rule val composeTestRule = createComposeRule()
 
+  private var profileCreatedCount = 0
+  private var lastCreatedRole: Role? = null
+  private var lastDisplayName: String? = null
+
   private fun setCreateProfile(
       viewModel: CreateProfileViewModel =
           CreateProfileViewModel(profileRepository = stubRepository()),
-  ) {
-    composeTestRule.setContent { CreateProfile(viewModel = viewModel) }
+  ): CreateProfileViewModel {
+    profileCreatedCount = 0
+    lastCreatedRole = null
+    lastDisplayName = null
+    composeTestRule.setContent {
+      CreateProfile(
+          viewModel = viewModel,
+          onProfileCreated = { role, displayName ->
+            profileCreatedCount++
+            lastCreatedRole = role
+            lastDisplayName = displayName
+          },
+      )
+    }
+    return viewModel
   }
 
-  private fun stubRepository(): ProfileRepository =
-      mockk<ProfileRepository>().also {
-        coEvery { it.createProfile(any(), any()) } returns Result.success(Unit)
-      }
+  private fun stubRepository(
+      result: Result<Unit> = Result.success(Unit),
+  ): ProfileRepository =
+      mockk<ProfileRepository>().also { coEvery { it.createProfile(any(), any()) } returns result }
 
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
@@ -156,6 +178,54 @@ class CreateProfileUITests {
     composeTestRule.waitForIdle()
 
     assertEmptyFieldValidationIsShown()
+  }
+
+  // ---------- Submit success / failure ----------
+
+  @Test
+  fun selectingPatient_withValidFields_invokesOnProfileCreated() {
+    val viewModel = setCreateProfile()
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput("Ada")
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
+        .performTextInput("Lovelace")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).performClick()
+    composeTestRule.waitUntil(timeoutMillis = 3_000) { profileCreatedCount == 1 }
+
+    assertEquals(1, profileCreatedCount)
+    assertEquals(Role.PATIENT, lastCreatedRole)
+    assertEquals("Ada", lastDisplayName)
+    assertNull(viewModel.uiState.value.createdRole)
+  }
+
+  @Test
+  fun selectingCaregiver_whenRepositoryFails_showsSubmitError() {
+    setCreateProfile(
+        viewModel =
+            CreateProfileViewModel(
+                profileRepository =
+                    stubRepository(Result.failure(ProfileCreationError.ProfileAlreadyExists)),
+            ),
+    )
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput("Grace")
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
+        .performTextInput("Hopper")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name).performClick()
+    composeTestRule.waitUntil(timeoutMillis = 3_000) {
+      composeTestRule
+          .onAllNodesWithTag(CreateProfileTestTags.SUBMIT_ERROR.name)
+          .fetchSemanticsNodes()
+          .isNotEmpty()
+    }
+
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR.name)
+        .assertIsDisplayed()
+        .assertTextEquals("A profile already exists for this user")
+    assertEquals(0, profileCreatedCount)
   }
 
   private fun assertEmptyFieldValidationIsShown() {

@@ -12,6 +12,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.unmockkAll
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -261,6 +262,36 @@ class CreateProfileViewModelTests {
 
     assertEquals("boom", viewModel.uiState.value.submitError)
     assertFalse(viewModel.uiState.value.isSaving)
+  }
+
+  @Test
+  fun onRoleSelected_failureWithNullMessage_usesFallbackSubmitError() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(RuntimeException())
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT)
+    advanceUntilIdle()
+
+    assertEquals("Unable to create a profile", viewModel.uiState.value.submitError)
+    assertFalse(viewModel.uiState.value.isSaving)
+  }
+
+  @Test
+  fun onRoleSelected_cancellationException_doesNotCompleteCreate() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } coAnswers
+        {
+          throw CancellationException("profile create cancelled")
+        }
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT)
+    advanceUntilIdle()
+
+    // Catch rethrows cancellation before success/failure state is written.
+    assertTrue(viewModel.uiState.value.isSaving)
+    assertNull(viewModel.uiState.value.createdRole)
+    assertNull(viewModel.uiState.value.submitError)
   }
 
   @Test
