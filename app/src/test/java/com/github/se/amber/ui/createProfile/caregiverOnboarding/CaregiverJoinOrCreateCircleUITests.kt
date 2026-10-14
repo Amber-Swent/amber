@@ -225,11 +225,9 @@ class CaregiverJoinOrCreateCircleUITests {
 
   @Test
   fun screen_withDefaultCallbacks_rendersWithoutInvokingNavigation() {
-    composeTestRule.setContent {
-      CaregiverJoinOrCreateCircle(
-          viewModel = CaregiverJoinOrCreateCircleViewModel(displayName = DISPLAY_NAME),
-      )
-    }
+    // Construct outside setContent: lint forbids ViewModel constructors inside composables.
+    val viewModel = CaregiverJoinOrCreateCircleViewModel(displayName = DISPLAY_NAME)
+    composeTestRule.setContent { CaregiverJoinOrCreateCircle(viewModel = viewModel) }
     composeTestRule.waitForIdle()
 
     composeTestRule
