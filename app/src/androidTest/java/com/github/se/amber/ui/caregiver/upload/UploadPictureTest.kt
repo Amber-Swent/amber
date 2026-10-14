@@ -32,7 +32,7 @@ import org.junit.Test
  * Compose tests for [UploadPictureScreen]. The ViewModel is real but backed by mocked repositories:
  * nothing touches the network. Elements are checked through test tags only.
  */
-class UploadPictureScreenTest {
+class UploadPictureTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
@@ -42,14 +42,19 @@ class UploadPictureScreenTest {
   private lateinit var circleRepo: CareCircleRepository
 
   private lateinit var viewModel: UploadPictureViewModel
-  private val uiStateFlow = MutableStateFlow(UploadPictureUIState())
-  private val careCircleFlow = MutableStateFlow<CareCircle?>(null)
-  private val involvedOptionsFlow = MutableStateFlow<Map<String, String>>(emptyMap())
   private var uploadCallbackCount = 0
   private var goBackCallbackCount = 0
 
+  private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
+  private lateinit var careCircleFlow: MutableStateFlow<CareCircle?>
+  private lateinit var involvedOptionsFlow: MutableStateFlow<Map<String, String>>
+
   @Before
   fun setUp() {
+    uiStateFlow = MutableStateFlow(UploadPictureUIState())
+    careCircleFlow = MutableStateFlow(null)
+    involvedOptionsFlow = MutableStateFlow(emptyMap())
+
     mediaRepo = mockk(relaxed = true)
     authRepo = mockk(relaxed = true)
     profileRepo = mockk(relaxed = true)
@@ -59,6 +64,7 @@ class UploadPictureScreenTest {
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.careCircle } returns careCircleFlow
     every { viewModel.involvedOptions } returns involvedOptionsFlow
+
     uploadCallbackCount = 0
     goBackCallbackCount = 0
   }
@@ -96,31 +102,47 @@ class UploadPictureScreenTest {
   @Test
   fun titleIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
+  }
+
+  // TODO: to debug the Ci - remove once path
+  @Test
+  fun titleExist() {
+    launchScreen()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertExists()
   }
 
   @Test
   fun takePictureOptionIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.TAKE_PICTURE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE).assertIsDisplayed()
   }
 
   @Test
   fun selectPictureOptionIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.SELECT_PICTURE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.SELECT_PICTURE).assertIsDisplayed()
   }
 
   @Test
   fun uploadButtonIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.UPLOAD_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsDisplayed()
+  }
+
+  // TODO: to debug the Ci - remove once path
+  @Test
+  fun uploadButtonExist() {
+    launchScreen()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertExists()
   }
 
   @Test
   fun involvedSectionIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.SELECT_PERSON_INVOLVED).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED)
+        .assertIsDisplayed()
   }
 
   // ---------- picture selected indicator ----------
@@ -128,7 +150,7 @@ class UploadPictureScreenTest {
   @Test
   fun pictureSelectedIndicatorIsHiddenInitially() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.PICTURE_SELECTED).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertDoesNotExist()
   }
 
   @Test
@@ -146,7 +168,7 @@ class UploadPictureScreenTest {
         }
 
     composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.PICTURE_SELECTED).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertIsDisplayed()
   }
 
   // ---------- upload button enabled state ----------
@@ -154,28 +176,28 @@ class UploadPictureScreenTest {
   @Test
   fun uploadButtonIsDisabledInitially() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
   }
 
   @Test
   fun uploadButtonIsDisabledWithoutPicture() {
     launchScreen()
     composeTestRule.runOnIdle { viewModel.setDescription("Beach day") }
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
   }
 
   @Test
   fun uploadButtonIsDisabledWithoutDescription() {
     launchScreen()
     composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
   }
 
   @Test
   fun uploadButtonIsEnabledWhenFormIsValid() {
     launchScreen()
     fillValidForm()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.UPLOAD_BUTTON).assertIsEnabled()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsEnabled()
   }
 
   // ---------- who is involved ----------
@@ -194,13 +216,17 @@ class UploadPictureScreenTest {
   @Test
   fun emptyCircleMessageIsDisplayedWithoutCircle() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.NO_PERSON_INVOLVED).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .assertIsDisplayed()
   }
 
   @Test
   fun noChipIsDisplayedWithoutCircle() {
     launchScreen()
-    composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED).assertCountEquals(0)
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+        .assertCountEquals(0)
   }
 
   @Test
@@ -209,7 +235,9 @@ class UploadPictureScreenTest {
     composeTestRule.runOnIdle {
       involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
     }
-    composeTestRule.onNodeWithTag(UploadPictureTestTags.NO_PERSON_INVOLVED).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .assertDoesNotExist()
   }
 
   @Test
@@ -218,7 +246,9 @@ class UploadPictureScreenTest {
     composeTestRule.runOnIdle {
       involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
     }
-    composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED).assertCountEquals(2)
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+        .assertCountEquals(2)
   }
 
   @Test
@@ -226,7 +256,7 @@ class UploadPictureScreenTest {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
     composeTestRule
-        .onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[0]
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
         .assertIsNotSelected()
   }
 
@@ -244,15 +274,17 @@ class UploadPictureScreenTest {
               )
         }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[0].performClick()
-    composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[0].assertIsSelected()
+    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+        .assertIsSelected()
   }
 
   @Test
   fun clickingASelectedChipDeselectsIt() {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
-    val chip = composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[0]
+    val chip = composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
     chip.performClick()
     chip.performClick()
     chip.assertIsNotSelected()
@@ -262,9 +294,9 @@ class UploadPictureScreenTest {
   fun clickingAChipDoesNotSelectTheOthers() {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
-    composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule
-        .onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[1]
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[1]
         .assertIsNotSelected()
   }
 
@@ -284,7 +316,7 @@ class UploadPictureScreenTest {
               )
         }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }
 }

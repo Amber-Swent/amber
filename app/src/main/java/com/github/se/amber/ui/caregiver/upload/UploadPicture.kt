@@ -50,10 +50,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
-import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.NO_PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.SELECT_PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.UploadPictureTestTags.UPLOAD_BUTTON
+import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.NO_PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -72,7 +72,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Test tags used by the caregiver Upload Picture components. */
-object UploadPictureTestTags {
+object UploadPictureScreenTestTags {
   const val TITLE = "upload_picture_title"
   const val TAKE_PICTURE = "upload_picture_take"
   const val SELECT_PICTURE = "upload_picture_select"
@@ -139,7 +139,10 @@ fun UploadPictureScreen(
       topBar = {
         Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
           TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
-          DisplayCaregiverTitle("Upload Picture", Modifier.testTag(UploadPictureTestTags.TITLE))
+          DisplayCaregiverTitle(
+              "Upload Picture",
+              Modifier.testTag(UploadPictureScreenTestTags.TITLE),
+          )
         }
       },
       content = { paddingValues ->
@@ -154,7 +157,7 @@ fun UploadPictureScreen(
         ) {
           // Display the "Take a new Picture with the camera"
           DisplayBoxWithIconText(
-              modifier = Modifier.testTag(UploadPictureTestTags.TAKE_PICTURE),
+              modifier = Modifier.testTag(UploadPictureScreenTestTags.TAKE_PICTURE),
               icon = Icons.Outlined.PhotoCamera,
               contentDescription = "Photo",
               label = "Take a new Picture",
@@ -165,7 +168,7 @@ fun UploadPictureScreen(
 
           // Display the "Choose a picture from the galeri"
           DisplayBoxWithIconText(
-              modifier = Modifier.testTag(UploadPictureTestTags.SELECT_PICTURE),
+              modifier = Modifier.testTag(UploadPictureScreenTestTags.SELECT_PICTURE),
               icon = Icons.Outlined.Photo,
               contentDescription = "Photo",
               label = "Click to choose an existing Picture",
@@ -179,7 +182,7 @@ fun UploadPictureScreen(
           if (uiState.pictureFile != null) {
             Text(
                 "Picture selected",
-                modifier = Modifier.testTag(UploadPictureTestTags.PICTURE_SELECTED),
+                modifier = Modifier.testTag(UploadPictureScreenTestTags.PICTURE_SELECTED),
             )
           }
 
