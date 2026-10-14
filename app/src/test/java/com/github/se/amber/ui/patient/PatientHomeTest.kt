@@ -5,6 +5,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.credentials.CredentialManager
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -13,6 +15,7 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -20,9 +23,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import androidx.compose.ui.test.performClick
-import androidx.credentials.CredentialManager
-import io.mockk.verify
 
 @RunWith(RobolectricTestRunner::class)
 class PatientHomeScreenTest {
@@ -118,32 +118,32 @@ class PatientHomeScreenTest {
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
 
-    @Test
-    fun clickingTopBarButtonCallsSignOut() {
-        setScreen()
+  @Test
+  fun clickingTopBarButtonCallsSignOut() {
+    setScreen()
 
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
-        verify { viewModel.signOut(credentialManager) }
-    }
+    verify { viewModel.signOut(credentialManager) }
+  }
 
-    @Test
-    fun onSignedOutIsCalledWhenStateIsSignedOut() {
-        setScreen()
+  @Test
+  fun onSignedOutIsCalledWhenStateIsSignedOut() {
+    setScreen()
 
-        stateFlow.value = stateFlow.value.copy(signedOut = true)
-        composeTestRule.waitForIdle()
+    stateFlow.value = stateFlow.value.copy(signedOut = true)
+    composeTestRule.waitForIdle()
 
-        assertEquals(1, signedOutCount)
-    }
+    assertEquals(1, signedOutCount)
+  }
 
-    @Test
-    fun errorMessageIsClearedAfterBeingShown() {
-        setScreen()
+  @Test
+  fun errorMessageIsClearedAfterBeingShown() {
+    setScreen()
 
-        stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
-        composeTestRule.waitForIdle()
+    stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
+    composeTestRule.waitForIdle()
 
-        verify { viewModel.clearErrorMsg() }
-    }
+    verify { viewModel.clearErrorMsg() }
+  }
 }
