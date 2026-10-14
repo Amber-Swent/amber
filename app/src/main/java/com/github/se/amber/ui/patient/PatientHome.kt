@@ -1,6 +1,7 @@
 // this code was written with the aid of AI
 package com.github.se.amber.ui.patient
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -14,15 +15,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -44,10 +48,28 @@ object PatientHomeScreenTestTags {
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
-    checkout: () -> Unit,
+    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
+    onSignedOut: () -> Unit,
     onTabSelected: (Tab) -> Unit,
 ) {
+  val context = LocalContext.current
   val uiState by homeViewModel.uiState.collectAsState()
+
+  // Show error message
+  LaunchedEffect(uiState.errorMsg) {
+    uiState.errorMsg?.let { message ->
+      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      homeViewModel.clearErrorMsg()
+    }
+  }
+
+  // when sign-out
+  LaunchedEffect(uiState.signedOut) {
+    if (uiState.signedOut) {
+      onSignedOut()
+      Toast.makeText(context, "Logout successful", Toast.LENGTH_SHORT).show()
+    }
+  }
 
   Scaffold(
       topBar = {
@@ -55,7 +77,7 @@ fun PatientHomeScreen(
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = checkout,
+              onBackClick = { homeViewModel.signOut(credentialManager) },
           )
           Spacer(modifier = Modifier.height(PADDING_SMALL))
           Text(
@@ -102,7 +124,7 @@ fun PatientHomeScreen(
 fun PatientHomeScreenPreview() {
   AmberAppTheme(dynamicColor = false) {
     PatientHomeScreen(
-        checkout = {},
+        onSignedOut = {},
         onTabSelected = {},
     )
   }
