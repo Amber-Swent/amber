@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.PersonAdd
@@ -46,8 +44,6 @@ import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.INVITATION_BUTTON_HEIGHT
-import com.github.se.amber.ui.theme.INVITATION_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_SMALL
 
