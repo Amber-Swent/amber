@@ -101,8 +101,7 @@ class UploadTest {
   @Test
   fun titleIsDisplayed() {
     setUpload() // setContent must run first
-    composeTestRule.onRoot(useUnmergedTree = true).printToLog("UI")
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadTestTags.TITLE).assertIsDisplayed()
   }
 
   @Test
