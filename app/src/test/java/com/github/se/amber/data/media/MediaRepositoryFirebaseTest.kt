@@ -26,7 +26,7 @@ class MediaRepositoryFirebaseTest {
   private class FakeFileStorage : MediaFileStorage {
     val calls = mutableListOf<String>()
 
-    override suspend fun downloadToFile(
+    override suspend fun download(
         circle: CareCircle,
         storagePath: String,
         destination: File,
@@ -34,6 +34,13 @@ class MediaRepositoryFirebaseTest {
       calls += "${circle.id}:$storagePath"
       destination.writeText("content of $storagePath")
     }
+
+    // the repository doesn't send or delete media yet
+    override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) =
+        error("upload isn't used by these tests")
+
+    override suspend fun delete(circle: CareCircle, storagePath: String) =
+        error("delete isn't used by these tests")
   }
 
   private val fileStorage = FakeFileStorage()

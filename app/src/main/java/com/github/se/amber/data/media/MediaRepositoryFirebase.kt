@@ -59,9 +59,7 @@ class MediaRepositoryFirebase(
     require(item.isMediaOf(circle.id)) {
       "Media ${item.id} (${item.storagePath}) isn't a media of care circle ${circle.id}"
     }
-    return cache.getFile(item.storagePath) {
-      fileStorage.downloadToFile(circle, item.storagePath, it)
-    }
+    return cache.getFile(item.storagePath) { fileStorage.download(circle, item.storagePath, it) }
   }
 
   // only the cache exists so far: the outbox and its sends will be cleared here too
