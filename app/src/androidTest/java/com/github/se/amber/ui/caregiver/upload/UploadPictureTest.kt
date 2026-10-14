@@ -13,6 +13,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -102,7 +103,10 @@ class UploadPictureTest {
   @Test
   fun titleIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.TITLE)
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   // TODO: to debug the Ci - remove once path
@@ -115,19 +119,28 @@ class UploadPictureTest {
   @Test
   fun takePictureOptionIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE)
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test
   fun selectPictureOptionIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.SELECT_PICTURE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PICTURE)
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   @Test
   fun uploadButtonIsDisplayed() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   // TODO: to debug the Ci - remove once path
@@ -142,6 +155,7 @@ class UploadPictureTest {
     launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED)
+        .performScrollTo()
         .assertIsDisplayed()
   }
 
@@ -168,7 +182,10 @@ class UploadPictureTest {
         }
 
     composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED)
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   // ---------- upload button enabled state ----------
@@ -218,6 +235,7 @@ class UploadPictureTest {
     launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .performScrollTo()
         .assertIsDisplayed()
   }
 
