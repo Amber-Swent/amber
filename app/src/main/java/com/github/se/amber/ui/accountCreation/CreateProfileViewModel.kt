@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * @param surnameError whether the surname field should show a fill-out error.
  * @param isSaving true while a create-profile request is in flight.
  * @param submitError repository failure message, or null when there is none.
- * @param createdRole role written on success, for a future navigation owner; null until then.
+ * @param createdRole role written on success for navigation; null until then / after handled.
  */
 data class CreateProfileUiState(
     val name: String = "",
@@ -37,6 +37,11 @@ data class CreateProfileUiState(
 
 /**
  * ViewModel for [CreateProfile]: validates name/surname and persists the profile on role choice.
+ *
+ * On success, [CreateProfileUiState.createdRole] is set so the UI can navigate: [Role.PATIENT] →
+ * [com.github.se.amber.ui.navigation.OnboardingScreen.EnterInvitation], [Role.CAREGIVER] →
+ * [com.github.se.amber.ui.navigation.OnboardingScreen.CaregiverChoice]. Call [onCreatedRoleHandled]
+ * after navigation so the event is not re-delivered.
  */
 class CreateProfileViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
@@ -122,6 +127,12 @@ class CreateProfileViewModel(
         throw exception
       }
     }
+  }
+
+  /** Clears [CreateProfileUiState.createdRole] after the navigation owner has consumed it. */
+  fun onCreatedRoleHandled() {
+    if (_uiState.value.createdRole == null) return
+    _uiState.value = _uiState.value.copy(createdRole = null)
   }
 
   private fun Throwable.toSubmitErrorMessage(): String = message ?: "Unable to create a profile"

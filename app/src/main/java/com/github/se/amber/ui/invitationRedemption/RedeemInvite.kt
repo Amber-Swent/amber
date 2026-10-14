@@ -1,0 +1,220 @@
+// this code was written by Alaabrine
+// with the aid of AI coding agent
+package com.github.se.amber.ui.invitationRedemption
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.invitation.InvitationRedemptionResult
+import com.github.se.amber.ui.theme.PADDING_BIG
+import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PADDING_SMALL
+import com.github.se.amber.ui.theme.darkGray
+import com.github.se.amber.ui.theme.lightGray
+import com.github.se.amber.ui.theme.lightOrange
+
+/** Test tags for [RedeemInvite]. */
+enum class RedeemInviteTestTags {
+  LOGO,
+  BRAND_NAME,
+  TITLE,
+  CODE_INPUT,
+  CODE_PLACEHOLDER,
+  CODE_ERROR,
+  SUBMIT_BUTTON,
+  BACK_BUTTON,
+}
+
+private val ErrorRed = Color(0xFFB3261E)
+
+internal const val TITLE_LABEL = "Enter your invite link"
+internal const val CODE_PLACEHOLDER_LABEL = "Enter your invitation Code"
+internal const val INVALID_LINK_LABEL = "invalid link"
+internal const val SUBMIT_LABEL = "Submit"
+internal const val BACK_LABEL = "Back"
+
+/**
+ * Screen where a user enters an invitation code / link to join an existing care circle.
+ *
+ * [onRedeemSuccess] is invoked when redemption succeeds so a navigation owner can route to the
+ * patient or caregiver home based on [InvitationRedemptionResult.role]. [onBack] returns to the
+ * previous onboarding step.
+ */
+@Composable
+fun RedeemInvite(
+    viewModel: RedeemInviteViewModel = viewModel(),
+    onRedeemSuccess: (InvitationRedemptionResult) -> Unit = {},
+    onBack: () -> Unit = {},
+) {
+  val uiState by viewModel.uiState.collectAsState()
+
+  LaunchedEffect(uiState.redemptionResult) {
+    val result = uiState.redemptionResult ?: return@LaunchedEffect
+    onRedeemSuccess(result)
+    viewModel.onRedemptionResultHandled()
+  }
+
+  Column(
+      modifier =
+          Modifier.fillMaxSize()
+              .background(Color.White)
+              .padding(horizontal = PADDING_BIG, vertical = PADDING_MEDIUM),
+  ) {
+    Column(horizontalAlignment = Alignment.Start) {
+      Box(
+          modifier =
+              Modifier.size(56.dp)
+                  .background(lightOrange, CircleShape)
+                  .testTag(RedeemInviteTestTags.LOGO.name),
+          contentAlignment = Alignment.Center,
+      ) {
+        Text(text = "logo", fontSize = 12.sp, color = Color.Black)
+      }
+      Text(
+          text = "Amber",
+          fontWeight = FontWeight.Bold,
+          fontSize = 18.sp,
+          modifier =
+              Modifier.padding(top = PADDING_SMALL).testTag(RedeemInviteTestTags.BRAND_NAME.name),
+      )
+    }
+
+    Spacer(modifier = Modifier.weight(1f))
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+      Text(
+          text = TITLE_LABEL,
+          fontWeight = FontWeight.Bold,
+          fontSize = 28.sp,
+          color = Color.Black,
+          textAlign = TextAlign.Center,
+          modifier = Modifier.testTag(RedeemInviteTestTags.TITLE.name),
+      )
+
+      Spacer(modifier = Modifier.height(PADDING_BIG))
+
+      Column(modifier = Modifier.fillMaxWidth(0.9f)) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+          OutlinedTextField(
+              value = uiState.inviteCode,
+              onValueChange = viewModel::onInviteCodeChange,
+              modifier = Modifier.fillMaxWidth().testTag(RedeemInviteTestTags.CODE_INPUT.name),
+              isError = uiState.showError,
+              enabled = !uiState.isRedeeming,
+              singleLine = true,
+              shape = RoundedCornerShape(12.dp),
+              colors =
+                  OutlinedTextFieldDefaults.colors(
+                      focusedBorderColor = darkGray,
+                      unfocusedBorderColor = darkGray.copy(alpha = 0.4f),
+                      errorBorderColor = ErrorRed,
+                  ),
+          )
+          if (uiState.inviteCode.isEmpty()) {
+            Text(
+                text = CODE_PLACEHOLDER_LABEL,
+                color = darkGray,
+                modifier =
+                    Modifier.align(Alignment.CenterStart)
+                        .padding(start = 16.dp)
+                        .testTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name),
+            )
+          }
+        }
+        if (uiState.showError) {
+          Text(
+              text = INVALID_LINK_LABEL,
+              color = ErrorRed,
+              fontSize = 12.sp,
+              modifier =
+                  Modifier.padding(start = 16.dp, top = 4.dp)
+                      .testTag(RedeemInviteTestTags.CODE_ERROR.name),
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(PADDING_BIG))
+
+      Button(
+          onClick = viewModel::onSubmit,
+          enabled = !uiState.isRedeeming,
+          modifier =
+              Modifier.fillMaxWidth(0.75f)
+                  .height(56.dp)
+                  .testTag(RedeemInviteTestTags.SUBMIT_BUTTON.name),
+          shape = RoundedCornerShape(12.dp),
+          colors =
+              ButtonDefaults.buttonColors(
+                  containerColor = lightOrange,
+                  contentColor = Color.Black,
+              ),
+      ) {
+        Text(
+            text = SUBMIT_LABEL,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+      }
+    }
+
+    Spacer(modifier = Modifier.weight(1f))
+
+    Button(
+        onClick = onBack,
+        enabled = !uiState.isRedeeming,
+        modifier =
+            Modifier.fillMaxWidth(0.55f)
+                .align(Alignment.CenterHorizontally)
+                .height(56.dp)
+                .testTag(RedeemInviteTestTags.BACK_BUTTON.name),
+        shape = RoundedCornerShape(12.dp),
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = lightGray,
+                contentColor = Color.Black,
+            ),
+    ) {
+      Text(
+          text = BACK_LABEL,
+          fontWeight = FontWeight.Medium,
+          textAlign = TextAlign.Center,
+      )
+    }
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RedeemInvitePreview() {
+  RedeemInvite()
+}

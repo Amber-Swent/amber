@@ -9,15 +9,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.accountCreation.CreateProfile
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
+import com.github.se.amber.ui.invitationRedemption.RedeemInvite
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
@@ -56,6 +68,7 @@ fun AmberApp(
 ) {
   val navController: NavHostController = rememberNavController()
   val navigationActions = NavigationActions(navController)
+  var caregiverDisplayName by remember { mutableStateOf("") }
 
   NavHost(
       navController = navController,
@@ -88,21 +101,48 @@ fun AmberApp(
         startDestination = OnboardingScreen.CreateProfile.route,
         route = NavGraphs.ONBOARDING,
     ) {
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateProfile.route) {
-        // TODO
+        CreateProfile(
+            onProfileCreated = { role, displayName ->
+              when (role) {
+                Role.PATIENT -> navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
+                Role.CAREGIVER -> {
+                  caregiverDisplayName = displayName
+                  navigationActions.navigateTo(OnboardingScreen.CaregiverChoice)
+                }
+              }
+            },
+        )
       }
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CaregiverChoice.route) {
-        // Todo
+        val displayName = caregiverDisplayName
+        CaregiverJoinOrCreateCircle(
+            viewModel =
+                viewModel(
+                    key = displayName,
+                    factory =
+                        object : ViewModelProvider.Factory {
+                          @Suppress("UNCHECKED_CAST")
+                          override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                              CaregiverJoinOrCreateCircleViewModel(displayName = displayName) as T
+                        },
+                ),
+            onBack = { navigationActions.goBack() },
+            onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
+            onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },
+        )
       }
       @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateCareCircle.route) {
         // Todo
       }
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.EnterInvitation.route) {
-        // Todo
+        RedeemInvite(
+            onRedeemSuccess = { result ->
+              navigationActions.navigateToGraph(graphForRole(result.role))
+            },
+            onBack = { navigationActions.goBack() },
+        )
       }
     }
 

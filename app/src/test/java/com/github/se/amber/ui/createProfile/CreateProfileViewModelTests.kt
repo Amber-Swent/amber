@@ -310,6 +310,30 @@ class CreateProfileViewModelTests {
     assertFalse(viewModel.uiState.value.isSaving)
   }
 
+  // ---------- Navigation event consumed ----------
+
+  @Test
+  fun onCreatedRoleHandled_clearsCreatedRole() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT)
+    advanceUntilIdle()
+    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+
+    viewModel.onCreatedRoleHandled()
+
+    assertNull(viewModel.uiState.value.createdRole)
+    assertEquals("Ada", viewModel.uiState.value.name)
+  }
+
+  @Test
+  fun onCreatedRoleHandled_whenNull_isNoOp() {
+    viewModel.onCreatedRoleHandled()
+
+    assertNull(viewModel.uiState.value.createdRole)
+  }
+
   private fun fillValidNameAndSurname() {
     viewModel.onNameChange("Ada")
     viewModel.onSurnameChange("Lovelace")

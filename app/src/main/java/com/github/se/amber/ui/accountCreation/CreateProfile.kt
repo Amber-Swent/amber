@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -62,11 +63,24 @@ private val ErrorRed = Color(0xFFB3261E)
 /**
  * Create-profile step of account creation.
  *
- * Collects the user's name and surname, then lets them choose Patient or Caregiver.
+ * Collects the user's name and surname, then lets them choose Patient or Caregiver. On successful
+ * profile creation, [onProfileCreated] is invoked with the persisted [Role] and the display name
+ * (first name) so a navigation owner can route patients to
+ * [com.github.se.amber.ui.navigation.OnboardingScreen.EnterInvitation] and caregivers to
+ * [com.github.se.amber.ui.navigation.OnboardingScreen.CaregiverChoice].
  */
 @Composable
-fun CreateProfile(viewModel: CreateProfileViewModel = viewModel()) {
+fun CreateProfile(
+    viewModel: CreateProfileViewModel = viewModel(),
+    onProfileCreated: (role: Role, displayName: String) -> Unit = { _, _ -> },
+) {
   val uiState by viewModel.uiState.collectAsState()
+
+  LaunchedEffect(uiState.createdRole) {
+    val role = uiState.createdRole ?: return@LaunchedEffect
+    onProfileCreated(role, uiState.name)
+    viewModel.onCreatedRoleHandled()
+  }
 
   Column(
       modifier =
@@ -250,6 +264,6 @@ private fun ProfileTextField(
 
 @Preview(showBackground = true)
 @Composable
-fun CreateProfilePreview(viewModel: CreateProfileViewModel = CreateProfileViewModel()) {
-  CreateProfile(viewModel = viewModel)
+fun CreateProfilePreview() {
+  CreateProfile(viewModel = viewModel())
 }
