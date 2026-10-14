@@ -43,108 +43,108 @@ import org.robolectric.shadows.ShadowToast
 @Config(sdk = [34])
 class SeePicturesScreenTest {
 
-    @get:Rule val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createComposeRule()
 
-    private val mediaRepository = mockk<MediaRepository>()
-    private val circleRepository = mockk<CareCircleRepository>()
-    private val profileRepository = mockk<ProfileRepository>()
+  private val mediaRepository = mockk<MediaRepository>()
+  private val circleRepository = mockk<CareCircleRepository>()
+  private val profileRepository = mockk<ProfileRepository>()
 
-    private val profile =
-        UserProfile(
-            uid = "patient",
-            role = Role.PATIENT,
-            person = Person(),
-            circleIds = listOf("circle1"),
+  private val profile =
+      UserProfile(
+          uid = "patient",
+          role = Role.PATIENT,
+          person = Person(),
+          circleIds = listOf("circle1"),
+      )
+
+  @Before
+  fun setUp() {
+    Dispatchers.setMain(UnconfinedTestDispatcher())
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    coEvery { circleRepository.getCircle("circle1") } returns
+        Result.success(CareCircle(id = "circle1"))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
+  }
+
+  @After
+  fun tearDown() {
+    Dispatchers.resetMain()
+  }
+
+  // The ViewModel is created before the composition: its init runs right away (Unconfined)
+  private fun setContent(onBackClick: () -> Unit = {}): SeePicturesViewModel {
+    val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
+    composeTestRule.setContent {
+      AmberAppTheme(dynamicColor = false) {
+        SeePicturesScreen(
+            pictureViewModel = viewModel,
+            onBackClick = onBackClick,
+            onTabSelected = {},
         )
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
-        coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
-        coEvery { circleRepository.getCircle("circle1") } returns
-                Result.success(CareCircle(id = "circle1"))
-        coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
+      }
     }
+    composeTestRule.waitForIdle()
+    return viewModel
+  }
 
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+  @Test
+  fun title_and_navigation_menus_are_displayed() {
+    setContent()
 
-    // The ViewModel is created before the composition: its init runs right away (Unconfined)
-    private fun setContent(onBackClick: () -> Unit = {}): SeePicturesViewModel {
-        val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
-        composeTestRule.setContent {
-            AmberAppTheme(dynamicColor = false) {
-                SeePicturesScreen(
-                    pictureViewModel = viewModel,
-                    onBackClick = onBackClick,
-                    onTabSelected = {},
-                )
-            }
-        }
-        composeTestRule.waitForIdle()
-        return viewModel
-    }
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
 
-    @Test
-    fun title_and_navigation_menus_are_displayed() {
-        setContent()
+  @Test
+  fun empty_message_is_displayed_when_there_are_no_pictures() {
+    setContent()
 
-        composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.TITLE).assertIsDisplayed()
-        composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
-        composeTestRule
-            .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
-            .assertIsDisplayed()
-    }
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithText("There are no pictures yet.").assertIsDisplayed()
+  }
 
-    @Test
-    fun empty_message_is_displayed_when_there_are_no_pictures() {
-        setContent()
+  @Test
+  fun empty_message_is_not_displayed_while_the_circle_is_loading() {
+    // The profile has no circle: the care circle is never loaded, its id stays blank
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = emptyList()))
 
-        composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
-        composeTestRule.onNodeWithText("There are no pictures yet.").assertIsDisplayed()
-    }
+    setContent()
 
-    @Test
-    fun empty_message_is_not_displayed_while_the_circle_is_loading() {
-        // The profile has no circle: the care circle is never loaded, its id stays blank
-        coEvery { profileRepository.getCurrentProfile() } returns
-                Result.success(profile.copy(circleIds = emptyList()))
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
+  }
 
-        setContent()
+  @Test
+  fun empty_message_is_not_displayed_when_there_are_pictures() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(MediaItem.Picture(id = "1", width = 400, height = 300)))
 
-        composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
-    }
+    setContent()
 
-    @Test
-    fun empty_message_is_not_displayed_when_there_are_pictures() {
-        coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-                flowOf(listOf(MediaItem.Picture(id = "1", width = 400, height = 300)))
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
+  }
 
-        setContent()
+  @Test
+  fun back_button_calls_onBackClick() {
+    var clicked = false
+    setContent(onBackClick = { clicked = true })
 
-        composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
-    }
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
-    @Test
-    fun back_button_calls_onBackClick() {
-        var clicked = false
-        setContent(onBackClick = { clicked = true })
+    assertTrue(clicked)
+  }
 
-        composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+  @Test
+  fun error_is_shown_in_a_toast_then_cleared() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
-        assertTrue(clicked)
-    }
+    val viewModel = setContent()
 
-    @Test
-    fun error_is_shown_in_a_toast_then_cleared() {
-        coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
-
-        val viewModel = setContent()
-
-        assertEquals("Failed to load the profile: boom", ShadowToast.getTextOfLatestToast())
-        assertNull(viewModel.uiState.value.errorMsg)
-    }
+    assertEquals("Failed to load the profile: boom", ShadowToast.getTextOfLatestToast())
+    assertNull(viewModel.uiState.value.errorMsg)
+  }
 }
