@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -57,9 +58,11 @@ sealed class CaregiverTab(
 
   data object Upload : CaregiverTab("Upload", Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
 
+  data object Setting : CaregiverTab("Setting", Icons.Outlined.Settings, CaregiverScreen.Parameters)
+
   companion object {
     val caregiverTabs: List<CaregiverTab>
-      get() = listOf(Home, Upload)
+      get() = listOf(Home, Upload, Setting)
   }
 }
 
