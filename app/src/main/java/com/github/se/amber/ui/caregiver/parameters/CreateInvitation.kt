@@ -1,8 +1,9 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
+ * Modified by Yuhan YANG, with assistance from Cursor.
  */
 
-package com.github.se.amber.ui.parameters
+package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -45,12 +46,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
+import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.lightOrange
@@ -66,6 +70,8 @@ private val hintBoxWidth = 150.dp
 private val hintBoxHeight = 103.dp
 private val sectionGap = 50.dp
 private val codeListHeight = 350.dp
+private val codeListTopPadding = 15.dp
+private val createIconSize = 30.dp
 private val invitationBorder = Color(0xFFD32F2F)
 
 object CreateInvitationTestTags {
@@ -76,6 +82,8 @@ object CreateInvitationTestTags {
   const val CODE_LIST = "create_invitation_code_list"
   const val CIRCLE_CHOICES = "create_invitation_circle_choices"
   const val ERROR_MESSAGE = "create_invitation_error_message"
+
+  fun circleChoice(circleId: String) = "create_invitation_circle_$circleId"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,16 +91,33 @@ object CreateInvitationTestTags {
 fun CreateInvitationScreen(
     viewModel: CreateInvitationViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = { tab -> },
-    onCreateInvitationClick: () -> Unit = {},
     checkout: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
+  CreateInvitationContent(
+      uiState = uiState,
+      onSelectCircle = viewModel::selectCircle,
+      onCreateInvitation = viewModel::createInvitation,
+      onTabSelected = onTabSelected,
+      checkout = checkout,
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CreateInvitationContent(
+    uiState: CreateInvitationUiState,
+    onSelectCircle: (String) -> Unit,
+    onCreateInvitation: () -> Unit,
+    onTabSelected: (Tab) -> Unit = { tab -> },
+    checkout: () -> Unit = {},
+) {
   Scaffold(
       topBar = {
         Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
-              action = TopNavigationAction.CHECKOUT,
+              action = TopNavigationAction.CANCEL,
               onBackClick = checkout,
           )
           DisplayCaregiverTitle("Parameters", Modifier.testTag(CreateInvitationTestTags.TITLE))
@@ -104,6 +129,7 @@ fun CreateInvitationScreen(
             selectedTab = CaregiverTab.Home,
             onTabSelected = onTabSelected,
             tabs = CaregiverTab.caregiverTabs,
+            modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
         )
       },
       content = { paddingValues ->
@@ -114,21 +140,20 @@ fun CreateInvitationScreen(
                       .padding(horizontal = screenHorizontalPadding)
                       .padding(top = contentTopPadding),
           ) {
-            // Not sure should I keep this part or not. Cause it can be in further weeks.
             if (uiState.circles.size > 1) {
               Row(
                   modifier =
                       Modifier.fillMaxWidth()
                           .horizontalScroll(rememberScrollState())
                           .testTag(CreateInvitationTestTags.CIRCLE_CHOICES),
-                  horizontalArrangement = Arrangement.spacedBy(8.dp),
+                  horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
               ) {
                 uiState.circles.forEach { circle ->
                   val selected = circle.id == uiState.selectedCircleId
                   TextButton(
-                      onClick = { viewModel.selectCircle(circle.id) },
+                      onClick = { onSelectCircle(circle.id) },
                       enabled = !uiState.isCreating,
-                      modifier = Modifier.testTag("create_invitation_circle_${circle.id}"),
+                      modifier = Modifier.testTag(CreateInvitationTestTags.circleChoice(circle.id)),
                   ) {
                     Text(
                         text = circle.name,
@@ -138,7 +163,7 @@ fun CreateInvitationScreen(
                   }
                 }
               }
-              Spacer(modifier = Modifier.height(8.dp))
+              Spacer(modifier = Modifier.height(PADDING_SMALL))
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -146,10 +171,7 @@ fun CreateInvitationScreen(
                 verticalAlignment = Alignment.Top,
             ) {
               Button(
-                  onClick = {
-                    onCreateInvitationClick()
-                    viewModel.createInvitation()
-                  },
+                  onClick = { onCreateInvitation() },
                   enabled = !uiState.isCreating,
                   modifier =
                       Modifier.width(createCardWidth)
@@ -159,16 +181,20 @@ fun CreateInvitationScreen(
                   colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
                   contentPadding = PaddingValues(0.dp),
               ) {
-                Column(modifier = Modifier.fillMaxSize().padding(top = 33.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement =
+                        Arrangement.spacedBy(PADDING_SMALL, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                   Icon(
                       Icons.Outlined.GroupAdd,
                       contentDescription = "Create invitation",
-                      modifier = Modifier.size(30.dp).align(Alignment.CenterHorizontally),
+                      modifier = Modifier.size(createIconSize),
                       tint = Color.Black,
                   )
                   Text(
                       text = "Create invitation",
-                      modifier = Modifier.padding(start = 13.dp, top = 15.dp),
                       color = Color.Black,
                       fontSize = 16.sp,
                       fontWeight = FontWeight.SemiBold,
@@ -179,11 +205,15 @@ fun CreateInvitationScreen(
               Text(
                   text = uiState.generatedCode ?: "Click the left button to create a code",
                   modifier =
-                      Modifier.padding(top = 8.dp)
+                      Modifier.padding(top = PADDING_SMALL)
                           .width(hintBoxWidth)
                           .height(hintBoxHeight)
-                          .border(1.dp, invitationBorder, RoundedCornerShape(SMALL_ROUND_CORNER))
-                          .padding(horizontal = 16.dp, vertical = 8.dp)
+                          .border(
+                              DIVIDER_THICKNESS,
+                              invitationBorder,
+                              RoundedCornerShape(SMALL_ROUND_CORNER),
+                          )
+                          .padding(horizontal = PADDING_MEDIUM, vertical = PADDING_SMALL)
                           .testTag(CreateInvitationTestTags.HINT_BOX),
                   color = Color.Black,
                   fontSize = 15.sp,
@@ -204,7 +234,7 @@ fun CreateInvitationScreen(
                   text = message,
                   modifier =
                       Modifier.fillMaxWidth()
-                          .padding(top = 8.dp)
+                          .padding(top = PADDING_SMALL)
                           .testTag(CreateInvitationTestTags.ERROR_MESSAGE),
                   color = invitationBorder,
                   fontSize = 14.sp,
@@ -217,9 +247,13 @@ fun CreateInvitationScreen(
                 modifier =
                     Modifier.fillMaxWidth()
                         .height(codeListHeight)
-                        .border(1.dp, invitationBorder, RoundedCornerShape(SMALL_ROUND_CORNER))
+                        .border(
+                            DIVIDER_THICKNESS,
+                            invitationBorder,
+                            RoundedCornerShape(SMALL_ROUND_CORNER),
+                        )
                         .verticalScroll(rememberScrollState())
-                        .padding(top = 15.dp)
+                        .padding(top = codeListTopPadding)
                         .testTag(CreateInvitationTestTags.CODE_LIST),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -253,5 +287,11 @@ private fun formatCreatedAt(createdAtMillis: Long): String =
 @Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun CreateInvitationScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { CreateInvitationScreen() }
+  AmberAppTheme(dynamicColor = false) {
+    CreateInvitationContent(
+        uiState = CreateInvitationUiState(),
+        onSelectCircle = {},
+        onCreateInvitation = {},
+    )
+  }
 }

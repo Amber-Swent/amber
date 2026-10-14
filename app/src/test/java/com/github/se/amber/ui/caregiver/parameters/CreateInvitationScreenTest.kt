@@ -1,7 +1,8 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
+ * Modified by Yuhan YANG, with assistance from Cursor.
  */
-package com.github.se.amber.ui.parameters
+package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -20,7 +21,6 @@ import io.mockk.verify
 import java.text.DateFormat
 import java.util.Date
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -104,32 +104,22 @@ class CreateInvitationScreenTest {
                 selectedCircleId = "circle-1",
             ),
         )
-    var createClicks = 0
-    setScreen(viewModel, onCreateInvitationClick = { createClicks++ })
+    setScreen(viewModel)
 
     composeTestRule.onNodeWithTag(CreateInvitationTestTags.CIRCLE_CHOICES).assertIsDisplayed()
     composeTestRule.onNodeWithText("Arthur's family").assertIsDisplayed()
     composeTestRule.onNodeWithText("Bea's family").assertIsDisplayed()
-    composeTestRule.onNodeWithTag("create_invitation_circle_circle-2").performClick()
+    composeTestRule.onNodeWithTag(CreateInvitationTestTags.circleChoice("circle-2")).performClick()
     composeTestRule.onNodeWithTag(CreateInvitationTestTags.CREATE_CARD).performClick()
 
     verify(exactly = 1) { viewModel.selectCircle("circle-2") }
     verify(exactly = 1) { viewModel.createInvitation() }
-    assertEquals(1, createClicks)
   }
 
   private fun viewModel(state: CreateInvitationUiState): CreateInvitationViewModel =
       mockk(relaxed = true) { every { uiState } returns MutableStateFlow(state) }
 
-  private fun setScreen(
-      viewModel: CreateInvitationViewModel,
-      onCreateInvitationClick: () -> Unit = {},
-  ) {
-    composeTestRule.setContent {
-      CreateInvitationScreen(
-          viewModel = viewModel,
-          onCreateInvitationClick = onCreateInvitationClick,
-      )
-    }
+  private fun setScreen(viewModel: CreateInvitationViewModel) {
+    composeTestRule.setContent { CreateInvitationScreen(viewModel = viewModel) }
   }
 }

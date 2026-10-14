@@ -2,8 +2,9 @@
  * Cursor.
  */
 
-package com.github.se.amber.ui.parameters
+package com.github.se.amber.ui.caregiver.parameters
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -16,11 +17,15 @@ import com.github.se.amber.data.invitation.InvitationLookupRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationSummary
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "CreateInvitationViewModel"
 
 data class CareCircleChoice(
     val id: String,
@@ -47,9 +52,10 @@ class CreateInvitationViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(CreateInvitationUiState())
   val uiState: StateFlow<CreateInvitationUiState> = _uiState.asStateFlow()
+  private var invitationsJob: Job? = null
 
   init {
-    viewModelScope.launch {
+    invitationsJob = viewModelScope.launch {
       prepareCircles()
       val circleId = _uiState.value.selectedCircleId ?: return@launch
       fetchInvitations(circleId)
@@ -69,7 +75,8 @@ class CreateInvitationViewModel(
           errorMessage = null,
       )
     }
-    viewModelScope.launch { fetchInvitations(circleId) }
+    invitationsJob?.cancel()
+    invitationsJob = viewModelScope.launch { fetchInvitations(circleId) }
   }
 
   fun createInvitation() {
@@ -77,6 +84,7 @@ class CreateInvitationViewModel(
     _uiState.update { it.copy(isCreating = true) }
     viewModelScope.launch {
       try {
+        invitationsJob?.cancel()
         if (_uiState.value.selectedCircleId == null) {
           prepareCircles()
         }
@@ -91,6 +99,11 @@ class CreateInvitationViewModel(
           }
           else -> _uiState.update { it.copy(errorMessage = messageFor(result)) }
         }
+      } catch (cancelled: CancellationException) {
+        throw cancelled
+      } catch (error: Exception) {
+        Log.e(TAG, "Creating the invitation failed", error)
+        _uiState.update { it.copy(errorMessage = "Could not create the invitation") }
       } finally {
         _uiState.update { it.copy(isCreating = false) }
       }
@@ -116,28 +129,21 @@ class CreateInvitationViewModel(
     lookupRepository
         .getInvitations(circleId)
         .onSuccess { invitations ->
+          if (_uiState.value.selectedCircleId != circleId) return@onSuccess
           _uiState.update { it.copy(invitations = invitations, errorMessage = null) }
         }
         .onFailure { error ->
-          _uiState.update {
-            it.copy(
-                errorMessage =
-                    error.message?.takeIf { message -> message.isNotBlank() } ?: failureMessage,
-            )
-          }
+          if (_uiState.value.selectedCircleId != circleId) return@onFailure
+          Log.e(TAG, "Failed to load invitations", error)
+          _uiState.update { it.copy(errorMessage = failureMessage) }
         }
   }
 
   private suspend fun readCircleIds(): List<String>? {
     val profile =
         profileRepository.getCurrentProfile().getOrElse { error ->
-          _uiState.update {
-            it.copy(
-                errorMessage =
-                    error.message?.takeIf { message -> message.isNotBlank() }
-                        ?: "Could not load your profile",
-            )
-          }
+          Log.e(TAG, "Failed to load profile", error)
+          _uiState.update { it.copy(errorMessage = "Could not load your profile") }
           return null
         }
     if (profile == null) {
@@ -163,12 +169,8 @@ class CreateInvitationViewModel(
         InvitationCreationResult.CollisionRetryLimitExceeded ->
             "Every generated invitation code was already taken. Try again"
         is InvitationCreationResult.FirestoreFailure -> {
-          val detail = result.source.message?.takeIf { it.isNotBlank() }
-          if (detail == null) {
-            "Saving the invitation failed"
-          } else {
-            "Saving the invitation failed: $detail"
-          }
+          Log.e(TAG, "Saving the invitation failed", result.source)
+          "Saving the invitation failed"
         }
       }
 }

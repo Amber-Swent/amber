@@ -1,7 +1,8 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
+ * Modified by Yuhan YANG, with assistance from Cursor.
  */
-package com.github.se.amber.ui.parameters
+package com.github.se.amber.ui.caregiver.parameters
 
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -35,8 +36,9 @@ import org.junit.Test
 /**
  * Tests [CreateInvitationViewModel] with in-memory repositories.
  *
- * Covers circle selection, invitation loading, creation failures, and a second click while a
- * creation is still running. No test talks to Firebase.
+ * Covers circle selection, invitation loading, creation failures, a second click while a creation
+ * is still running, a stale circle lookup, and an unexpected creation exception. No test talks to
+ * Firebase.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CreateInvitationViewModelTest {
@@ -87,14 +89,14 @@ class CreateInvitationViewModelTest {
       }
 
   @Test
-  fun profileReadErrorUsesItsMessage() =
+  fun profileReadErrorShowsAFixedMessage() =
       runTest(dispatcher) {
         profiles.result = Result.failure(ProfileReadError.Network)
 
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals(ProfileReadError.Network.message, viewModel.uiState.value.errorMessage)
+        assertEquals("Could not load your profile", viewModel.uiState.value.errorMessage)
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
       }
 
@@ -244,7 +246,7 @@ class CreateInvitationViewModelTest {
                     "Saving the invitation failed",
                 InvitationCreationResult.FirestoreFailure(
                     IllegalStateException("quota exceeded")
-                ) to "Saving the invitation failed: quota exceeded",
+                ) to "Saving the invitation failed",
             )
 
         cases.forEach { (result, message) ->
@@ -260,7 +262,7 @@ class CreateInvitationViewModelTest {
       }
 
   @Test
-  fun lookupFailureUsesTheThrowableMessageOrAFallback() =
+  fun lookupFailureShowsAFixedMessage() =
       runTest(dispatcher) {
         lookup.results =
             mapOf(
@@ -269,10 +271,7 @@ class CreateInvitationViewModelTest {
             )
         val withMessage = viewModel()
         advanceUntilIdle()
-        assertEquals(
-            "Invitation bad has an invalid format",
-            withMessage.uiState.value.errorMessage,
-        )
+        assertEquals("Could not load invitations", withMessage.uiState.value.errorMessage)
 
         lookup.results = mapOf("circle-1" to Result.failure(IllegalStateException(" ")))
         val withoutMessage = viewModel()
@@ -334,6 +333,55 @@ class CreateInvitationViewModelTest {
         assertTrue(!viewModel.uiState.value.isCreating)
       }
 
+  @Test
+  fun staleCircleLookupDoesNotReplaceTheSelectedList() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile("circle-1", "circle-2"))
+        circles =
+            FakeCircleRepository(
+                mapOf(
+                    "circle-1" to circle("circle-1", "Arthur's family"),
+                    "circle-2" to circle("circle-2", "Bea's family"),
+                ),
+            )
+        val first = invitation("FIRST111")
+        val second = invitation("SECOND22")
+        lookup.results =
+            mapOf(
+                "circle-1" to Result.success(listOf(first)),
+                "circle-2" to Result.success(listOf(second)),
+            )
+        val circleA = CompletableDeferred<Unit>()
+        lookup.gates["circle-1"] = circleA
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.selectCircle("circle-2")
+        advanceUntilIdle()
+
+        assertEquals(listOf(second), viewModel.uiState.value.invitations)
+
+        circleA.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
+        assertEquals(listOf(second), viewModel.uiState.value.invitations)
+      }
+
+  @Test
+  fun createInvitationThrowSetsErrorAndClearsCreating() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        creation.thrown = IllegalStateException("firestore exploded")
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertEquals("Could not create the invitation", viewModel.uiState.value.errorMessage)
+        assertTrue(!viewModel.uiState.value.isCreating)
+      }
+
   private fun viewModel() =
       CreateInvitationViewModel(
           profileRepository = profiles,
@@ -380,9 +428,11 @@ private class FakeCircleRepository(private val circles: Map<String, CareCircle>)
 private class FakeLookupRepository : InvitationLookupRepository {
   val requestedCircleIds = mutableListOf<String>()
   var results: Map<String, Result<List<InvitationSummary>>> = emptyMap()
+  val gates = mutableMapOf<String, CompletableDeferred<Unit>>()
 
   override suspend fun getInvitations(selectedCircleId: String): Result<List<InvitationSummary>> {
     requestedCircleIds += selectedCircleId
+    gates[selectedCircleId]?.await()
     return results[selectedCircleId] ?: Result.success(emptyList())
   }
 }
@@ -391,11 +441,13 @@ private class FakeCreationRepository : InvitationCreationRepository {
   val requestedCircleIds = mutableListOf<String>()
   var result: InvitationCreationResult = InvitationCreationResult.Created("AB12CD34")
   var pause = false
+  var thrown: Exception? = null
   val release = CompletableDeferred<Unit>()
 
   override suspend fun createInvitation(selectedCircleId: String): InvitationCreationResult {
     requestedCircleIds += selectedCircleId
     if (pause) release.await()
+    thrown?.let { throw it }
     return result
   }
 }
