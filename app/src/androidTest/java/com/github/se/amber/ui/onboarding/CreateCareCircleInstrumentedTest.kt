@@ -38,7 +38,10 @@ class CreateCareCircleInstrumentedTest {
     createdCount.set(0)
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleScreen(onCreated = { createdCount.incrementAndGet() }, viewModel = viewModel)
+        CreateCareCircleScreen(
+            onCreated = { createdCount.incrementAndGet() },
+            viewModel = viewModel,
+        )
       }
     }
   }
@@ -96,7 +99,8 @@ class CreateCareCircleInstrumentedTest {
     repository.results.add(Result.failure(OnboardingError.Network))
     submitName()
     composeTestRule.waitUntil {
-      repository.submittedNames.size == 1 && !viewModel.uiState.value.isLoading &&
+      repository.submittedNames.size == 1 &&
+          !viewModel.uiState.value.isLoading &&
           viewModel.uiState.value.submitError == null
     }
   }

@@ -87,5 +87,4 @@ class CreateCareCircleScreenTest {
     showContent(CreateCareCircleUiState(name = "Family", isCreated = true))
     composeTestRule.onNodeWithTag(CreateCareCircleTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
   }
-
 }
