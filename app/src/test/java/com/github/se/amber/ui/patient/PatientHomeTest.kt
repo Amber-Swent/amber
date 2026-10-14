@@ -30,7 +30,7 @@ class PatientHomeScreenTest {
   private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
 
   // Spies: permettent de vérifier les appels aux callbacks
-  private var checkoutCount = 0
+  private var signedOutCount = 0
   private val selectedTabs = mutableListOf<Tab>()
 
   private fun profileOf(firstName: String) =
@@ -43,7 +43,7 @@ class PatientHomeScreenTest {
 
   @Before
   fun setUp() {
-    checkoutCount = 0
+    signedOutCount = 0
     selectedTabs.clear()
     stateFlow = MutableStateFlow(PatientHomeUIState(patientProfile = profileOf("Alice")))
     viewModel = mockk(relaxed = true)
@@ -54,7 +54,7 @@ class PatientHomeScreenTest {
     composeTestRule.setContent {
       PatientHomeScreen(
           homeViewModel = viewModel,
-          checkout = { checkoutCount++ },
+          onSignedOut = { signedOutCount++ },
           onTabSelected = { selectedTabs.add(it) },
       )
     }
@@ -108,7 +108,7 @@ class PatientHomeScreenTest {
     setScreen()
     composeTestRule.waitForIdle()
 
-    assertEquals(0, checkoutCount)
+    assertEquals(0, signedOutCount)
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
 }
