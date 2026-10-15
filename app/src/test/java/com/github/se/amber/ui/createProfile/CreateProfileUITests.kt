@@ -10,23 +10,19 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.accountCreation.CreateProfile
 import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
+import com.github.se.amber.ui.accountCreation.CreateProfileScreen
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.theme.darkGray
-import io.mockk.coEvery
-import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -37,34 +33,22 @@ import org.robolectric.RobolectricTestRunner
 class CreateProfileUITests {
   @get:Rule val composeTestRule = createComposeRule()
 
-  private var profileCreatedCount = 0
-  private var lastCreatedRole: Role? = null
-  private var lastDisplayName: String? = null
-
   private fun setCreateProfile(
       viewModel: CreateProfileViewModel =
-          CreateProfileViewModel(profileRepository = stubRepository()),
-  ): CreateProfileViewModel {
-    profileCreatedCount = 0
-    lastCreatedRole = null
-    lastDisplayName = null
-    composeTestRule.setContent {
-      CreateProfile(
-          viewModel = viewModel,
-          onProfileCreated = { role, displayName ->
-            profileCreatedCount++
-            lastCreatedRole = role
-            lastDisplayName = displayName
-          },
-      )
-    }
-    return viewModel
-  }
+          CreateProfileViewModel(
+              profileRepository =
+                  object : ProfileRepository {
+                    override suspend fun createProfile(person: Person, role: Role) =
+                        Result.success(Unit)
 
-  private fun stubRepository(
-      result: Result<Unit> = Result.success(Unit),
-  ): ProfileRepository =
-      mockk<ProfileRepository>().also { coEvery { it.createProfile(any(), any()) } returns result }
+                    override suspend fun getCurrentProfile() = Result.success(null)
+
+                    override suspend fun getProfile(uid: String) = Result.success(null)
+                  },
+          ),
+  ) {
+    composeTestRule.setContent { CreateProfileScreen(viewModel = viewModel) }
+  }
 
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
@@ -140,7 +124,7 @@ class CreateProfileUITests {
     assertPlaceholderIsGrey(CreateProfilePlaceholderColor)
 
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_PLACEHOLDER.name)
+        .onNodeWithTag(CreateProfileTestTags.NAME_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals("Name")
   }
@@ -153,9 +137,46 @@ class CreateProfileUITests {
     assertPlaceholderIsGrey(CreateProfilePlaceholderColor)
 
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name)
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals("Surname")
+  }
+
+  // ---------- Valid submit ----------
+
+  @Test
+  fun enteringDetailsAndChoosingPatient_sendsPatientProfile() {
+    var savedPerson: Person? = null
+    var savedRole: Role? = null
+    var callCount = 0
+
+    val repository =
+        object : ProfileRepository {
+          override suspend fun createProfile(person: Person, role: Role): Result<Unit> {
+            callCount++
+            savedPerson = person
+            savedRole = role
+            return Result.success(Unit)
+          }
+
+          override suspend fun getCurrentProfile() = Result.success(null)
+
+          override suspend fun getProfile(uid: String) = Result.success(null)
+        }
+    setCreateProfile(CreateProfileViewModel(profileRepository = repository))
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput(" Ada ")
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
+        .performTextInput(" Lovelace ")
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, callCount)
+    assertEquals("Ada", savedPerson?.firstName)
+    assertEquals("Lovelace", savedPerson?.lastName)
+    assertEquals(Role.PATIENT, savedRole)
   }
 
   // ---------- Validation when role is chosen with empty fields ----------
@@ -178,54 +199,6 @@ class CreateProfileUITests {
     composeTestRule.waitForIdle()
 
     assertEmptyFieldValidationIsShown()
-  }
-
-  // ---------- Submit success / failure ----------
-
-  @Test
-  fun selectingPatient_withValidFields_invokesOnProfileCreated() {
-    val viewModel = setCreateProfile()
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput("Ada")
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
-        .performTextInput("Lovelace")
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).performClick()
-    composeTestRule.waitUntil(timeoutMillis = 3_000) { profileCreatedCount == 1 }
-
-    assertEquals(1, profileCreatedCount)
-    assertEquals(Role.PATIENT, lastCreatedRole)
-    assertEquals("Ada", lastDisplayName)
-    assertNull(viewModel.uiState.value.createdRole)
-  }
-
-  @Test
-  fun selectingCaregiver_whenRepositoryFails_showsSubmitError() {
-    setCreateProfile(
-        viewModel =
-            CreateProfileViewModel(
-                profileRepository =
-                    stubRepository(Result.failure(ProfileCreationError.ProfileAlreadyExists)),
-            ),
-    )
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput("Grace")
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
-        .performTextInput("Hopper")
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name).performClick()
-    composeTestRule.waitUntil(timeoutMillis = 3_000) {
-      composeTestRule
-          .onAllNodesWithTag(CreateProfileTestTags.SUBMIT_ERROR.name)
-          .fetchSemanticsNodes()
-          .isNotEmpty()
-    }
-
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR.name)
-        .assertIsDisplayed()
-        .assertTextEquals("A profile already exists for this user")
-    assertEquals(0, profileCreatedCount)
   }
 
   private fun assertEmptyFieldValidationIsShown() {

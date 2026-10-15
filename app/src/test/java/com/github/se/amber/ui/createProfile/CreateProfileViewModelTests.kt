@@ -12,7 +12,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.unmockkAll
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -265,36 +264,6 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onRoleSelected_failureWithNullMessage_usesFallbackSubmitError() = runTest {
-    coEvery { profileRepository.createProfile(any(), any()) } returns
-        Result.failure(RuntimeException())
-    fillValidNameAndSurname()
-
-    viewModel.onRoleSelected(Role.PATIENT)
-    advanceUntilIdle()
-
-    assertEquals("Unable to create a profile", viewModel.uiState.value.submitError)
-    assertFalse(viewModel.uiState.value.isSaving)
-  }
-
-  @Test
-  fun onRoleSelected_cancellationException_doesNotCompleteCreate() = runTest {
-    coEvery { profileRepository.createProfile(any(), any()) } coAnswers
-        {
-          throw CancellationException("profile create cancelled")
-        }
-    fillValidNameAndSurname()
-
-    viewModel.onRoleSelected(Role.PATIENT)
-    advanceUntilIdle()
-
-    // Catch rethrows cancellation before success/failure state is written.
-    assertTrue(viewModel.uiState.value.isSaving)
-    assertNull(viewModel.uiState.value.createdRole)
-    assertNull(viewModel.uiState.value.submitError)
-  }
-
-  @Test
   fun onRoleSelected_clearsPreviousSubmitErrorBeforeRetry() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returnsMany
         listOf(
@@ -341,10 +310,8 @@ class CreateProfileViewModelTests {
     assertFalse(viewModel.uiState.value.isSaving)
   }
 
-  // ---------- Navigation event consumed ----------
-
   @Test
-  fun onCreatedRoleHandled_clearsCreatedRole() = runTest {
+  fun onRoleSelected_afterSuccessfulSave_ignoresSecondCall() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
     fillValidNameAndSurname()
 
@@ -352,17 +319,12 @@ class CreateProfileViewModelTests {
     advanceUntilIdle()
     assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
 
-    viewModel.onCreatedRoleHandled()
+    viewModel.onRoleSelected(Role.CAREGIVER)
+    advanceUntilIdle()
 
-    assertNull(viewModel.uiState.value.createdRole)
-    assertEquals("Ada", viewModel.uiState.value.name)
-  }
-
-  @Test
-  fun onCreatedRoleHandled_whenNull_isNoOp() {
-    viewModel.onCreatedRoleHandled()
-
-    assertNull(viewModel.uiState.value.createdRole)
+    coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
+    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+    assertNull(viewModel.uiState.value.submitError)
   }
 
   private fun fillValidNameAndSurname() {

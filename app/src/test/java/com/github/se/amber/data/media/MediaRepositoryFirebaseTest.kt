@@ -26,7 +26,7 @@ class MediaRepositoryFirebaseTest {
   private class FakeFileStorage : MediaFileStorage {
     val calls = mutableListOf<String>()
 
-    override suspend fun downloadToFile(
+    override suspend fun download(
         circle: CareCircle,
         storagePath: String,
         destination: File,
@@ -34,6 +34,13 @@ class MediaRepositoryFirebaseTest {
       calls += "${circle.id}:$storagePath"
       destination.writeText("content of $storagePath")
     }
+
+    // the repository doesn't send or delete media yet
+    override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) =
+        error("upload isn't used by these tests")
+
+    override suspend fun delete(circle: CareCircle, storagePath: String) =
+        error("delete isn't used by these tests")
   }
 
   private val fileStorage = FakeFileStorage()
@@ -76,23 +83,49 @@ class MediaRepositoryFirebaseTest {
   }
 
   @Test
-  fun clearCachedMediaOfACircleKeepsOtherCircles() = runTest {
+  fun clearLocalMediaOfACircleKeepsOtherCircles() = runTest {
     val repository = newRepository()
     repository.getFile(c1, picture("c1", "m1"))
     repository.getFile(c2, picture("c2", "m1"))
 
-    repository.clearCachedMedia("c1")
+    repository.clearLocalMedia("c1")
 
     assertEquals(listOf("careCircles_c2_media_m1.jpg"), cachedFileNames())
   }
 
   @Test
-  fun clearCachedMediaDeletesEveryCircle() = runTest {
+  fun methodsNotImplementedYetThrowNotImplementedError() = runTest {
+    val repository = newRepository()
+    val item = picture("c1", "m1")
+    val calls: Map<String, suspend () -> Unit> =
+        mapOf(
+            "newMediaId" to { repository.newMediaId("c1") },
+            "observeApprovedMedia" to { repository.observeApprovedMedia("c1") },
+            "observeMediaShowing" to { repository.observeMediaShowing("c1", "u1") },
+            "getMedia" to { repository.getMedia("c1", "m1") },
+            "addMedia" to { repository.addMedia(c1, item, tmp.newFile()) },
+            "observeOutbox" to { repository.observeOutbox("c1") },
+            "observeCircleMedia" to { repository.observeCircleMedia("c1") },
+            "retrySend" to { repository.retrySend("c1", "m1") },
+            "discardUnsent" to { repository.discardUnsent("c1", "m1") },
+            "send" to { repository.send("c1", "m1") },
+            "updateMedia" to { repository.updateMedia("c1", item) },
+            "deleteMedia" to { repository.deleteMedia(c1, item) },
+        )
+
+    for ((name, call) in calls) {
+      val error = runCatching { call() }.exceptionOrNull()
+      assertTrue("$name didn't throw NotImplementedError", error is NotImplementedError)
+    }
+  }
+
+  @Test
+  fun clearLocalMediaDeletesEveryCircle() = runTest {
     val repository = newRepository()
     repository.getFile(c1, picture("c1", "m1"))
     repository.getFile(c2, picture("c2", "m1"))
 
-    repository.clearCachedMedia()
+    repository.clearLocalMedia()
 
     assertEquals(emptyList<String>(), cachedFileNames())
     repository.getFile(c1, picture("c1", "m1")) // downloaded again
