@@ -2,7 +2,7 @@
 // with the aid of an AI coding agent
 package com.github.se.amber.ui.createProfile
 
-import com.github.se.amber.data.profile.FirebaseProfileRepository.ProfileCreationError
+import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
