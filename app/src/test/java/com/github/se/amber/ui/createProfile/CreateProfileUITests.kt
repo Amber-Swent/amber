@@ -150,9 +150,7 @@ class CreateProfileUITests {
     }
     setCreateProfile(CreateProfileViewModel(profileRepository = repository))
 
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name)
-        .performTextInput(" Ada ")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput(" Ada ")
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
         .performTextInput(" Lovelace ")
