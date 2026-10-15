@@ -6,7 +6,6 @@ import android.net.Uri
 import com.github.se.amber.data.storage.CircleStorageProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
-import com.github.se.amber.model.media.isMediaOf
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
@@ -37,18 +36,13 @@ class MediaFileStorageFirebase(
   }
 
   override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) {
+    // the rules would refuse it with "permission denied", which a send could retry forever
+    val contentType = requireUploadable(circle, item, file)
     val metadata =
         StorageMetadata.Builder()
-            .setContentType(contentTypeOf(item))
+            .setContentType(contentType)
             .setCustomMetadata(AUTHOR_ID_KEY, item.authorId)
             .build()
-    // the rules would refuse these with "permission denied", which a send could retry forever
-    require(item.isMediaOf(circle.id)) {
-      "Media ${item.id} (${item.storagePath}) isn't a media of care circle ${circle.id}"
-    }
-    require(file.length() in 1..MAX_FILE_BYTES) {
-      "Media ${item.id}'s file is empty or over 25 MiB"
-    }
     // set before putFile: the upload task reads it when it is created
     val storage = storageFor(circle).apply { maxUploadRetryTimeMillis = MAX_UPLOAD_RETRY_MS }
     storage.reference
@@ -66,20 +60,6 @@ class MediaFileStorageFirebase(
     } catch (e: StorageException) {
       // already gone (deleted earlier, or never uploaded): what the caller wanted
       if (e.errorCode != StorageException.ERROR_OBJECT_NOT_FOUND) throw e
-    }
-  }
-
-  /**
-   * The content type the Storage security rules expect for [item]'s file, from its path's
-   * extension.
-   *
-   * @throws IllegalArgumentException if [item] has no file or an extension the rules don't accept.
-   */
-  private fun contentTypeOf(item: MediaItem): String {
-    require(item !is MediaItem.Text) { "Media ${item.id} is a text: it has no file to upload" }
-    val extension = item.storagePath.substringAfterLast('.', missingDelimiterValue = "")
-    return requireNotNull(CONTENT_TYPES[extension]) {
-      "Media ${item.id} (${item.storagePath}) has no .jpg, .png or .m4a extension"
     }
   }
 
@@ -105,13 +85,6 @@ class MediaFileStorageFirebase(
   internal companion object {
     /** Custom metadata key holding the uploader's uid, checked by the Storage security rules. */
     const val AUTHOR_ID_KEY = "authorId"
-
-    /** Content type of each file extension the Storage security rules accept for a media. */
-    private val CONTENT_TYPES =
-        mapOf("jpg" to "image/jpeg", "png" to "image/png", "m4a" to "audio/mp4")
-
-    /** Largest media file the Storage security rules accept, in bytes (25 MiB). */
-    private const val MAX_FILE_BYTES = 25L * 1024 * 1024
 
     /**
      * Maximum time Firebase retries a download after a failure (Firebase's default: 10 minutes).
