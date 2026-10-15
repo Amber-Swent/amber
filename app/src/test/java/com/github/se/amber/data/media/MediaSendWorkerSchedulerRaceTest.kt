@@ -75,6 +75,10 @@ class MediaSendWorkerSchedulerRaceTest {
   @After
   fun tearDown() {
     answer.countDown()
+    // a job ended by reschedule only finishes now: WorkManager must handle its end while these
+    // threads still run, or it does so in the next test (Robolectric keeps the main looper's
+    // messages between tests), on threads that are stopped by then
+    settle()
     WorkManagerTestInitHelper.closeWorkDatabase()
     workerThread.shutdownNow()
     taskThread.shutdownNow()
@@ -119,6 +123,22 @@ class MediaSendWorkerSchedulerRaceTest {
     }
   }
 
+  /**
+   * Waits until WorkManager has nothing left to do: its two threads have run everything queued on
+   * them and the main thread has nothing waiting, [QUIET_ROUNDS] times in a row, since each may
+   * hand work to the others.
+   */
+  private fun settle() {
+    val mainLooper = shadowOf(Looper.getMainLooper())
+    var quietRounds = 0
+    waitUntil("WorkManager never settled") {
+      workerThread.submit {}.get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      taskThread.submit {}.get(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+      quietRounds = if (mainLooper.isIdle) quietRounds + 1 else 0
+      quietRounds == QUIET_ROUNDS
+    }
+  }
+
   @Test
   fun scheduleLeavesNoJob() {
     retryWhileTheFailedSendFinishes { scheduler.schedule("c1", "m1") }
@@ -140,5 +160,6 @@ class MediaSendWorkerSchedulerRaceTest {
     val WORK_NAME = MediaSendWorkerScheduler.workName("c1", "m1")
     // generous: the first test of the class also pays for starting Robolectric
     const val TIMEOUT_SECONDS = 15L
+    const val QUIET_ROUNDS = 3
   }
 }

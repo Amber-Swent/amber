@@ -50,3 +50,7 @@ data class CareCircle(
     // Assigned by the bucket-provisioning backend; empty until the bucket is ready.
     val storageBucket: String = "",
 )
+
+/** Whether [CareCircle.storageBucket] is assigned yet: no file can be stored or read before. */
+val CareCircle.hasStorageBucket: Boolean
+  get() = storageBucket.isNotBlank()
