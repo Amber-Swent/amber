@@ -4,6 +4,7 @@ package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaStatus
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
@@ -260,15 +261,47 @@ class MediaRepositoryFirestoreTest {
   }
 
   @Test
-  fun updateMediaWritesEveryFieldAndTheIdTheRulesRequire() = runTest {
+  fun updateMediaWritesOnlyTheEditableFields() = runTest {
     stubStoredDocument(documentOf(picture))
     val written = slot<Map<String, Any>>()
     every { transaction.update(mediaDocument, capture(written)) } returns transaction
-    val edited = picture.copy(description = "Beach, 1998")
+    // an older copy: its status, creation time and size differ from the stored ones
+    val edited =
+        picture.copy(
+            description = "Beach, 1998",
+            shownIds = listOf("u2"),
+            status = MediaStatus.REJECTED,
+            createdAt = 5L,
+            width = 8,
+        )
 
     newRepository().updateMedia("c1", edited)
 
-    assertEquals(edited.toMap() + ("id" to "m1"), written.captured)
+    assertEquals(
+        mapOf(
+            "description" to "Beach, 1998",
+            "date" to null,
+            "location" to null,
+            "shownIds" to listOf("u2"),
+            "authorizedIds" to emptyList<String>(),
+        ),
+        written.captured,
+    )
+  }
+
+  @Test
+  fun updateMediaOfATextAlsoWritesItsText() = runTest {
+    stubStoredDocument(documentOf(text))
+    val written = slot<Map<String, Any>>()
+    every { transaction.update(mediaDocument, capture(written)) } returns transaction
+
+    newRepository().updateMedia("c1", text.copy(text = "Edited"))
+
+    assertEquals("Edited", written.captured["text"])
+    assertEquals(
+        setOf("description", "date", "location", "shownIds", "authorizedIds", "text"),
+        written.captured.keys,
+    )
   }
 
   @Test
@@ -313,9 +346,11 @@ class MediaRepositoryFirestoreTest {
 
   @Test
   fun deleteMediaDeletesNothingElseWhenFirebaseRefusesTheDocumentDeletion() = runTest {
-    stubStoredDocument(documentOf(picture))
-    every { transaction.delete(mediaDocument) } throws
-        FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+    // Firebase checks the rules when it commits the transaction, and then refuses it as a whole
+    every { firestore.runTransaction<Any?>(any()) } returns
+        Tasks.forException(
+            FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+        )
     val cache = newCache()
     cache.putCopy(picture.storagePath)
 

@@ -44,6 +44,10 @@ interface MediaRepository {
    * The media of [circleId] whose [MediaItem.shownIds] contain [shownId] (a member uid or a
    * personId of [CareCircle.people]), newest first. Behaves like [observeApprovedMedia]: emits
    * again on every change, works offline with what is loaded, and stops with an error to catch.
+   *
+   * Unlike [observeApprovedMedia], it lists media of every [MediaStatus]. Today every media is
+   * approved, but once moderation exists, a screen showing these to the patient must keep only the
+   * [MediaStatus.APPROVED] ones.
    */
   fun observeMediaShowing(circleId: String, shownId: String): Flow<List<MediaItem>>
 
@@ -122,9 +126,11 @@ interface MediaRepository {
   suspend fun discardUnsent(circleId: String, mediaId: String)
 
   /**
-   * Saves [item]'s new details (description, date, people shown...) in [circleId]; its file doesn't
-   * change. Needs a connection: it returns once Firebase has saved them, and fails offline instead
-   * of waiting for the connection. Not defined yet for a media still in the outbox.
+   * Saves [item]'s new details in [circleId]: its description, date, location, people shown
+   * ([MediaItem.shownIds]), [MediaItem.authorizedIds], and a text's text or an audio's transcript.
+   * Nothing else changes, whatever [item] holds: its author, file, type, status and creation time
+   * stay as stored. Needs a connection: it returns once Firebase has saved them, and fails offline
+   * instead of waiting for the connection. Not defined yet for a media still in the outbox.
    *
    * @throws Exception if Firebase refuses it (only [item]'s author may edit it), can't be reached,
    *   or [item] no longer exists (e.g. deleted meanwhile: it isn't created again).

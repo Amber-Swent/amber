@@ -51,7 +51,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * again those whose job was lost.
  *
  * A media document holds the fields of [toMap] plus an `id` field, equal to the document's name:
- * Firebase's security rules refuse to create or update a document without it.
+ * Firebase's security rules refuse to create a document without it. Once created, only its
+ * [EDITABLE_FIELDS] can change.
  */
 class MediaRepositoryFirebase(
     private val fileStorage: MediaFileStorage,
@@ -222,8 +223,9 @@ class MediaRepositoryFirebase(
    * fails offline instead.
    *
    * A media that no longer exists (e.g. deleted from another phone) fails with NOT_FOUND: it is
-   * never created again. The fields of [item] are written over the existing ones (an `update`, not
-   * a replacement), so a field this app version doesn't know, added by a newer one, is kept.
+   * never created again. Only the [EDITABLE_FIELDS] of [item] are written, over the existing ones
+   * (an `update`, not a replacement): its author, file, type, status and creation time are left as
+   * stored, even if [item] is an older copy, and the security rules refuse any change to them.
    */
   override suspend fun updateMedia(circleId: String, item: MediaItem) {
     val document = mediaDocument(circleId, item.id)
@@ -235,7 +237,7 @@ class MediaRepositoryFirebase(
                 FirebaseFirestoreException.Code.NOT_FOUND,
             )
           }
-          transaction.update(document, item.toDocument())
+          transaction.update(document, item.toDocument().filterKeys { it in EDITABLE_FIELDS })
         }
         .await()
   }
@@ -266,6 +268,9 @@ class MediaRepositoryFirebase(
     val document = mediaDocument(circle.id, item.id)
     firestore
         .runTransaction { transaction ->
+          // missing: an earlier call deleted it, and the file is deleted below. Not yet true for a
+          // media still in the outbox (see MediaRepository.deleteMedia): its file may already be
+          // uploaded while its document isn't written yet, so this would delete a send under way
           if (transaction.get(document).exists()) transaction.delete(document)
         }
         .await()
@@ -574,6 +579,14 @@ class MediaRepositoryFirebase(
     const val STATUS_FIELD = "status"
     const val CREATED_AT_FIELD = "createdAt"
     const val SHOWN_IDS_FIELD = "shownIds"
+
+    /**
+     * The fields of a media document its author may change, the same as in the security rules
+     * (`onlyEditableMediaFieldsChanged`). A type only has some of them: `text` for a text,
+     * `transcript` for an audio.
+     */
+    val EDITABLE_FIELDS =
+        setOf("description", "date", "location", "shownIds", "authorizedIds", "text", "transcript")
 
     /** Firestore errors a send can't get past by trying again: the user isn't allowed. */
     val PERMANENT_FIRESTORE_CODES =

@@ -98,14 +98,22 @@ service cloud.firestore {
         || isCaregiver();
     }
 
-    // A text has no file: its storagePath is empty. Any other media's file is in the circle's
-    // media folder.
+    // A text has no file: its storagePath must be empty. Any other media's file is in the
+    // circle's media folder.
     function mediaStoragePathMatches(circleId) {
-      return (request.resource.data.get('type', '') == 'text'
-          && request.resource.data.storagePath == '')
-        || request.resource.data.storagePath.matches(
+      let isText = request.resource.data.get('type', '') == 'text';
+      return (isText && request.resource.data.storagePath == '')
+        || (!isText && request.resource.data.storagePath.matches(
           'careCircles/' + circleId + '/media/[^/]+'
-        );
+        ));
+    }
+
+    // What the author may change in a media. Its id, author, file, type, status and creation
+    // time never change, so no edit can approve a media or leave its file without a document.
+    function onlyEditableMediaFieldsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'description', 'date', 'location', 'shownIds', 'authorizedIds', 'text', 'transcript'
+      ]);
     }
 
     match /users/{uid} {
@@ -170,9 +178,7 @@ service cloud.firestore {
 
         allow update: if isMember(circleId)
           && resource.data.authorId == request.auth.uid
-          && request.resource.data.id == mediaId
-          && request.resource.data.authorId == resource.data.authorId
-          && mediaStoragePathMatches(circleId);
+          && onlyEditableMediaFieldsChanged();
 
         allow delete: if isMember(circleId)
           && resource.data.authorId == request.auth.uid;
