@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
 fun AmberApp(
     // TODO add context and credential manager
     navController: NavHostController = rememberNavController(),
-    startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser)
+    startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser),
 ) {
 
   val navigationActions = NavigationActions(navController)
@@ -79,7 +79,7 @@ fun AmberApp(
       // SignInScreen
       composable(route = AuthScreen.Auth.route) {
         EmailSignInScreen(
-          onGoogleSignIn =  { navigationActions.navigateTo(TransitionScreen.RoleLoading) }
+            onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) }
         )
       }
     }
@@ -103,7 +103,7 @@ fun AmberApp(
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
         CreateCareCircleScreen(
-          onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER)}
+            onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) }
         )
       }
       composable(route = OnboardingScreen.CreateCareCircle.route) {
@@ -121,17 +121,18 @@ fun AmberApp(
     ) {
       composable(route = CaregiverScreen.Home.route) {
         CaregiverHomeScreen(
-          onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-          onSignedOut = {navigationActions.navigateToGraph(NavGraphs.AUTH)}
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
         )
       }
       composable(route = CaregiverScreen.Upload.route) {
         UploadScreen(
-          onUploadPictureClick = {navigationActions.navigateTo(CaregiverScreen.UploadPicture)},
-          onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-          // For M1 we have decided that the back button on the top bar redirect to the Home Screen
-          // if we were on a top level destination
-          checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER)}
+            onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            // For M1 we have decided that the back button on the top bar redirect to the Home
+            // Screen
+            // if we were on a top level destination
+            checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
         )
       }
       @Suppress("java:S1135")
@@ -147,18 +148,23 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
-          // For M1 we have decided that the back button on the top bar redirect to the Home Screen
-          // if we were on a top level destination
-          onCheckout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER)},
-          onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-          onCreateInvitationClick = { navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)},
-          onEnterInvitationClick = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation)}
+            // For M1 we have decided that the back button on the top bar redirect to the Home
+            // Screen
+            // if we were on a top level destination
+            onCheckout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onCreateInvitationClick = {
+              navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
+            },
+            onEnterInvitationClick = {
+              navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
+            },
         )
       }
       composable(route = CaregiverScreen.CreateInvitationCode.route) {
         CreateInvitationScreen(
-          onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-          checkout = { navigationActions.goBack() }
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            checkout = { navigationActions.goBack() },
         )
       }
     }
@@ -170,16 +176,17 @@ fun AmberApp(
     ) {
       composable(route = PatientScreen.Home.route) {
         PatientHomeScreen(
-          onSignedOut = {navigationActions.navigateToGraph(NavGraphs.AUTH)},
-          onTabSelected = { tab -> navigationActions.navigateToTab(tab) }
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
       composable(route = PatientScreen.SeePictures.route) {
         SeePicturesScreen(
-          // For M1 we have decided that the back button on the top bar redirect to the Home Screen
-          // if we were on a top level destination
-          onBackClick = {navigationActions.navigateToGraph(NavGraphs.PATIENT)},
-          onTabSelected = { tab -> navigationActions.navigateToTab(tab) }
+            // For M1 we have decided that the back button on the top bar redirect to the Home
+            // Screen
+            // if we were on a top level destination
+            onBackClick = { navigationActions.navigateToGraph(NavGraphs.PATIENT) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
     }
