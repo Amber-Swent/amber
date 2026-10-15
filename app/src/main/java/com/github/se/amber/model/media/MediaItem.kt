@@ -9,9 +9,9 @@ import com.github.se.amber.model.location.GeoLocation
  * on its own; it can be added to zero, one or several stories.
  *
  * Stored in two places with the same mediaId:
- * - bytes in Firebase Storage at [storagePath] (careCircles/{circleId}/media/{mediaId}.jpg|.m4a);
- *   the circleId in the path lets Storage security rules check membership. A [Text] has no file:
- *   its [storagePath] is empty.
+ * - bytes in Firebase Storage at [storagePath]
+ *   (careCircles/{circleId}/media/{mediaId}.jpg|.png|.m4a); the circleId in the path lets Storage
+ *   security rules check membership. A [Text] has no file: its [storagePath] is empty.
  * - metadata at careCircles/{circleId}/media/{mediaId}, with an extra "type" field ("picture",
  *   "audio" or "text") telling which subclass to rebuild.
  *
@@ -90,8 +90,11 @@ sealed interface MediaItem {
 }
 
 /**
- * Whether this media's file is stored under care circle [circleId]
- * (careCircles/{circleId}/media/...). Always false for a [MediaItem.Text], which has no file.
+ * Whether this media's file is stored in care circle [circleId]'s media folder
+ * (careCircles/{circleId}/media/{fileName}), the only place the security rules accept it. Always
+ * false for a [MediaItem.Text], which has no file.
  */
-fun MediaItem.isMediaOf(circleId: String): Boolean =
-    storagePath.startsWith("careCircles/$circleId/")
+fun MediaItem.isMediaOf(circleId: String): Boolean {
+  val fileName = storagePath.removePrefix("careCircles/$circleId/media/")
+  return fileName != storagePath && fileName.isNotEmpty() && '/' !in fileName
+}
