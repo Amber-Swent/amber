@@ -18,8 +18,9 @@ enum class SendState {
 
   /**
    * Won't be sent again on its own: retrying can't help (e.g. permission denied, or its file is
-   * missing), or every attempt failed. The user can retry it ([MediaRepository.retrySend]) or
-   * discard it ([MediaRepository.discardUnsent]).
+   * missing), or its send failed too many times in a row (10; a run the system stops doesn't
+   * count). The user can retry it ([MediaRepository.retrySend]) or discard it
+   * ([MediaRepository.discardUnsent]).
    */
   FAILED,
 }

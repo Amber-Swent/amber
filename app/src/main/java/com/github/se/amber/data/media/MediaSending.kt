@@ -15,15 +15,16 @@ enum class SendResult {
   DONE,
 
   /**
-   * It failed for a reason that may go away (e.g. offline): try again later. Its outbox entry is
-   * back to [SendState.WAITING] until then.
+   * It failed for a reason that may go away (e.g. Firestore unavailable): try again later. The
+   * failed attempt is recorded in its outbox entry, which is back to [SendState.WAITING] until
+   * then.
    */
   RETRY,
 
   /**
-   * Retrying won't help (e.g. permission denied, or its file is missing), or this was the last
-   * attempt. Its outbox entry is now [SendState.FAILED]: it is sent again only through
-   * [MediaRepository.retrySend].
+   * Retrying won't help (e.g. permission denied, or its file is missing), or its send has now
+   * failed [MediaSender.MAX_FAILED_ATTEMPTS] times in a row. Its outbox entry is now
+   * [SendState.FAILED]: it is sent again only through [MediaRepository.retrySend].
    */
   FAILED,
 }
@@ -47,26 +48,48 @@ fun interface MediaSender {
    * rewrites the same Storage path with the same bytes, and step 3 never overwrites a document an
    * earlier attempt created, so changes made to it since (e.g. its moderation status) are kept.
    *
-   * Never throws, except [kotlinx.coroutines.CancellationException] when its job is cancelled; its
-   * entry, if still in the outbox, is then back to [SendState.WAITING]. Unexpected errors count as
-   * failures that may go away.
-   *
-   * @param lastAttempt true if no other attempt will follow on its own: a failure that would give
-   *   [SendResult.RETRY] then gives [SendResult.FAILED], so the media doesn't stay
-   *   [SendState.WAITING] forever.
+   * A failure that may go away (an error Firebase reports, network ones included, or an attempt
+   * still running after [ATTEMPT_TIMEOUT_MS]) records a failed attempt in the media's outbox entry
+   * (`MediaOutbox.recordFailedAttempt`) and gives [SendResult.RETRY], or [SendResult.FAILED] at the
+   * [MAX_FAILED_ATTEMPTS]th; [MediaRepository.retrySend] starts the count again. A cancellation (a
+   * run the system stopped) records nothing and is rethrown: it only sets the entry's state back to
+   * [SendState.WAITING], leaving its other fields as they are, its failed-attempt count included.
+   * [MediaSendScheduler.reschedule] cancels the old job right after [MediaRepository.retrySend]
+   * reset the entry, so writing more could undo that reset. Never throws otherwise: unexpected
+   * errors count as failures that may go away.
    */
-  suspend fun send(circleId: String, mediaId: String, lastAttempt: Boolean): SendResult
+  suspend fun send(circleId: String, mediaId: String): SendResult
+
+  companion object {
+    /**
+     * How many failed attempts in a row end a send [SendResult.FAILED]. With the waits of
+     * [MediaSendWorkerScheduler], 10 failed attempts take about 4 hours 15 minutes, counting from
+     * the first.
+     */
+    const val MAX_FAILED_ATTEMPTS = 10
+
+    /**
+     * The longest one attempt may take: 9 minutes, under the system's 10-minute limit per run, so
+     * an attempt too slow (a big upload on a slow link, or a step that hangs) fails and counts,
+     * instead of being stopped, uncounted, run after run. The minute left covers starting the run
+     * and recording the failure.
+     */
+    const val ATTEMPT_TIMEOUT_MS = 9 * 60 * 1000L
+  }
 }
 
 /**
  * Runs [MediaSender.send] in a background job, even if the app was closed meanwhile. Being an
  * interface, it can be replaced by a fake in tests.
  *
- * The job runs only while the phone has a connection: offline, it waits without making attempts.
- * While it gives [SendResult.RETRY], it is run again later, waiting longer each time, up to a fixed
- * number of attempts; the last one is made with `lastAttempt = true`, so a media that keeps failing
- * ends [SendState.FAILED] instead of waiting forever. A connection lost during an attempt makes
- * that attempt fail, and it counts.
+ * The job runs only while the phone has a connection: offline, it doesn't run at all, so being
+ * offline costs nothing and counts nothing. While [MediaSender.send] gives [SendResult.RETRY], the
+ * job runs again later, waiting longer each time.
+ *
+ * The job has no limit of its own: it ends when the send gives [SendResult.DONE] or
+ * [SendResult.FAILED]. Failures, timeouts included, count toward [MediaSender.MAX_FAILED_ATTEMPTS];
+ * runs the system stops (connection lost, quota, battery saver) count nothing, so a phone that
+ * stops every run keeps trying, spaced out by the waits.
  *
  * It passes only the circle and media ids to the job, which gets its [MediaSender] when it runs:
  * the scheduler never needs the repository, so the repository can be built with the scheduler.
@@ -80,6 +103,15 @@ interface MediaSendScheduler {
    * or running.
    */
   fun schedule(circleId: String, mediaId: String)
+
+  /**
+   * Schedules a new send of the media [mediaId] of [circleId], replacing its current job if any.
+   * Called by [MediaRepository.retrySend] right after it moved a [SendState.FAILED] entry back to
+   * [SendState.WAITING]; nothing else may call it. The job that failed may still be finishing then,
+   * and [schedule] would keep that job and schedule nothing, leaving the entry without a job.
+   * Called at any other time, it could cancel a send under way.
+   */
+  fun reschedule(circleId: String, mediaId: String)
 
   /** Cancels the scheduled send of the media [mediaId] of [circleId], if any. */
   fun cancel(circleId: String, mediaId: String)

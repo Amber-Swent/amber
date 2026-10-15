@@ -108,7 +108,7 @@ class MediaRepositoryFirebaseTest {
             "observeCircleMedia" to { repository.observeCircleMedia("c1") },
             "retrySend" to { repository.retrySend("c1", "m1") },
             "discardUnsent" to { repository.discardUnsent("c1", "m1") },
-            "send" to { repository.send("c1", "m1", lastAttempt = false) },
+            "send" to { repository.send("c1", "m1") },
             "updateMedia" to { repository.updateMedia("c1", item) },
             "deleteMedia" to { repository.deleteMedia(c1, item) },
         )
