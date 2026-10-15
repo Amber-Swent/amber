@@ -48,14 +48,14 @@ class InvitationRedemptionUITests {
     val viewModel =
         RedeemInviteViewModel(
             invitationRedemptionRepository = repository,
-            onSuccess = { result ->
-              redeemSuccessCount++
-              lastRedemptionResult = result
-            },
         )
     composeTestRule.setContent {
       InvitationRedemptionScreen(
           viewModel = viewModel,
+          onRedeemSuccess = { result ->
+            redeemSuccessCount++
+            lastRedemptionResult = result
+          },
           onBack = { backCount++ },
       )
     }

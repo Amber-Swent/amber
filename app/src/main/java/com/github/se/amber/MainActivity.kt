@@ -12,9 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -23,10 +20,8 @@ import androidx.navigation.navigation
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
 import com.github.se.amber.ui.accountCreation.CreateProfileScreen
-import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
 import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionScreen
-import com.github.se.amber.ui.invitationRedemption.RedeemInviteViewModel
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
@@ -99,29 +94,12 @@ fun AmberApp(
     ) {
       composable(route = OnboardingScreen.CreateProfile.route) {
         CreateProfileScreen(
-            viewModel =
-                viewModel(
-                    factory =
-                        object : ViewModelProvider.Factory {
-                          @Suppress("UNCHECKED_CAST")
-                          override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                              CreateProfileViewModel(
-                                  onSuccess = { role ->
-                                    when (role) {
-                                      Role.PATIENT ->
-                                          navigationActions.navigateTo(
-                                              OnboardingScreen.EnterInvitation
-                                          )
-                                      Role.CAREGIVER ->
-                                          navigationActions.navigateTo(
-                                              OnboardingScreen.CaregiverChoice
-                                          )
-                                    }
-                                  },
-                              )
-                                  as T
-                        },
-                ),
+            onProfileCreated = { role ->
+              when (role) {
+                Role.PATIENT -> navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
+                Role.CAREGIVER -> navigationActions.navigateTo(OnboardingScreen.CaregiverChoice)
+              }
+            },
         )
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
@@ -137,20 +115,9 @@ fun AmberApp(
       }
       composable(route = OnboardingScreen.EnterInvitation.route) {
         InvitationRedemptionScreen(
-            viewModel =
-                viewModel(
-                    factory =
-                        object : ViewModelProvider.Factory {
-                          @Suppress("UNCHECKED_CAST")
-                          override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                              RedeemInviteViewModel(
-                                  onSuccess = { result ->
-                                    navigationActions.navigateToGraph(graphForRole(result.role))
-                                  },
-                              )
-                                  as T
-                        },
-                ),
+            onRedeemSuccess = { result ->
+              navigationActions.navigateToGraph(graphForRole(result.role))
+            },
             onBack = { navigationActions.goBack() },
         )
       }

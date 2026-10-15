@@ -49,19 +49,17 @@ data class RedeemInviteUiState(
  * ViewModel for [InvitationRedemptionScreen]: validates the invite code and redeems it via
  * [InvitationRedemptionRepository].
  *
- * @param onSuccess invoked with the redemption result after a successful redeem, so the navigation
- *   owner can route to the patient or caregiver home graph without observing UI state.
+ * @param invitationRedemptionRepository source of invitation redeem operations.
  */
 class RedeemInviteViewModel(
     private val invitationRedemptionRepository: InvitationRedemptionRepository =
         InvitationRedemptionRepositoryProvider.default.repository,
-    private val onSuccess: (InvitationRedemptionResult) -> Unit = {},
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(RedeemInviteUiState())
   val uiState: StateFlow<RedeemInviteUiState> = _uiState.asStateFlow()
 
-  private var hasRedeemed = false
+  private var redeemedResult: InvitationRedemptionResult? = null
 
   /**
    * Updates [RedeemInviteUiState.inviteCode] and clears a previous redemption error so the user can
@@ -74,12 +72,17 @@ class RedeemInviteViewModel(
   /**
    * Validates the invite code, then redeems it via [InvitationRedemptionRepository].
    *
-   * Does nothing while a redeem is already in progress or after a successful redeem. Does not call
-   * the repository when the code is blank after trim; the derived
-   * [RedeemInviteUiState.errorMessage] is shown instead.
+   * [onSuccess] is invoked after a successful redeem (and again if the user returns and presses
+   * Submit), so the navigation owner can route without observing UI state. Does nothing while a
+   * redeem is already in progress. Does not call the repository when the code is blank after trim;
+   * the derived [RedeemInviteUiState.errorMessage] is shown instead.
    */
-  fun onSubmit() {
-    if (_uiState.value.isRedeeming || hasRedeemed) return
+  fun onSubmit(onSuccess: (InvitationRedemptionResult) -> Unit = {}) {
+    redeemedResult?.let {
+      onSuccess(it)
+      return
+    }
+    if (_uiState.value.isRedeeming) return
 
     val trimmedCode = _uiState.value.inviteCode.trim()
     _uiState.update {
@@ -96,7 +99,7 @@ class RedeemInviteViewModel(
       invitationRedemptionRepository
           .redeemInvitation(trimmedCode)
           .onSuccess { result ->
-            hasRedeemed = true
+            redeemedResult = result
             _uiState.update { it.copy(isRedeeming = false, redemptionError = null) }
             onSuccess(result)
           }

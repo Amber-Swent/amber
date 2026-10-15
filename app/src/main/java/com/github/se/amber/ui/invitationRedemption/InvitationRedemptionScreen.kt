@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.ui.components.AmberHeader
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
@@ -54,12 +55,13 @@ internal const val BACK_LABEL = "Back"
 /**
  * Screen where a user enters an invitation code / link to join an existing care circle.
  *
- * Success navigation is owned by the ViewModel's onSuccess callback. [onBack] returns to the
- * previous onboarding step.
+ * [onRedeemSuccess] should navigate to the matching home graph. [onBack] returns to the previous
+ * onboarding step.
  */
 @Composable
 fun InvitationRedemptionScreen(
     viewModel: RedeemInviteViewModel = viewModel(),
+    onRedeemSuccess: (InvitationRedemptionResult) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -126,7 +128,7 @@ fun InvitationRedemptionScreen(
       Spacer(modifier = Modifier.height(PADDING_BIG))
 
       Button(
-          onClick = viewModel::onSubmit,
+          onClick = { viewModel.onSubmit(onRedeemSuccess) },
           enabled = !uiState.isRedeeming,
           modifier =
               Modifier.fillMaxWidth(0.75f)

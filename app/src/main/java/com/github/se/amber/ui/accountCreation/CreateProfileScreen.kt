@@ -54,14 +54,18 @@ enum class CreateProfileTestTags {
  * Amber users are either a Patient or a Caregiver. This screen collects a first and last name, then
  * persists the profile when the user taps one of those role buttons. Validation and the repository
  * write live in [CreateProfileViewModel]; this composable only renders [viewModel] state and
- * forwards user actions.
+ * forwards user actions. [onProfileCreated] should navigate to the next onboarding step.
  *
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
  *   composition; tests can pass a custom instance with a fake
  *   [com.github.se.amber.data.profile.ProfileRepository].
+ * @param onProfileCreated called with the saved [Role] after a successful create.
  */
 @Composable
-fun CreateProfileScreen(viewModel: CreateProfileViewModel = viewModel()) {
+fun CreateProfileScreen(
+    viewModel: CreateProfileViewModel = viewModel(),
+    onProfileCreated: (Role) -> Unit = {},
+) {
   val uiState by viewModel.uiState.collectAsState()
 
   Column(
@@ -191,7 +195,7 @@ fun CreateProfileScreen(viewModel: CreateProfileViewModel = viewModel()) {
               label = "Patient",
               testTag = CreateProfileTestTags.PATIENT_BUTTON,
               enabled = !uiState.isSaving,
-              onRoleSelected = viewModel::onRoleSelected,
+              onRoleSelected = { role -> viewModel.onRoleSelected(role, onProfileCreated) },
           )
           RoleChoiceButton(
               modifier = Modifier.weight(1f),
@@ -199,7 +203,7 @@ fun CreateProfileScreen(viewModel: CreateProfileViewModel = viewModel()) {
               label = "Caregiver",
               testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
               enabled = !uiState.isSaving,
-              onRoleSelected = viewModel::onRoleSelected,
+              onRoleSelected = { role -> viewModel.onRoleSelected(role, onProfileCreated) },
           )
         }
 

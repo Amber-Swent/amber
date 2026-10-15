@@ -40,6 +40,10 @@ class RedeemInviteViewModelTest {
   private var successCount = 0
   private var lastSuccessResult: InvitationRedemptionResult? = null
   private lateinit var viewModel: RedeemInviteViewModel
+  private val onSuccess: (InvitationRedemptionResult) -> Unit = { result ->
+    successCount++
+    lastSuccessResult = result
+  }
 
   @Before
   fun setUp() {
@@ -50,10 +54,6 @@ class RedeemInviteViewModelTest {
     viewModel =
         RedeemInviteViewModel(
             invitationRedemptionRepository = invitationRedemptionRepository,
-            onSuccess = { result ->
-              successCount++
-              lastSuccessResult = result
-            },
         )
   }
 
@@ -85,7 +85,7 @@ class RedeemInviteViewModelTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.InvalidCode)
     viewModel.onInviteCodeChange("bad-code")
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(
         InvitationError.InvalidCode.toActionableMessage(),
@@ -103,7 +103,7 @@ class RedeemInviteViewModelTest {
 
   @Test
   fun onSubmit_blankCode_setsDerivedErrorAndDoesNotCallRepository() = runTest {
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
@@ -119,7 +119,7 @@ class RedeemInviteViewModelTest {
   fun onSubmit_whitespaceOnlyCode_treatedAsBlankAndDoesNotCallRepository() = runTest {
     viewModel.onInviteCodeChange("   ")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
@@ -137,7 +137,7 @@ class RedeemInviteViewModelTest {
         Result.success(result)
     viewModel.onInviteCodeChange("  invite-code  ")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
@@ -156,7 +156,7 @@ class RedeemInviteViewModelTest {
         Result.success(result)
     viewModel.onInviteCodeChange("caregiver-code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     assertEquals(1, successCount)
@@ -173,7 +173,7 @@ class RedeemInviteViewModelTest {
         Result.failure(InvitationError.InvalidCode)
     viewModel.onInviteCodeChange("bad-code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
@@ -188,7 +188,7 @@ class RedeemInviteViewModelTest {
         Result.failure(InvitationError.InvitationNotFound)
     viewModel.onInviteCodeChange("missing-code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     assertEquals(
@@ -204,7 +204,7 @@ class RedeemInviteViewModelTest {
         Result.failure(InvitationError.Network)
     viewModel.onInviteCodeChange("net-code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     assertEquals(
@@ -246,14 +246,14 @@ class RedeemInviteViewModelTest {
         )
     viewModel.onInviteCodeChange("retry-code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(
         InvitationError.InvalidCode.toActionableMessage(),
         viewModel.uiState.value.errorMessage,
     )
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     assertNull(viewModel.uiState.value.errorMessage)
@@ -269,11 +269,11 @@ class RedeemInviteViewModelTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } coAnswers { pending.await() }
     viewModel.onInviteCodeChange("pending-code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     runCurrent()
     assertTrue(viewModel.uiState.value.isRedeeming)
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     runCurrent()
 
     coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation(any()) }
@@ -289,20 +289,21 @@ class RedeemInviteViewModelTest {
   }
 
   @Test
-  fun onSubmit_afterSuccessfulRedeem_ignoresSecondCall() = runTest {
+  fun onSubmit_afterSuccessfulRedeem_reinvokesOnSuccessWithoutRepository() = runTest {
     val result = InvitationRedemptionResult(careCircleId = "circle-1", role = Role.PATIENT)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
     viewModel.onInviteCodeChange("code")
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(1, successCount)
 
-    viewModel.onSubmit()
+    viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation(any()) }
-    assertEquals(1, successCount)
+    assertEquals(2, successCount)
+    assertEquals(result, lastSuccessResult)
   }
 }

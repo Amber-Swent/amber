@@ -49,18 +49,16 @@ data class CreateProfileUiState(
  * ViewModel for [CreateProfileScreen]: validates name/surname and persists the profile on role
  * choice.
  *
- * @param onSuccess invoked with the chosen [Role] after a successful create, so the navigation
- *   owner can move to the next onboarding step without observing UI state.
+ * @param profileRepository source of profile create/read operations.
  */
 class CreateProfileViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
-    private val onSuccess: (role: Role) -> Unit = {},
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(CreateProfileUiState())
   val uiState: StateFlow<CreateProfileUiState> = _uiState.asStateFlow()
 
-  private var hasCreatedProfile = false
+  private var createdRole: Role? = null
 
   /** Updates [CreateProfileUiState.name]; field error clears automatically when non-blank. */
   fun onNameChange(value: String) {
@@ -75,11 +73,17 @@ class CreateProfileViewModel(
   /**
    * Validates name and surname, then creates the profile with [role] via [ProfileRepository].
    *
-   * Does nothing while a save is already in progress or after a successful create. Does not call
-   * the repository when fields are blank after trim.
+   * [onSuccess] is invoked after a successful create (and again if the user returns and presses a
+   * role button), so the navigation owner can move forward without observing UI state. Does
+   * nothing while a save is already in progress. Does not call the repository when fields are
+   * blank after trim.
    */
-  fun onRoleSelected(role: Role) {
-    if (_uiState.value.isSaving || hasCreatedProfile) return
+  fun onRoleSelected(role: Role, onSuccess: (Role) -> Unit = {}) {
+    createdRole?.let {
+      onSuccess(it)
+      return
+    }
+    if (_uiState.value.isSaving) return
 
     val trimmedName = _uiState.value.name.trim()
     val trimmedSurname = _uiState.value.surname.trim()
@@ -104,7 +108,7 @@ class CreateProfileViewModel(
           )
       result
           .onSuccess {
-            hasCreatedProfile = true
+            createdRole = role
             _uiState.update { it.copy(isSaving = false, submitError = null) }
             onSuccess(role)
           }
