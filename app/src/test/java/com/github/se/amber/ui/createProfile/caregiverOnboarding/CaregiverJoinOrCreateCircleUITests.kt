@@ -8,6 +8,10 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleTestTags
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
@@ -26,10 +30,28 @@ class CaregiverJoinOrCreateCircleUITests {
   private var joinCircleCount = 0
   private var backCount = 0
 
+  private fun profileRepository(displayName: String = DISPLAY_NAME): ProfileRepository =
+      object : ProfileRepository {
+        override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
+
+        override suspend fun getCurrentProfile() =
+            Result.success(
+                UserProfile(
+                    uid = "uid",
+                    role = Role.CAREGIVER,
+                    person = Person(id = "uid", firstName = displayName, lastName = "Hopper"),
+                ),
+            )
+
+        override suspend fun getProfile(uid: String) = Result.success(null)
+      }
+
   private fun setScreen(
       displayName: String = DISPLAY_NAME,
       viewModel: CaregiverJoinOrCreateCircleViewModel =
-          CaregiverJoinOrCreateCircleViewModel(displayName = displayName),
+          CaregiverJoinOrCreateCircleViewModel(
+              profileRepository = profileRepository(displayName),
+          ),
   ) {
     createCircleCount = 0
     joinCircleCount = 0
@@ -42,6 +64,7 @@ class CaregiverJoinOrCreateCircleUITests {
           onJoinCircle = { joinCircleCount++ },
       )
     }
+    composeTestRule.waitForIdle()
   }
 
   // ---------- Back (→ CreateProfile) ----------
@@ -219,7 +242,8 @@ class CaregiverJoinOrCreateCircleUITests {
   @Test
   fun screen_withDefaultCallbacks_rendersWithoutInvokingNavigation() {
     // Construct outside setContent: lint forbids ViewModel constructors inside composables.
-    val viewModel = CaregiverJoinOrCreateCircleViewModel(displayName = DISPLAY_NAME)
+    val viewModel =
+        CaregiverJoinOrCreateCircleViewModel(profileRepository = profileRepository())
     composeTestRule.setContent { CaregiverJoinOrCreateCircle(viewModel = viewModel) }
     composeTestRule.waitForIdle()
 

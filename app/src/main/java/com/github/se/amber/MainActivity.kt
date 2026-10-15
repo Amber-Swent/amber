@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -29,7 +25,6 @@ import com.github.se.amber.resources.C
 import com.github.se.amber.ui.accountCreation.CreateProfileScreen
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
 import com.github.se.amber.ui.invitationRedemption.RedeemInvite
 import com.github.se.amber.ui.invitationRedemption.RedeemInviteViewModel
 import com.github.se.amber.ui.navigation.AuthScreen
@@ -70,7 +65,6 @@ fun AmberApp(
 ) {
   val navController: NavHostController = rememberNavController()
   val navigationActions = NavigationActions(navController)
-  var caregiverDisplayName by remember { mutableStateOf("") }
 
   NavHost(
       navController = navController,
@@ -112,18 +106,16 @@ fun AmberApp(
                           @Suppress("UNCHECKED_CAST")
                           override fun <T : ViewModel> create(modelClass: Class<T>): T =
                               CreateProfileViewModel(
-                                  onSuccess = { role, displayName ->
+                                  onSuccess = { role ->
                                     when (role) {
                                       Role.PATIENT ->
                                           navigationActions.navigateTo(
                                               OnboardingScreen.EnterInvitation
                                           )
-                                      Role.CAREGIVER -> {
-                                        caregiverDisplayName = displayName
-                                        navigationActions.navigateTo(
-                                            OnboardingScreen.CaregiverChoice
-                                        )
-                                      }
+                                      Role.CAREGIVER ->
+                                          navigationActions.navigateTo(
+                                              OnboardingScreen.CaregiverChoice
+                                          )
                                     }
                                   },
                               )
@@ -133,18 +125,7 @@ fun AmberApp(
         )
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
-        val displayName = caregiverDisplayName
         CaregiverJoinOrCreateCircle(
-            viewModel =
-                viewModel(
-                    key = displayName,
-                    factory =
-                        object : ViewModelProvider.Factory {
-                          @Suppress("UNCHECKED_CAST")
-                          override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                              CaregiverJoinOrCreateCircleViewModel(displayName = displayName) as T
-                        },
-                ),
             onBack = { navigationActions.goBack() },
             onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
             onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },

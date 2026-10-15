@@ -9,7 +9,6 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,12 +49,12 @@ data class CreateProfileUiState(
  * ViewModel for [CreateProfileScreen]: validates name/surname and persists the profile on role
  * choice.
  *
- * @param onSuccess invoked with the chosen [Role] and trimmed first name after a successful create,
- *   so the navigation owner can move to the next onboarding step without observing UI state.
+ * @param onSuccess invoked with the chosen [Role] after a successful create, so the navigation
+ *   owner can move to the next onboarding step without observing UI state.
  */
 class CreateProfileViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
-    private val onSuccess: (role: Role, displayName: String) -> Unit = { _, _ -> },
+    private val onSuccess: (role: Role) -> Unit = {},
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(CreateProfileUiState())
@@ -98,29 +97,25 @@ class CreateProfileViewModel(
 
     viewModelScope.launch {
       _uiState.update { it.copy(isSaving = true, submitError = null) }
-      try {
-        val result =
-            profileRepository.createProfile(
-                person = Person(firstName = trimmedName, lastName = trimmedSurname),
-                role = role,
-            )
-        result
-            .onSuccess {
-              hasCreatedProfile = true
-              _uiState.update { it.copy(isSaving = false, submitError = null) }
-              onSuccess(role, trimmedName)
+      val result =
+          profileRepository.createProfile(
+              person = Person(firstName = trimmedName, lastName = trimmedSurname),
+              role = role,
+          )
+      result
+          .onSuccess {
+            hasCreatedProfile = true
+            _uiState.update { it.copy(isSaving = false, submitError = null) }
+            onSuccess(role)
+          }
+          .onFailure { error ->
+            _uiState.update {
+              it.copy(
+                  isSaving = false,
+                  submitError = error.toActionableMessage(),
+              )
             }
-            .onFailure { error ->
-              _uiState.update {
-                it.copy(
-                    isSaving = false,
-                    submitError = error.toActionableMessage(),
-                )
-              }
-            }
-      } catch (exception: CancellationException) {
-        throw exception
-      }
+          }
     }
   }
 

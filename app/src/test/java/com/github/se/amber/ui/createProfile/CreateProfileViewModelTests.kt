@@ -42,7 +42,6 @@ class CreateProfileViewModelTests {
   private lateinit var profileRepository: ProfileRepository
   private var successCount = 0
   private var lastSuccessRole: Role? = null
-  private var lastSuccessDisplayName: String? = null
   private lateinit var viewModel: CreateProfileViewModel
 
   @Before
@@ -51,14 +50,12 @@ class CreateProfileViewModelTests {
     profileRepository = mockk()
     successCount = 0
     lastSuccessRole = null
-    lastSuccessDisplayName = null
     viewModel =
         CreateProfileViewModel(
             profileRepository = profileRepository,
-            onSuccess = { role, displayName ->
+            onSuccess = { role ->
               successCount++
               lastSuccessRole = role
-              lastSuccessDisplayName = displayName
             },
         )
   }
@@ -205,7 +202,6 @@ class CreateProfileViewModelTests {
     assertNull(state.submitError)
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
-    assertEquals("Ada", lastSuccessDisplayName)
     assertEquals("Ada", state.name)
     assertEquals("Lovelace", state.surname)
     coVerify(exactly = 1) {
@@ -227,7 +223,6 @@ class CreateProfileViewModelTests {
 
     assertEquals(1, successCount)
     assertEquals(Role.CAREGIVER, lastSuccessRole)
-    assertEquals("Grace", lastSuccessDisplayName)
     coVerify(exactly = 1) {
       profileRepository.createProfile(
           person = Person(firstName = "Grace", lastName = "Hopper"),

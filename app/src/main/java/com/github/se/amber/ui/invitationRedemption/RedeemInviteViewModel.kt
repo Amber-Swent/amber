@@ -8,7 +8,6 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -94,25 +93,21 @@ class RedeemInviteViewModel(
 
     viewModelScope.launch {
       _uiState.update { it.copy(isRedeeming = true, redemptionError = null) }
-      try {
-        invitationRedemptionRepository
-            .redeemInvitation(trimmedCode)
-            .onSuccess { result ->
-              hasRedeemed = true
-              _uiState.update { it.copy(isRedeeming = false, redemptionError = null) }
-              onSuccess(result)
+      invitationRedemptionRepository
+          .redeemInvitation(trimmedCode)
+          .onSuccess { result ->
+            hasRedeemed = true
+            _uiState.update { it.copy(isRedeeming = false, redemptionError = null) }
+            onSuccess(result)
+          }
+          .onFailure { error ->
+            _uiState.update {
+              it.copy(
+                  isRedeeming = false,
+                  redemptionError = error.toActionableMessage(),
+              )
             }
-            .onFailure { error ->
-              _uiState.update {
-                it.copy(
-                    isRedeeming = false,
-                    redemptionError = error.toActionableMessage(),
-                )
-              }
-            }
-      } catch (exception: CancellationException) {
-        throw exception
-      }
+          }
     }
   }
 }
