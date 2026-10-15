@@ -64,11 +64,19 @@ fun SeePicturesScreen(
 
   val context = LocalContext.current
   val uiState by pictureViewModel.uiState.collectAsState()
-  val allPictures = uiState.allPictures
+
+  // Non-blocking error message: only Empty and Content can carry one
+  val errorMsg =
+      when (val state = uiState) {
+        is SeePicturesUIState.Content -> state.errorMsg
+        is SeePicturesUIState.Empty -> state.errorMsg
+        is SeePicturesUIState.Loading,
+        is SeePicturesUIState.BlockingError -> null
+      }
 
   // Show error message if fetching todos fails
-  LaunchedEffect(uiState.errorMsg) {
-    uiState.errorMsg?.let { message ->
+  LaunchedEffect(errorMsg) {
+    errorMsg?.let { message ->
       Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
       pictureViewModel.clearErrorMsg()
     }
@@ -103,8 +111,8 @@ fun SeePicturesScreen(
         )
       },
       content = { paddingValues ->
-        when {
-          uiState.isLoading -> {
+        when (val actualState = uiState) {
+          is SeePicturesUIState.Loading -> {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center,
@@ -113,7 +121,7 @@ fun SeePicturesScreen(
             }
           }
 
-          uiState.loadError != null -> {
+          is SeePicturesUIState.BlockingError -> {
             Column(
                 modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_BIG),
                 verticalArrangement = Arrangement.Center,
@@ -121,21 +129,21 @@ fun SeePicturesScreen(
             ) {
               Text(
                   modifier = Modifier.testTag(SeePicturesScreenTestTags.ERROR),
-                  text = uiState.loadError ?: "",
+                  text = actualState.message,
                   textAlign = TextAlign.Center,
                   color = darkGray,
                   style = MaterialTheme.typography.titleMedium,
               )
               TextButton(
                   modifier = Modifier.testTag(SeePicturesScreenTestTags.RETRY),
-                  onClick = pictureViewModel::retry,
+                  onClick = { pictureViewModel.retry() },
               ) {
                 Text("Retry")
               }
             }
           }
 
-          allPictures.isEmpty() -> {
+          is SeePicturesUIState.Empty -> {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_BIG),
                 contentAlignment = Alignment.Center,
@@ -150,14 +158,14 @@ fun SeePicturesScreen(
             }
           }
 
-          else -> {
+          is SeePicturesUIState.Content -> {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
             ) {
-              items(allPictures, key = { it.id }) { picture ->
+              items(actualState.allPictures, key = { it.id }) { picture ->
                 MediaImage(
-                    circle = uiState.careCircle,
+                    circle = actualState.careCircle,
                     picture = picture,
                     modifier = Modifier.fillMaxWidth().aspectRatioOf(picture),
                     loading = { CircularProgressIndicator() },

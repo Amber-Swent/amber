@@ -1,3 +1,4 @@
+// This code was written with the aid of AI
 package com.github.se.amber.ui.patient.see_pictures
 
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -64,17 +65,29 @@ class SeePicturesViewModelTest {
   private fun createViewModel() =
       SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
 
+  // ---------------------------------------------------------------------------------------------
+  // Content / Empty
+  // ---------------------------------------------------------------------------------------------
+
   @Test
-  fun `loads the profile into the state`() {
+  fun `loads the profile into the content state`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
+
     val viewModel = createViewModel()
-    assertEquals(profile, viewModel.uiState.value.patientProfile)
-    assertNull(viewModel.uiState.value.errorMsg)
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(profile, state.patientProfile)
+    assertNull(state.errorMsg)
   }
 
   @Test
-  fun `loads the care circle once the profile is loaded`() {
+  fun `loads the care circle into the content state`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
+
     val viewModel = createViewModel()
-    assertEquals(circle, viewModel.uiState.value.careCircle)
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(circle, state.careCircle)
   }
 
   @Test
@@ -84,125 +97,246 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertEquals(listOf(picture1, audio, picture2, text), viewModel.uiState.value.allMediaItems)
-    assertEquals(listOf(picture1, picture2), viewModel.uiState.value.allPictures)
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(listOf(picture1, audio, picture2, text), state.allMediaItems)
+    assertEquals(listOf(picture1, picture2), state.allPictures)
   }
 
   @Test
-  fun `pictures list is empty when there is no media`() {
+  fun `state is Empty when there is no media`() {
     val viewModel = createViewModel()
-    assertTrue(viewModel.uiState.value.allPictures.isEmpty())
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Empty
+    assertEquals(profile, state.patientProfile)
+    assertEquals(circle, state.careCircle)
+    assertNull(state.errorMsg)
   }
 
   @Test
-  fun `sets an error when no profile is found`() {
+  fun `state is Empty when there is media but no picture`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio, text))
+
+    val viewModel = createViewModel()
+
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+  }
+
+  @Test
+  fun `state is Loading until the first media list arrives`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+
+    val viewModel = createViewModel()
+
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Blocking errors
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun `blocking error when no profile is found`() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
 
     val viewModel = createViewModel()
 
-    assertEquals("No profile found.", viewModel.uiState.value.loadError)
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("No profile found.", state.message)
   }
 
   @Test
-  fun `sets an error when the profile fails to load`() {
+  fun `blocking error when the profile fails to load`() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
     val viewModel = createViewModel()
 
-    assertEquals("Failed to load the profile: boom", viewModel.uiState.value.loadError)
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("Failed to load the profile: boom", state.message)
   }
 
   @Test
-  fun `sets an error when the profile has no circle`() {
+  fun `blocking error when the profile has no circle`() {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.success(profile.copy(circleIds = emptyList()))
 
     val viewModel = createViewModel()
 
-    assertEquals("No care circle found for this patient.", viewModel.uiState.value.loadError)
-    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("No care circle found for this patient.", state.message)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
+    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
 
   @Test
-  fun `sets an error when the care circle fails to load`() {
+  fun `blocking error when the profile only has blank circle ids`() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = listOf("", "  ")))
+
+    val viewModel = createViewModel()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("No care circle found for this patient.", state.message)
+  }
+
+  @Test
+  fun `blocking error when the care circle fails to load`() {
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.failure(Exception("circle error"))
 
     val viewModel = createViewModel()
 
-    assertEquals("Failed to load the care circle: circle error", viewModel.uiState.value.loadError)
-  }
-
-  @Test
-  fun `sets an error when observing the media fails`() {
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flow { throw RuntimeException("media error") }
-
-    val viewModel = createViewModel()
-
-    assertEquals("Failed to load media: media error", viewModel.uiState.value.errorMsg)
-  }
-
-  @Test
-  fun `clearErrorMsg resets the error`() {
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flow { throw RuntimeException("media error") }
-    val viewModel = createViewModel()
-    assertEquals("Failed to load media: media error", viewModel.uiState.value.errorMsg)
-
-    viewModel.clearErrorMsg()
-
-    assertNull(viewModel.uiState.value.errorMsg)
-  }
-
-  @Test
-  fun `does not observe media while the profile has no circle`() {
-    // profile never arrives: the state keeps circleIds = emptyList()
-    coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
-
-    createViewModel()
-
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("Failed to load the care circle: circle error", state.message)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
 
   @Test
-  fun `is not loading and has no load error once everything is loaded`() {
+  fun `blocking error when the media flow fails before anything is displayed`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw RuntimeException("media error") }
+
     val viewModel = createViewModel()
 
-    assertTrue(!viewModel.uiState.value.isLoading)
-    assertNull(viewModel.uiState.value.loadError)
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("Failed to load media: media error", state.message)
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Non-blocking errors
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun `non-blocking error keeps the pictures when the media flow fails after content`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(listOf(picture1))
+          throw RuntimeException("media error")
+        }
+
+    val viewModel = createViewModel()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(listOf(picture1), state.allPictures)
+    assertEquals("Failed to load media: media error", state.errorMsg)
   }
 
   @Test
-  fun `stops loading when a blocking error happens`() {
-    coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
+  fun `non-blocking error is attached to Empty when the media flow fails after an empty list`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(emptyList())
+          throw RuntimeException("media error")
+        }
 
     val viewModel = createViewModel()
 
-    assertTrue(!viewModel.uiState.value.isLoading)
+    val state = viewModel.uiState.value as SeePicturesUIState.Empty
+    assertEquals("Failed to load media: media error", state.errorMsg)
   }
+
+  @Test
+  fun `clearErrorMsg resets the error on Content`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(listOf(picture1))
+          throw RuntimeException("media error")
+        }
+    val viewModel = createViewModel()
+    assertEquals(
+        "Failed to load media: media error",
+        (viewModel.uiState.value as SeePicturesUIState.Content).errorMsg,
+    )
+
+    viewModel.clearErrorMsg()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertNull(state.errorMsg)
+    assertEquals(listOf(picture1), state.allPictures)
+  }
+
+  @Test
+  fun `clearErrorMsg resets the error on Empty`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(emptyList())
+          throw RuntimeException("media error")
+        }
+    val viewModel = createViewModel()
+    assertEquals(
+        "Failed to load media: media error",
+        (viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg,
+    )
+
+    viewModel.clearErrorMsg()
+
+    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg)
+  }
+
+  @Test
+  fun `clearErrorMsg does not change a blocking error`() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
+    val viewModel = createViewModel()
+
+    viewModel.clearErrorMsg()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals("No profile found.", state.message)
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // retry / refresh
+  // ---------------------------------------------------------------------------------------------
 
   @Test
   fun `retry reloads everything after a failure`() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
     val viewModel = createViewModel()
-    assertEquals("Failed to load the profile: boom", viewModel.uiState.value.loadError)
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.BlockingError)
 
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
     viewModel.retry()
 
-    assertNull(viewModel.uiState.value.loadError)
-    assertTrue(!viewModel.uiState.value.isLoading)
-    assertEquals(circle, viewModel.uiState.value.careCircle)
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(circle, state.careCircle)
+    assertEquals(listOf(picture1), state.allPictures)
   }
 
   @Test
-  fun `keeps loading until the first media list arrives`() {
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+  fun `retry goes back to Loading while reloading`() {
+    val viewModel = createViewModel()
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
 
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+    viewModel.retry()
+
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
+  }
+
+  @Test
+  fun `refreshUIState keeps the current content while reloading`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
+    val viewModel = createViewModel()
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
+
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+    viewModel.refreshUIState()
+
+    // no flash of the loading screen: the old content is still displayed
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(listOf(picture1), state.allPictures)
+  }
+
+  @Test
+  fun `refreshUIState updates the pictures with the new media`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
     val viewModel = createViewModel()
 
-    assertTrue(viewModel.uiState.value.isLoading)
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(picture1, picture2))
+    viewModel.refreshUIState()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(listOf(picture1, picture2), state.allPictures)
   }
 }

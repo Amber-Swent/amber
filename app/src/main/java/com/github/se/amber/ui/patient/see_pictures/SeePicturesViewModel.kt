@@ -13,32 +13,34 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
-import com.github.se.amber.model.user.Person
-import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
-data class SeePicturesUIState(
-    val patientProfile: UserProfile =
-        UserProfile(
-            uid = "",
-            role = Role.PATIENT,
-            person = Person(),
-            circleIds = emptyList(),
-        ),
-    val careCircle: CareCircle = CareCircle(),
-    val allMediaItems: List<MediaItem> = emptyList(),
-    val allPictures: List<MediaItem.Picture> = emptyList(),
-    val isLoading: Boolean = true,
-    val loadError: String? = null,
-    val errorMsg: String? = null,
-)
+sealed interface SeePicturesUIState {
+  data object Loading : SeePicturesUIState
+
+  data class BlockingError(val message: String) : SeePicturesUIState
+
+  // everything was successful but there are no pictures to display
+  data class Empty(
+      val patientProfile: UserProfile,
+      val careCircle: CareCircle,
+      val errorMsg: String? = null,
+  ) : SeePicturesUIState
+
+  data class Content(
+      val patientProfile: UserProfile,
+      val careCircle: CareCircle,
+      val allMediaItems: List<MediaItem>,
+      val allPictures: List<MediaItem.Picture>,
+      val errorMsg: String? = null,
+  ) : SeePicturesUIState
+}
 
 class SeePicturesViewModel(
     private val mediaRepository: MediaRepository = MediaRepositoryProvider.repository,
@@ -47,137 +49,112 @@ class SeePicturesViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
 ) : ViewModel() {
 
-  // See Pictures UI state
-  private val _uiState = MutableStateFlow(SeePicturesUIState())
+  // See Pictures UI state, start on loading by default.
+  private val _uiState = MutableStateFlow<SeePicturesUIState>(SeePicturesUIState.Loading)
   val uiState: StateFlow<SeePicturesUIState> = _uiState.asStateFlow()
 
-  //  completed when getProfile() has finish to get the profile, so profil is either null or exist
-  private var profileResult = CompletableDeferred<UserProfile?>()
-  private var picturesJob: Job? = null
-  private var circleLoaded = false
-  private var mediaLoaded = false
+  private var loadJob: Job? = null
 
   init {
-    getProfile()
-    getCareCircle()
-    getAllPictures()
+    load()
   }
 
-  /** Refreshes the UI state by fetching all pictures from the repository */
+  /** Reloads everything and shows the loading state. */
+  fun retry() = load(showLoading = true)
+
+  /** Reloads everything without flashing(display) the loading screen. */
   fun refreshUIState() {
-    getAllPictures()
+    load(showLoading = false)
   }
 
-  /** Clears the error message in the UI state. */
+  /** Clears the non-blocking error message in the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
-  }
-
-  /** Non-blocking errors: sets an error message in the UI state. */
-  private fun setErrorMsg(errorMsg: String) {
-    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
-  }
-
-  /** Blocking error: shown inside the screen with a Retry button. */
-  private fun setLoadError(message: String) {
-    _uiState.value = _uiState.value.copy(isLoading = false, loadError = message)
-  }
-
-  /** Stops the loading state once both the care circle and the first media list are there. */
-  private fun updateLoading() {
-    if (circleLoaded && mediaLoaded) {
-      _uiState.value = _uiState.value.copy(isLoading = false)
+    when (val state = _uiState.value) {
+      is SeePicturesUIState.Empty -> _uiState.value = state.copy(errorMsg = null)
+      is SeePicturesUIState.Content -> _uiState.value = state.copy(errorMsg = null)
+      else -> Unit
     }
   }
 
-  /** Reloads profile, care circle and pictures. */
-  fun retry() {
-    profileResult = CompletableDeferred()
-    _uiState.value = _uiState.value.copy(isLoading = true, loadError = null)
-    circleLoaded = false
-    mediaLoaded = false
-    getProfile()
-    getCareCircle()
-    getAllPictures()
+  /**
+   * Non-blocking error: if something is already displayed we keep it and add a message, otherwise
+   * we fall back to a blocking error.
+   */
+  private fun showNonBlockingError(message: String) {
+    when (val state = _uiState.value) {
+      is SeePicturesUIState.Empty -> _uiState.value = state.copy(errorMsg = message)
+      is SeePicturesUIState.Content -> _uiState.value = state.copy(errorMsg = message)
+      is SeePicturesUIState.Loading,
+      is SeePicturesUIState.BlockingError -> showBlockingError(message)
+    }
   }
 
-  /** wait the end of the profil loading and give back either null or the id of the carecircle */
-  private suspend fun awaitCircleId(): String? =
-      profileResult.await()?.circleIds?.firstOrNull { it.isNotBlank() }
+  /** Blocking error: replaces the whole screen with an error message and a Retry button */
+  private fun showBlockingError(message: String) {
+    _uiState.value = SeePicturesUIState.BlockingError(message)
+  }
 
-  /** Fetches all pictures from the repository and update the UI state */
-  private fun getAllPictures() {
-    picturesJob?.cancel()
-    picturesJob = viewModelScope.launch {
-      try {
-        // wait that the profil is loaded to get the id of the carecircle.
-        val circleId = awaitCircleId() ?: return@launch
+  /** Sequentially loads profile, circle id, care circle and then observes the media. */
+  private fun load(showLoading: Boolean = true) {
+    loadJob?.cancel()
+    if (showLoading) _uiState.value = SeePicturesUIState.Loading
 
-        mediaRepository.observeApprovedMedia(circleId).collect { medias ->
-          _uiState.value =
-              _uiState.value.copy(
-                  allMediaItems = medias,
-                  allPictures = medias.filterIsInstance<MediaItem.Picture>(),
-              )
-          mediaLoaded = true
-          updateLoading()
-        }
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        Log.e("SeePicturesViewModel", "Error observing media", e)
-        setErrorMsg("Failed to load media: ${e.message}")
-        mediaLoaded = true
-        updateLoading()
+    loadJob = viewModelScope.launch {
+      // 1. Profile
+      val profile =
+          profileRepository.getCurrentProfile().getOrElse { e ->
+            Log.e(TAG, "Error fetching profile", e)
+            showBlockingError("Failed to load the profile: ${e.message}")
+            return@launch
+          }
+      if (profile == null) {
+        showBlockingError("No profile found.")
+        return@launch
       }
-    }
-  }
 
-  /** Fetches the profile from the repository and updates the UI state. */
-  private fun getProfile() {
-    viewModelScope.launch {
-      profileRepository
-          .getCurrentProfile()
-          .fold(
-              onSuccess = { profile ->
-                if (profile != null) {
-                  _uiState.value = _uiState.value.copy(patientProfile = profile)
-                  if (profile.circleIds.none { it.isNotBlank() }) {
-                    setLoadError("No care circle found for this patient.")
-                  }
+      // 2. Circle id (explicit error if missing)
+      val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
+      if (circleId == null) {
+        showBlockingError("No care circle found for this patient.")
+        return@launch
+      }
+
+      // 3. Care circle
+      val circle =
+          circleRepository.getCircle(circleId).getOrElse { e ->
+            Log.e(TAG, "Error fetching care circle", e)
+            showBlockingError("Failed to load the care circle: ${e.message}")
+            return@launch
+          }
+
+      // 4. Media (live flow)
+      mediaRepository
+          .observeApprovedMedia(circleId)
+          .catch { e ->
+            Log.e(TAG, "Error observing media", e)
+            showNonBlockingError("Failed to load media: ${e.message}")
+          }
+          .collect { medias ->
+            val pictures = medias.filterIsInstance<MediaItem.Picture>()
+            _uiState.value =
+                if (pictures.isEmpty()) {
+                  SeePicturesUIState.Empty(
+                      patientProfile = profile,
+                      careCircle = circle,
+                  )
                 } else {
-                  setLoadError("No profile found.")
+                  SeePicturesUIState.Content(
+                      patientProfile = profile,
+                      careCircle = circle,
+                      allMediaItems = medias,
+                      allPictures = pictures,
+                  )
                 }
-                profileResult.complete(profile)
-              },
-              onFailure = { e ->
-                Log.e("SeePicturesViewModel", "Error fetching profile", e)
-                setLoadError("Failed to load the profile: ${e.message}")
-                profileResult.complete(null)
-              },
-          )
+          }
     }
   }
 
-  /** Fetches the patient's care circle once the profile is loaded and updates the UI state. */
-  private fun getCareCircle() {
-    viewModelScope.launch {
-      // wait that the profil is loaded to get the id of the carecircle.
-      val circleId = awaitCircleId() ?: return@launch
-
-      circleRepository
-          .getCircle(circleId)
-          .fold(
-              onSuccess = { circle ->
-                _uiState.value = _uiState.value.copy(careCircle = circle)
-                circleLoaded = true
-                updateLoading()
-              },
-              onFailure = { e ->
-                Log.e("SeePicturesViewModel", "Error fetching care circle", e)
-                setLoadError("Failed to load the care circle: ${e.message}")
-              },
-          )
-    }
+  private companion object {
+    const val TAG = "SeePicturesViewModel"
   }
 }

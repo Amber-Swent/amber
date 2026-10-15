@@ -1,3 +1,4 @@
+// this code was written with the aid of AI
 package com.github.se.amber.ui.patient.see_pictures
 
 import androidx.compose.ui.test.assertIsDisplayed
@@ -20,6 +21,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -88,6 +90,10 @@ class SeePicturesScreenTest {
     return viewModel
   }
 
+  // ---------------------------------------------------------------------------------------------
+  // Static parts
+  // ---------------------------------------------------------------------------------------------
+
   @Test
   fun title_and_navigation_menus_are_displayed() {
     setContent()
@@ -101,12 +107,59 @@ class SeePicturesScreenTest {
   }
 
   @Test
+  fun back_button_calls_onBackClick() {
+    var clicked = false
+    setContent(onBackClick = { clicked = true })
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertTrue(clicked)
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Loading
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun neither_error_nor_empty_message_is_displayed_while_loading() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+
+    val viewModel = setContent()
+
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Empty / Content
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
   fun empty_message_is_displayed_when_there_are_no_pictures() {
     setContent()
 
     composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithText("There are no pictures yet.").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
   }
+
+  @Test
+  fun empty_message_is_not_displayed_when_there_are_pictures() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(MediaItem.Picture(id = "1", width = 400, height = 300)))
+
+    val viewModel = setContent()
+
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Blocking errors (displayed in the screen with a Retry button)
+  // ---------------------------------------------------------------------------------------------
 
   @Test
   fun error_and_retry_are_displayed_when_the_profile_has_no_circle() {
@@ -122,37 +175,6 @@ class SeePicturesScreenTest {
   }
 
   @Test
-  fun empty_message_is_not_displayed_when_there_are_pictures() {
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flowOf(listOf(MediaItem.Picture(id = "1", width = 400, height = 300)))
-
-    setContent()
-
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
-  }
-
-  @Test
-  fun back_button_calls_onBackClick() {
-    var clicked = false
-    setContent(onBackClick = { clicked = true })
-
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-
-    assertTrue(clicked)
-  }
-
-  @Test
-  fun media_error_is_shown_in_a_toast_then_cleared() {
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flow { throw RuntimeException("media error") }
-
-    val viewModel = setContent()
-
-    assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
-    assertNull(viewModel.uiState.value.errorMsg)
-  }
-
-  @Test
   fun error_is_displayed_in_the_screen_when_the_profile_fails_to_load() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
@@ -160,6 +182,19 @@ class SeePicturesScreenTest {
 
     composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
     composeTestRule.onNodeWithText("Failed to load the profile: boom").assertIsDisplayed()
+  }
+
+  @Test
+  fun error_is_displayed_in_the_screen_when_the_media_flow_fails_before_any_content() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw RuntimeException("media error") }
+
+    setContent()
+
+    // Nothing was displayed yet, so this is a blocking error, not a Toast
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
+    composeTestRule.onNodeWithText("Failed to load media: media error").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).assertIsDisplayed()
   }
 
   @Test
@@ -174,5 +209,44 @@ class SeePicturesScreenTest {
 
     composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Non-blocking errors (Toast)
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun media_error_after_an_empty_list_is_shown_in_a_toast_then_cleared() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(emptyList())
+          throw RuntimeException("media error")
+        }
+
+    val viewModel = setContent()
+
+    assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
+    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg)
+    // The screen is still usable: no blocking error replaced it
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+  }
+
+  @Test
+  fun media_error_after_pictures_is_shown_in_a_toast_and_keeps_the_pictures() {
+    val picture = MediaItem.Picture(id = "1", width = 400, height = 300)
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(listOf(picture))
+          throw RuntimeException("media error")
+        }
+
+    val viewModel = setContent()
+
+    assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertNull(state.errorMsg)
+    assertEquals(listOf(picture), state.allPictures)
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
   }
 }
