@@ -132,8 +132,8 @@ class MediaRepositoryFirebase(
    * media is saved, and [scheduleWaitingSends] schedules it at the next start of the app.
    */
   override suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?) {
-    // when the media is sent, both the Storage and the Firestore rules refuse it unless its authorId
-    // is the signed-in user's uid; a blank one could never be sent
+    // when the media is sent, both the Storage and the Firestore rules refuse it unless its
+    // authorId is the signed-in user's uid; a blank one could never be sent
     require(item.authorId.isNotBlank()) { "Media ${item.id} has no author" }
     if (item is MediaItem.Text) {
       require(file == null) { "Media ${item.id} is a text: it has no file" }
