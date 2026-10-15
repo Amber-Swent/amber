@@ -38,9 +38,13 @@ data class CreateProfileUiState(
 /**
  * ViewModel for [CreateProfileScreen]: validates name/surname and persists the profile on role
  * choice.
+ *
+ * @param onSuccess invoked with the chosen [Role] and trimmed first name after a successful create,
+ *   so the navigation owner can move to the next onboarding step without observing UI state.
  */
 class CreateProfileViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val onSuccess: (role: Role, displayName: String) -> Unit = { _, _ -> },
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(CreateProfileUiState())
@@ -110,6 +114,7 @@ class CreateProfileViewModel(
                       submitError = null,
                       createdRole = role,
                   )
+              onSuccess(role, trimmedName)
             }
             .onFailure { error ->
               _uiState.value =

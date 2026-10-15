@@ -26,7 +26,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
-import com.github.se.amber.ui.accountCreation.CreateProfile
+import com.github.se.amber.ui.accountCreation.CreateProfileScreen
+import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
 import com.github.se.amber.ui.invitationRedemption.RedeemInvite
@@ -102,16 +103,30 @@ fun AmberApp(
         route = NavGraphs.ONBOARDING,
     ) {
       composable(route = OnboardingScreen.CreateProfile.route) {
-        CreateProfile(
-            onProfileCreated = { role, displayName ->
-              when (role) {
-                Role.PATIENT -> navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
-                Role.CAREGIVER -> {
-                  caregiverDisplayName = displayName
-                  navigationActions.navigateTo(OnboardingScreen.CaregiverChoice)
-                }
-              }
-            },
+        CreateProfileScreen(
+            viewModel =
+                viewModel(
+                    factory =
+                        object : ViewModelProvider.Factory {
+                          @Suppress("UNCHECKED_CAST")
+                          override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                              CreateProfileViewModel(
+                                  onSuccess = { role, displayName ->
+                                    when (role) {
+                                      Role.PATIENT ->
+                                          navigationActions.navigateTo(
+                                              OnboardingScreen.EnterInvitation)
+                                      Role.CAREGIVER -> {
+                                        caregiverDisplayName = displayName
+                                        navigationActions.navigateTo(
+                                            OnboardingScreen.CaregiverChoice)
+                                      }
+                                    }
+                                  },
+                              )
+                                  as T
+                        },
+                ),
         )
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
