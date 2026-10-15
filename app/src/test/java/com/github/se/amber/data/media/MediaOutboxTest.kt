@@ -2,6 +2,7 @@
 // Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
+import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.OutboxEntry
@@ -56,6 +57,10 @@ class MediaOutboxTest {
 
   /** A file holding [content], as the camera or the recorder would give it. */
   private fun source(content: String = "bytes"): File = tmp.newFile().apply { writeText(content) }
+
+  /** Adds [item] to the circle [circleId], whose bucket is "bucket-{circleId}". */
+  private suspend fun MediaOutbox.add(circleId: String, item: MediaItem, file: File?) =
+      add(CareCircle(id = circleId, storageBucket = "bucket-$circleId"), item, file)
 
   /** A new outbox on [dir], as after an app restart. */
   private fun TestScope.newOutbox() =
@@ -650,6 +655,57 @@ class MediaOutboxTest {
     assertEquals("WAITING", json.getString("state"))
     assertEquals(1, json.getInt("failedAttempts"))
     assertEquals("picture", json.getJSONObject("item").getString("type")) // the media is kept
+  }
+
+  @Test
+  fun theBucketIsKeptThroughEveryStateChangeAndARestart() = runTest {
+    val first = newOutbox()
+    first.add("c1", picture("m1"), source("bytes of m1"))
+    first.failAttempt("c1", "m1")
+    first.failForGood("c1", "m1")
+    first.retry("c1", "m1")
+
+    val toSend = newOutbox().toSend("c1", "m1")!!
+
+    // the send uploads to this bucket without reading the circle
+    assertEquals("bucket-c1", toSend.storageBucket)
+    assertEquals(picture("m1"), toSend.item)
+    assertEquals("bytes of m1", toSend.file!!.readText())
+  }
+
+  @Test
+  fun aMissingOrInvalidBucketReadsAsBlank() = runTest {
+    val first = newOutbox()
+    for (id in listOf("old", "number")) first.add("c1", picture(id), source())
+    // an entry written before the bucket was kept, and a damaged one
+    rewriteJson("c1", "old") { remove("storageBucket") }
+    rewriteJson("c1", "number") { put("storageBucket", 3) }
+
+    val restarted = newOutbox()
+
+    for (id in listOf("old", "number")) assertEquals(
+        id,
+        "",
+        restarted.toSend("c1", id)?.storageBucket,
+    )
+  }
+
+  @Test
+  fun waitingIdsListsTheWaitingEntriesOfEveryCircle() = runTest {
+    val first = newOutbox()
+    first.add("c1", picture("waiting"), source())
+    first.add("c1", picture("failed"), source())
+    first.failForGood("c1", "failed")
+    first.add("c2", picture("interrupted"), source())
+    first.startSending("c2", "interrupted")
+
+    val restarted = newOutbox()
+
+    // an entry whose send the end of its process cut short is waiting again, so it is listed
+    assertEquals(
+        setOf("c1" to "waiting", "c2" to "interrupted"),
+        restarted.waitingIds().toSet(),
+    )
   }
 
   @Test
