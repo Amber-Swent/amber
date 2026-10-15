@@ -3,7 +3,6 @@
  */
 package com.github.se.amber.ui.caregiver
 
-import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -80,9 +79,7 @@ class CaregiverHomeViewModel(
       authRepository
           .signOut()
           .fold(
-              onSuccess = {
-                setSignedOut(true)
-              },
+              onSuccess = { setSignedOut(true) },
               onFailure = { throwable ->
                 setErrorMsg(throwable.localizedMessage ?: "Sign out failed")
               },
