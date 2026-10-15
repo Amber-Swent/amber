@@ -122,8 +122,8 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isCreated)
     assertEquals("Family", viewModel.uiState.value.name)
     assertEquals(
-      "You're offline. Check your connection and try again.",
-      viewModel.errorEvents.first(),
+        "You're offline. Check your connection and try again.",
+        viewModel.errorEvents.first(),
     )
 
     repository.result = Result.success(createdCircle)
@@ -141,8 +141,8 @@ class CreateCareCircleViewModelTest {
 
     assertFalse(viewModel.uiState.value.isLoading)
     assertEquals(
-      "Couldn't create your care circle. Please try again.",
-      viewModel.errorEvents.first(),
+        "Couldn't create your care circle. Please try again.",
+        viewModel.errorEvents.first(),
     )
   }
 
@@ -154,8 +154,8 @@ class CreateCareCircleViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-      "Your session expired. Sign in and try again.",
-      viewModel.errorEvents.first(),
+        "Your session expired. Sign in and try again.",
+        viewModel.errorEvents.first(),
     )
   }
 
@@ -171,8 +171,8 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isLoading)
 
     assertEquals(
-      "Creation was denied. Check your account and try again.",
-      viewModel.errorEvents.first(),
+        "Creation was denied. Check your account and try again.",
+        viewModel.errorEvents.first(),
     )
   }
 

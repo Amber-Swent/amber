@@ -77,23 +77,21 @@ fun CreateCareCircleScreen(
 ) {
   val uiState by viewModel.uiState.collectAsState()
 
-  // Keep one stable reference for the effect, but always update the value inside it to the newest onCreated
+  // Keep one stable reference for the effect, but always update the value inside it to the newest
+  // onCreated
   val currentOnCreated by rememberUpdatedState(onCreated)
 
   // Display submit errors when creating the circle
   LaunchedEffect(viewModel) {
-      viewModel.errorEvents.collect { message ->
-          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-      }
+    viewModel.errorEvents.collect { message ->
+      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
   }
 
   // LaunchedEffect depends only on the ViewModel since depending on the lambda onCreated
-  // can make the compose receive a new lambda on recomposition and therefore triggering a new launch
-  LaunchedEffect(viewModel) {
-      viewModel.successEvents.collect {
-          currentOnCreated()
-      }
-  }
+  // can make the compose receive a new lambda on recomposition and therefore triggering a new
+  // launch
+  LaunchedEffect(viewModel) { viewModel.successEvents.collect { currentOnCreated() } }
 
   CreateCareCircleContent(
       uiState = uiState,
