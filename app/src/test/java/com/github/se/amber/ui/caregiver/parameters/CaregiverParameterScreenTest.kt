@@ -100,23 +100,11 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
-  fun checkoutCallsViewModelSignOut() {
-    val credentialManager = mockk<CredentialManager>(relaxed = true)
-    val viewModel = fakeViewModel()
-    setScreen(viewModel = viewModel, credentialManager = credentialManager)
-
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-
-    verify(exactly = 1) { viewModel.signOut(credentialManager) }
-  }
-
-  @Test
   fun errorMessageIsClearedAfterItIsShown() {
     val viewModel = fakeViewModel(CaregiverParameterUIState(errorMsg = "nope"))
     composeTestRule.setContent {
       CaregiverParameterScreen(
           viewModel = viewModel,
-          credentialManager = mockk(relaxed = true),
       )
     }
 
@@ -138,19 +126,6 @@ class CaregiverParameterScreenTest {
     composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
   }
 
-  @Test
-  fun signedOutInvokesOnSignedOut() {
-    var signedOutClicks = 0
-    setScreen(
-        viewModel = fakeViewModel(CaregiverParameterUIState(signedOut = true)),
-        onSignedOut = { signedOutClicks++ },
-    )
-
-    composeTestRule.waitForIdle()
-
-    assertEquals(1, signedOutClicks)
-  }
-
   private fun fakeViewModel(
       state: CaregiverParameterUIState = CaregiverParameterUIState(),
   ): CaregiverParameterViewModel {
@@ -162,15 +137,14 @@ class CaregiverParameterScreenTest {
   private fun setScreen(
       viewModel: CaregiverParameterViewModel = fakeViewModel(),
       credentialManager: CredentialManager = mockk(relaxed = true),
-      onSignedOut: () -> Unit = {},
+      onCheckout: () -> Unit = {},
       onCreateInvitationClick: () -> Unit = {},
       onEnterInvitationClick: () -> Unit = {},
   ) {
     composeTestRule.setContent {
       CaregiverParameterScreen(
           viewModel = viewModel,
-          credentialManager = credentialManager,
-          onSignedOut = onSignedOut,
+          onCheckout = onCheckout,
           onCreateInvitationClick = onCreateInvitationClick,
           onEnterInvitationClick = onEnterInvitationClick,
       )

@@ -29,8 +29,6 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class CaregiverParameterViewModelTest {
   private val dispatcher = StandardTestDispatcher()
-  private val authRepository = mockk<AuthRepository>()
-  private val credentialManager = mockk<CredentialManager>(relaxed = true)
 
   @Before
   fun setUp() {
@@ -43,75 +41,10 @@ class CaregiverParameterViewModelTest {
   }
 
   @Test
-  fun signOutSuccessSetsSignedOutAndClearsCredentials() =
-      runTest(dispatcher) {
-        coEvery { authRepository.signOut() } returns Result.success(Unit)
-        val viewModel = CaregiverParameterViewModel(authRepository)
-
-        viewModel.signOut(credentialManager)
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value.signedOut)
-        assertNull(viewModel.uiState.value.errorMsg)
-        coVerify(exactly = 1) {
-          credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
-        }
-      }
-
-  @Test
-  fun signOutSuccessStillSignsOutWhenCredentialClearFails() =
-      runTest(dispatcher) {
-        coEvery { authRepository.signOut() } returns Result.success(Unit)
-        coEvery {
-          credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
-        } throws Exception("no credential")
-        val viewModel = CaregiverParameterViewModel(authRepository)
-
-        viewModel.signOut(credentialManager)
-        advanceUntilIdle()
-
-        assertTrue(viewModel.uiState.value.signedOut)
-        assertNull(viewModel.uiState.value.errorMsg)
-      }
-
-  @Test
-  fun signOutRethrowsCancellationFromCredentialClear() =
-      runTest(dispatcher) {
-        coEvery { authRepository.signOut() } returns Result.success(Unit)
-        coEvery {
-          credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
-        } throws CancellationException("stop")
-        val viewModel = CaregiverParameterViewModel(authRepository)
-
-        viewModel.signOut(credentialManager)
-        advanceUntilIdle()
-
-        assertFalse(viewModel.uiState.value.signedOut)
-      }
-
-  @Test
-  fun signOutFailureWritesTheErrorAndStaysSignedIn() =
-      runTest(dispatcher) {
-        coEvery { authRepository.signOut() } returns Result.failure(Exception("nope"))
-        val viewModel = CaregiverParameterViewModel(authRepository)
-
-        viewModel.signOut(credentialManager)
-        advanceUntilIdle()
-
-        assertEquals("nope", viewModel.uiState.value.errorMsg)
-        assertFalse(viewModel.uiState.value.signedOut)
-        coVerify(exactly = 0) {
-          credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
-        }
-      }
-
-  @Test
   fun clearErrorMsgRemovesTheMessage() =
       runTest(dispatcher) {
-        coEvery { authRepository.signOut() } returns Result.failure(Exception("nope"))
-        val viewModel = CaregiverParameterViewModel(authRepository)
+        val viewModel = CaregiverParameterViewModel()
 
-        viewModel.signOut(credentialManager)
         advanceUntilIdle()
         viewModel.clearErrorMsg()
 
