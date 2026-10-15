@@ -8,8 +8,6 @@ import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.media.SendState
 import java.io.File
 import java.io.IOException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -75,14 +73,28 @@ class MediaOutboxTest {
       mediaId: String,
       maxAttempts: Int = MediaSender.MAX_FAILED_ATTEMPTS,
   ): Int? {
-    setState(circleId, mediaId, SendState.SENDING)
+    startSending(circleId, mediaId)
     return recordFailedAttempt(circleId, mediaId, maxAttempts)
+  }
+
+  /**
+   * One send attempt of [mediaId] that fails for a reason retrying can't fix, as a send does it.
+   */
+  private suspend fun MediaOutbox.failForGood(circleId: String, mediaId: String) {
+    startSending(circleId, mediaId)
+    markFailed(circleId, mediaId)
   }
 
   private fun fileOnDisk(circleId: String, name: String) = File(File(dir, circleId), name)
 
   private fun jsonOnDisk(circleId: String, mediaId: String) =
       JSONObject(fileOnDisk(circleId, "$mediaId.json").readText())
+
+  /** Changes the `.json` of [mediaId] on disk, as another app version or a damaged file would. */
+  private fun rewriteJson(circleId: String, mediaId: String, change: JSONObject.() -> Unit) {
+    val json = jsonOnDisk(circleId, mediaId).apply(change)
+    fileOnDisk(circleId, "$mediaId.json").writeText(json.toString())
+  }
 
   /** Makes [file] impossible to delete or replace, on every OS: a folder that isn't empty. */
   private fun makeUndeletable(file: File) {
@@ -114,7 +126,7 @@ class MediaOutboxTest {
 
     outbox.add("c1", picture("m1"), source())
     runCurrent()
-    outbox.setState("c1", "m1", SendState.SENDING)
+    outbox.startSending("c1", "m1")
     runCurrent()
     outbox.recordFailedAttempt("c1", "m1", MediaSender.MAX_FAILED_ATTEMPTS)
     runCurrent()
@@ -237,26 +249,32 @@ class MediaOutboxTest {
   }
 
   @Test
-  fun setStateOfAMissingEntryChangesNothing() = runTest {
+  fun startSendingMovesOnlyAWaitingEntry() = runTest {
     val outbox = newOutbox()
-    outbox.add("c1", picture("m1"), source())
+    outbox.add("c1", picture("waiting"), source())
+    outbox.add("c1", picture("failed"), source())
+    outbox.failForGood("c1", "failed")
 
-    assertFalse(outbox.setState("c1", "m2", SendState.FAILED))
-    assertFalse(outbox.setState("c2", "m1", SendState.FAILED))
-    assertTrue(outbox.setState("c1", "m1", SendState.WAITING)) // already WAITING
-    assertEquals(listOf("m1"), outbox.idsOf("c1"))
-    assertNull(outbox.get("c1", "m2"))
+    assertTrue(outbox.startSending("c1", "waiting"))
+    assertFalse("already being sent", outbox.startSending("c1", "waiting"))
+    // a FAILED entry is sent again only after a retry
+    assertFalse(outbox.startSending("c1", "failed"))
+    assertFalse(outbox.startSending("c1", "missing"))
+    assertFalse(outbox.startSending("c2", "waiting"))
+
+    assertEquals(SendState.SENDING, outbox.stateOf("c1", "waiting"))
+    assertEquals("SENDING", jsonOnDisk("c1", "waiting").getString("state"))
+    assertEquals(SendState.FAILED, outbox.stateOf("c1", "failed"))
+    assertNull(outbox.get("c1", "missing"))
   }
 
   @Test
-  fun setStateKeepsTheFailedAttemptCount() = runTest {
+  fun startSendingKeepsTheFailedAttemptCount() = runTest {
     val outbox = newOutbox()
     outbox.add("c1", picture("m1"), source())
     outbox.failAttempt("c1", "m1")
 
-    // a failure retrying can't fix, then a new attempt: neither touches the count
-    outbox.setState("c1", "m1", SendState.FAILED)
-    outbox.setState("c1", "m1", SendState.SENDING)
+    outbox.startSending("c1", "m1")
 
     assertEquals(1, jsonOnDisk("c1", "m1").getInt("failedAttempts"))
     assertEquals(2, outbox.recordFailedAttempt("c1", "m1", MediaSender.MAX_FAILED_ATTEMPTS))
@@ -267,7 +285,7 @@ class MediaOutboxTest {
     val outbox = newOutbox()
     outbox.add("c1", picture("m1"), source())
     outbox.failAttempt("c1", "m1")
-    outbox.setState("c1", "m1", SendState.SENDING)
+    outbox.startSending("c1", "m1")
 
     assertTrue(outbox.resetSending("c1", "m1"))
 
@@ -281,7 +299,7 @@ class MediaOutboxTest {
     val outbox = newOutbox()
     outbox.add("c1", picture("waiting"), source())
     outbox.add("c1", picture("failed"), source())
-    outbox.setState("c1", "failed", SendState.FAILED)
+    outbox.failForGood("c1", "failed")
 
     assertFalse(outbox.resetSending("c1", "waiting"))
     // e.g. an attempt cancelled after another one had already made the entry FAILED
@@ -331,7 +349,7 @@ class MediaOutboxTest {
     val outbox = newOutbox()
     outbox.add("c1", picture("waiting"), source())
     outbox.add("c1", picture("failed"), source())
-    outbox.setState("c1", "failed", SendState.FAILED)
+    outbox.failForGood("c1", "failed")
 
     assertNull(outbox.recordFailedAttempt("c1", "waiting", maxAttempts = 1))
     assertNull(outbox.recordFailedAttempt("c1", "failed", maxAttempts = 1))
@@ -347,7 +365,7 @@ class MediaOutboxTest {
   fun recordFailedAttemptRefusesAMaxBelowOne() = runTest {
     val outbox = newOutbox()
     outbox.add("c1", picture("m1"), source())
-    outbox.setState("c1", "m1", SendState.SENDING)
+    outbox.startSending("c1", "m1")
 
     for (badMax in listOf(0, -1)) {
       val error = runCatching { outbox.recordFailedAttempt("c1", "m1", badMax) }.exceptionOrNull()
@@ -355,6 +373,38 @@ class MediaOutboxTest {
     }
     assertEquals(SendState.SENDING, outbox.stateOf("c1", "m1"))
     assertEquals(0, jsonOnDisk("c1", "m1").getInt("failedAttempts"))
+  }
+
+  @Test
+  fun markFailedEndsAnAttemptAtOnceWithoutCountingIt() = runTest {
+    val outbox = newOutbox()
+    outbox.add("c1", picture("m1"), source())
+    outbox.failAttempt("c1", "m1")
+    outbox.startSending("c1", "m1")
+
+    // e.g. permission denied: retrying can't help, whatever the count
+    assertTrue(outbox.markFailed("c1", "m1"))
+
+    assertEquals(SendState.FAILED, outbox.stateOf("c1", "m1"))
+    val json = jsonOnDisk("c1", "m1")
+    assertEquals("FAILED", json.getString("state"))
+    assertEquals(1, json.getInt("failedAttempts"))
+  }
+
+  @Test
+  fun markFailedLeavesAnEntryThatIsntSendingAlone() = runTest {
+    val outbox = newOutbox()
+    outbox.add("c1", picture("waiting"), source())
+    outbox.add("c1", picture("failed"), source())
+    outbox.failForGood("c1", "failed")
+
+    assertFalse(outbox.markFailed("c1", "waiting"))
+    assertFalse(outbox.markFailed("c1", "failed"))
+    assertFalse(outbox.markFailed("c1", "missing"))
+
+    assertEquals(SendState.WAITING, outbox.stateOf("c1", "waiting"))
+    assertEquals(SendState.FAILED, outbox.stateOf("c1", "failed"))
+    assertNull(outbox.get("c1", "missing"))
   }
 
   @Test
@@ -382,7 +432,7 @@ class MediaOutboxTest {
     outbox.add("c1", picture("waiting"), source())
     outbox.add("c1", picture("sending"), source())
     outbox.failAttempt("c1", "sending")
-    outbox.setState("c1", "sending", SendState.SENDING)
+    outbox.startSending("c1", "sending")
 
     assertFalse(outbox.retry("c1", "waiting"))
     assertFalse(outbox.retry("c1", "sending"))
@@ -394,39 +444,43 @@ class MediaOutboxTest {
   }
 
   @Test
-  fun ofTwoRetriesAtOnceOnlyOneRetries() = runTest {
+  fun aSecondRetryDoesNothing() = runTest {
     val outbox = newOutbox()
     outbox.add("c1", picture("m1"), source())
-    outbox.setState("c1", "m1", SendState.FAILED)
+    outbox.failForGood("c1", "m1")
 
-    // a quick double tap on "retry"
-    val results = List(2) { async { outbox.retry("c1", "m1") } }.awaitAll()
+    // a quick double tap on "retry": the second call finds the entry WAITING already, so the
+    // caller schedules a single send
+    assertTrue(outbox.retry("c1", "m1"))
+    assertFalse(outbox.retry("c1", "m1"))
 
-    assertEquals(listOf(false, true), results.sorted())
     assertEquals(SendState.WAITING, outbox.stateOf("c1", "m1"))
   }
 
   @Test
   fun aStateChangeThatCantBeWrittenKeepsTheOldOne() = runTest {
     val outbox = newOutbox()
+    outbox.add("c1", picture("waiting"), source())
     outbox.add("c1", picture("sending"), source())
     outbox.failAttempt("c1", "sending")
-    outbox.setState("c1", "sending", SendState.SENDING)
+    outbox.startSending("c1", "sending")
     outbox.add("c1", picture("failed"), source())
-    outbox.setState("c1", "failed", SendState.FAILED)
-    // something in the way of both new .json files
-    makeUndeletable(fileOnDisk("c1", "sending.json"))
-    makeUndeletable(fileOnDisk("c1", "failed.json"))
+    outbox.failForGood("c1", "failed")
+    // something in the way of every new .json file
+    for (id in listOf("waiting", "sending", "failed")) makeUndeletable(fileOnDisk("c1", "$id.json"))
 
     val failedWrites =
         listOf(
+            runCatching { outbox.startSending("c1", "waiting") },
             // would make it FAILED with a count of 2, if it could be written
             runCatching { outbox.recordFailedAttempt("c1", "sending", maxAttempts = 2) },
             runCatching { outbox.resetSending("c1", "sending") },
+            runCatching { outbox.markFailed("c1", "sending") },
             runCatching { outbox.retry("c1", "failed") },
         )
 
     failedWrites.forEach { assertTrue(it.exceptionOrNull() is IOException) }
+    assertEquals(SendState.WAITING, outbox.stateOf("c1", "waiting"))
     assertEquals(SendState.SENDING, outbox.stateOf("c1", "sending"))
     assertEquals(SendState.FAILED, outbox.stateOf("c1", "failed"))
     // once the disk works again, the count goes on from the old one
@@ -556,7 +610,7 @@ class MediaOutboxTest {
     first.add("c1", picture("m1"), source("bytes of m1"))
     first.add("c1", text("m2"), null)
     first.add("c1", picture("m3"), source())
-    first.setState("c1", "m3", SendState.FAILED)
+    first.failForGood("c1", "m3")
 
     val restarted = newOutbox()
 
@@ -586,7 +640,7 @@ class MediaOutboxTest {
     val first = newOutbox()
     first.add("c1", picture("m1"), source())
     first.failAttempt("c1", "m1")
-    first.setState("c1", "m1", SendState.SENDING)
+    first.startSending("c1", "m1")
 
     val restarted = newOutbox()
 
@@ -603,19 +657,34 @@ class MediaOutboxTest {
     val first = newOutbox()
     for (id in listOf("old", "negative", "text")) first.add("c1", picture(id), source())
     // an entry written before the count existed, and two damaged ones
-    fun rewrite(mediaId: String, change: JSONObject.() -> Unit) {
-      val json = jsonOnDisk("c1", mediaId).apply(change)
-      fileOnDisk("c1", "$mediaId.json").writeText(json.toString())
-    }
-    rewrite("old") { remove("failedAttempts") }
-    rewrite("negative") { put("failedAttempts", -3) }
-    rewrite("text") { put("failedAttempts", "many") }
+    rewriteJson("c1", "old") { remove("failedAttempts") }
+    rewriteJson("c1", "negative") { put("failedAttempts", -3) }
+    rewriteJson("c1", "text") { put("failedAttempts", "many") }
 
     val restarted = newOutbox()
 
     assertEquals(listOf("negative", "old", "text"), restarted.idsOf("c1").sorted())
     for (id in listOf("old", "negative", "text")) {
       assertEquals(id, 1, restarted.failAttempt("c1", id))
+    }
+  }
+
+  @Test
+  fun anEntryLoadedAtOrOverTheLimitFailsAtItsNextFailedAttempt() = runTest {
+    val first = newOutbox()
+    first.add("c1", picture("at"), source())
+    first.add("c1", picture("over"), source())
+    // e.g. a later version lowered the limit to 5, below counts already reached
+    rewriteJson("c1", "at") { put("failedAttempts", 5) }
+    rewriteJson("c1", "over") { put("failedAttempts", 7) }
+
+    val restarted = newOutbox()
+
+    for ((id, count) in listOf("at" to 6, "over" to 8)) {
+      // not failed when loaded: it still gets one more attempt, which may succeed
+      assertEquals(id, SendState.WAITING, restarted.stateOf("c1", id))
+      assertEquals(id, count, restarted.failAttempt("c1", id, maxAttempts = 5))
+      assertEquals(id, SendState.FAILED, restarted.stateOf("c1", id))
     }
   }
 

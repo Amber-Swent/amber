@@ -54,10 +54,11 @@ import org.json.JSONObject
  * [SendState.SENDING] go back to [SendState.WAITING]: the process that was sending them is gone.
  *
  * The outbox only records what the repository tells it; it never sends anything itself. A send
- * attempt marks its entry [SendState.SENDING] ([setState]), then ends it with exactly one of:
+ * attempt marks its entry [SendState.SENDING] ([startSending]), then ends it with exactly one of:
  * [remove] (sent), [resetSending] (cancelled), [recordFailedAttempt] (failed, may succeed later) or
- * [setState] to [SendState.FAILED] (failed, retrying can't help). A [SendState.FAILED] entry stays
- * so until [retry] or [remove].
+ * [markFailed] (failed, retrying can't help). A [SendState.FAILED] entry stays so until [retry] or
+ * [remove]. Each state change happens only from the state it expects, checked and changed in one
+ * step, so a call that comes too late (e.g. from a job that was replaced) changes nothing.
  *
  * Only one instance may use a given [dir]. The constructor doesn't touch the disk.
  *
@@ -165,19 +166,19 @@ class MediaOutbox(
   }
 
   /**
-   * Sets the state of the entry [mediaId] of [circleId], whatever it was, and keeps its
-   * failed-attempt count. For the changes that don't depend on the current state:
-   * [SendState.SENDING] when a send attempt starts, and [SendState.FAILED] when one fails for a
-   * reason retrying can't fix. The other changes check the state first: [resetSending],
-   * [recordFailedAttempt] and [retry].
+   * Starts a send attempt of the entry [mediaId] of [circleId]: moves it from [SendState.WAITING]
+   * to [SendState.SENDING]. Its failed-attempt count stays as it is.
    *
-   * @return false if the entry isn't in the outbox (nothing changes).
-   * @throws IOException if the change can't be written; the entry then keeps its old state.
+   * Changes the entry only if it is [SendState.WAITING]. Otherwise there is nothing for the attempt
+   * to do: the entry is gone, already being sent, or [SendState.FAILED] (sent again only after
+   * [retry]).
+   *
+   * @return true if the entry was [SendState.WAITING] and is now [SendState.SENDING]; false if it
+   *   isn't in the outbox or is in another state (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [SendState.WAITING].
    */
-  suspend fun setState(circleId: String, mediaId: String, state: SendState): Boolean = locked {
-    val record = records.value[circleId]?.get(mediaId) ?: return@locked false
-    if (record.entry.state != state) save(circleId, record.withState(state))
-    true
+  suspend fun startSending(circleId: String, mediaId: String): Boolean = locked {
+    moveState(circleId, mediaId, from = SendState.WAITING, to = SendState.SENDING)
   }
 
   /**
@@ -194,10 +195,7 @@ class MediaOutbox(
    *   until the next start of the app resets it.
    */
   suspend fun resetSending(circleId: String, mediaId: String): Boolean = locked {
-    val record = records.value[circleId]?.get(mediaId)
-    if (record?.entry?.state != SendState.SENDING) return@locked false
-    save(circleId, record.withState(SendState.WAITING))
-    true
+    moveState(circleId, mediaId, from = SendState.SENDING, to = SendState.WAITING)
   }
 
   /**
@@ -228,6 +226,24 @@ class MediaOutbox(
       save(circleId, OutboxRecord(record.entry.copy(state = state), failedAttempts))
       failedAttempts
     }
+  }
+
+  /**
+   * Ends a send attempt of the entry [mediaId] of [circleId] that failed for a reason retrying
+   * can't fix (e.g. permission denied, or its file is missing): moves it from [SendState.SENDING]
+   * to [SendState.FAILED] at once. Unlike [recordFailedAttempt], nothing is counted; the count
+   * stays as it is, and [retry] resets it.
+   *
+   * Changes the entry only if it is still [SendState.SENDING]: otherwise the attempt has already
+   * been ended some other way.
+   *
+   * @return true if the entry was [SendState.SENDING] and is now [SendState.FAILED]; false if it
+   *   isn't in the outbox or is in another state (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [SendState.SENDING]
+   *   until the next start of the app resets it.
+   */
+  suspend fun markFailed(circleId: String, mediaId: String): Boolean = locked {
+    moveState(circleId, mediaId, from = SendState.SENDING, to = SendState.FAILED)
   }
 
   /**
@@ -374,6 +390,25 @@ class MediaOutbox(
       Log.w(TAG, "Couldn't save outbox entry ${record.entry.item.id} as waiting", e)
     }
     return waiting
+  }
+
+  /**
+   * Moves the entry [mediaId] of [circleId] from [from] to [to], keeping its failed-attempt count,
+   * if it is [from]. Must be called inside [locked], which makes the check and the change one step.
+   *
+   * @return true if it moved; false if it isn't in the outbox or isn't [from] (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [from].
+   */
+  private fun moveState(
+      circleId: String,
+      mediaId: String,
+      from: SendState,
+      to: SendState,
+  ): Boolean {
+    val record = records.value[circleId]?.get(mediaId)
+    if (record?.entry?.state != from) return false
+    save(circleId, record.withState(to))
+    return true
   }
 
   /**
