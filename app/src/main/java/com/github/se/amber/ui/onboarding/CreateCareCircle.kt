@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,15 +77,23 @@ fun CreateCareCircleScreen(
 ) {
   val uiState by viewModel.uiState.collectAsState()
 
+  // Keep one stable reference for the effect, but always update the value inside it to the newest onCreated
+  val currentOnCreated by rememberUpdatedState(onCreated)
+
   // Display submit errors when creating the circle
-  LaunchedEffect(uiState.submitError) {
-    uiState.submitError?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-      viewModel.clearSubmitError()
-    }
+  LaunchedEffect(viewModel) {
+      viewModel.errorEvents.collect { message ->
+          Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      }
   }
 
-  LaunchedEffect(viewModel, onCreated) { viewModel.successEvents.collect { onCreated() } }
+  // LaunchedEffect depends only on the ViewModel since depending on the lambda onCreated
+  // can make the compose receive a new lambda on recomposition and therefore triggering a new launch
+  LaunchedEffect(viewModel) {
+      viewModel.successEvents.collect {
+          currentOnCreated()
+      }
+  }
 
   CreateCareCircleContent(
       uiState = uiState,

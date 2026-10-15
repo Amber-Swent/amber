@@ -122,15 +122,14 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isCreated)
     assertEquals("Family", viewModel.uiState.value.name)
     assertEquals(
-        "You're offline. Check your connection and try again.",
-        viewModel.uiState.value.submitError,
+      "You're offline. Check your connection and try again.",
+      viewModel.errorEvents.first(),
     )
 
     repository.result = Result.success(createdCircle)
     viewModel.createCareCircle()
     advanceUntilIdle()
     assertTrue(viewModel.uiState.value.isCreated)
-    assertNull(viewModel.uiState.value.submitError)
   }
 
   @Test
@@ -142,8 +141,8 @@ class CreateCareCircleViewModelTest {
 
     assertFalse(viewModel.uiState.value.isLoading)
     assertEquals(
-        "Couldn't create your care circle. Please try again.",
-        viewModel.uiState.value.submitError,
+      "Couldn't create your care circle. Please try again.",
+      viewModel.errorEvents.first(),
     )
   }
 
@@ -155,22 +154,26 @@ class CreateCareCircleViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        "Your session expired. Sign in and try again.",
-        viewModel.uiState.value.submitError,
+      "Your session expired. Sign in and try again.",
+      viewModel.errorEvents.first(),
     )
   }
 
   @Test
-  fun clearingToastErrorPreservesTheEnteredName() = runTest {
+  fun permissionFailurePreservesEnteredNameAndEmitsError() = runTest {
     repository.result = Result.failure(OnboardingError.PermissionDenied)
     viewModel.onNameChange("Family")
     viewModel.createCareCircle()
     advanceUntilIdle()
 
-    viewModel.clearSubmitError()
-    assertNull(viewModel.uiState.value.submitError)
     assertEquals("Family", viewModel.uiState.value.name)
     assertFalse(viewModel.uiState.value.isCreated)
+    assertFalse(viewModel.uiState.value.isLoading)
+
+    assertEquals(
+      "Creation was denied. Check your account and try again.",
+      viewModel.errorEvents.first(),
+    )
   }
 
   private class FakeOnboardingRepository(var result: Result<CareCircle>) : OnboardingRepository {

@@ -28,7 +28,6 @@ private const val NAME_REQUIRED_ERROR = "Circle name cannot be empty"
 data class CreateCareCircleUiState(
     val name: String = "",
     val nameError: String? = null,
-    val submitError: String? = null,
     val isLoading: Boolean = false,
     val isCreated: Boolean = false,
 )
@@ -58,6 +57,9 @@ class CreateCareCircleViewModel(
   // receiveAsFlow() lets the screen observe the channel without being able to send into it
   val successEvents = successChannel.receiveAsFlow() // Tells the screen to call isCreated() once
 
+  private val errorChannel = Channel<String>(Channel.BUFFERED)
+  val errorEvents = errorChannel.receiveAsFlow()
+
   /**
    * Updates the name displayed by the screen and its validation message.
    *
@@ -72,18 +74,8 @@ class CreateCareCircleViewModel(
       it.copy(
           name = name,
           nameError = if (name.isBlank()) NAME_REQUIRED_ERROR else null,
-          submitError = null,
       )
     }
-  }
-
-  /**
-   * Clears a submission failure after its toast has been shown.
-   *
-   * This allows a later attempt to show the same failure again.
-   */
-  fun clearSubmitError() {
-    _uiState.update { it.copy(submitError = null) }
   }
 
   /**
@@ -101,30 +93,33 @@ class CreateCareCircleViewModel(
     // Checks name is not empty before calling the repository
     // Covers the case where the user presses Create without touching the text field before
     if (name.isEmpty()) {
-      _uiState.update { it.copy(nameError = NAME_REQUIRED_ERROR, submitError = null) }
+      _uiState.update { it.copy(name = name, nameError = NAME_REQUIRED_ERROR) }
       return
     }
 
-    _uiState.update { it.copy(isLoading = true, nameError = null, submitError = null) }
+    _uiState.update { it.copy(isLoading = true, nameError = null) }
     viewModelScope.launch {
       try {
         repository
             .createInitialCareCircle(name)
             .fold(
                 onSuccess = {
-                  _uiState.update { it.copy(isLoading = false, isCreated = true) }
+                  _uiState.update { it.copy(name = name, isLoading = false, isCreated = true) }
                   successChannel.send(Unit)
+                  // Make explicit that successChannel will never send another request
+                  successChannel.close()
                 },
                 onFailure = { error ->
-                  _uiState.update {
-                    it.copy(isLoading = false, submitError = error.toActionableMessage())
-                  }
+                  _uiState.update { it.copy(isLoading = false) } // Creation stopped
+                  errorChannel.send(error.toActionableMessage())
+                  // Failure allows retries, so channel not closed here
                 },
             )
       } catch (error: CancellationException) {
         throw error
       } catch (error: Exception) {
-        _uiState.update { it.copy(isLoading = false, submitError = error.toActionableMessage()) }
+        _uiState.update { it.copy(isLoading = false) }
+        errorChannel.send(error.toActionableMessage())
       }
     }
   }

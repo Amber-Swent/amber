@@ -99,21 +99,32 @@ class CreateCareCircleInstrumentedTest {
     repository.results.add(Result.failure(OnboardingError.Network))
     submitName()
     composeTestRule.waitUntil {
-      repository.submittedNames.size == 1 &&
-          !viewModel.uiState.value.isLoading &&
-          viewModel.uiState.value.submitError == null
+
+      /*
+        Checks that the first request completed
+        Relying only on repository.submittedNames.size == 1 would check that the request is being
+        sent, not that it indeed failed
+      */
+      repository.completedRequests.get() == 1 &&
+              !viewModel.uiState.value.isLoading
     }
   }
 
   private class FakeOnboardingRepository : OnboardingRepository {
     val submittedNames = ConcurrentLinkedQueue<String>()
     val results = ConcurrentLinkedQueue<Result<CareCircle>>()
+    val completedRequests = AtomicInteger(0)
     @Volatile var gate: CompletableDeferred<Unit>? = null
 
     override suspend fun createInitialCareCircle(name: String): Result<CareCircle> {
       submittedNames.add(name)
       gate?.await()
-      return results.poll() ?: Result.success(CareCircle(id = "circle-1", name = name))
+      val result =
+        results.poll()
+          ?: Result.success(CareCircle(id = "circle-1", name = name))
+
+      completedRequests.incrementAndGet()
+      return result
     }
   }
 }
