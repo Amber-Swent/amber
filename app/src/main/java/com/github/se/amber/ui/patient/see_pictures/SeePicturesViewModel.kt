@@ -17,12 +17,10 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 data class SeePicturesUIState(
@@ -50,6 +48,9 @@ class SeePicturesViewModel(
   private val _uiState = MutableStateFlow(SeePicturesUIState())
   val uiState: StateFlow<SeePicturesUIState> = _uiState.asStateFlow()
 
+  //  completed when getProfile() has finish to get the profile, so profil is either null or exist
+  private val profileResult = CompletableDeferred<UserProfile?>()
+
   init {
     getProfile()
     getCareCircle()
@@ -71,13 +72,15 @@ class SeePicturesViewModel(
     _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
   }
 
+  /** wait the end of the profil loading and give back either null or the id of the carecircle */
+  private suspend fun awaitCircleId(): String? = profileResult.await()?.circleIds?.firstOrNull()
+
   /** Fetches all pictures from the repository and update the UI state */
   private fun getAllPictures() {
     viewModelScope.launch {
       try {
         // wait that the profil is loaded to get the id of the carecircle.
-        val circleId =
-            _uiState.map { it.patientProfile.circleIds.firstOrNull() }.filterNotNull().first()
+        val circleId = awaitCircleId() ?: return@launch
 
         mediaRepository.observeApprovedMedia(circleId).collect { medias ->
           _uiState.value =
@@ -104,13 +107,18 @@ class SeePicturesViewModel(
               onSuccess = { profile ->
                 if (profile != null) {
                   _uiState.value = _uiState.value.copy(patientProfile = profile)
+                  if (profile.circleIds.isEmpty()) {
+                    setErrorMsg("No care circle found for this patient.")
+                  }
                 } else {
                   setErrorMsg("No profile found.")
                 }
+                profileResult.complete(profile)
               },
               onFailure = { e ->
                 Log.e("SeePicturesViewModel", "Error fetching profile", e)
                 setErrorMsg("Failed to load the profile: ${e.message}")
+                profileResult.complete(null)
               },
           )
     }
@@ -120,8 +128,7 @@ class SeePicturesViewModel(
   private fun getCareCircle() {
     viewModelScope.launch {
       // wait that the profil is loaded to get the id of the carecircle.
-      val circleId =
-          _uiState.map { it.patientProfile.circleIds.firstOrNull() }.filterNotNull().first()
+      val circleId = awaitCircleId() ?: return@launch
 
       circleRepository
           .getCircle(circleId)

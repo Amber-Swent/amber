@@ -112,6 +112,18 @@ class SeePicturesViewModelTest {
   }
 
   @Test
+  fun `sets an error when the profile has no circle`() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = emptyList()))
+
+    val viewModel = createViewModel()
+
+    assertEquals("No care circle found for this patient.", viewModel.uiState.value.errorMsg)
+    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
+    coVerify(exactly = 0) { circleRepository.getCircle(any()) }
+  }
+
+  @Test
   fun `sets an error when the care circle fails to load`() {
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.failure(Exception("circle error"))
