@@ -4,15 +4,12 @@ package com.github.se.amber.ui.accountCreation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.components.AmberHeader
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -73,26 +71,7 @@ fun CreateProfileScreen(viewModel: CreateProfileViewModel = viewModel()) {
               .padding(horizontal = PADDING_BIG, vertical = PADDING_MEDIUM),
       verticalArrangement = Arrangement.spacedBy(PADDING_BIG + PADDING_MEDIUM),
   ) {
-    Column(
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-    ) {
-      Box(
-          modifier = Modifier.size(PADDING_BIG * 2).background(lightOrange, CircleShape),
-          contentAlignment = Alignment.Center,
-      ) {
-        Text(
-            text = "logo",
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Black,
-        )
-      }
-      Text(
-          text = "Amber",
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.Bold,
-      )
-    }
+    AmberHeader()
 
     Column(
         modifier = Modifier.fillMaxWidth(),

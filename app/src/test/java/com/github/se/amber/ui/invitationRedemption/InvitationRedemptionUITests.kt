@@ -19,6 +19,7 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.components.AmberHeaderTestTags
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -31,7 +32,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-class RedeemInviteUITests {
+class InvitationRedemptionUITests {
   @get:Rule val composeTestRule = createComposeRule()
 
   private var redeemSuccessCount = 0
@@ -53,7 +54,7 @@ class RedeemInviteUITests {
             },
         )
     composeTestRule.setContent {
-      RedeemInvite(
+      InvitationRedemptionScreen(
           viewModel = viewModel,
           onBack = { backCount++ },
       )
@@ -80,9 +81,9 @@ class RedeemInviteUITests {
   fun logoAndBrandName_areDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.LOGO.name).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.LOGO).assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.BRAND_NAME.name)
+        .onNodeWithTag(AmberHeaderTestTags.BRAND_NAME)
         .assertIsDisplayed()
         .assertTextEquals("Amber")
   }
@@ -94,7 +95,7 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.TITLE.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.TITLE.name)
         .assertIsDisplayed()
         .assertTextEquals(TITLE_LABEL)
   }
@@ -105,7 +106,7 @@ class RedeemInviteUITests {
   fun codeInput_isDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name).assertIsDisplayed()
   }
 
   @Test
@@ -113,7 +114,7 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(CODE_PLACEHOLDER_LABEL)
   }
@@ -122,23 +123,31 @@ class RedeemInviteUITests {
   fun codePlaceholder_hiddenAfterTyping() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .performTextInput(VALID_CODE)
     composeTestRule.waitForIdle()
 
     composeTestRule
-        .onAllNodesWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
+        .onAllNodesWithTag(
+            InvitationRedemptionTestTags.CODE_PLACEHOLDER.name,
+            useUnmergedTree = true,
+        )
         .assertCountEquals(0)
   }
 
   @Test
   fun codeInputAndPlaceholder_areDistinctTags() {
-    assertNotEquals(RedeemInviteTestTags.CODE_INPUT, RedeemInviteTestTags.CODE_PLACEHOLDER)
+    assertNotEquals(
+        InvitationRedemptionTestTags.CODE_INPUT,
+        InvitationRedemptionTestTags.CODE_PLACEHOLDER,
+    )
 
     setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name).assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
   }
 
@@ -148,18 +157,27 @@ class RedeemInviteUITests {
   fun submitAndBackButtons_areBothDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.BACK_BUTTON.name).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name).assertIsDisplayed()
   }
 
   @Test
   fun submitAndBackButtons_areDistinctAndClickable() {
     setScreen()
 
-    assertNotEquals(RedeemInviteTestTags.SUBMIT_BUTTON, RedeemInviteTestTags.BACK_BUTTON)
+    assertNotEquals(
+        InvitationRedemptionTestTags.SUBMIT_BUTTON,
+        InvitationRedemptionTestTags.BACK_BUTTON,
+    )
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).assertHasClickAction()
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.BACK_BUTTON.name).assertHasClickAction()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
+        .assertHasClickAction()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name)
+        .assertHasClickAction()
   }
 
   @Test
@@ -167,7 +185,7 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
         .assertTextEquals(SUBMIT_LABEL)
   }
 
@@ -176,7 +194,7 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.BACK_BUTTON.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name)
         .assertTextEquals(BACK_LABEL)
   }
 
@@ -186,7 +204,7 @@ class RedeemInviteUITests {
   fun backButton_click_invokesOnBackOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.BACK_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -211,15 +229,17 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule
-        .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
         .assertCountEquals(0)
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).assert(hasErrorSemantics())
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .assert(hasErrorSemantics())
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(CODE_REQUIRED_MESSAGE)
     assertEquals(0, redeemSuccessCount)
@@ -229,15 +249,17 @@ class RedeemInviteUITests {
   fun typingAfterError_clearsCodeRequiredError() {
     val viewModel = setScreen()
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
     assertEquals(CODE_REQUIRED_MESSAGE, viewModel.uiState.value.errorMessage)
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .performTextInput(VALID_CODE)
     composeTestRule.waitForIdle()
 
     composeTestRule
-        .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
         .assertCountEquals(0)
   }
 
@@ -248,8 +270,10 @@ class RedeemInviteUITests {
     val expected = InvitationRedemptionResult(careCircleId = "circle-42", role = Role.PATIENT)
     setScreen(repository = stubRepository(Result.success(expected)))
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .performTextInput(VALID_CODE)
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) { redeemSuccessCount == 1 }
 
     assertEquals(1, redeemSuccessCount)
@@ -261,17 +285,19 @@ class RedeemInviteUITests {
   fun submit_withRejectedCode_showsMappedInvalidCodeError() {
     setScreen(repository = stubRepository(Result.failure(InvitationError.InvalidCode)))
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .performTextInput(VALID_CODE)
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) {
       composeTestRule
-          .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+          .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(InvitationError.InvalidCode.toActionableMessage())
     assertEquals(0, redeemSuccessCount)
@@ -286,12 +312,18 @@ class RedeemInviteUITests {
         }
     val viewModel = setScreen(repository = repository)
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .performTextInput(VALID_CODE)
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) { viewModel.uiState.value.isRedeeming }
 
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).assertIsNotEnabled()
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.BACK_BUTTON.name).assertIsNotEnabled()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
+        .assertIsNotEnabled()
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name)
+        .assertIsNotEnabled()
 
     pending.complete(
         Result.success(

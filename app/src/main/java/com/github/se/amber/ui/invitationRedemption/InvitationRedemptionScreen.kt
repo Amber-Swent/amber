@@ -3,15 +3,12 @@
 package com.github.se.amber.ui.invitationRedemption
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,17 +29,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.components.AmberHeader
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 
-/** Test tags for [RedeemInvite]. */
-enum class RedeemInviteTestTags {
-  LOGO,
-  BRAND_NAME,
+/** Test tags for [InvitationRedemptionScreen]. */
+enum class InvitationRedemptionTestTags {
   TITLE,
   CODE_INPUT,
   CODE_PLACEHOLDER,
@@ -63,7 +58,7 @@ internal const val BACK_LABEL = "Back"
  * previous onboarding step.
  */
 @Composable
-fun RedeemInvite(
+fun InvitationRedemptionScreen(
     viewModel: RedeemInviteViewModel = viewModel(),
     onBack: () -> Unit = {},
 ) {
@@ -75,24 +70,7 @@ fun RedeemInvite(
               .background(Color.White)
               .padding(horizontal = PADDING_BIG, vertical = PADDING_MEDIUM),
   ) {
-    Column(horizontalAlignment = Alignment.Start) {
-      Box(
-          modifier =
-              Modifier.size(56.dp)
-                  .background(lightOrange, CircleShape)
-                  .testTag(RedeemInviteTestTags.LOGO.name),
-          contentAlignment = Alignment.Center,
-      ) {
-        Text(text = "logo", fontSize = 12.sp, color = Color.Black)
-      }
-      Text(
-          text = "Amber",
-          fontWeight = FontWeight.Bold,
-          fontSize = 18.sp,
-          modifier =
-              Modifier.padding(top = PADDING_SMALL).testTag(RedeemInviteTestTags.BRAND_NAME.name),
-      )
-    }
+    AmberHeader()
 
     Spacer(modifier = Modifier.weight(1f))
 
@@ -106,7 +84,7 @@ fun RedeemInvite(
           fontSize = 28.sp,
           color = Color.Black,
           textAlign = TextAlign.Center,
-          modifier = Modifier.testTag(RedeemInviteTestTags.TITLE.name),
+          modifier = Modifier.testTag(InvitationRedemptionTestTags.TITLE.name),
       )
 
       Spacer(modifier = Modifier.height(PADDING_BIG))
@@ -115,11 +93,12 @@ fun RedeemInvite(
         OutlinedTextField(
             value = uiState.inviteCode,
             onValueChange = viewModel::onInviteCodeChange,
-            modifier = Modifier.fillMaxWidth().testTag(RedeemInviteTestTags.CODE_INPUT.name),
+            modifier =
+                Modifier.fillMaxWidth().testTag(InvitationRedemptionTestTags.CODE_INPUT.name),
             placeholder = {
               Text(
                   text = CODE_PLACEHOLDER_LABEL,
-                  modifier = Modifier.testTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name),
+                  modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name),
               )
             },
             supportingText =
@@ -127,7 +106,7 @@ fun RedeemInvite(
                   {
                     Text(
                         text = error,
-                        modifier = Modifier.testTag(RedeemInviteTestTags.CODE_ERROR.name),
+                        modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_ERROR.name),
                     )
                   }
                 },
@@ -152,7 +131,7 @@ fun RedeemInvite(
           modifier =
               Modifier.fillMaxWidth(0.75f)
                   .height(56.dp)
-                  .testTag(RedeemInviteTestTags.SUBMIT_BUTTON.name),
+                  .testTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name),
           shape = RoundedCornerShape(12.dp),
           colors =
               ButtonDefaults.buttonColors(
@@ -177,7 +156,7 @@ fun RedeemInvite(
             Modifier.fillMaxWidth(0.55f)
                 .align(Alignment.CenterHorizontally)
                 .height(56.dp)
-                .testTag(RedeemInviteTestTags.BACK_BUTTON.name),
+                .testTag(InvitationRedemptionTestTags.BACK_BUTTON.name),
         shape = RoundedCornerShape(12.dp),
         colors =
             ButtonDefaults.buttonColors(
@@ -196,6 +175,6 @@ fun RedeemInvite(
 
 @Preview(showBackground = true)
 @Composable
-fun RedeemInvitePreview() {
-  RedeemInvite()
+fun InvitationRedemptionPreview() {
+  InvitationRedemptionScreen()
 }

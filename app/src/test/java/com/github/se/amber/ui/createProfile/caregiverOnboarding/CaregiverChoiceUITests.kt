@@ -12,9 +12,10 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleTestTags
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceTestTags
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceViewModel
+import com.github.se.amber.ui.components.AmberHeaderTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -23,7 +24,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-class CaregiverJoinOrCreateCircleUITests {
+class CaregiverChoiceUITests {
   @get:Rule val composeTestRule = createComposeRule()
 
   private var createCircleCount = 0
@@ -48,8 +49,8 @@ class CaregiverJoinOrCreateCircleUITests {
 
   private fun setScreen(
       displayName: String = DISPLAY_NAME,
-      viewModel: CaregiverJoinOrCreateCircleViewModel =
-          CaregiverJoinOrCreateCircleViewModel(
+      viewModel: CaregiverChoiceViewModel =
+          CaregiverChoiceViewModel(
               profileRepository = profileRepository(displayName),
           ),
   ) {
@@ -57,7 +58,7 @@ class CaregiverJoinOrCreateCircleUITests {
     joinCircleCount = 0
     backCount = 0
     composeTestRule.setContent {
-      CaregiverJoinOrCreateCircle(
+      CaregiverChoiceScreen(
           viewModel = viewModel,
           onBack = { backCount++ },
           onCreateCircle = { createCircleCount++ },
@@ -74,7 +75,7 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.BACK_BUTTON.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON.name)
         .assertIsDisplayed()
         .assertHasClickAction()
         .assertTextEquals(BACK_LABEL)
@@ -84,9 +85,7 @@ class CaregiverJoinOrCreateCircleUITests {
   fun backButton_click_invokesOnBackOnly() {
     setScreen()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.BACK_BUTTON.name)
-        .performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -100,9 +99,9 @@ class CaregiverJoinOrCreateCircleUITests {
   fun logoAndBrandName_areDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.LOGO.name).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.LOGO).assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.BRAND_NAME.name)
+        .onNodeWithTag(AmberHeaderTestTags.BRAND_NAME)
         .assertIsDisplayed()
         .assertTextEquals("Amber")
   }
@@ -114,7 +113,7 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen(displayName = DISPLAY_NAME)
 
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.WELCOME_HEADER.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER.name)
         .assertIsDisplayed()
         .assertTextEquals("Welcome, $DISPLAY_NAME")
   }
@@ -124,7 +123,7 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.INSTRUCTION_TEXT.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.INSTRUCTION_TEXT.name)
         .assertIsDisplayed()
         .assertTextEquals(INSTRUCTION_LABEL)
   }
@@ -135,12 +134,8 @@ class CaregiverJoinOrCreateCircleUITests {
   fun createAndJoinButtons_areBothDisplayed() {
     setScreen()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
-        .assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).assertIsDisplayed()
   }
 
   @Test
@@ -148,16 +143,12 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen()
 
     assertNotEquals(
-        CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON,
-        CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON,
+        CaregiverChoiceTestTags.CREATE_BUTTON,
+        CaregiverChoiceTestTags.JOIN_BUTTON,
     )
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
-        .assertHasClickAction()
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
-        .assertHasClickAction()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).assertHasClickAction()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).assertHasClickAction()
   }
 
   @Test
@@ -165,7 +156,7 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name)
         .assertTextEquals(CREATE_CIRCLE_LABEL)
   }
 
@@ -174,7 +165,7 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name)
         .assertTextEquals(JOIN_CIRCLE_LABEL)
   }
 
@@ -184,9 +175,7 @@ class CaregiverJoinOrCreateCircleUITests {
   fun orDivider_isDisplayed() {
     setScreen()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.OR_DIVIDER.name)
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.OR_DIVIDER.name).assertIsDisplayed()
   }
 
   @Test
@@ -194,7 +183,7 @@ class CaregiverJoinOrCreateCircleUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.INVITE_LINK_HINT.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.INVITE_LINK_HINT.name)
         .assertIsDisplayed()
         .assertTextEquals(INVITE_LINK_HINT_LABEL)
   }
@@ -205,9 +194,7 @@ class CaregiverJoinOrCreateCircleUITests {
   fun createButton_click_invokesOnCreateCircleOnly() {
     setScreen()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
-        .performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)
@@ -219,9 +206,7 @@ class CaregiverJoinOrCreateCircleUITests {
   fun joinButton_click_invokesOnJoinCircleOnly() {
     setScreen()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
-        .performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)
@@ -242,17 +227,12 @@ class CaregiverJoinOrCreateCircleUITests {
   @Test
   fun screen_withDefaultCallbacks_rendersWithoutInvokingNavigation() {
     // Construct outside setContent: lint forbids ViewModel constructors inside composables.
-    val viewModel =
-        CaregiverJoinOrCreateCircleViewModel(profileRepository = profileRepository())
-    composeTestRule.setContent { CaregiverJoinOrCreateCircle(viewModel = viewModel) }
+    val viewModel = CaregiverChoiceViewModel(profileRepository = profileRepository())
+    composeTestRule.setContent { CaregiverChoiceScreen(viewModel = viewModel) }
     composeTestRule.waitForIdle()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
-        .assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).assertIsDisplayed()
   }
 
   private companion object {

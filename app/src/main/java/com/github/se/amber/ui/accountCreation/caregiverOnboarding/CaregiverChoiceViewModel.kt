@@ -17,21 +17,21 @@ import kotlinx.coroutines.launch
  *
  * @param displayName first name shown in the welcome header.
  */
-data class CaregiverJoinOrCreateCircleUiState(
+data class CaregiverChoiceUiState(
     val displayName: String = "",
 )
 
 /**
- * ViewModel for [CaregiverJoinOrCreateCircle]: loads the caregiver's first name from
- * [ProfileRepository] for the welcome header. Create / join navigation is handled by the screen
- * callbacks, not this ViewModel.
+ * ViewModel for [CaregiverChoiceScreen]: loads the caregiver's first name from [ProfileRepository]
+ * for the welcome header. Create / join navigation is handled by the screen callbacks, not this
+ * ViewModel.
  */
-class CaregiverJoinOrCreateCircleViewModel(
+class CaregiverChoiceViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(CaregiverJoinOrCreateCircleUiState())
-  val uiState: StateFlow<CaregiverJoinOrCreateCircleUiState> = _uiState.asStateFlow()
+  private val _uiState = MutableStateFlow(CaregiverChoiceUiState())
+  val uiState: StateFlow<CaregiverChoiceUiState> = _uiState.asStateFlow()
 
   init {
     loadDisplayName()

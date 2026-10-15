@@ -46,7 +46,7 @@ data class RedeemInviteUiState(
 }
 
 /**
- * ViewModel for [RedeemInvite]: validates the invite code and redeems it via
+ * ViewModel for [InvitationRedemptionScreen]: validates the invite code and redeems it via
  * [InvitationRedemptionRepository].
  *
  * @param onSuccess invoked with the redemption result after a successful redeem, so the navigation

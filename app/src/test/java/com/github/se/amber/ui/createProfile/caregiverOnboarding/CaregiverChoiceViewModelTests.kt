@@ -6,8 +6,8 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleUiState
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceUiState
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceViewModel
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.unmockkAll
@@ -23,9 +23,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
-/** Unit tests for [CaregiverJoinOrCreateCircleViewModel]. */
+/** Unit tests for [CaregiverChoiceViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class CaregiverJoinOrCreateCircleViewModelTests {
+class CaregiverChoiceViewModelTests {
 
   private lateinit var profileRepository: ProfileRepository
 
@@ -45,9 +45,9 @@ class CaregiverJoinOrCreateCircleViewModelTests {
   fun initialState_defaultsToEmptyDisplayName() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
 
-    val viewModel = CaregiverJoinOrCreateCircleViewModel(profileRepository = profileRepository)
+    val viewModel = CaregiverChoiceViewModel(profileRepository = profileRepository)
 
-    assertEquals(CaregiverJoinOrCreateCircleUiState(), viewModel.uiState.value)
+    assertEquals(CaregiverChoiceUiState(), viewModel.uiState.value)
   }
 
   @Test
@@ -61,7 +61,7 @@ class CaregiverJoinOrCreateCircleViewModelTests {
             ),
         )
 
-    val viewModel = CaregiverJoinOrCreateCircleViewModel(profileRepository = profileRepository)
+    val viewModel = CaregiverChoiceViewModel(profileRepository = profileRepository)
     advanceUntilIdle()
 
     assertEquals(DISPLAY_NAME, viewModel.uiState.value.displayName)
@@ -71,7 +71,7 @@ class CaregiverJoinOrCreateCircleViewModelTests {
   fun loadDisplayName_keepsEmptyNameWhenProfileMissing() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
 
-    val viewModel = CaregiverJoinOrCreateCircleViewModel(profileRepository = profileRepository)
+    val viewModel = CaregiverChoiceViewModel(profileRepository = profileRepository)
     advanceUntilIdle()
 
     assertEquals("", viewModel.uiState.value.displayName)
@@ -82,7 +82,7 @@ class CaregiverJoinOrCreateCircleViewModelTests {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.failure(IllegalStateException("offline"))
 
-    val viewModel = CaregiverJoinOrCreateCircleViewModel(profileRepository = profileRepository)
+    val viewModel = CaregiverChoiceViewModel(profileRepository = profileRepository)
     advanceUntilIdle()
 
     assertEquals("", viewModel.uiState.value.displayName)

@@ -3,7 +3,6 @@
 package com.github.se.amber.ui.accountCreation.caregiverOnboarding
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.components.AmberHeader
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -38,11 +36,9 @@ import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 
-/** Test tags for [CaregiverJoinOrCreateCircle]. */
-enum class CaregiverJoinOrCreateCircleTestTags {
+/** Test tags for [CaregiverChoiceScreen]. */
+enum class CaregiverChoiceTestTags {
   BACK_BUTTON,
-  LOGO,
-  BRAND_NAME,
   WELCOME_HEADER,
   INSTRUCTION_TEXT,
   CREATE_BUTTON,
@@ -66,8 +62,8 @@ internal const val BACK_LABEL = "Back"
  * [OnboardingScreen.CreateCareCircle] or [OnboardingScreen.EnterInvitation].
  */
 @Composable
-fun CaregiverJoinOrCreateCircle(
-    viewModel: CaregiverJoinOrCreateCircleViewModel = viewModel(),
+fun CaregiverChoiceScreen(
+    viewModel: CaregiverChoiceViewModel = viewModel(),
     onBack: () -> Unit = {},
     onCreateCircle: () -> Unit = {},
     onJoinCircle: () -> Unit = {},
@@ -80,25 +76,7 @@ fun CaregiverJoinOrCreateCircle(
               .background(Color.White)
               .padding(horizontal = PADDING_BIG, vertical = PADDING_MEDIUM),
   ) {
-    Column(horizontalAlignment = Alignment.Start) {
-      Box(
-          modifier =
-              Modifier.size(56.dp)
-                  .background(lightOrange, CircleShape)
-                  .testTag(CaregiverJoinOrCreateCircleTestTags.LOGO.name),
-          contentAlignment = Alignment.Center,
-      ) {
-        Text(text = "logo", fontSize = 12.sp, color = Color.Black)
-      }
-      Text(
-          text = "Amber",
-          fontWeight = FontWeight.Bold,
-          fontSize = 18.sp,
-          modifier =
-              Modifier.padding(top = PADDING_SMALL)
-                  .testTag(CaregiverJoinOrCreateCircleTestTags.BRAND_NAME.name),
-      )
-    }
+    AmberHeader()
 
     Spacer(modifier = Modifier.height(40.dp))
 
@@ -112,7 +90,7 @@ fun CaregiverJoinOrCreateCircle(
           fontSize = 28.sp,
           color = Color.Black,
           textAlign = TextAlign.Center,
-          modifier = Modifier.testTag(CaregiverJoinOrCreateCircleTestTags.WELCOME_HEADER.name),
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER.name),
       )
       Spacer(modifier = Modifier.height(PADDING_SMALL))
       Text(
@@ -121,7 +99,7 @@ fun CaregiverJoinOrCreateCircle(
           fontSize = 16.sp,
           color = Color.Black,
           textAlign = TextAlign.Center,
-          modifier = Modifier.testTag(CaregiverJoinOrCreateCircleTestTags.INSTRUCTION_TEXT.name),
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.INSTRUCTION_TEXT.name),
       )
 
       Spacer(modifier = Modifier.height(PADDING_BIG * 2))
@@ -131,7 +109,7 @@ fun CaregiverJoinOrCreateCircle(
           modifier =
               Modifier.fillMaxWidth(0.75f)
                   .height(72.dp)
-                  .testTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name),
+                  .testTag(CaregiverChoiceTestTags.CREATE_BUTTON.name),
           shape = RoundedCornerShape(12.dp),
           colors =
               ButtonDefaults.buttonColors(
@@ -149,9 +127,7 @@ fun CaregiverJoinOrCreateCircle(
       Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
       OrDivider(
-          modifier =
-              Modifier.fillMaxWidth(0.75f)
-                  .testTag(CaregiverJoinOrCreateCircleTestTags.OR_DIVIDER.name),
+          modifier = Modifier.fillMaxWidth(0.75f).testTag(CaregiverChoiceTestTags.OR_DIVIDER.name),
       )
 
       Spacer(modifier = Modifier.height(PADDING_MEDIUM))
@@ -161,7 +137,7 @@ fun CaregiverJoinOrCreateCircle(
           modifier =
               Modifier.fillMaxWidth(0.75f)
                   .height(72.dp)
-                  .testTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name),
+                  .testTag(CaregiverChoiceTestTags.JOIN_BUTTON.name),
           shape = RoundedCornerShape(12.dp),
           colors =
               ButtonDefaults.buttonColors(
@@ -182,7 +158,7 @@ fun CaregiverJoinOrCreateCircle(
           text = INVITE_LINK_HINT_LABEL,
           fontSize = 14.sp,
           color = Color.Black,
-          modifier = Modifier.testTag(CaregiverJoinOrCreateCircleTestTags.INVITE_LINK_HINT.name),
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.INVITE_LINK_HINT.name),
       )
     }
 
@@ -194,7 +170,7 @@ fun CaregiverJoinOrCreateCircle(
             Modifier.fillMaxWidth(0.55f)
                 .align(Alignment.CenterHorizontally)
                 .height(56.dp)
-                .testTag(CaregiverJoinOrCreateCircleTestTags.BACK_BUTTON.name),
+                .testTag(CaregiverChoiceTestTags.BACK_BUTTON.name),
         shape = RoundedCornerShape(12.dp),
         colors =
             ButtonDefaults.buttonColors(
@@ -238,6 +214,6 @@ private fun OrDivider(modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true)
 @Composable
-fun CaregiverJoinOrCreateCirclePreview() {
-  CaregiverJoinOrCreateCircle()
+fun CaregiverChoicePreview() {
+  CaregiverChoiceScreen()
 }

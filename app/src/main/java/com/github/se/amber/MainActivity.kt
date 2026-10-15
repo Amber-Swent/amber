@@ -24,8 +24,8 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
 import com.github.se.amber.ui.accountCreation.CreateProfileScreen
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
-import com.github.se.amber.ui.invitationRedemption.RedeemInvite
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
+import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.invitationRedemption.RedeemInviteViewModel
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -125,7 +125,7 @@ fun AmberApp(
         )
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
-        CaregiverJoinOrCreateCircle(
+        CaregiverChoiceScreen(
             onBack = { navigationActions.goBack() },
             onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
             onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },
@@ -136,7 +136,7 @@ fun AmberApp(
         // Todo
       }
       composable(route = OnboardingScreen.EnterInvitation.route) {
-        RedeemInvite(
+        InvitationRedemptionScreen(
             viewModel =
                 viewModel(
                     factory =
