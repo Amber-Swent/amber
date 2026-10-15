@@ -26,7 +26,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
@@ -54,7 +53,6 @@ object CaregiverHomeTestTags {
  * @param viewModel ViewModel providing the patient information displayed on the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
  * @param onSignedOut Callback invoked when the user is signed out .
- * @param credentialManager Credential Manager used to clear the credential state when signing out.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +60,6 @@ fun CaregiverHomeScreen(
     viewModel: CaregiverHomeViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = { tab -> },
     onSignedOut: () -> Unit = {},
-    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
 ) {
   val context = LocalContext.current
 
@@ -87,7 +84,7 @@ fun CaregiverHomeScreen(
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = { viewModel.signOut(credentialManager) },
+              onBackClick = { viewModel.signOut() },
           )
           DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
         }

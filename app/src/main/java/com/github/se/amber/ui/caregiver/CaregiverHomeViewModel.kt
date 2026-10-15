@@ -3,7 +3,6 @@
  */
 package com.github.se.amber.ui.caregiver
 
-import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.model.authentication.AuthRepository
@@ -69,12 +68,8 @@ class CaregiverHomeViewModel(
     _uiState.value = _uiState.value.copy(signedOut = signedOut)
   }
 
-  /**
-   * Initiates sign-out and updates the UI state on success or failure.
-   *
-   * @param credentialManager Credential Manager used to clear the credential state after sign-out.
-   */
-  fun signOut(credentialManager: CredentialManager) {
+  /** Initiates sign-out and updates the UI state on success or failure. */
+  fun signOut() {
     viewModelScope.launch {
       authRepository
           .signOut()
