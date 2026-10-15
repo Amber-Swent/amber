@@ -1,3 +1,6 @@
+/* Written by Lou-Anne Maier, with assistance from
+ * Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log

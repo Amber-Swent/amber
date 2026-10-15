@@ -1,3 +1,6 @@
+/* Written by Lou-Anne Maier, with assistance from
+ * Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.ui.caregiver
 
 import androidx.credentials.ClearCredentialStateRequest
@@ -54,7 +57,7 @@ class CaregiverHomeViewModel(
    *
    * @param errorMsg Error message to display in the UI.
    */
-  private fun setErrorMsg(errorMsg: String) {
+  internal fun setErrorMsg(errorMsg: String) {
     _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
   }
 
@@ -63,7 +66,7 @@ class CaregiverHomeViewModel(
    *
    * @param signedOut New value of signedOut
    */
-  private fun setSignedOut(signedOut: Boolean) {
+  internal fun setSignedOut(signedOut: Boolean) {
     _uiState.value = _uiState.value.copy(signedOut = signedOut)
   }
 
