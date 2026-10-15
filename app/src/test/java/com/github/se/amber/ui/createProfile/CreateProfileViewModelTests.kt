@@ -2,7 +2,7 @@
 // with the aid of an AI coding agent
 package com.github.se.amber.ui.createProfile
 
-import com.github.se.amber.data.profile.FirebaseProfileRepository
+import com.github.se.amber.data.profile.FirebaseProfileRepository.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -219,7 +219,7 @@ class CreateProfileViewModelTests {
   @Test
   fun onRoleSelected_profileCreationError_setsSubmitErrorMessage() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
-        Result.failure(FirebaseProfileRepository.ProfileCreationError.ProfileAlreadyExists)
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
     fillValidNameAndSurname()
 
     viewModel.onRoleSelected(Role.PATIENT)
@@ -229,7 +229,7 @@ class CreateProfileViewModelTests {
     assertFalse(state.isSaving)
     assertNull(state.createdRole)
     assertEquals(
-        FirebaseProfileRepository.ProfileCreationError.ProfileAlreadyExists.message,
+        ProfileCreationError.ProfileAlreadyExists.message,
         state.submitError,
     )
   }
@@ -237,14 +237,14 @@ class CreateProfileViewModelTests {
   @Test
   fun onRoleSelected_networkError_setsOfflineSubmitError() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
-        Result.failure(FirebaseProfileRepository.ProfileCreationError.Network)
+        Result.failure(ProfileCreationError.Network)
     fillValidNameAndSurname()
 
     viewModel.onRoleSelected(Role.CAREGIVER)
     advanceUntilIdle()
 
     assertEquals(
-        FirebaseProfileRepository.ProfileCreationError.Network.message,
+        ProfileCreationError.Network.message,
         viewModel.uiState.value.submitError,
     )
     assertNull(viewModel.uiState.value.createdRole)
@@ -267,7 +267,7 @@ class CreateProfileViewModelTests {
   fun onRoleSelected_clearsPreviousSubmitErrorBeforeRetry() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returnsMany
         listOf(
-            Result.failure(FirebaseProfileRepository.ProfileCreationError.Network),
+            Result.failure(ProfileCreationError.Network),
             Result.success(Unit),
         )
     fillValidNameAndSurname()
@@ -275,7 +275,7 @@ class CreateProfileViewModelTests {
     viewModel.onRoleSelected(Role.PATIENT)
     advanceUntilIdle()
     assertEquals(
-        FirebaseProfileRepository.ProfileCreationError.Network.message,
+        ProfileCreationError.Network.message,
         viewModel.uiState.value.submitError,
     )
 

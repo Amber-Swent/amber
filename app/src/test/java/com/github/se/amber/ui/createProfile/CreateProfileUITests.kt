@@ -36,7 +36,11 @@ class CreateProfileUITests {
   private fun setCreateProfile(
       viewModel: CreateProfileViewModel =
           CreateProfileViewModel(
-              profileRepository = ProfileRepository { _, _ -> Result.success(Unit) },
+              profileRepository =
+                  object : ProfileRepository {
+                    override suspend fun createProfile(person: Person, role: Role) =
+                        Result.success(Unit)
+                  },
           ),
   ) {
     composeTestRule.setContent { CreateProfileScreen(viewModel = viewModel) }
@@ -142,12 +146,15 @@ class CreateProfileUITests {
     var savedRole: Role? = null
     var callCount = 0
 
-    val repository = ProfileRepository { person, role ->
-      callCount++
-      savedPerson = person
-      savedRole = role
-      Result.success(Unit)
-    }
+    val repository =
+        object : ProfileRepository {
+          override suspend fun createProfile(person: Person, role: Role): Result<Unit> {
+            callCount++
+            savedPerson = person
+            savedRole = role
+            return Result.success(Unit)
+          }
+        }
     setCreateProfile(CreateProfileViewModel(profileRepository = repository))
 
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput(" Ada ")
