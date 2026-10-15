@@ -37,8 +37,8 @@ sealed interface MediaItem {
   val description: String
   val date: MemoryDate? // when it happened; null = unknown
   val location: GeoLocation? // where it happened; null = unknown
-  // who is credited: member uids or CareCircle.people keys (personIds); no duplicates (written with
-  // arrayUnion/arrayRemove)
+  // who is credited: member uids or CareCircle.people keys (personIds); no duplicates. Saved as a
+  // whole list by MediaRepository.updateMedia (only the author edits a media)
   val shownIds: List<String>
   // TODO: subject to change. Uids allowed to see it; empty = whole circle
   val authorizedIds: List<String>

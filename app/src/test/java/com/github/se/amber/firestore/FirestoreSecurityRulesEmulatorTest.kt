@@ -438,7 +438,7 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
   }
 
-  /** The writes behind MediaRepositoryFirebase: a text has no file, and every write has its id. */
+  /** The creations behind MediaRepositoryFirebase: a text has no file, and each has its id. */
   @Test
   fun mediaWrites_textMayHaveEmptyPath_idFieldRequired_enforcedByEmulator() {
     val circleId = "c-media"
@@ -450,10 +450,10 @@ class FirestoreSecurityRulesEmulatorTest {
     // a text has no file: an empty storagePath is accepted, on create and on update
     fs.assertSucceeds(pat, fs.set("$mediaCol/t1", text("t1", pat)))
     fs.assertSucceeds(pat, fs.patch("$mediaCol/t1", mapOf("text" to "Edited")))
-    // a text can't point at a file outside the circle
+    // a text can't point at a file, even one in the circle's folder
     fs.assertFails(
         pat,
-        fs.set("$mediaCol/t2", text("t2", pat) + ("storagePath" to "careCircles/other/media/t2")),
+        fs.set("$mediaCol/t2", text("t2", pat) + ("storagePath" to "$mediaCol/t2.jpg")),
     )
     // only a text may have no file (a picture in the circle's folder is accepted in
     // inviteClientRedeemDenied_mediaStoriesAppointments_enforcedByEmulator)
@@ -461,6 +461,32 @@ class FirestoreSecurityRulesEmulatorTest {
     // the id field must be there, and equal to the document's id
     fs.assertFails(pat, fs.set("$mediaCol/t3", text("t3", pat) - "id"))
     fs.assertFails(pat, fs.set("$mediaCol/t4", text("other", pat)))
+  }
+
+  /** The edits behind MediaRepository.updateMedia: only the editable fields may change. */
+  @Test
+  fun mediaUpdate_onlyEditableFieldsChange_enforcedByEmulator() {
+    val circleId = "c-media-edit"
+    val pat = "pat"
+    fs.adminSet("careCircles/$circleId", circle(circleId, pat, listOf(pat), patientId = pat))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    val picture = "careCircles/$circleId/media/m1"
+    fs.adminSet(picture, media("m1", pat, "careCircles/$circleId/media/m1.jpg"))
+
+    fs.assertSucceeds(
+        pat,
+        fs.patch(picture, mapOf("description" to "Beach", "shownIds" to listOf(pat))),
+    )
+    // its author can't approve it, turn it into a text (leaving its file without a document),
+    // date it differently, point it at another file, or give it away
+    fs.assertFails(pat, fs.patch(picture, mapOf("status" to "PENDING")))
+    fs.assertFails(pat, fs.patch(picture, mapOf("type" to "text", "storagePath" to "")))
+    fs.assertFails(pat, fs.patch(picture, mapOf("createdAt" to 0L)))
+    fs.assertFails(
+        pat,
+        fs.patch(picture, mapOf("storagePath" to "careCircles/$circleId/media/other.jpg")),
+    )
+    fs.assertFails(pat, fs.patch(picture, mapOf("authorId" to "someone")))
   }
 
   /** The reads behind CareCircleRepository.getCircle(circleId). */
