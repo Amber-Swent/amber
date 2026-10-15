@@ -135,5 +135,5 @@ fun CaregiverParameterScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 internal fun CaregiverParameterScreenPreview() {
-    AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen() }
+  AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen() }
 }

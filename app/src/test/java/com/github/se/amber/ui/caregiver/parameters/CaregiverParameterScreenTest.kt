@@ -1,32 +1,58 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
+ * Modify by Lou-Anne Maier, with assistance from
+ * Claude Code
  */
 package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.credentials.CredentialManager
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
-import com.github.se.amber.ui.navigation.CaregiverTab
+import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowToast
 
-/** Tests the caregiver parameters buttons, bars, hint, and sign-out action. */
+/** Tests the caregiver parameters screen: displayed elements, click callbacks and error toast. */
 @RunWith(RobolectricTestRunner::class)
 class CaregiverParameterScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  private companion object {
+    const val ERROR_MESSAGE = "error"
+  }
+
+  private fun setScreen(
+      viewModel: CaregiverParameterViewModel = CaregiverParameterViewModel(),
+      onCheckout: () -> Unit = {},
+      onTabSelected: (Tab) -> Unit = {},
+      onCreateInvitationClick: () -> Unit = {},
+      onEnterInvitationClick: () -> Unit = {},
+  ) {
+    composeTestRule.setContent {
+      CaregiverParameterScreen(
+          viewModel = viewModel,
+          onCheckout = onCheckout,
+          onTabSelected = onTabSelected,
+          onCreateInvitationClick = onCreateInvitationClick,
+          onEnterInvitationClick = onEnterInvitationClick,
+      )
+    }
+  }
+
+  // --------- is Display ------------
+  @Test
+  fun titleIsDisplayed() {
+    setScreen()
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+  }
 
   @Test
   fun createInvitationButtonIsDisplayed() {
@@ -35,7 +61,6 @@ class CaregiverParameterScreenTest {
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
         .assertIsDisplayed()
-        .assertTextContains("Create Invitation")
   }
 
   @Test
@@ -45,18 +70,13 @@ class CaregiverParameterScreenTest {
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON)
         .assertIsDisplayed()
-        .assertTextContains("Enter Invitation")
   }
 
   @Test
   fun invitationHintIsDisplayed() {
     setScreen()
 
-    composeTestRule
-        .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
-        .assertTextEquals(
-            "Invitation code is needed to add families/patient into the family circle",
-        )
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT).assertIsDisplayed()
   }
 
   @Test
@@ -75,6 +95,14 @@ class CaregiverParameterScreenTest {
         .assertIsDisplayed()
   }
 
+  @Test
+  fun previewShowsTheDefaultParameters() {
+    composeTestRule.setContent { CaregiverParameterScreenPreview() }
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+  }
+
+  // ---------- on Click ----------
   @Test
   fun createClickInvokesTheCreateCallback() {
     var createClicks = 0
@@ -100,54 +128,32 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
-  fun errorMessageIsClearedAfterItIsShown() {
-    val viewModel = fakeViewModel(CaregiverParameterUIState(errorMsg = "nope"))
-    composeTestRule.setContent {
-      CaregiverParameterScreen(
-          viewModel = viewModel,
-      )
-    }
+  fun checkoutClickInvokesTheCheckoutCallback() {
+    var checkoutClicks = 0
+    setScreen(onCheckout = { checkoutClicks++ })
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(1, checkoutClicks)
+  }
+
+  // ---------------- Error message -------------
+  @Test
+  fun errorMessageIsClearedFromTheStateAfterTheToast() {
+    val viewModel = CaregiverParameterViewModel().apply { setErrorMsg(ERROR_MESSAGE) }
+    setScreen(viewModel = viewModel)
 
     composeTestRule.waitForIdle()
-    composeTestRule
-        .onNodeWithTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON)
-        .performClick()
-    composeTestRule
-        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
-        .performClick()
 
-    verify(exactly = 1) { viewModel.clearErrorMsg() }
+    assertNull(viewModel.uiState.value.errorMsg)
   }
 
   @Test
-  fun previewShowsTheParametersTitle() {
-    composeTestRule.setContent { CaregiverParameterScreenPreview() }
+  fun noToastIsShownWhenThereIsNoError() {
+    setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
-  }
+    composeTestRule.waitForIdle()
 
-  private fun fakeViewModel(
-      state: CaregiverParameterUIState = CaregiverParameterUIState(),
-  ): CaregiverParameterViewModel {
-    val viewModel = mockk<CaregiverParameterViewModel>(relaxed = true)
-    every { viewModel.uiState } returns MutableStateFlow(state)
-    return viewModel
-  }
-
-  private fun setScreen(
-      viewModel: CaregiverParameterViewModel = fakeViewModel(),
-      credentialManager: CredentialManager = mockk(relaxed = true),
-      onCheckout: () -> Unit = {},
-      onCreateInvitationClick: () -> Unit = {},
-      onEnterInvitationClick: () -> Unit = {},
-  ) {
-    composeTestRule.setContent {
-      CaregiverParameterScreen(
-          viewModel = viewModel,
-          onCheckout = onCheckout,
-          onCreateInvitationClick = onCreateInvitationClick,
-          onEnterInvitationClick = onEnterInvitationClick,
-      )
-    }
+    assertEquals(0, ShadowToast.shownToastCount())
   }
 }

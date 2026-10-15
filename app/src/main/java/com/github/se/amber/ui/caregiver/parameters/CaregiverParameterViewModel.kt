@@ -15,9 +15,8 @@ data class CaregiverParameterUIState(
     val errorMsg: String? = null,
 )
 
-/** ViewModel for the caregiver parameters screen. Sign-out is handled here. */
-class CaregiverParameterViewModel(
-) : ViewModel() {
+/** ViewModel for the caregiver parameters screen */
+class CaregiverParameterViewModel() : ViewModel() {
   private val _uiState = MutableStateFlow(CaregiverParameterUIState())
   val uiState: StateFlow<CaregiverParameterUIState> = _uiState.asStateFlow()
 
@@ -26,12 +25,12 @@ class CaregiverParameterViewModel(
     _uiState.update { it.copy(errorMsg = null) }
   }
 
-    /**
-     * Sets an error message in the UI state.
-     *
-     * @param errorMsg message describing the error.
-     */
-    internal fun setErrorMsg(errorMsg: String) {
-        _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
-    }
+  /**
+   * Sets an error message in the UI state.
+   *
+   * @param errorMsg message describing the error.
+   */
+  internal fun setErrorMsg(errorMsg: String) {
+    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+  }
 }
