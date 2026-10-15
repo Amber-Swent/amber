@@ -3,6 +3,7 @@
 package com.github.se.amber.ui.accountCreation.caregiverOnboarding
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,8 +27,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.components.AmberHeader
 import com.github.se.amber.ui.theme.PADDING_BIG
@@ -75,91 +75,95 @@ fun CaregiverChoiceScreen(
           Modifier.fillMaxSize()
               .background(Color.White)
               .padding(horizontal = PADDING_BIG, vertical = PADDING_MEDIUM),
+      verticalArrangement = Arrangement.spacedBy(PADDING_BIG + PADDING_MEDIUM),
   ) {
     AmberHeader()
-
-    Spacer(modifier = Modifier.height(40.dp))
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PADDING_BIG),
     ) {
-      Text(
-          text = "Welcome, ${uiState.displayName}",
-          fontWeight = FontWeight.Bold,
-          fontSize = 28.sp,
-          color = Color.Black,
-          textAlign = TextAlign.Center,
-          modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER.name),
-      )
-      Spacer(modifier = Modifier.height(PADDING_SMALL))
-      Text(
-          text = INSTRUCTION_LABEL,
-          fontWeight = FontWeight.Normal,
-          fontSize = 16.sp,
-          color = Color.Black,
-          textAlign = TextAlign.Center,
-          modifier = Modifier.testTag(CaregiverChoiceTestTags.INSTRUCTION_TEXT.name),
-      )
-
-      Spacer(modifier = Modifier.height(PADDING_BIG * 2))
-
-      Button(
-          onClick = onCreateCircle,
-          modifier =
-              Modifier.fillMaxWidth(0.75f)
-                  .height(72.dp)
-                  .testTag(CaregiverChoiceTestTags.CREATE_BUTTON.name),
-          shape = RoundedCornerShape(12.dp),
-          colors =
-              ButtonDefaults.buttonColors(
-                  containerColor = lightOrange,
-                  contentColor = Color.Black,
-              ),
+      Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
       ) {
         Text(
-            text = CREATE_CIRCLE_LABEL,
-            fontWeight = FontWeight.Medium,
+            text = "Welcome, ${uiState.displayName}",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
             textAlign = TextAlign.Center,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER.name),
+        )
+        Text(
+            text = INSTRUCTION_LABEL,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.INSTRUCTION_TEXT.name),
         )
       }
 
-      Spacer(modifier = Modifier.height(PADDING_MEDIUM))
-
-      OrDivider(
-          modifier = Modifier.fillMaxWidth(0.75f).testTag(CaregiverChoiceTestTags.OR_DIVIDER.name),
-      )
-
-      Spacer(modifier = Modifier.height(PADDING_MEDIUM))
-
-      Button(
-          onClick = onJoinCircle,
-          modifier =
-              Modifier.fillMaxWidth(0.75f)
-                  .height(72.dp)
-                  .testTag(CaregiverChoiceTestTags.JOIN_BUTTON.name),
-          shape = RoundedCornerShape(12.dp),
-          colors =
-              ButtonDefaults.buttonColors(
-                  containerColor = lightOrange,
-                  contentColor = Color.Black,
-              ),
+      Column(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
       ) {
+        Button(
+            onClick = onCreateCircle,
+            modifier =
+                Modifier.fillMaxWidth(0.75f)
+                    .height(PADDING_BIG * 3)
+                    .testTag(CaregiverChoiceTestTags.CREATE_BUTTON.name),
+            shape = RoundedCornerShape(PADDING_SMALL),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = lightOrange,
+                    contentColor = Color.Black,
+                ),
+        ) {
+          Text(
+              text = CREATE_CIRCLE_LABEL,
+              style = MaterialTheme.typography.labelLarge,
+              fontWeight = FontWeight.Medium,
+              textAlign = TextAlign.Center,
+          )
+        }
+
+        OrDivider(
+            modifier =
+                Modifier.fillMaxWidth(0.75f).testTag(CaregiverChoiceTestTags.OR_DIVIDER.name),
+        )
+
+        Button(
+            onClick = onJoinCircle,
+            modifier =
+                Modifier.fillMaxWidth(0.75f)
+                    .height(PADDING_BIG * 3)
+                    .testTag(CaregiverChoiceTestTags.JOIN_BUTTON.name),
+            shape = RoundedCornerShape(PADDING_SMALL),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = lightOrange,
+                    contentColor = Color.Black,
+                ),
+        ) {
+          Text(
+              text = JOIN_CIRCLE_LABEL,
+              style = MaterialTheme.typography.labelLarge,
+              fontWeight = FontWeight.Medium,
+              textAlign = TextAlign.Center,
+          )
+        }
+
         Text(
-            text = JOIN_CIRCLE_LABEL,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
+            text = INVITE_LINK_HINT_LABEL,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Black,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.INVITE_LINK_HINT.name),
         )
       }
-
-      Spacer(modifier = Modifier.height(PADDING_SMALL))
-
-      Text(
-          text = INVITE_LINK_HINT_LABEL,
-          fontSize = 14.sp,
-          color = Color.Black,
-          modifier = Modifier.testTag(CaregiverChoiceTestTags.INVITE_LINK_HINT.name),
-      )
     }
 
     Spacer(modifier = Modifier.weight(1f))
@@ -169,9 +173,9 @@ fun CaregiverChoiceScreen(
         modifier =
             Modifier.fillMaxWidth(0.55f)
                 .align(Alignment.CenterHorizontally)
-                .height(56.dp)
+                .height(PADDING_BIG * 2)
                 .testTag(CaregiverChoiceTestTags.BACK_BUTTON.name),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PADDING_SMALL),
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = lightGray,
@@ -180,6 +184,7 @@ fun CaregiverChoiceScreen(
     ) {
       Text(
           text = BACK_LABEL,
+          style = MaterialTheme.typography.labelLarge,
           fontWeight = FontWeight.Medium,
           textAlign = TextAlign.Center,
       )
@@ -200,7 +205,7 @@ private fun OrDivider(modifier: Modifier = Modifier) {
     Text(
         text = OR_LABEL,
         color = darkGray,
-        fontSize = 18.sp,
+        style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Medium,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(horizontal = PADDING_MEDIUM),

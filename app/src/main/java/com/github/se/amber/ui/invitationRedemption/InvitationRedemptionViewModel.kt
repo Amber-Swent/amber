@@ -27,7 +27,7 @@ internal const val CODE_REQUIRED_MESSAGE = "Enter an invitation code and try aga
  * @param redemptionError actionable repository failure message, or null when there is none.
  * @param isRedeeming true while a redeem request is in flight.
  */
-data class RedeemInviteUiState(
+data class InvitationRedemptionUiState(
     val inviteCode: String = "",
     val validationAttempted: Boolean = false,
     val redemptionError: String? = null,
@@ -51,19 +51,19 @@ data class RedeemInviteUiState(
  *
  * @param invitationRedemptionRepository source of invitation redeem operations.
  */
-class RedeemInviteViewModel(
+class InvitationRedemptionViewModel(
     private val invitationRedemptionRepository: InvitationRedemptionRepository =
         InvitationRedemptionRepositoryProvider.default.repository,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(RedeemInviteUiState())
-  val uiState: StateFlow<RedeemInviteUiState> = _uiState.asStateFlow()
+  private val _uiState = MutableStateFlow(InvitationRedemptionUiState())
+  val uiState: StateFlow<InvitationRedemptionUiState> = _uiState.asStateFlow()
 
   private var redeemedResult: InvitationRedemptionResult? = null
 
   /**
-   * Updates [RedeemInviteUiState.inviteCode] and clears a previous redemption error so the user can
-   * retry with a corrected code.
+   * Updates [InvitationRedemptionUiState.inviteCode] and clears a previous redemption error so the
+   * user can retry with a corrected code.
    */
   fun onInviteCodeChange(value: String) {
     _uiState.update { it.copy(inviteCode = value, redemptionError = null) }
@@ -74,8 +74,9 @@ class RedeemInviteViewModel(
    *
    * [onSuccess] is invoked after a successful redeem (and again if the user returns and presses
    * Submit), so the navigation owner can route without observing UI state. Does nothing while a
-   * redeem is already in progress. Does not call the repository when the code is blank after trim;
-   * the derived [RedeemInviteUiState.errorMessage] is shown instead.
+   * redeem is already in progress. Trims only the value sent to the repository so the entered code
+   * stays in the field after failure. Does not call the repository when the code is blank after
+   * trim; the derived [InvitationRedemptionUiState.errorMessage] is shown instead.
    */
   fun onSubmit(onSuccess: (InvitationRedemptionResult) -> Unit = {}) {
     redeemedResult?.let {
@@ -87,7 +88,6 @@ class RedeemInviteViewModel(
     val trimmedCode = _uiState.value.inviteCode.trim()
     _uiState.update {
       it.copy(
-          inviteCode = trimmedCode,
           validationAttempted = true,
           redemptionError = null,
       )

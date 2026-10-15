@@ -41,12 +41,12 @@ class InvitationRedemptionUITests {
 
   private fun setScreen(
       repository: InvitationRedemptionRepository = stubRepository(),
-  ): RedeemInviteViewModel {
+  ): InvitationRedemptionViewModel {
     redeemSuccessCount = 0
     backCount = 0
     lastRedemptionResult = null
     val viewModel =
-        RedeemInviteViewModel(
+        InvitationRedemptionViewModel(
             invitationRedemptionRepository = repository,
         )
     composeTestRule.setContent {

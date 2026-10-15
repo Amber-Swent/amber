@@ -3,6 +3,7 @@
 package com.github.se.amber.ui.invitationRedemption
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,13 +27,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.ui.components.AmberHeader
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -60,7 +60,7 @@ internal const val BACK_LABEL = "Back"
  */
 @Composable
 fun InvitationRedemptionScreen(
-    viewModel: RedeemInviteViewModel = viewModel(),
+    viewModel: InvitationRedemptionViewModel = viewModel(),
     onRedeemSuccess: (InvitationRedemptionResult) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
@@ -79,62 +79,58 @@ fun InvitationRedemptionScreen(
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PADDING_BIG),
     ) {
       Text(
           text = TITLE_LABEL,
+          style = MaterialTheme.typography.headlineMedium,
           fontWeight = FontWeight.Bold,
-          fontSize = 28.sp,
           color = Color.Black,
           textAlign = TextAlign.Center,
           modifier = Modifier.testTag(InvitationRedemptionTestTags.TITLE.name),
       )
 
-      Spacer(modifier = Modifier.height(PADDING_BIG))
-
-      Column(modifier = Modifier.fillMaxWidth(0.9f)) {
-        OutlinedTextField(
-            value = uiState.inviteCode,
-            onValueChange = viewModel::onInviteCodeChange,
-            modifier =
-                Modifier.fillMaxWidth().testTag(InvitationRedemptionTestTags.CODE_INPUT.name),
-            placeholder = {
-              Text(
-                  text = CODE_PLACEHOLDER_LABEL,
-                  modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name),
-              )
-            },
-            supportingText =
-                uiState.errorMessage?.let { error ->
-                  {
-                    Text(
-                        text = error,
-                        modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_ERROR.name),
-                    )
-                  }
-                },
-            isError = uiState.errorMessage != null,
-            enabled = !uiState.isRedeeming,
-            singleLine = true,
-            shape = RoundedCornerShape(12.dp),
-            colors =
-                OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = darkGray,
-                    unfocusedBorderColor = darkGray.copy(alpha = 0.4f),
-                    errorBorderColor = MaterialTheme.colorScheme.error,
-                ),
-        )
-      }
-
-      Spacer(modifier = Modifier.height(PADDING_BIG))
+      OutlinedTextField(
+          value = uiState.inviteCode,
+          onValueChange = viewModel::onInviteCodeChange,
+          modifier =
+              Modifier.fillMaxWidth(0.9f).testTag(InvitationRedemptionTestTags.CODE_INPUT.name),
+          placeholder = {
+            Text(
+                text = CODE_PLACEHOLDER_LABEL,
+                modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name),
+            )
+          },
+          supportingText =
+              uiState.errorMessage?.let { error ->
+                {
+                  Text(
+                      text = error,
+                      style = MaterialTheme.typography.bodySmall,
+                      modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_ERROR.name),
+                  )
+                }
+              },
+          isError = uiState.errorMessage != null,
+          enabled = !uiState.isRedeeming,
+          singleLine = true,
+          shape = RoundedCornerShape(PADDING_SMALL),
+          colors =
+              OutlinedTextFieldDefaults.colors(
+                  focusedBorderColor = darkGray,
+                  unfocusedBorderColor = darkGray.copy(alpha = 0.4f),
+                  errorBorderColor = MaterialTheme.colorScheme.error,
+              ),
+      )
 
       Button(
           onClick = { viewModel.onSubmit(onRedeemSuccess) },
           enabled = !uiState.isRedeeming,
           modifier =
               Modifier.fillMaxWidth(0.75f)
-                  .height(56.dp)
+                  .height(PADDING_BIG * 2)
                   .testTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name),
-          shape = RoundedCornerShape(12.dp),
+          shape = RoundedCornerShape(PADDING_SMALL),
           colors =
               ButtonDefaults.buttonColors(
                   containerColor = lightOrange,
@@ -143,6 +139,7 @@ fun InvitationRedemptionScreen(
       ) {
         Text(
             text = SUBMIT_LABEL,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
@@ -157,9 +154,9 @@ fun InvitationRedemptionScreen(
         modifier =
             Modifier.fillMaxWidth(0.55f)
                 .align(Alignment.CenterHorizontally)
-                .height(56.dp)
+                .height(PADDING_BIG * 2)
                 .testTag(InvitationRedemptionTestTags.BACK_BUTTON.name),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(PADDING_SMALL),
         colors =
             ButtonDefaults.buttonColors(
                 containerColor = lightGray,
@@ -168,6 +165,7 @@ fun InvitationRedemptionScreen(
     ) {
       Text(
           text = BACK_LABEL,
+          style = MaterialTheme.typography.labelLarge,
           fontWeight = FontWeight.Medium,
           textAlign = TextAlign.Center,
       )

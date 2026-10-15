@@ -28,18 +28,18 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [RedeemInviteViewModel] with a mocked [InvitationRedemptionRepository].
+ * Unit tests for [InvitationRedemptionViewModel] with a mocked [InvitationRedemptionRepository].
  *
  * Repository Firebase/Functions coverage lives in FirebaseInvitationRedemptionRepositoryTest; this
  * class only verifies ViewModel validation and UI-state transitions.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class RedeemInviteViewModelTest {
+class InvitationRedemptionViewModelTest {
 
   private lateinit var invitationRedemptionRepository: InvitationRedemptionRepository
   private var successCount = 0
   private var lastSuccessResult: InvitationRedemptionResult? = null
-  private lateinit var viewModel: RedeemInviteViewModel
+  private lateinit var viewModel: InvitationRedemptionViewModel
   private val onSuccess: (InvitationRedemptionResult) -> Unit = { result ->
     successCount++
     lastSuccessResult = result
@@ -52,7 +52,7 @@ class RedeemInviteViewModelTest {
     successCount = 0
     lastSuccessResult = null
     viewModel =
-        RedeemInviteViewModel(
+        InvitationRedemptionViewModel(
             invitationRedemptionRepository = invitationRedemptionRepository,
         )
   }
@@ -67,7 +67,7 @@ class RedeemInviteViewModelTest {
 
   @Test
   fun initialState_hasEmptyCodeAndNoErrors() {
-    assertEquals(RedeemInviteUiState(), viewModel.uiState.value)
+    assertEquals(InvitationRedemptionUiState(), viewModel.uiState.value)
     assertNull(viewModel.uiState.value.errorMessage)
   }
 
@@ -116,7 +116,7 @@ class RedeemInviteViewModelTest {
   }
 
   @Test
-  fun onSubmit_whitespaceOnlyCode_treatedAsBlankAndDoesNotCallRepository() = runTest {
+  fun onSubmit_whitespaceOnlyCode_treatedAsBlankAndRetainsEnteredCode() = runTest {
     viewModel.onInviteCodeChange("   ")
 
     viewModel.onSubmit(onSuccess)
@@ -124,7 +124,7 @@ class RedeemInviteViewModelTest {
 
     val state = viewModel.uiState.value
     assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
-    assertEquals("", state.inviteCode)
+    assertEquals("   ", state.inviteCode)
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }
   }
 
@@ -145,7 +145,7 @@ class RedeemInviteViewModelTest {
     assertNull(state.errorMessage)
     assertEquals(1, successCount)
     assertEquals(result, lastSuccessResult)
-    assertEquals("invite-code", state.inviteCode)
+    assertEquals("  invite-code  ", state.inviteCode)
     coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("invite-code") }
   }
 

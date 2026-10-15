@@ -74,9 +74,9 @@ class CreateProfileViewModel(
    * Validates name and surname, then creates the profile with [role] via [ProfileRepository].
    *
    * [onSuccess] is invoked after a successful create (and again if the user returns and presses a
-   * role button), so the navigation owner can move forward without observing UI state. Does
-   * nothing while a save is already in progress. Does not call the repository when fields are
-   * blank after trim.
+   * role button), so the navigation owner can move forward without observing UI state. Does nothing
+   * while a save is already in progress. Does not call the repository when fields are blank after
+   * trim.
    */
   fun onRoleSelected(role: Role, onSuccess: (Role) -> Unit = {}) {
     createdRole?.let {
