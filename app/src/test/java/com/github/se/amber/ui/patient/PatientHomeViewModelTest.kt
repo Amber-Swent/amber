@@ -3,8 +3,6 @@
 package com.github.se.amber.ui.patient
 
 import android.util.Log
-import androidx.credentials.ClearCredentialStateRequest
-import androidx.credentials.CredentialManager
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Person
@@ -16,10 +14,12 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -96,32 +96,27 @@ class PatientHomeViewModelTest {
   }
 
   @Test
-  fun `signOut success sets signedOut and clears credentials`() = runTest {
+  fun `signOut success sets signedOut`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
     coEvery { authRepo.signOut() } returns Result.success(Unit)
-    val credentialManager = mockk<CredentialManager>(relaxed = true)
 
     val vm = PatientHomeViewModel(profileRepo, authRepo)
-    vm.signOut(credentialManager)
+    vm.signOut() // No longer uses a CredentialManager
 
+    coVerify(exactly = 1) { authRepo.signOut() }
     assertTrue(vm.uiState.value.signedOut)
-    coVerify { credentialManager.clearCredentialState(any<ClearCredentialStateRequest>()) }
   }
 
   @Test
   fun `signOut failure sets error and does not sign out`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
     coEvery { authRepo.signOut() } returns Result.failure(Exception("nope"))
-    val credentialManager = mockk<CredentialManager>(relaxed = true)
 
     val vm = PatientHomeViewModel(profileRepo, authRepo)
-    vm.signOut(credentialManager)
+    vm.signOut()
 
     assertEquals("nope", vm.uiState.value.errorMsg)
     assertFalse(vm.uiState.value.signedOut)
-    coVerify(exactly = 0) {
-      credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
-    }
   }
 
   @Test
@@ -134,5 +129,21 @@ class PatientHomeViewModelTest {
     vm.clearErrorMsg()
 
     assertNull(vm.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun `late profile result does not undo sign out`() = runTest {
+    val pendingProfile = CompletableDeferred<Result<UserProfile?>>()
+    coEvery { profileRepo.getCurrentProfile() } coAnswers { pendingProfile.await() }
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+
+    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    vm.signOut()
+    assertTrue(vm.uiState.value.signedOut) // sign-out finishes before getCurrentProfile()
+
+    pendingProfile.complete(Result.success(profile))
+    advanceUntilIdle()
+
+    assertTrue(vm.uiState.value.signedOut) // must not be reset to false
   }
 }

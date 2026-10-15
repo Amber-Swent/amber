@@ -23,6 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 class PatientHomeScreenTest {
@@ -59,7 +60,6 @@ class PatientHomeScreenTest {
     composeTestRule.setContent {
       PatientHomeScreen(
           homeViewModel = viewModel,
-          credentialManager = credentialManager,
           onSignedOut = { signedOutCount++ },
           onTabSelected = { selectedTabs.add(it) },
       )
@@ -124,7 +124,7 @@ class PatientHomeScreenTest {
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
-    verify { viewModel.signOut(credentialManager) }
+    verify { viewModel.signOut() }
   }
 
   @Test
@@ -144,6 +144,7 @@ class PatientHomeScreenTest {
     stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
     composeTestRule.waitForIdle()
 
+    assertEquals("Oops", ShadowToast.getTextOfLatestToast())
     verify { viewModel.clearErrorMsg() }
   }
 }

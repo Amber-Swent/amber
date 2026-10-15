@@ -3,8 +3,6 @@
 package com.github.se.amber.ui.patient
 
 import android.util.Log
-import androidx.credentials.ClearCredentialStateRequest
-import androidx.credentials.CredentialManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.FirebaseProfileRepository
@@ -38,6 +36,7 @@ data class PatientHomeUIState(
  * Responsible for managing the UI state
  *
  * @property profileRepository The repository used to fetch the Profile.
+ * @property authRepository The repository used to sign the user out.
  */
 class PatientHomeViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
@@ -52,13 +51,14 @@ class PatientHomeViewModel(
     getProfile()
   }
 
+  /** Clears the error message in the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
+    _uiState.update { it.copy(errorMsg = null) }
   }
 
   /** Sets an error message in the UI state. */
   private fun setErrorMsg(errorMsg: String) {
-    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+    _uiState.update { it.copy(errorMsg = errorMsg) }
   }
 
   /** Fetches the profile from the repository and updates the UI state. */
@@ -69,7 +69,7 @@ class PatientHomeViewModel(
           .fold(
               onSuccess = { profile ->
                 if (profile != null) {
-                  _uiState.value = PatientHomeUIState(patientProfile = profile)
+                  _uiState.update { it.copy(patientProfile = profile) }
                 } else {
                   setErrorMsg("No profile found.")
                 }
@@ -83,17 +83,14 @@ class PatientHomeViewModel(
   }
 
   /** Initiates sign-out and update the UI state on success or failure */
-  fun signOut(credentialManager: CredentialManager) {
+  fun signOut() {
     viewModelScope.launch {
       authRepository
           .signOut()
           .fold(
-              onSuccess = {
-                credentialManager.clearCredentialState(ClearCredentialStateRequest())
-                _uiState.update { it.copy(signedOut = true) }
-              },
+              onSuccess = { _uiState.update { it.copy(signedOut = true) } },
               onFailure = { throwable ->
-                _uiState.update { it.copy(errorMsg = throwable.localizedMessage) }
+                setErrorMsg(throwable.localizedMessage ?: "Sign out failed")
               },
           )
     }

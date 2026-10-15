@@ -2,7 +2,6 @@
 package com.github.se.amber.ui.patient
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,7 +25,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -37,6 +35,7 @@ import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_BIG
+import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.orange
 
@@ -48,7 +47,6 @@ object PatientHomeScreenTestTags {
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
-    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
     onSignedOut: () -> Unit,
     onTabSelected: (Tab) -> Unit,
 ) {
@@ -77,7 +75,7 @@ fun PatientHomeScreen(
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = { homeViewModel.signOut(credentialManager) },
+              onBackClick = { homeViewModel.signOut() },
           )
           Spacer(modifier = Modifier.height(PADDING_SMALL))
           Text(
@@ -102,11 +100,12 @@ fun PatientHomeScreen(
       content = { paddingValues ->
         Column(
             modifier =
-                Modifier.fillMaxSize().padding(paddingValues).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = PADDING_MEDIUM),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          Spacer(modifier = Modifier.height(PADDING_SMALL))
           Text(
               modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.GREETINGS),
               text = "Hello " + uiState.patientProfile.person.firstName + " !",
