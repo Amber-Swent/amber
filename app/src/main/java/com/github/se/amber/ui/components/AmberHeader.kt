@@ -14,17 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import com.github.se.amber.ui.theme.LOGO_SIZE
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.lightOrange
-
-/** Test tags for [AmberHeader]. */
-object AmberHeaderTestTags {
-  const val LOGO = "amberHeaderLogo"
-  const val BRAND_NAME = "amberHeaderBrandName"
-}
 
 /**
  * Shared onboarding header: logo placeholder and Amber brand name.
@@ -42,10 +35,7 @@ fun AmberHeader(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
   ) {
     Box(
-        modifier =
-            Modifier.size(LOGO_SIZE)
-                .background(lightOrange, CircleShape)
-                .testTag(AmberHeaderTestTags.LOGO),
+        modifier = Modifier.size(LOGO_SIZE).background(lightOrange, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
       Text(
@@ -58,7 +48,6 @@ fun AmberHeader(modifier: Modifier = Modifier) {
         text = "Amber",
         style = MaterialTheme.typography.titleMedium,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.testTag(AmberHeaderTestTags.BRAND_NAME),
     )
   }
 }

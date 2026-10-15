@@ -40,7 +40,6 @@ import com.github.se.amber.ui.theme.lightOrange
 
 /** Test tags for [InvitationRedemptionScreen]. */
 enum class InvitationRedemptionTestTags {
-  TITLE,
   CODE_INPUT,
   CODE_PLACEHOLDER,
   CODE_ERROR,
@@ -88,7 +87,6 @@ fun InvitationRedemptionScreen(
           fontWeight = FontWeight.Bold,
           color = Color.Black,
           textAlign = TextAlign.Center,
-          modifier = Modifier.testTag(InvitationRedemptionTestTags.TITLE.name),
       )
 
       OutlinedTextField(

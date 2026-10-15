@@ -42,11 +42,8 @@ import com.github.se.amber.ui.theme.lightOrange
 enum class CaregiverChoiceTestTags {
   BACK_BUTTON,
   WELCOME_HEADER,
-  INSTRUCTION_TEXT,
   CREATE_BUTTON,
-  OR_DIVIDER,
   JOIN_BUTTON,
-  INVITE_LINK_HINT,
 }
 
 internal const val CREATE_CIRCLE_LABEL = "Create a new care circle"
@@ -103,7 +100,6 @@ fun CaregiverChoiceScreen(
             style = MaterialTheme.typography.titleMedium,
             color = Color.Black,
             textAlign = TextAlign.Center,
-            modifier = Modifier.testTag(CaregiverChoiceTestTags.INSTRUCTION_TEXT.name),
         )
       }
 
@@ -133,10 +129,7 @@ fun CaregiverChoiceScreen(
           )
         }
 
-        OrDivider(
-            modifier =
-                Modifier.fillMaxWidth(0.75f).testTag(CaregiverChoiceTestTags.OR_DIVIDER.name),
-        )
+        OrDivider(modifier = Modifier.fillMaxWidth(0.75f))
 
         Button(
             onClick = onJoinCircle,
@@ -163,7 +156,6 @@ fun CaregiverChoiceScreen(
             text = INVITE_LINK_HINT_LABEL,
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Black,
-            modifier = Modifier.testTag(CaregiverChoiceTestTags.INVITE_LINK_HINT.name),
         )
       }
     }
