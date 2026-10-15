@@ -116,11 +116,13 @@ fun AmberApp(
                                     when (role) {
                                       Role.PATIENT ->
                                           navigationActions.navigateTo(
-                                              OnboardingScreen.EnterInvitation)
+                                              OnboardingScreen.EnterInvitation
+                                          )
                                       Role.CAREGIVER -> {
                                         caregiverDisplayName = displayName
                                         navigationActions.navigateTo(
-                                            OnboardingScreen.CaregiverChoice)
+                                            OnboardingScreen.CaregiverChoice
+                                        )
                                       }
                                     }
                                   },

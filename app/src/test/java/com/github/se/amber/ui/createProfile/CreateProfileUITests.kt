@@ -2,7 +2,6 @@
 // with the aid of AI coding agent
 package com.github.se.amber.ui.createProfile
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -16,14 +15,12 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
 import com.github.se.amber.ui.accountCreation.CreateProfileScreen
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
-import com.github.se.amber.ui.theme.darkGray
+import com.github.se.amber.ui.accountCreation.FILL_OUT_MESSAGE
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -117,11 +114,8 @@ class CreateProfileUITests {
   }
 
   @Test
-  fun namePlaceholder_showsGreyNameTextWhenEmpty() {
+  fun nameLabel_isDisplayedWhenEmpty() {
     setCreateProfile()
-
-    assertEquals(darkGray, CreateProfilePlaceholderColor)
-    assertPlaceholderIsGrey(CreateProfilePlaceholderColor)
 
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.NAME_PLACEHOLDER.name, useUnmergedTree = true)
@@ -130,11 +124,8 @@ class CreateProfileUITests {
   }
 
   @Test
-  fun surnamePlaceholder_showsGreySurnameTextWhenEmpty() {
+  fun surnameLabel_isDisplayedWhenEmpty() {
     setCreateProfile()
-
-    assertEquals(darkGray, CreateProfilePlaceholderColor)
-    assertPlaceholderIsGrey(CreateProfilePlaceholderColor)
 
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name, useUnmergedTree = true)
@@ -208,29 +199,12 @@ class CreateProfileUITests {
         .assert(hasErrorSemantics())
 
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_ERROR.name)
+        .onNodeWithTag(CreateProfileTestTags.NAME_ERROR.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(FILL_OUT_MESSAGE)
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_ERROR.name)
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_ERROR.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(FILL_OUT_MESSAGE)
-  }
-
-  private fun assertPlaceholderIsGrey(color: Color) {
-    // Placeholder must be a muted grey, not black/white or the error red.
-    assertEquals(darkGray, color)
-    assertTrue(
-        "Placeholder color should be grey (equal RGB channels), was $color",
-        color.red == color.green && color.green == color.blue,
-    )
-    assertTrue(
-        "Placeholder grey should be mid-tone, was $color",
-        color.red < 1f && color.red > 0f,
-    )
-  }
-
-  private companion object {
-    const val FILL_OUT_MESSAGE = "Please fill this out"
   }
 }

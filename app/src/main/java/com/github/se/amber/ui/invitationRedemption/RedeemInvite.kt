@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -50,11 +51,8 @@ enum class RedeemInviteTestTags {
   BACK_BUTTON,
 }
 
-private val ErrorRed = Color(0xFFB3261E)
-
 internal const val TITLE_LABEL = "Enter your invite link"
 internal const val CODE_PLACEHOLDER_LABEL = "Enter your invitation Code"
-internal const val INVALID_LINK_LABEL = "invalid link"
 internal const val SUBMIT_LABEL = "Submit"
 internal const val BACK_LABEL = "Back"
 
@@ -114,43 +112,36 @@ fun RedeemInvite(
       Spacer(modifier = Modifier.height(PADDING_BIG))
 
       Column(modifier = Modifier.fillMaxWidth(0.9f)) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-          OutlinedTextField(
-              value = uiState.inviteCode,
-              onValueChange = viewModel::onInviteCodeChange,
-              modifier = Modifier.fillMaxWidth().testTag(RedeemInviteTestTags.CODE_INPUT.name),
-              isError = uiState.showError,
-              enabled = !uiState.isRedeeming,
-              singleLine = true,
-              shape = RoundedCornerShape(12.dp),
-              colors =
-                  OutlinedTextFieldDefaults.colors(
-                      focusedBorderColor = darkGray,
-                      unfocusedBorderColor = darkGray.copy(alpha = 0.4f),
-                      errorBorderColor = ErrorRed,
-                  ),
-          )
-          if (uiState.inviteCode.isEmpty()) {
-            Text(
-                text = CODE_PLACEHOLDER_LABEL,
-                color = darkGray,
-                modifier =
-                    Modifier.align(Alignment.CenterStart)
-                        .padding(start = 16.dp)
-                        .testTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name),
-            )
-          }
-        }
-        if (uiState.showError) {
-          Text(
-              text = INVALID_LINK_LABEL,
-              color = ErrorRed,
-              fontSize = 12.sp,
-              modifier =
-                  Modifier.padding(start = 16.dp, top = 4.dp)
-                      .testTag(RedeemInviteTestTags.CODE_ERROR.name),
-          )
-        }
+        OutlinedTextField(
+            value = uiState.inviteCode,
+            onValueChange = viewModel::onInviteCodeChange,
+            modifier = Modifier.fillMaxWidth().testTag(RedeemInviteTestTags.CODE_INPUT.name),
+            placeholder = {
+              Text(
+                  text = CODE_PLACEHOLDER_LABEL,
+                  modifier = Modifier.testTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name),
+              )
+            },
+            supportingText =
+                uiState.errorMessage?.let { error ->
+                  {
+                    Text(
+                        text = error,
+                        modifier = Modifier.testTag(RedeemInviteTestTags.CODE_ERROR.name),
+                    )
+                  }
+                },
+            isError = uiState.errorMessage != null,
+            enabled = !uiState.isRedeeming,
+            singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors =
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = darkGray,
+                    unfocusedBorderColor = darkGray.copy(alpha = 0.4f),
+                    errorBorderColor = MaterialTheme.colorScheme.error,
+                ),
+        )
       }
 
       Spacer(modifier = Modifier.height(PADDING_BIG))

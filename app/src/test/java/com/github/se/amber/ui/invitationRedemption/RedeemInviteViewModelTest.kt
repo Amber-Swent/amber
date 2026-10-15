@@ -69,6 +69,7 @@ class RedeemInviteViewModelTest {
   @Test
   fun initialState_hasEmptyCodeAndNoErrors() {
     assertEquals(RedeemInviteUiState(), viewModel.uiState.value)
+    assertNull(viewModel.uiState.value.errorMessage)
   }
 
   // ---------- onInviteCodeChange ----------
@@ -81,25 +82,34 @@ class RedeemInviteViewModelTest {
   }
 
   @Test
-  fun onInviteCodeChange_clearsShowError() {
+  fun onInviteCodeChange_clearsRedemptionError() = runTest {
+    coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
+        Result.failure(InvitationError.InvalidCode)
+    viewModel.onInviteCodeChange("bad-code")
     viewModel.onSubmit()
-    assertTrue(viewModel.uiState.value.showError)
+    advanceUntilIdle()
+    assertEquals(
+        InvitationError.InvalidCode.toActionableMessage(),
+        viewModel.uiState.value.errorMessage,
+    )
 
     viewModel.onInviteCodeChange("ABC-123")
 
-    assertFalse(viewModel.uiState.value.showError)
+    assertNull(viewModel.uiState.value.redemptionError)
+    assertNull(viewModel.uiState.value.errorMessage)
     assertEquals("ABC-123", viewModel.uiState.value.inviteCode)
   }
 
   // ---------- Validation (no repository call) ----------
 
   @Test
-  fun onSubmit_blankCode_setsErrorAndDoesNotCallRepository() = runTest {
+  fun onSubmit_blankCode_setsDerivedErrorAndDoesNotCallRepository() = runTest {
     viewModel.onSubmit()
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertTrue(state.showError)
+    assertTrue(state.validationAttempted)
+    assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
     assertEquals("", state.inviteCode)
     assertFalse(state.isRedeeming)
     assertEquals(0, successCount)
@@ -114,7 +124,7 @@ class RedeemInviteViewModelTest {
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertTrue(state.showError)
+    assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
     assertEquals("", state.inviteCode)
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }
   }
@@ -133,7 +143,7 @@ class RedeemInviteViewModelTest {
 
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
-    assertFalse(state.showError)
+    assertNull(state.errorMessage)
     assertEquals(1, successCount)
     assertEquals(result, lastSuccessResult)
     assertEquals("invite-code", state.inviteCode)
@@ -159,7 +169,7 @@ class RedeemInviteViewModelTest {
   // ---------- Repository failures ----------
 
   @Test
-  fun onSubmit_invalidCode_setsShowError() = runTest {
+  fun onSubmit_invalidCode_setsMappedError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.InvalidCode)
     viewModel.onInviteCodeChange("bad-code")
@@ -169,12 +179,12 @@ class RedeemInviteViewModelTest {
 
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
-    assertTrue(state.showError)
+    assertEquals(InvitationError.InvalidCode.toActionableMessage(), state.errorMessage)
     assertEquals(0, successCount)
   }
 
   @Test
-  fun onSubmit_invitationNotFound_setsShowError() = runTest {
+  fun onSubmit_invitationNotFound_setsMappedError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.InvitationNotFound)
     viewModel.onInviteCodeChange("missing-code")
@@ -182,12 +192,15 @@ class RedeemInviteViewModelTest {
     viewModel.onSubmit()
     advanceUntilIdle()
 
-    assertTrue(viewModel.uiState.value.showError)
+    assertEquals(
+        InvitationError.InvitationNotFound.toActionableMessage(),
+        viewModel.uiState.value.errorMessage,
+    )
     assertEquals(0, successCount)
   }
 
   @Test
-  fun onSubmit_networkError_setsShowError() = runTest {
+  fun onSubmit_networkError_setsMappedOfflineError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.Network)
     viewModel.onInviteCodeChange("net-code")
@@ -195,9 +208,32 @@ class RedeemInviteViewModelTest {
     viewModel.onSubmit()
     advanceUntilIdle()
 
-    assertTrue(viewModel.uiState.value.showError)
+    assertEquals(
+        InvitationError.Network.toActionableMessage(),
+        viewModel.uiState.value.errorMessage,
+    )
     assertEquals(0, successCount)
     assertFalse(viewModel.uiState.value.isRedeeming)
+  }
+
+  @Test
+  fun onSubmit_mapsEachInvitationErrorDistinctly() {
+    val messages =
+        listOf(
+                InvitationError.InvalidCode,
+                InvitationError.InvitationNotFound,
+                InvitationError.InvitationExpired,
+                InvitationError.InvitationAlreadyUsed,
+                InvitationError.UserAlreadyBelongsToCircle,
+                InvitationError.MissingOrInvalidUserProfile,
+                InvitationError.InvalidOrUnavailableCareCircle,
+                InvitationError.PatientSlotAlreadyOccupied,
+                InvitationError.Network,
+                InvitationError.Unknown(IllegalStateException("x")),
+            )
+            .map { it.toActionableMessage() }
+
+    assertEquals(messages.size, messages.toSet().size)
   }
 
   @Test
@@ -213,12 +249,15 @@ class RedeemInviteViewModelTest {
 
     viewModel.onSubmit()
     advanceUntilIdle()
-    assertTrue(viewModel.uiState.value.showError)
+    assertEquals(
+        InvitationError.InvalidCode.toActionableMessage(),
+        viewModel.uiState.value.errorMessage,
+    )
 
     viewModel.onSubmit()
     advanceUntilIdle()
 
-    assertFalse(viewModel.uiState.value.showError)
+    assertNull(viewModel.uiState.value.errorMessage)
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessResult?.role)
   }
@@ -283,6 +322,6 @@ class RedeemInviteViewModelTest {
     assertTrue(viewModel.uiState.value.isRedeeming)
     assertEquals(0, successCount)
     assertNull(lastSuccessResult)
-    assertFalse(viewModel.uiState.value.showError)
+    assertNull(viewModel.uiState.value.errorMessage)
   }
 }

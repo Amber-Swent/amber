@@ -5,26 +5,46 @@ package com.github.se.amber.ui.invitationRedemption
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.invitation.FirebaseInvitationRedemptionRepository
+import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+internal const val CODE_REQUIRED_MESSAGE = "Enter an invitation code and try again."
 
 /**
  * UI state for the redeem-invite step.
  *
+ * Blank-code errors are derived once validation has been attempted. [redemptionError] carries
+ * mapped [InvitationError] messages from the repository.
+ *
  * @param inviteCode invitation code / link entered by the user.
- * @param showError whether the code field should show the invalid-link error.
+ * @param validationAttempted true after the user has pressed Submit at least once.
+ * @param redemptionError actionable repository failure message, or null when there is none.
  * @param isRedeeming true while a redeem request is in flight.
  */
 data class RedeemInviteUiState(
     val inviteCode: String = "",
-    val showError: Boolean = false,
+    val validationAttempted: Boolean = false,
+    val redemptionError: String? = null,
     val isRedeeming: Boolean = false,
-)
+) {
+  /**
+   * Message shown under the code field: blank-code validation when attempted, otherwise the latest
+   * mapped redemption failure.
+   */
+  val errorMessage: String?
+    get() =
+        when {
+          validationAttempted && inviteCode.isBlank() -> CODE_REQUIRED_MESSAGE
+          else -> redemptionError
+        }
+}
 
 /**
  * ViewModel for [RedeemInvite]: validates the invite code and redeems it via
@@ -45,61 +65,50 @@ class RedeemInviteViewModel(
   private var hasRedeemed = false
 
   /**
-   * Updates [RedeemInviteUiState.inviteCode] and clears [RedeemInviteUiState.showError] when the
-   * value changes.
+   * Updates [RedeemInviteUiState.inviteCode] and clears a previous redemption error so the user can
+   * retry with a corrected code.
    */
   fun onInviteCodeChange(value: String) {
-    _uiState.value =
-        _uiState.value.copy(
-            inviteCode = value,
-            showError = false,
-        )
+    _uiState.update { it.copy(inviteCode = value, redemptionError = null) }
   }
 
   /**
    * Validates the invite code, then redeems it via [InvitationRedemptionRepository].
    *
    * Does nothing while a redeem is already in progress or after a successful redeem. Does not call
-   * the repository when the code is blank after trim; sets [RedeemInviteUiState.showError] instead.
+   * the repository when the code is blank after trim; the derived
+   * [RedeemInviteUiState.errorMessage] is shown instead.
    */
   fun onSubmit() {
     if (_uiState.value.isRedeeming || hasRedeemed) return
 
     val trimmedCode = _uiState.value.inviteCode.trim()
-    if (trimmedCode.isEmpty()) {
-      _uiState.value =
-          _uiState.value.copy(
-              inviteCode = trimmedCode,
-              showError = true,
-          )
-      return
+    _uiState.update {
+      it.copy(
+          inviteCode = trimmedCode,
+          validationAttempted = true,
+          redemptionError = null,
+      )
     }
+    if (trimmedCode.isBlank()) return
 
     viewModelScope.launch {
-      _uiState.value =
-          _uiState.value.copy(
-              inviteCode = trimmedCode,
-              isRedeeming = true,
-              showError = false,
-          )
+      _uiState.update { it.copy(isRedeeming = true, redemptionError = null) }
       try {
         invitationRedemptionRepository
             .redeemInvitation(trimmedCode)
             .onSuccess { result ->
               hasRedeemed = true
-              _uiState.value =
-                  _uiState.value.copy(
-                      isRedeeming = false,
-                      showError = false,
-                  )
+              _uiState.update { it.copy(isRedeeming = false, redemptionError = null) }
               onSuccess(result)
             }
-            .onFailure {
-              _uiState.value =
-                  _uiState.value.copy(
-                      isRedeeming = false,
-                      showError = true,
-                  )
+            .onFailure { error ->
+              _uiState.update {
+                it.copy(
+                    isRedeeming = false,
+                    redemptionError = error.toActionableMessage(),
+                )
+              }
             }
       } catch (exception: CancellationException) {
         throw exception
@@ -107,3 +116,22 @@ class RedeemInviteViewModel(
     }
   }
 }
+
+internal fun Throwable.toActionableMessage(): String =
+    when (this) {
+      is InvitationError.InvalidCode -> "That invitation code isn't valid. Check it and try again."
+      is InvitationError.InvitationNotFound ->
+          "No invitation matches this code. Check it and try again."
+      is InvitationError.InvitationExpired -> "This invitation has expired. Ask for a new one."
+      is InvitationError.InvitationAlreadyUsed ->
+          "This invitation was already used. Ask for a new one."
+      is InvitationError.UserAlreadyBelongsToCircle -> "You're already in a care circle."
+      is InvitationError.MissingOrInvalidUserProfile -> "Complete your profile, then try again."
+      is InvitationError.InvalidOrUnavailableCareCircle ->
+          "This care circle is unavailable. Ask for a new invitation."
+      is InvitationError.PatientSlotAlreadyOccupied ->
+          "This circle already has a patient. Ask the caregiver for help."
+      is InvitationError.Network -> "You're offline. Check your connection and try again."
+      is InvitationError.Unknown -> "Couldn't redeem this invitation. Please try again."
+      else -> "Couldn't redeem this invitation. Please try again."
+    }

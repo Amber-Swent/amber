@@ -5,6 +5,7 @@ package com.github.se.amber.ui.accountCreation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.FirebaseProfileRepository
+import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -12,26 +13,38 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+internal const val FILL_OUT_MESSAGE = "Please fill this out"
 
 /**
  * UI state for the create-profile step.
  *
+ * Field errors are derived from the value once validation has been attempted (blank + already
+ * touched), matching the bootcamp B2 pattern. [submitError] carries mapped repository failures.
+ *
  * @param name first name entered by the user.
  * @param surname last name entered by the user.
- * @param nameError whether the name field should show a fill-out error.
- * @param surnameError whether the surname field should show a fill-out error.
+ * @param validationAttempted true after the user has pressed Patient or Caregiver at least once.
  * @param isSaving true while a create-profile request is in flight.
- * @param submitError repository failure message, or null when there is none.
+ * @param submitError actionable repository failure message, or null when there is none.
  */
 data class CreateProfileUiState(
     val name: String = "",
     val surname: String = "",
-    val nameError: Boolean = false,
-    val surnameError: Boolean = false,
+    val validationAttempted: Boolean = false,
     val isSaving: Boolean = false,
     val submitError: String? = null,
-)
+) {
+  /** Fill-out message when validation ran and [name] is blank; otherwise null. */
+  val nameError: String?
+    get() = if (validationAttempted && name.isBlank()) FILL_OUT_MESSAGE else null
+
+  /** Fill-out message when validation ran and [surname] is blank; otherwise null. */
+  val surnameError: String?
+    get() = if (validationAttempted && surname.isBlank()) FILL_OUT_MESSAGE else null
+}
 
 /**
  * ViewModel for [CreateProfileScreen]: validates name/surname and persists the profile on role
@@ -50,27 +63,14 @@ class CreateProfileViewModel(
 
   private var hasCreatedProfile = false
 
-  /**
-   * Updates [CreateProfileUiState.name] and clears [CreateProfileUiState.nameError] when non-blank.
-   */
+  /** Updates [CreateProfileUiState.name]; field error clears automatically when non-blank. */
   fun onNameChange(value: String) {
-    _uiState.value =
-        _uiState.value.copy(
-            name = value,
-            nameError = value.trim().isEmpty() && _uiState.value.nameError,
-        )
+    updateNameField(name = value)
   }
 
-  /**
-   * Updates [CreateProfileUiState.surname] and clears [CreateProfileUiState.surnameError] when
-   * non-blank.
-   */
+  /** Updates [CreateProfileUiState.surname]; field error clears automatically when non-blank. */
   fun onSurnameChange(value: String) {
-    _uiState.value =
-        _uiState.value.copy(
-            surname = value,
-            surnameError = value.trim().isEmpty() && _uiState.value.surnameError,
-        )
+    updateNameField(surname = value)
   }
 
   /**
@@ -84,22 +84,20 @@ class CreateProfileViewModel(
 
     val trimmedName = _uiState.value.name.trim()
     val trimmedSurname = _uiState.value.surname.trim()
-    val nameBlank = trimmedName.isEmpty()
-    val surnameBlank = trimmedSurname.isEmpty()
 
-    _uiState.value =
-        _uiState.value.copy(
-            name = trimmedName,
-            surname = trimmedSurname,
-            nameError = nameBlank,
-            surnameError = surnameBlank,
-            submitError = null,
-        )
+    _uiState.update {
+      it.copy(
+          name = trimmedName,
+          surname = trimmedSurname,
+          validationAttempted = true,
+          submitError = null,
+      )
+    }
 
-    if (nameBlank || surnameBlank) return
+    if (trimmedName.isBlank() || trimmedSurname.isBlank()) return
 
     viewModelScope.launch {
-      _uiState.value = _uiState.value.copy(isSaving = true, submitError = null)
+      _uiState.update { it.copy(isSaving = true, submitError = null) }
       try {
         val result =
             profileRepository.createProfile(
@@ -109,19 +107,16 @@ class CreateProfileViewModel(
         result
             .onSuccess {
               hasCreatedProfile = true
-              _uiState.value =
-                  _uiState.value.copy(
-                      isSaving = false,
-                      submitError = null,
-                  )
+              _uiState.update { it.copy(isSaving = false, submitError = null) }
               onSuccess(role, trimmedName)
             }
             .onFailure { error ->
-              _uiState.value =
-                  _uiState.value.copy(
-                      isSaving = false,
-                      submitError = error.toSubmitErrorMessage(),
-                  )
+              _uiState.update {
+                it.copy(
+                    isSaving = false,
+                    submitError = error.toActionableMessage(),
+                )
+              }
             }
       } catch (exception: CancellationException) {
         throw exception
@@ -129,5 +124,25 @@ class CreateProfileViewModel(
     }
   }
 
-  private fun Throwable.toSubmitErrorMessage(): String = message ?: "Unable to create a profile"
+  private fun updateNameField(name: String? = null, surname: String? = null) {
+    _uiState.update {
+      it.copy(
+          name = name ?: it.name,
+          surname = surname ?: it.surname,
+          submitError = null,
+      )
+    }
+  }
 }
+
+private fun Throwable.toActionableMessage(): String =
+    when (this) {
+      is ProfileCreationError.InvalidPersonDetails ->
+          "Enter your first and last name and try again."
+      is ProfileCreationError.NotAuthenticated -> "Your session expired. Sign in and try again."
+      is ProfileCreationError.ProfileAlreadyExists -> "A profile already exists for this account."
+      is ProfileCreationError.PermissionDenied -> "You don't have permission to create a profile."
+      is ProfileCreationError.Network -> "You're offline. Check your connection and try again."
+      is ProfileCreationError.Unknown -> "Couldn't create your profile. Please try again."
+      else -> "Couldn't create your profile. Please try again."
+    }

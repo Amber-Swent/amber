@@ -17,8 +17,8 @@ data class CaregiverJoinOrCreateCircleUiState(
 )
 
 /**
- * ViewModel for [CaregiverJoinOrCreateCircle]: exposes the caregiver's display name for the
- * welcome header. Create / join navigation is handled by the screen callbacks, not this ViewModel.
+ * ViewModel for [CaregiverJoinOrCreateCircle]: exposes the caregiver's display name for the welcome
+ * header. Create / join navigation is handled by the screen callbacks, not this ViewModel.
  */
 class CaregiverJoinOrCreateCircleViewModel(
     displayName: String = "",

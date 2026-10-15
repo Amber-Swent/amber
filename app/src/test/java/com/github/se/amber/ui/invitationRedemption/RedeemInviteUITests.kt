@@ -25,7 +25,6 @@ import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -114,7 +113,7 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name)
+        .onNodeWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(CODE_PLACEHOLDER_LABEL)
   }
@@ -127,7 +126,7 @@ class RedeemInviteUITests {
     composeTestRule.waitForIdle()
 
     composeTestRule
-        .onAllNodesWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name)
+        .onAllNodesWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
         .assertCountEquals(0)
   }
 
@@ -138,7 +137,9 @@ class RedeemInviteUITests {
     setScreen()
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(RedeemInviteTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
+        .assertIsDisplayed()
   }
 
   // ---------- Submit / Back buttons ----------
@@ -206,34 +207,38 @@ class RedeemInviteUITests {
   // ---------- Validation ----------
 
   @Test
-  fun submit_withEmptyCode_showsInvalidLinkError() {
+  fun submit_withEmptyCode_showsCodeRequiredError() {
     setScreen()
 
-    composeTestRule.onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name).assertCountEquals(0)
+    composeTestRule
+        .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .assertCountEquals(0)
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).assert(hasErrorSemantics())
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_ERROR.name)
+        .onNodeWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(INVALID_LINK_LABEL)
+        .assertTextEquals(CODE_REQUIRED_MESSAGE)
     assertEquals(0, redeemSuccessCount)
   }
 
   @Test
-  fun typingAfterError_clearsInvalidLinkError() {
+  fun typingAfterError_clearsCodeRequiredError() {
     val viewModel = setScreen()
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitForIdle()
-    assertTrue(viewModel.uiState.value.showError)
+    assertEquals(CODE_REQUIRED_MESSAGE, viewModel.uiState.value.errorMessage)
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
     composeTestRule.waitForIdle()
 
-    composeTestRule.onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name).assertCountEquals(0)
+    composeTestRule
+        .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .assertCountEquals(0)
   }
 
   // ---------- Redeem success / failure ----------
@@ -253,22 +258,22 @@ class RedeemInviteUITests {
   }
 
   @Test
-  fun submit_withRejectedCode_showsInvalidLinkError() {
+  fun submit_withRejectedCode_showsMappedInvalidCodeError() {
     setScreen(repository = stubRepository(Result.failure(InvitationError.InvalidCode)))
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) {
       composeTestRule
-          .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name)
+          .onAllNodesWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
 
     composeTestRule
-        .onNodeWithTag(RedeemInviteTestTags.CODE_ERROR.name)
+        .onNodeWithTag(RedeemInviteTestTags.CODE_ERROR.name, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(INVALID_LINK_LABEL)
+        .assertTextEquals(InvitationError.InvalidCode.toActionableMessage())
     assertEquals(0, redeemSuccessCount)
   }
 
