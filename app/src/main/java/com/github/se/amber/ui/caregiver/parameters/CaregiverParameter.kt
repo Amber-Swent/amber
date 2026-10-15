@@ -1,9 +1,10 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
+ * Modify by Lou-Anne Maier, with assistance from
+ * Claude Code
  */
 package com.github.se.amber.ui.caregiver.parameters
 
-import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,11 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.credentials.Credential
-import androidx.credentials.CredentialManager
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.model.authentication.AuthRepository
-import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.DisplayButton
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
@@ -58,8 +54,7 @@ object CaregiverParametersTestTags {
 @Composable
 fun CaregiverParameterScreen(
     viewModel: CaregiverParameterViewModel = viewModel(),
-    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
-    onSignedOut: () -> Unit = {},
+    onCheckout: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = { tab -> },
     onCreateInvitationClick: () -> Unit = {},
     onEnterInvitationClick: () -> Unit = {},
@@ -74,19 +69,13 @@ fun CaregiverParameterScreen(
     }
   }
 
-  LaunchedEffect(uiState.signedOut) {
-    if (uiState.signedOut) {
-      onSignedOut()
-    }
-  }
-
   Scaffold(
       topBar = {
         Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = { viewModel.signOut(credentialManager) },
+              onBackClick = onCheckout,
           )
           DisplayCaregiverTitle("Parameters", Modifier.testTag(CaregiverParametersTestTags.TITLE))
         }
@@ -143,18 +132,8 @@ fun CaregiverParameterScreen(
 }
 
 /** Preview of [CaregiverParameterScreen] using the Amber application theme. */
-@Preview(showBackground = true, uiMode = Configuration.UI_MODE_TYPE_NORMAL)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 internal fun CaregiverParameterScreenPreview() {
-  val fakeAuthRepository =
-      object : AuthRepository {
-        override val currentUser: AuthUser? = null
-
-        override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
-            Result.failure(UnsupportedOperationException())
-
-        override suspend fun signOut(): Result<Unit> = Result.success(Unit)
-      }
-  val viewModel = remember { CaregiverParameterViewModel(authRepository = fakeAuthRepository) }
-  AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen(viewModel = viewModel) }
+  AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen() }
 }
