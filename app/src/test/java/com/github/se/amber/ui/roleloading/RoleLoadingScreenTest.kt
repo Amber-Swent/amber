@@ -1,5 +1,5 @@
 // this code was written with the aid of AI
-package com.github.se.amber.ui.roleLoading
+package com.github.se.amber.ui.roleloading
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule

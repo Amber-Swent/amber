@@ -27,7 +27,7 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
-import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
+import com.github.se.amber.ui.roleloading.RoleLoadingScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
 

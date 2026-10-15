@@ -1,5 +1,5 @@
 // this code was written with the aid of AI
-package com.github.se.amber.ui.roleLoading
+package com.github.se.amber.ui.roleloading
 
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
