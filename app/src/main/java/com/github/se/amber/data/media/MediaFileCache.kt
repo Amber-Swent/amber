@@ -110,7 +110,7 @@ class MediaFileCache(
    *
    * @param download writes the remote file of [storagePath] into the given file, overwriting it;
    *   only called on a cache miss, and while it runs no other call adds or evicts [storagePath].
-   *   E.g. `{ fileStorage.downloadToFile(circle, storagePath, it) }`.
+   *   E.g. `{ fileStorage.download(circle, storagePath, it) }`.
    * @throws IllegalArgumentException if [storagePath] is blank, `.` or `..`, or ends with `.part`.
    * @throws Exception whatever [download] throws (e.g. when offline and the file isn't cached);
    *   nothing is left in the cache in that case.
