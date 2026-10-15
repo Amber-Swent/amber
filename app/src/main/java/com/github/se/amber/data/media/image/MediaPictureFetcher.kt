@@ -10,6 +10,7 @@ import coil3.fetch.FetchResult
 import coil3.fetch.Fetcher
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
+import com.github.se.amber.model.circle.hasStorageBucket
 import com.github.se.amber.model.media.MediaPicture
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.isMediaOf
@@ -86,7 +87,7 @@ class MediaPictureFetcher(
       !data.picture.isMediaOf(data.circle.id) ->
           Log.e(tag, "Couldn't load media $mediaId: wrong circle", e)
       // a normal state: the circle is still being set up, and its file had to be downloaded
-      data.circle.storageBucket.isBlank() ->
+      !data.circle.hasStorageBucket ->
           Log.w(tag, "Couldn't load media $mediaId: its circle has no bucket yet", e)
       // not a network or disk problem: a bug
       else -> Log.e(tag, "Couldn't load media $mediaId: invalid media", e)
