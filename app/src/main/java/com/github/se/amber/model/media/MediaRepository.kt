@@ -28,14 +28,21 @@ interface MediaRepository {
   fun newMediaId(circleId: String): String
 
   /**
-   * The media of [circleId] the patient may see ([MediaStatus.APPROVED]), newest first. Emits again
-   * whenever they change.
+   * The media of [circleId] the patient may see ([MediaStatus.APPROVED]), newest first. Emits the
+   * list at once, then again whenever a media is added, changed or removed. Offline, it lists the
+   * media this phone has already loaded, and catches up once back online. A media this app version
+   * can't read (e.g. a kind of media added by a newer version) is left out.
+   *
+   * If Firebase refuses to answer (e.g. permission denied after the user left the circle), the flow
+   * stops with that error. Handle it in the ViewModel (e.g. with `catch`, to show an error state):
+   * an error nobody catches crashes the app.
    */
   fun observeApprovedMedia(circleId: String): Flow<List<MediaItem>>
 
   /**
    * The media of [circleId] whose [MediaItem.shownIds] contain [shownId] (a member uid or a
-   * personId of [CareCircle.people]), newest first. Emits again whenever they change.
+   * personId of [CareCircle.people]), newest first. Behaves like [observeApprovedMedia]: emits
+   * again on every change, works offline with what is loaded, and stops with an error to catch.
    */
   fun observeMediaShowing(circleId: String, shownId: String): Flow<List<MediaItem>>
 
@@ -50,8 +57,11 @@ interface MediaRepository {
   fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>>
 
   /**
-   * The media [mediaId] of [circleId], or null if it doesn't exist (e.g. it was deleted) or is
-   * still in the outbox.
+   * The media [mediaId] of [circleId], read once; or null if it doesn't exist (e.g. it was
+   * deleted), is still in the outbox, or can't be read by this app version. Offline, it returns the
+   * copy this phone already loaded.
+   *
+   * @throws Exception if Firebase refuses it, or the media must be fetched while offline.
    */
   suspend fun getMedia(circleId: String, mediaId: String): MediaItem?
 
@@ -101,17 +111,20 @@ interface MediaRepository {
   suspend fun discardUnsent(circleId: String, mediaId: String)
 
   /**
-   * Saves [item]'s new metadata in [circleId]; its file doesn't change. Returns once Firestore
-   * confirms the write, so it needs a connection. Not defined yet for a media still in the outbox.
+   * Saves [item]'s new details (description, date, people shown...) in [circleId]; its file doesn't
+   * change. Needs a connection: it returns once Firebase has saved them, and fails offline instead
+   * of waiting for the connection. Not defined yet for a media still in the outbox.
    *
-   * @throws Exception if Firebase refuses it (only [item]'s author may edit it) or can't be
-   *   reached.
+   * @throws Exception if Firebase refuses it (only [item]'s author may edit it), can't be reached,
+   *   or [item] no longer exists (e.g. deleted meanwhile: it isn't created again).
    */
   suspend fun updateMedia(circleId: String, item: MediaItem)
 
   /**
-   * Deletes [item] from [circle]: its metadata first, then its file and its cached copy if it has a
-   * file, so a Firestore document never points at a missing Storage file. Needs a connection. Not
+   * Deletes [item] from [circle]: its details first, then, if it has a file, the file and its copy
+   * on this phone. In that order, no list ever shows a media whose file is gone. Needs a
+   * connection: offline, it fails instead of waiting for the connection. If it fails halfway (e.g.
+   * the connection drops after the details are deleted), call it again: it finishes the job. Not
    * defined yet for a media still in the outbox.
    *
    * @throws IllegalArgumentException if [item] has a file and either isn't a media of [circle] or

@@ -1,6 +1,7 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 rules_version = '2';
 
 service cloud.firestore {
@@ -97,10 +98,14 @@ service cloud.firestore {
         || isCaregiver();
     }
 
+    // A text has no file: its storagePath is empty. Any other media's file is in the circle's
+    // media folder.
     function mediaStoragePathMatches(circleId) {
-      return request.resource.data.storagePath.matches(
-        'careCircles/' + circleId + '/media/[^/]+'
-      );
+      return (request.resource.data.get('type', '') == 'text'
+          && request.resource.data.storagePath == '')
+        || request.resource.data.storagePath.matches(
+          'careCircles/' + circleId + '/media/[^/]+'
+        );
     }
 
     match /users/{uid} {
