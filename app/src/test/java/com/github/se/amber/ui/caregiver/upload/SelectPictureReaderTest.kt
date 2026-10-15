@@ -158,11 +158,13 @@ class SelectedPictureReaderAndroidTest {
   fun read_decodesWithJustDecodeBoundsEnabled() = runTest {
     var justDecodeBounds: Boolean? = null
     every { BitmapFactory.decodeFile(any(), any()) } answers
-        {
-          val options = secondArg<BitmapFactory.Options>()
-          justDecodeBounds = options.inJustDecodeBounds
-          null
-        }
+            {
+              val options = secondArg<BitmapFactory.Options>()
+              justDecodeBounds = options.inJustDecodeBounds
+              options.outWidth = 100
+              options.outHeight = 200
+              null
+            }
 
     createReader().read(uriString)
 
