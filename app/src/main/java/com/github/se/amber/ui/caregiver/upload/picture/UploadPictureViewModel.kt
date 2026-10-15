@@ -214,7 +214,8 @@ class UploadPictureViewModel(
                 height = state.pictureHeight,
             )
         mediaRepo.addMedia(circle, item, file)
-          _events.send(UploadPictureEvent.Uploaded)
+        _uiState.update { it.copy(isUploading = false) } // <-- add this
+        _events.send(UploadPictureEvent.Uploaded)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {

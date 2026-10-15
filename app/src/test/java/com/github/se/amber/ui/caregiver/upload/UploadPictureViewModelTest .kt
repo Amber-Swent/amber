@@ -15,6 +15,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModelErrorMessage
 import io.mockk.coEvery
@@ -22,13 +23,18 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.unmockkAll
 import java.io.File
 import java.io.IOException
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,28 +51,32 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {
-
-  private val dispatcher = UnconfinedTestDispatcher()
+  private val testDispatcher = UnconfinedTestDispatcher()
   private val ERROR_MESSAGE = "Boom"
+
   private lateinit var mediaRepo: MediaRepository
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
-  lateinit var pictureReader: SelectedPictureReader
-  private val pictureFile = File("picture.jpg")
+  private lateinit var pictureReader: SelectedPictureReader
+
   private lateinit var circle: CareCircle
+  private val pictureFile = File("picked_test.jpg") // never touched on disk, addMedia is mocked
 
   @Before
   fun setUp() {
-    Dispatchers.setMain(dispatcher)
+    Dispatchers.setMain(testDispatcher)
+
     mediaRepo = mockk(relaxed = true)
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
     pictureReader = mockk()
+
     circle = fakeCircle()
-    signIn("user1")
-    stubProfile(listOf("circle1"))
+
+    signIn("user1") // <-- was missing
+    stubProfile(listOf("circle1")) // <-- was missing
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepo.newMediaId(any()) } returns "media1"
   }
@@ -74,9 +84,36 @@ class UploadPictureViewModelTest {
   @After
   fun tearDown() {
     Dispatchers.resetMain()
+    unmockkAll()
   }
 
   // ---------- helpers ----------
+
+  private fun createViewModel() =
+      UploadPictureViewModel(
+          mediaRepo = mediaRepo,
+          authRepo = authRepo,
+          profileRepo = profileRepo,
+          circleRepo = circleRepo,
+          pictureReader = pictureReader,
+      )
+
+  private fun readyViewModel(
+      description: String = "A description",
+      date: MemoryDate? = MemoryDate(2024, 5, 12),
+  ): UploadPictureViewModel {
+    val vm = createViewModel() // init loads the circle (Unconfined dispatcher: runs immediately)
+    vm.setPicture(pictureFile, 640, 480)
+    vm.setDescription(description)
+    date?.let { vm.setDate(it) }
+    return vm
+  }
+
+  private fun captureUploadedItem(): MediaItem.Picture {
+    val slot = slot<MediaItem>()
+    coVerify { mediaRepo.addMedia(any(), capture(slot), any()) }
+    return slot.captured as MediaItem.Picture
+  }
 
   private fun signIn(userId: String?) {
     if (userId == null) {
@@ -90,9 +127,6 @@ class UploadPictureViewModelTest {
     val profile: UserProfile? = if (ids == null) null else mockk { every { circleIds } returns ids }
     coEvery { profileRepo.getProfile(any()) } returns Result.success(profile)
   }
-
-  private fun createViewModel() =
-      UploadPictureViewModel(mediaRepo, authRepo, profileRepo, circleRepo, pictureReader)
 
   private fun fakeCircle(
       circleId: String = "circle1",
@@ -110,15 +144,6 @@ class UploadPictureViewModelTest {
     every { lastName } returns last
   }
 
-  private fun readyViewModel(): UploadPictureViewModel =
-      createViewModel().also { it.setPicture(pictureFile, 640, 480) }
-
-  private fun captureUploadedItem(): MediaItem.Picture {
-    val slot = slot<MediaItem>()
-    coVerify { mediaRepo.addMedia(any(), capture(slot), any()) }
-    return slot.captured as MediaItem.Picture
-  }
-
   // ---------- initial state ----------
 
   @Test
@@ -134,11 +159,6 @@ class UploadPictureViewModelTest {
   @Test
   fun initialStateIsNotUploading() {
     assertFalse(createViewModel().uiState.value.isUploading)
-  }
-
-  @Test
-  fun initialStateIsNotUploaded() {
-    assertFalse(createViewModel().uiState.value.isUploaded)
   }
 
   @Test
@@ -402,10 +422,12 @@ class UploadPictureViewModelTest {
   // ---------- uploadPicture: success ----------
 
   @Test
-  fun successfulUploadSetsUploadedFlag() {
+  fun successfulUploadEmitsUploadedEvent() = runTest {
     val vm = readyViewModel()
+
     vm.uploadPicture()
-    assertTrue(vm.uiState.value.isUploaded)
+
+    assertEquals(UploadPictureEvent.Uploaded, vm.events.first())
   }
 
   @Test
@@ -519,11 +541,13 @@ class UploadPictureViewModelTest {
   }
 
   @Test
-  fun failedUploadDoesNotSetUploadedFlag() {
+  fun failedUploadDoesNotEmitUploadedEvent() = runTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException("boom")
     val vm = readyViewModel()
+
     vm.uploadPicture()
-    assertFalse(vm.uiState.value.isUploaded)
+
+    assertNull(withTimeoutOrNull(100.milliseconds) { vm.events.first() })
   }
 
   // ______________________________________
@@ -577,5 +601,64 @@ class UploadPictureViewModelTest {
         UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
         vm.uiState.value.errorMsg,
     )
+  }
+
+  // ---------- uploadPicture: validation ----------
+
+  @Test
+  fun blankDescriptionReportsDescriptionEmptyError() {
+    val vm = readyViewModel(description = "   ")
+    vm.uploadPicture()
+    assertEquals(
+        UploadPictureViewModelErrorMessage.DESCRIPTION_EMPTY.mess,
+        vm.uiState.value.errorMsg,
+    )
+  }
+
+  @Test
+  fun blankDescriptionDoesNotCallRepository() {
+    readyViewModel(description = "   ").uploadPicture()
+    coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
+  }
+
+  @Test
+  fun missingDateReportsSelectDateError() {
+    val vm = readyViewModel(date = null)
+    vm.uploadPicture()
+    assertEquals(UploadPictureViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun missingDateDoesNotCallRepository() {
+    readyViewModel(date = null).uploadPicture()
+    coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
+  }
+
+  @Test
+  fun invalidUploadDoesNotStartUploading() {
+    val vm = readyViewModel(description = "   ")
+    vm.uploadPicture()
+    assertFalse(vm.uiState.value.isUploading)
+  }
+
+  // ---------- uploadPicture: item content ----------
+
+  @Test
+  fun uploadedItemHasDate() {
+    val date = MemoryDate(2024, 5, 12)
+    readyViewModel(date = date).uploadPicture()
+    assertEquals(date, captureUploadedItem().date)
+  }
+
+  // ---------- canUpload ----------
+
+  @Test
+  fun canUploadIsTrueWhenFormIsComplete() {
+    assertTrue(readyViewModel().uiState.value.canUpload)
+  }
+
+  @Test
+  fun canUploadIsFalseWithoutDate() {
+    assertFalse(readyViewModel(date = null).uiState.value.canUpload)
   }
 }
