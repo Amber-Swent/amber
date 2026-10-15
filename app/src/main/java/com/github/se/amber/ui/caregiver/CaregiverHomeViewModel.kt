@@ -81,7 +81,6 @@ class CaregiverHomeViewModel(
           .signOut()
           .fold(
               onSuccess = {
-                credentialManager.clearCredentialState(ClearCredentialStateRequest())
                 setSignedOut(true)
               },
               onFailure = { throwable ->
