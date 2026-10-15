@@ -2,6 +2,7 @@
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Neha Chakraborty and Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
@@ -437,6 +438,31 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
   }
 
+  /** The writes behind MediaRepositoryFirebase: a text has no file, and every write has its id. */
+  @Test
+  fun mediaWrites_textMayHaveEmptyPath_idFieldRequired_enforcedByEmulator() {
+    val circleId = "c-media"
+    val pat = "pat"
+    fs.adminSet("careCircles/$circleId", circle(circleId, pat, listOf(pat), patientId = pat))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    val mediaCol = "careCircles/$circleId/media"
+
+    // a text has no file: an empty storagePath is accepted, on create and on update
+    fs.assertSucceeds(pat, fs.set("$mediaCol/t1", text("t1", pat)))
+    fs.assertSucceeds(pat, fs.patch("$mediaCol/t1", mapOf("text" to "Edited")))
+    // a text can't point at a file outside the circle
+    fs.assertFails(
+        pat,
+        fs.set("$mediaCol/t2", text("t2", pat) + ("storagePath" to "careCircles/other/media/t2")),
+    )
+    // only a text may have no file (a picture in the circle's folder is accepted in
+    // inviteClientRedeemDenied_mediaStoriesAppointments_enforcedByEmulator)
+    fs.assertFails(pat, fs.set("$mediaCol/m1", media("m1", pat, storagePath = "")))
+    // the id field must be there, and equal to the document's id
+    fs.assertFails(pat, fs.set("$mediaCol/t3", text("t3", pat) - "id"))
+    fs.assertFails(pat, fs.set("$mediaCol/t4", text("other", pat)))
+  }
+
   /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
   fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
@@ -539,6 +565,20 @@ class FirestoreSecurityRulesEmulatorTest {
             createdAt = now,
             expiresAt = expiresAt,
         ) + ("usedBy" to usedBy)
+
+    private fun text(id: String, authorId: String) =
+        mapOf(
+            "id" to id,
+            "type" to "text",
+            "authorId" to authorId,
+            "storagePath" to "",
+            "createdAt" to now,
+            "description" to "",
+            "shownIds" to emptyList<String>(),
+            "authorizedIds" to emptyList<String>(),
+            "status" to "APPROVED",
+            "text" to "Hello",
+        )
 
     private fun media(id: String, authorId: String, storagePath: String) =
         mapOf(

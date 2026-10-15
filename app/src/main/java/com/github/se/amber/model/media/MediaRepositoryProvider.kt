@@ -10,12 +10,13 @@ import com.github.se.amber.data.media.MediaSendWorkerFactory
 import com.github.se.amber.data.media.MediaSender
 import com.google.firebase.Firebase
 import com.google.firebase.app
+import com.google.firebase.firestore.firestore
 import java.io.File
 
 /**
  * Holds the app's single [MediaRepository], the one place where the media layer is built. Its
- * building blocks (the file storage and the file cache) stay inside: only the repository and the
- * [workerFactory] are exposed.
+ * building blocks (the file storage, the file cache and Firestore) stay inside: only the repository
+ * and the [workerFactory] are exposed.
  *
  * Being an `object`, it exists once, so every caller shares the same repository; this matters for
  * its cache, which must be the only one using its folder. ViewModels should receive the repository
@@ -35,6 +36,7 @@ object MediaRepositoryProvider {
     MediaRepositoryFirebase(
         fileStorage = MediaFileStorageFirebase(),
         cache = MediaFileCache(File(Firebase.app.applicationContext.cacheDir, CACHE_DIR)),
+        firestore = Firebase.firestore,
     )
   }
 
