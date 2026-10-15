@@ -161,7 +161,7 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
-  fun mediaStoragePathMatches_acceptsAnEmptyPathOnlyForATextFile() {
+  fun mediaStoragePathMatches_acceptsAnEmptyPathOnlyForAText() {
     val rules = FirestoreSecurityRules(authUid = "u1", lookup = MockDocumentLookup())
     assertTrue(rules.mediaStoragePathMatches("c1", MediaItem.Text(storagePath = "")))
     assertFalse(rules.mediaStoragePathMatches("c1", MediaItem.Picture(storagePath = "")))

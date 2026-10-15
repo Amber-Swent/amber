@@ -17,35 +17,15 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * Checks the file part of [MediaRepositoryFirebase]: a fake [MediaFileStorage] (no network) behind
- * a real [MediaFileCache] in a temporary folder.
+ * Checks the file part of [MediaRepositoryFirebase]: [MediaRepositoryFirebase.getFile] and the
+ * clears, with a [FakeMediaFileStorage] (no network) behind a real [MediaFileCache] in a temporary
+ * folder. The methods using Firestore are checked in [MediaRepositoryFirestoreTest].
  */
 class MediaRepositoryFirebaseTest {
 
   @get:Rule val tmp = TemporaryFolder()
 
-  /** Fake remote storage: records each download as "circleId:storagePath". */
-  private class FakeFileStorage : MediaFileStorage {
-    val calls = mutableListOf<String>()
-
-    override suspend fun download(
-        circle: CareCircle,
-        storagePath: String,
-        destination: File,
-    ) {
-      calls += "${circle.id}:$storagePath"
-      destination.writeText("content of $storagePath")
-    }
-
-    // not used by these tests
-    override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) =
-        error("upload isn't used by these tests")
-
-    override suspend fun delete(circle: CareCircle, storagePath: String) =
-        error("delete isn't used by these tests")
-  }
-
-  private val fileStorage = FakeFileStorage()
+  private val fileStorage = FakeMediaFileStorage()
   private val cacheDir by lazy { File(tmp.root, "media") }
 
   private val c1 = CareCircle(id = "c1", storageBucket = "bucket-c1")
@@ -70,7 +50,7 @@ class MediaRepositoryFirebaseTest {
     val file = repository.getFile(c1, picture("c1", "m1"))
 
     assertEquals("content of careCircles/c1/media/m1.jpg", file.readText())
-    assertEquals(listOf("c1:careCircles/c1/media/m1.jpg"), fileStorage.calls)
+    assertEquals(listOf("download c1:careCircles/c1/media/m1.jpg"), fileStorage.calls)
   }
 
   @Test

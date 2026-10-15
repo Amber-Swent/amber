@@ -21,6 +21,7 @@ import io.mockk.slot
 import io.mockk.verify
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.toList
@@ -30,6 +31,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -39,34 +41,25 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * Checks the Firestore part of [MediaRepositoryFirebase]: Firestore is mocked (no network), files
- * go through a fake [MediaFileStorage], and copies on the phone through a real [MediaFileCache] in
- * a temporary folder.
+ * Checks the methods of [MediaRepositoryFirebase] that use Firestore: ids, the two lists,
+ * [MediaRepositoryFirebase.getMedia], [MediaRepositoryFirebase.updateMedia] and
+ * [MediaRepositoryFirebase.deleteMedia] (with its file and copy steps). Firestore is mocked (no
+ * network), files go through a [FakeMediaFileStorage], and copies on the phone through a real
+ * [MediaFileCache] in a temporary folder. [MediaRepositoryFirebase.getFile] and the clears are
+ * checked in [MediaRepositoryFirebaseTest].
  */
+@OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher, runCurrent
 class MediaRepositoryFirestoreTest {
 
   @get:Rule val tmp = TemporaryFolder()
 
-  /** What was deleted, in order: "document", then "file {circleId}:{storagePath}". */
+  /**
+   * What was deleted, in order: "delete document" for the Firestore document, then "delete
+   * {circleId}:{storagePath}" for the file (recorded by [fileStorage]).
+   */
   private val deletions = mutableListOf<String>()
 
-  /** Fake remote storage: records each deletion, or fails it when [deleteError] is set. */
-  private inner class FakeFileStorage : MediaFileStorage {
-    var deleteError: Exception? = null
-
-    override suspend fun download(circle: CareCircle, storagePath: String, destination: File) =
-        error("download isn't used by these tests")
-
-    override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) =
-        error("upload isn't used by these tests")
-
-    override suspend fun delete(circle: CareCircle, storagePath: String) {
-      deleteError?.let { throw it }
-      deletions += "file ${circle.id}:$storagePath"
-    }
-  }
-
-  private val fileStorage = FakeFileStorage()
+  private val fileStorage = FakeMediaFileStorage(deletions)
   private val cacheDir by lazy { File(tmp.root, "media") }
 
   private val firestore = mockk<FirebaseFirestore>()
@@ -108,17 +101,16 @@ class MediaRepositoryFirestoreTest {
         }
     every { transaction.delete(mediaDocument) } answers
         {
-          deletions += "document"
+          deletions += "delete document"
           transaction
         }
   }
 
-  private fun TestScope.newRepository() =
-      MediaRepositoryFirebase(
-          fileStorage,
-          MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler)),
-          firestore,
-      )
+  private fun TestScope.newCache() =
+      MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+  private fun TestScope.newRepository(cache: MediaFileCache = newCache()) =
+      MediaRepositoryFirebase(fileStorage, cache, firestore)
 
   /** A media document as Firestore returns it: [data] null when there is no document. */
   private fun documentOf(id: String, data: Map<String, Any?>?): DocumentSnapshot {
@@ -180,15 +172,16 @@ class MediaRepositoryFirestoreTest {
       newRepository().observeApprovedMedia("c1").toList(lists)
     }
 
+    // given oldest first: the list must keep Firestore's order, not sort it again
     listener.captured.onEvent(
-        queryResult(documentOf(newer), unreadableDocument("m3"), documentOf(picture)),
+        queryResult(documentOf(picture), unreadableDocument("m3"), documentOf(newer)),
         null,
     )
     runCurrent()
     listener.captured.onEvent(queryResult(documentOf(picture)), null) // m2 deleted meanwhile
     runCurrent()
 
-    assertEquals(listOf(listOf(newer, picture), listOf(picture)), lists)
+    assertEquals(listOf(listOf(picture, newer), listOf(picture)), lists)
   }
 
   @Test
@@ -223,7 +216,8 @@ class MediaRepositoryFirestoreTest {
         FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED),
     )
 
-    val thrown = error.await()
+    // if the flow never ended, this fails at once (virtual time) instead of hanging
+    val thrown = withTimeout(1_000) { error.await() }
     assertTrue("ended with $thrown", thrown is FirebaseFirestoreException)
     assertEquals(
         FirebaseFirestoreException.Code.PERMISSION_DENIED,
@@ -293,31 +287,46 @@ class MediaRepositoryFirestoreTest {
   @Test
   fun deleteMediaDeletesTheDocumentThenTheFileThenTheCopyOnThePhone() = runTest {
     stubStoredDocument(documentOf(picture))
-    val cache = MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler))
+    val cache = newCache()
     cache.putCopy(picture.storagePath)
-    val repository = MediaRepositoryFirebase(fileStorage, cache, firestore)
 
-    repository.deleteMedia(circle, picture)
+    newRepository(cache).deleteMedia(circle, picture)
 
-    assertEquals(listOf("document", "file c1:careCircles/c1/media/m1.jpg"), deletions)
+    assertEquals(listOf("delete document", "delete c1:careCircles/c1/media/m1.jpg"), deletions)
     assertEquals(emptyList<String>(), copiesOnPhone())
   }
 
   @Test
   fun deleteMediaKeepsTheCopyOnThePhoneWhenTheFileDeletionFails() = runTest {
     stubStoredDocument(documentOf(picture))
-    val cache = MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler))
+    val cache = newCache()
     cache.putCopy(picture.storagePath)
     fileStorage.deleteError = IOException("offline")
 
-    val error = runCatching {
-      MediaRepositoryFirebase(fileStorage, cache, firestore).deleteMedia(circle, picture)
-    }
-        .exceptionOrNull()
+    val error = runCatching { newRepository(cache).deleteMedia(circle, picture) }.exceptionOrNull()
 
     assertTrue("failed with $error", error is IOException)
     // the document is gone, the file and the copy are left for a second call
-    assertEquals(listOf("document"), deletions)
+    assertEquals(listOf("delete document"), deletions)
+    assertEquals(listOf("careCircles_c1_media_m1.jpg"), copiesOnPhone())
+  }
+
+  @Test
+  fun deleteMediaDeletesNothingElseWhenFirebaseRefusesTheDocumentDeletion() = runTest {
+    stubStoredDocument(documentOf(picture))
+    every { transaction.delete(mediaDocument) } throws
+        FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+    val cache = newCache()
+    cache.putCopy(picture.storagePath)
+
+    val error = runCatching { newRepository(cache).deleteMedia(circle, picture) }.exceptionOrNull()
+
+    // e.g. not its author: the file and the copy must stay, or the document would point at nothing
+    assertEquals(
+        FirebaseFirestoreException.Code.PERMISSION_DENIED,
+        (error as? FirebaseFirestoreException)?.code,
+    )
+    assertEquals(emptyList<String>(), deletions)
     assertEquals(listOf("careCircles_c1_media_m1.jpg"), copiesOnPhone())
   }
 
@@ -328,7 +337,7 @@ class MediaRepositoryFirestoreTest {
     newRepository().deleteMedia(circle, picture)
 
     verify(exactly = 0) { transaction.delete(any()) }
-    assertEquals(listOf("file c1:careCircles/c1/media/m1.jpg"), deletions)
+    assertEquals(listOf("delete c1:careCircles/c1/media/m1.jpg"), deletions)
   }
 
   @Test
@@ -337,7 +346,7 @@ class MediaRepositoryFirestoreTest {
 
     newRepository().deleteMedia(circle.copy(storageBucket = ""), text)
 
-    assertEquals(listOf("document"), deletions)
+    assertEquals(listOf("delete document"), deletions)
   }
 
   @Test

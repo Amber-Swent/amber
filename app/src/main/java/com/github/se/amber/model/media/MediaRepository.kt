@@ -7,7 +7,7 @@ import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The media of the care circles: their metadata ([MediaItem]) and their files. The only media
+ * The media of the care circles: their details ([MediaItem]) and their files. The only media
  * service ViewModels call: they receive it through their constructor, and their factory takes the
  * app's instance from [MediaRepositoryProvider]. Being an interface, it can be replaced by a fake
  * in tests.
@@ -68,7 +68,7 @@ interface MediaRepository {
   /**
    * Adds [item] to [circle]. Returns as soon as it is saved in the outbox on the phone, even
    * offline: this doesn't mean it is in Firebase yet. It is sent later in the background, its file
-   * first, then its metadata, so a Firestore document never points at a missing Storage file. If
+   * first, then its details, so a Firestore document never points at a missing Storage file. If
    * sending keeps failing, it ends [SendState.FAILED] (see [observeOutbox]).
    *
    * [item]'s id comes from [newMediaId]. [file] holds its bytes:
@@ -122,7 +122,7 @@ interface MediaRepository {
 
   /**
    * Deletes [item] from [circle]: its details first, then, if it has a file, the file and its copy
-   * on this phone. In that order, no list ever shows a media whose file is gone. Needs a
+   * on this phone. In that order, Firebase never keeps a media whose file is gone. Needs a
    * connection: offline, it fails instead of waiting for the connection. If it fails halfway (e.g.
    * the connection drops after the details are deleted), call it again: it finishes the job. Not
    * defined yet for a media still in the outbox.

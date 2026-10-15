@@ -34,7 +34,7 @@ import kotlinx.coroutines.tasks.await
  * It is also the [MediaSender]: the background job calls it to send the media added on this phone.
  *
  * A media document holds the fields of [toMap] plus an `id` field, equal to the document's name:
- * Firebase's security rules refuse any write without it.
+ * Firebase's security rules refuse to create or update a document without it.
  *
  * Done so far: everything about media already in Firebase (new ids, lists, reading, editing,
  * deleting) and the downloaded copies ([getFile], the clears). Adding and sending media (the
@@ -60,7 +60,6 @@ class MediaRepositoryFirebase(
           .orderBy(CREATED_AT_FIELD, Query.Direction.DESCENDING)
           .observeItems()
 
-  /** Also returns null for a document this app version can't read (see [mediaItemFromMap]). */
   override suspend fun getMedia(circleId: String, mediaId: String): MediaItem? =
       mediaDocument(circleId, mediaId).get().await().toMediaItem()
 
@@ -79,15 +78,14 @@ class MediaRepositoryFirebase(
 
   /**
    * Done in a Firestore transaction: a group of reads and writes that Firebase applies together or
-   * not at all, and only with a connection. Here it reads the document, then writes it, which gives
-   * two things a plain write wouldn't:
-   * - offline, the call fails. A plain write would be kept on the phone and sent once back online,
-   *   and the call would wait until then, however long that takes.
-   * - a media that no longer exists (e.g. deleted from another phone) fails with NOT_FOUND, instead
-   *   of being created again.
+   * not at all, and only with a connection. Here it checks that the document exists, then updates
+   * it. Without the transaction, an update made offline would be kept on the phone and sent once
+   * back online, and the call would wait until then, however long that takes; with it, the call
+   * fails offline instead.
    *
-   * The fields of [item] are written over the existing ones (an `update`, not a replacement), so a
-   * field this app version doesn't know, added by a newer one, is kept.
+   * A media that no longer exists (e.g. deleted from another phone) fails with NOT_FOUND: it is
+   * never created again. The fields of [item] are written over the existing ones (an `update`, not
+   * a replacement), so a field this app version doesn't know, added by a newer one, is kept.
    */
   override suspend fun updateMedia(circleId: String, item: MediaItem) {
     val document = mediaDocument(circleId, item.id)
@@ -106,8 +104,8 @@ class MediaRepositoryFirebase(
 
   /**
    * Three steps, in this order: the document, the file in Storage, then the copy on this phone.
-   * Deleting the document first removes the media from every list before its file goes, so no list
-   * ever shows a media whose file is missing.
+   * With the document deleted first, Firebase never keeps a media document whose file is gone: if
+   * the call stops halfway, what is left is a file no document points at, never the reverse.
    *
    * What could make a step refuse the call (a media of another circle, a circle without a bucket
    * yet) is checked before the first step, so a refused call deletes nothing.
@@ -162,8 +160,9 @@ class MediaRepositoryFirebase(
    * added, changed or removed, until the collector stops. A collector slower than the changes only
    * gets the latest list; older ones are dropped, being out of date anyway.
    *
-   * If Firebase stops answering (e.g. permission denied after the user left the circle), the flow
-   * ends with that error, so the collector can catch it. Firestore's ready-made `Query.snapshots()`
+   * If Firebase refuses to answer (e.g. permission denied after the user left the circle), the flow
+   * ends with that error, so the collector can catch it. Going offline doesn't end it: the list
+   * then comes from what this phone has already loaded. Firestore's ready-made `Query.snapshots()`
    * isn't used: it ends with a cancellation instead, which a ViewModel's coroutine treats as a
    * normal stop, so the error would go unnoticed.
    */

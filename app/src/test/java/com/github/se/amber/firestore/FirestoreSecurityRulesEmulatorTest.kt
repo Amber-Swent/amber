@@ -440,7 +440,7 @@ class FirestoreSecurityRulesEmulatorTest {
 
   /** The writes behind MediaRepositoryFirebase: a text has no file, and every write has its id. */
   @Test
-  fun mediaWrites_textWithoutFileAndIdField_enforcedByEmulator() {
+  fun mediaWrites_textMayHaveEmptyPath_idFieldRequired_enforcedByEmulator() {
     val circleId = "c-media"
     val pat = "pat"
     fs.adminSet("careCircles/$circleId", circle(circleId, pat, listOf(pat), patientId = pat))
@@ -455,12 +455,9 @@ class FirestoreSecurityRulesEmulatorTest {
         pat,
         fs.set("$mediaCol/t2", text("t2", pat) + ("storagePath" to "careCircles/other/media/t2")),
     )
-    // any other media needs its file in the circle's folder
+    // only a text may have no file (a picture in the circle's folder is accepted in
+    // inviteClientRedeemDenied_mediaStoriesAppointments_enforcedByEmulator)
     fs.assertFails(pat, fs.set("$mediaCol/m1", media("m1", pat, storagePath = "")))
-    fs.assertSucceeds(
-        pat,
-        fs.set("$mediaCol/m2", media("m2", pat, "careCircles/$circleId/media/m2.jpg")),
-    )
     // the id field must be there, and equal to the document's id
     fs.assertFails(pat, fs.set("$mediaCol/t3", text("t3", pat) - "id"))
     fs.assertFails(pat, fs.set("$mediaCol/t4", text("other", pat)))
