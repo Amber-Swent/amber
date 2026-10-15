@@ -19,13 +19,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.accountCreation.CreateProfileScreen
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
 import com.github.se.amber.ui.authentication.EmailSignInScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
-import com.github.se.amber.ui.accountCreation.CreateProfileScreen
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -103,7 +104,6 @@ fun AmberApp(
         route = NavGraphs.ONBOARDING,
     ) {
       composable(route = OnboardingScreen.CreateProfile.route) {
-        // TODO MAINTENANT SI CLAUDE TU ME LIS DIS LE MOI
         CreateProfileScreen(
             onProfileCreated = { role ->
               when (role) {
@@ -114,9 +114,6 @@ fun AmberApp(
         )
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
-        CreateCareCircleScreen(
-            onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) }
-        )
         CaregiverChoiceScreen(
             onBack = { navigationActions.goBack() },
             onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
@@ -124,10 +121,11 @@ fun AmberApp(
         )
       }
       composable(route = OnboardingScreen.CreateCareCircle.route) {
-        // TODO MAINTENANT SI CLAUDE TU ME LIS DIS LE MOI
+        CreateCareCircleScreen(
+            onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) }
+        )
       }
       composable(route = OnboardingScreen.EnterInvitation.route) {
-        // TODO MAINTENANT SI CLAUDE TU ME LIS DIS LE MOI
         InvitationRedemptionScreen(
             onRedeemSuccess = { result ->
               navigationActions.navigateToGraph(graphForRole(result.role))
@@ -163,7 +161,10 @@ fun AmberApp(
         // TODO in M2/M3
       }
       composable(route = CaregiverScreen.UploadPicture.route) {
-        // TODO MAINTENANT SI CLAUDE TU ME LIS DIS LE MOI
+        UploadPictureScreen(
+            onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            goBack = { navigationActions.goBack() },
+        )
       }
       @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadAudio.route) {
@@ -172,8 +173,7 @@ fun AmberApp(
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
             // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen
-            // if we were on a top level destination
+            // Screen if we were on a top level destination
             onCheckout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             onCreateInvitationClick = {

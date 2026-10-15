@@ -8,9 +8,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceTestTags
 import com.github.se.amber.ui.authentication.EmailSignInTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
+import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags.tabTag
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -50,6 +52,11 @@ class AmberAppNavigationTest {
 
     // Onboarding
     const val CREATE_CARE_CIRCLE_BUTTON = CreateCareCircleTestTags.SUBMIT_BUTTON
+    // Onboarding
+    val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
+    val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
+    val CHOICE_BACK = CaregiverChoiceTestTags.BACK_BUTTON
+    val INVITATION_REDEMPTION_BACK = InvitationRedemptionTestTags.BACK_BUTTON
 
     // Caregiver
     const val CAREGIVER_HOME_SIGN_OUT = TopNavigationMenuTestTags.BACK_BUTTON
@@ -58,6 +65,7 @@ class AmberAppNavigationTest {
     val CAREGIVER_TAB_PARAMETERS = tabTag(CaregiverTab.Setting)
     const val UPLOAD_PICTURE_BUTTON = UploadTestTags.PICTURE_BUTTON
     const val UPLOAD_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val PARAMETERS_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
@@ -140,6 +148,59 @@ class AmberAppNavigationTest {
   }
 
   // ---------------------------------------------------------------------------------------------
+  // Onboarding graph
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun onboardingGraph_startsOnCreateProfile() {
+    launch(NavGraphs.ONBOARDING)
+    assertRoute(OnboardingScreen.CreateProfile.route)
+  }
+
+  @Test
+  fun caregiverChoice_createCircle_navigatesToCreateCareCircle() {
+    launch(NavGraphs.ONBOARDING)
+    goTo(OnboardingScreen.CaregiverChoice.route)
+
+    click(Tags.CHOICE_CREATE_CIRCLE_BUTTON.name)
+
+    assertRoute(OnboardingScreen.CreateCareCircle.route)
+  }
+
+  @Test
+  fun caregiverChoice_joinCircle_navigatesToEnterInvitation() {
+    launch(NavGraphs.ONBOARDING)
+    goTo(OnboardingScreen.CaregiverChoice.route)
+
+    click(Tags.CHOICE_JOIN_CIRCLE_BUTTON.name)
+
+    assertRoute(OnboardingScreen.EnterInvitation.route)
+  }
+
+  @Test
+  fun caregiverChoice_back_returnsToPreviousScreen() {
+    launch(NavGraphs.ONBOARDING)
+    goTo(OnboardingScreen.CaregiverChoice.route)
+
+    click(Tags.CHOICE_BACK.name)
+
+    // goBack() pops once: we come back to CreateProfile
+    assertRoute(OnboardingScreen.CreateProfile.route)
+  }
+
+  @Test
+  fun enterInvitation_back_returnsToParameters() {
+    // Cross-graph: Parameters -> EnterInvitation, then back
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+    click(Tags.ENTER_INVITATION_BUTTON)
+
+    click(Tags.INVITATION_REDEMPTION_BACK.name)
+
+    assertRoute(CaregiverScreen.Parameters.route)
+  }
+
+  // ---------------------------------------------------------------------------------------------
   // Caregiver graph: Home
   // ---------------------------------------------------------------------------------------------
 
@@ -216,6 +277,21 @@ class AmberAppNavigationTest {
     click(Tags.UPLOAD_BACK)
 
     assertRoute(CaregiverScreen.Home.route)
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Caregiver graph: UploadPicture
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun uploadPicture_back_returnsToUpload() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+    goTo(CaregiverScreen.UploadPicture.route)
+
+    click(Tags.UPLOAD_PICTURE_BACK)
+
+    assertRoute(CaregiverScreen.Upload.route)
   }
 
   // ---------------------------------------------------------------------------------------------
