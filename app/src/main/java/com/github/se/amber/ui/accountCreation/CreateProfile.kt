@@ -56,11 +56,15 @@ val CreateProfilePlaceholderColor: Color = darkGray
 private const val FILL_OUT_MESSAGE = "Please fill this out"
 
 /**
- * Create-profile step of account creation.
+ * First onboarding screen after sign-in: the user creates their Amber profile.
  *
- * Collects the user's name and surname, then lets them choose Patient or Caregiver.
+ * Amber users are either a Patient or a Caregiver. This screen collects a first and last name,
+ * then persists the profile when the user taps one of those role buttons. Validation and the
+ * repository write live in [CreateProfileViewModel]; this composable only renders [viewModel]
+ * state and forwards user actions.
  *
- * @param viewModel owns field state, validation, and profile creation on role selection.
+ * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
+ *   composition; tests can pass a custom instance with a fake [com.github.se.amber.data.profile.ProfileRepository].
  */
 @Composable
 fun CreateProfileScreen(viewModel: CreateProfileViewModel = viewModel()) {
@@ -224,16 +228,21 @@ private fun RoleChoiceButton(
 }
 
 /**
- * Name/surname field with a Material label and externally tagged error text so UI tests can find
- * the error outside [OutlinedTextField]'s merged descendants.
+ * Single name or surname input used on [CreateProfileScreen].
  *
- * @param value current field text.
- * @param onValueChange called when the user edits the field.
- * @param label floating label shown for the field.
- * @param inputTestTag tag for the text field.
- * @param labelTestTag tag for the label text (read with an unmerged semantics tree).
- * @param errorTestTag tag for the fill-out error message.
- * @param isError whether to show the fill-out error.
+ * Renders an [OutlinedTextField] with a floating Material [label]. When [isError] is true, shows
+ * a "Please fill this out" message below the field. The error [Text] stays outside the text field
+ * so UI tests can target it with [errorTestTag] without using an unmerged semantics tree; the
+ * label node is tagged with [labelTestTag] and must be queried with `useUnmergedTree = true`.
+ *
+ * @param value current text bound to the field (name or surname from the ViewModel).
+ * @param onValueChange invoked on every edit; typically [CreateProfileViewModel.onNameChange] or
+ *   [CreateProfileViewModel.onSurnameChange].
+ * @param label floating label text (e.g. "Name" or "Surname").
+ * @param inputTestTag [CreateProfileTestTags] name applied to the text field itself.
+ * @param labelTestTag [CreateProfileTestTags] name applied to the label [Text] inside the field.
+ * @param errorTestTag [CreateProfileTestTags] name applied to the fill-out error [Text].
+ * @param isError when true, marks the field as errored and shows the fill-out message.
  */
 @Composable
 private fun ProfileTextField(
