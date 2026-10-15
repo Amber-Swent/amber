@@ -15,8 +15,8 @@ import java.io.File
  * assigned yet: [MediaRepository] passes that error on as its own, so a fake should throw it too.
  *
  * Used by [MediaRepositoryFirebase] only, never by ViewModels: it passes its downloads to
- * [MediaFileCache.getFile], and will upload a media's file when sending it and delete the file of a
- * deleted media.
+ * [MediaFileCache.getFile], deletes the file of a deleted media, and will upload a media's file
+ * when sending it.
  */
 interface MediaFileStorage {
   /**

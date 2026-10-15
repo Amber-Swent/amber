@@ -4,6 +4,8 @@ package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.google.firebase.firestore.FirebaseFirestore
+import io.mockk.mockk
 import java.io.File
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -15,35 +17,15 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * Checks the file part of [MediaRepositoryFirebase]: a fake [MediaFileStorage] (no network) behind
- * a real [MediaFileCache] in a temporary folder.
+ * Checks the file part of [MediaRepositoryFirebase]: [MediaRepositoryFirebase.getFile] and the
+ * clears, with a [FakeMediaFileStorage] (no network) behind a real [MediaFileCache] in a temporary
+ * folder. The methods using Firestore are checked in [MediaRepositoryFirestoreTest].
  */
 class MediaRepositoryFirebaseTest {
 
   @get:Rule val tmp = TemporaryFolder()
 
-  /** Fake remote storage: records each download as "circleId:storagePath". */
-  private class FakeFileStorage : MediaFileStorage {
-    val calls = mutableListOf<String>()
-
-    override suspend fun download(
-        circle: CareCircle,
-        storagePath: String,
-        destination: File,
-    ) {
-      calls += "${circle.id}:$storagePath"
-      destination.writeText("content of $storagePath")
-    }
-
-    // the repository doesn't send or delete media yet
-    override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) =
-        error("upload isn't used by these tests")
-
-    override suspend fun delete(circle: CareCircle, storagePath: String) =
-        error("delete isn't used by these tests")
-  }
-
-  private val fileStorage = FakeFileStorage()
+  private val fileStorage = FakeMediaFileStorage()
   private val cacheDir by lazy { File(tmp.root, "media") }
 
   private val c1 = CareCircle(id = "c1", storageBucket = "bucket-c1")
@@ -56,6 +38,7 @@ class MediaRepositoryFirebaseTest {
       MediaRepositoryFirebase(
           fileStorage,
           MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler)),
+          mockk<FirebaseFirestore>(),
       )
 
   private fun cachedFileNames() = cacheDir.listFiles().orEmpty().map { it.name }.sorted()
@@ -67,7 +50,7 @@ class MediaRepositoryFirebaseTest {
     val file = repository.getFile(c1, picture("c1", "m1"))
 
     assertEquals("content of careCircles/c1/media/m1.jpg", file.readText())
-    assertEquals(listOf("c1:careCircles/c1/media/m1.jpg"), fileStorage.calls)
+    assertEquals(listOf("download c1:careCircles/c1/media/m1.jpg"), fileStorage.calls)
   }
 
   @Test
@@ -99,18 +82,12 @@ class MediaRepositoryFirebaseTest {
     val item = picture("c1", "m1")
     val calls: Map<String, suspend () -> Unit> =
         mapOf(
-            "newMediaId" to { repository.newMediaId("c1") },
-            "observeApprovedMedia" to { repository.observeApprovedMedia("c1") },
-            "observeMediaShowing" to { repository.observeMediaShowing("c1", "u1") },
-            "getMedia" to { repository.getMedia("c1", "m1") },
             "addMedia" to { repository.addMedia(c1, item, tmp.newFile()) },
             "observeOutbox" to { repository.observeOutbox("c1") },
             "observeCircleMedia" to { repository.observeCircleMedia("c1") },
             "retrySend" to { repository.retrySend("c1", "m1") },
             "discardUnsent" to { repository.discardUnsent("c1", "m1") },
             "send" to { repository.send("c1", "m1") },
-            "updateMedia" to { repository.updateMedia("c1", item) },
-            "deleteMedia" to { repository.deleteMedia(c1, item) },
         )
 
     for ((name, call) in calls) {
