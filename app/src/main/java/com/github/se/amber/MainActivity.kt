@@ -17,7 +17,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.accountCreation.CreateProfileScreen
+import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
+import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
@@ -88,21 +92,34 @@ fun AmberApp(
         startDestination = OnboardingScreen.CreateProfile.route,
         route = NavGraphs.ONBOARDING,
     ) {
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateProfile.route) {
-        // TODO
+        CreateProfileScreen(
+            onProfileCreated = { role ->
+              when (role) {
+                Role.PATIENT -> navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
+                Role.CAREGIVER -> navigationActions.navigateTo(OnboardingScreen.CaregiverChoice)
+              }
+            },
+        )
       }
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CaregiverChoice.route) {
-        // Todo
+        CaregiverChoiceScreen(
+            onBack = { navigationActions.goBack() },
+            onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
+            onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },
+        )
       }
       @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateCareCircle.route) {
         // Todo
       }
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.EnterInvitation.route) {
-        // Todo
+        InvitationRedemptionScreen(
+            onRedeemSuccess = { result ->
+              navigationActions.navigateToGraph(graphForRole(result.role))
+            },
+            onBack = { navigationActions.goBack() },
+        )
       }
     }
 
