@@ -9,6 +9,9 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
+import com.github.se.amber.resources.C
 
 /**
  * Instrumented test, which will execute on an Android device.
@@ -22,6 +25,8 @@ class MainActivityTest : TestCase() {
 
   @Test
   fun test() = run {
-    step("Start Main Activity") { ComposeScreen.onComposeScreen<MainScreen>(composeTestRule) {} }
+    step("Start Main Activity") {
+      composeTestRule.onNodeWithTag(C.Tag.main_screen_container).assertIsDisplayed()
+    }
   }
 }
