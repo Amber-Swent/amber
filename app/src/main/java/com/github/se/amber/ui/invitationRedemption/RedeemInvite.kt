@@ -19,7 +19,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,7 +31,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -63,23 +61,15 @@ internal const val BACK_LABEL = "Back"
 /**
  * Screen where a user enters an invitation code / link to join an existing care circle.
  *
- * [onRedeemSuccess] is invoked when redemption succeeds so a navigation owner can route to the
- * patient or caregiver home based on [InvitationRedemptionResult.role]. [onBack] returns to the
+ * Success navigation is owned by the ViewModel's onSuccess callback. [onBack] returns to the
  * previous onboarding step.
  */
 @Composable
 fun RedeemInvite(
     viewModel: RedeemInviteViewModel = viewModel(),
-    onRedeemSuccess: (InvitationRedemptionResult) -> Unit = {},
     onBack: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
-
-  LaunchedEffect(uiState.redemptionResult) {
-    val result = uiState.redemptionResult ?: return@LaunchedEffect
-    onRedeemSuccess(result)
-    viewModel.onRedemptionResultHandled()
-  }
 
   Column(
       modifier =

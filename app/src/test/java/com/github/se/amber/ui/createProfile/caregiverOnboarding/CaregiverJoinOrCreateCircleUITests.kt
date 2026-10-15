@@ -8,7 +8,6 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CareCircleEntryChoice
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleTestTags
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
@@ -31,7 +30,7 @@ class CaregiverJoinOrCreateCircleUITests {
       displayName: String = DISPLAY_NAME,
       viewModel: CaregiverJoinOrCreateCircleViewModel =
           CaregiverJoinOrCreateCircleViewModel(displayName = displayName),
-  ): CaregiverJoinOrCreateCircleViewModel {
+  ) {
     createCircleCount = 0
     joinCircleCount = 0
     backCount = 0
@@ -43,7 +42,6 @@ class CaregiverJoinOrCreateCircleUITests {
           onJoinCircle = { joinCircleCount++ },
       )
     }
-    return viewModel
   }
 
   // ---------- Back (→ CreateProfile) ----------
@@ -61,7 +59,7 @@ class CaregiverJoinOrCreateCircleUITests {
 
   @Test
   fun backButton_click_invokesOnBackOnly() {
-    val viewModel = setScreen()
+    setScreen()
 
     composeTestRule
         .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.BACK_BUTTON.name)
@@ -71,7 +69,6 @@ class CaregiverJoinOrCreateCircleUITests {
     assertEquals(1, backCount)
     assertEquals(0, createCircleCount)
     assertEquals(0, joinCircleCount)
-    assertEquals(CareCircleEntryChoice.None, viewModel.uiState.value.choice)
   }
 
   // ---------- Branding ----------
@@ -183,7 +180,7 @@ class CaregiverJoinOrCreateCircleUITests {
 
   @Test
   fun createButton_click_invokesOnCreateCircleOnly() {
-    val viewModel = setScreen()
+    setScreen()
 
     composeTestRule
         .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.CREATE_BUTTON.name)
@@ -193,13 +190,11 @@ class CaregiverJoinOrCreateCircleUITests {
     assertEquals(0, backCount)
     assertEquals(1, createCircleCount)
     assertEquals(0, joinCircleCount)
-    // Choice is consumed after the navigation callback so a later press can re-fire.
-    assertEquals(CareCircleEntryChoice.None, viewModel.uiState.value.choice)
   }
 
   @Test
   fun joinButton_click_invokesOnJoinCircleOnly() {
-    val viewModel = setScreen()
+    setScreen()
 
     composeTestRule
         .onNodeWithTag(CaregiverJoinOrCreateCircleTestTags.JOIN_BUTTON.name)
@@ -209,18 +204,16 @@ class CaregiverJoinOrCreateCircleUITests {
     assertEquals(0, backCount)
     assertEquals(0, createCircleCount)
     assertEquals(1, joinCircleCount)
-    assertEquals(CareCircleEntryChoice.None, viewModel.uiState.value.choice)
   }
 
   @Test
   fun initially_doesNotInvokeNavigationCallbacks() {
-    val viewModel = setScreen()
+    setScreen()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)
     assertEquals(0, createCircleCount)
     assertEquals(0, joinCircleCount)
-    assertEquals(CareCircleEntryChoice.None, viewModel.uiState.value.choice)
   }
 
   @Test

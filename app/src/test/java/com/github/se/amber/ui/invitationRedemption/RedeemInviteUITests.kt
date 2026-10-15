@@ -40,18 +40,22 @@ class RedeemInviteUITests {
   private var lastRedemptionResult: InvitationRedemptionResult? = null
 
   private fun setScreen(
-      viewModel: RedeemInviteViewModel = RedeemInviteViewModel(stubRepository()),
+      repository: InvitationRedemptionRepository = stubRepository(),
   ): RedeemInviteViewModel {
     redeemSuccessCount = 0
     backCount = 0
     lastRedemptionResult = null
+    val viewModel =
+        RedeemInviteViewModel(
+            invitationRedemptionRepository = repository,
+            onSuccess = { result ->
+              redeemSuccessCount++
+              lastRedemptionResult = result
+            },
+        )
     composeTestRule.setContent {
       RedeemInvite(
           viewModel = viewModel,
-          onRedeemSuccess = { result ->
-            redeemSuccessCount++
-            lastRedemptionResult = result
-          },
           onBack = { backCount++ },
       )
     }
@@ -237,13 +241,7 @@ class RedeemInviteUITests {
   @Test
   fun submit_withValidCode_invokesOnRedeemSuccess() {
     val expected = InvitationRedemptionResult(careCircleId = "circle-42", role = Role.PATIENT)
-    val viewModel =
-        setScreen(
-            viewModel =
-                RedeemInviteViewModel(
-                    stubRepository(Result.success(expected)),
-                ),
-        )
+    setScreen(repository = stubRepository(Result.success(expected)))
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
@@ -252,17 +250,11 @@ class RedeemInviteUITests {
     assertEquals(1, redeemSuccessCount)
     assertEquals(expected, lastRedemptionResult)
     assertEquals(0, backCount)
-    assertNull(viewModel.uiState.value.redemptionResult)
   }
 
   @Test
   fun submit_withRejectedCode_showsInvalidLinkError() {
-    setScreen(
-        viewModel =
-            RedeemInviteViewModel(
-                stubRepository(Result.failure(InvitationError.InvalidCode)),
-            ),
-    )
+    setScreen(repository = stubRepository(Result.failure(InvitationError.InvalidCode)))
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()
@@ -287,7 +279,7 @@ class RedeemInviteUITests {
         mockk<InvitationRedemptionRepository>().also {
           coEvery { it.redeemInvitation(any()) } coAnswers { pending.await() }
         }
-    val viewModel = setScreen(viewModel = RedeemInviteViewModel(repository))
+    val viewModel = setScreen(repository = repository)
 
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.CODE_INPUT.name).performTextInput(VALID_CODE)
     composeTestRule.onNodeWithTag(RedeemInviteTestTags.SUBMIT_BUTTON.name).performClick()

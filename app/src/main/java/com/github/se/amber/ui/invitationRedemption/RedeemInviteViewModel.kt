@@ -19,32 +19,30 @@ import kotlinx.coroutines.launch
  * @param inviteCode invitation code / link entered by the user.
  * @param showError whether the code field should show the invalid-link error.
  * @param isRedeeming true while a redeem request is in flight.
- * @param redemptionResult result written on success for navigation; null until then / after
- *   handled.
  */
 data class RedeemInviteUiState(
     val inviteCode: String = "",
     val showError: Boolean = false,
     val isRedeeming: Boolean = false,
-    val redemptionResult: InvitationRedemptionResult? = null,
 )
 
 /**
  * ViewModel for [RedeemInvite]: validates the invite code and redeems it via
  * [InvitationRedemptionRepository].
  *
- * On success, [RedeemInviteUiState.redemptionResult] exposes the care circle and role so a
- * navigation owner can route to the patient or caregiver home graph. On failure, [showError] is set
- * so the UI can prompt a retry. Call [onRedemptionResultHandled] after navigation so the event is
- * not re-delivered.
+ * @param onSuccess invoked with the redemption result after a successful redeem, so the navigation
+ *   owner can route to the patient or caregiver home graph without observing UI state.
  */
 class RedeemInviteViewModel(
     private val invitationRedemptionRepository: InvitationRedemptionRepository =
         FirebaseInvitationRedemptionRepository(),
+    private val onSuccess: (InvitationRedemptionResult) -> Unit = {},
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(RedeemInviteUiState())
   val uiState: StateFlow<RedeemInviteUiState> = _uiState.asStateFlow()
+
+  private var hasRedeemed = false
 
   /**
    * Updates [RedeemInviteUiState.inviteCode] and clears [RedeemInviteUiState.showError] when the
@@ -61,11 +59,11 @@ class RedeemInviteViewModel(
   /**
    * Validates the invite code, then redeems it via [InvitationRedemptionRepository].
    *
-   * Does nothing while a redeem is already in progress. Does not call the repository when the code
-   * is blank after trim; sets [RedeemInviteUiState.showError] instead.
+   * Does nothing while a redeem is already in progress or after a successful redeem. Does not call
+   * the repository when the code is blank after trim; sets [RedeemInviteUiState.showError] instead.
    */
   fun onSubmit() {
-    if (_uiState.value.isRedeeming) return
+    if (_uiState.value.isRedeeming || hasRedeemed) return
 
     val trimmedCode = _uiState.value.inviteCode.trim()
     if (trimmedCode.isEmpty()) {
@@ -73,7 +71,6 @@ class RedeemInviteViewModel(
           _uiState.value.copy(
               inviteCode = trimmedCode,
               showError = true,
-              redemptionResult = null,
           )
       return
     }
@@ -84,36 +81,29 @@ class RedeemInviteViewModel(
               inviteCode = trimmedCode,
               isRedeeming = true,
               showError = false,
-              redemptionResult = null,
           )
       try {
         invitationRedemptionRepository
             .redeemInvitation(trimmedCode)
             .onSuccess { result ->
+              hasRedeemed = true
               _uiState.value =
                   _uiState.value.copy(
                       isRedeeming = false,
                       showError = false,
-                      redemptionResult = result,
                   )
+              onSuccess(result)
             }
             .onFailure {
               _uiState.value =
                   _uiState.value.copy(
                       isRedeeming = false,
                       showError = true,
-                      redemptionResult = null,
                   )
             }
       } catch (exception: CancellationException) {
         throw exception
       }
     }
-  }
-
-  /** Clears [RedeemInviteUiState.redemptionResult] after the navigation owner has consumed it. */
-  fun onRedemptionResultHandled() {
-    if (_uiState.value.redemptionResult == null) return
-    _uiState.value = _uiState.value.copy(redemptionResult = null)
   }
 }

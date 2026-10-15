@@ -19,7 +19,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -62,11 +61,9 @@ internal const val BACK_LABEL = "Back"
 /**
  * Caregiver onboarding step: choose to create a new care circle or join an existing one.
  *
- * [onBack] should navigate to [com.github.se.amber.ui.navigation.OnboardingScreen.CreateProfile].
- * [onCreateCircle] and [onJoinCircle] are invoked when the corresponding choice is recorded so a
- * navigation owner can route to
- * [com.github.se.amber.ui.navigation.OnboardingScreen.CreateCareCircle] or
- * [com.github.se.amber.ui.navigation.OnboardingScreen.EnterInvitation].
+ * [onBack] should navigate to [OnboardingScreen.CreateProfile]. [onCreateCircle] and
+ * [onJoinCircle] are invoked directly from the buttons so a navigation owner can route to
+ * [OnboardingScreen.CreateCareCircle] or [OnboardingScreen.EnterInvitation].
  */
 @Composable
 fun CaregiverJoinOrCreateCircle(
@@ -76,20 +73,6 @@ fun CaregiverJoinOrCreateCircle(
     onJoinCircle: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
-
-  LaunchedEffect(uiState.choice) {
-    when (uiState.choice) {
-      CareCircleEntryChoice.Create -> {
-        onCreateCircle()
-        viewModel.onChoiceHandled()
-      }
-      CareCircleEntryChoice.Join -> {
-        onJoinCircle()
-        viewModel.onChoiceHandled()
-      }
-      CareCircleEntryChoice.None -> Unit
-    }
-  }
 
   Column(
       modifier =
@@ -144,7 +127,7 @@ fun CaregiverJoinOrCreateCircle(
       Spacer(modifier = Modifier.height(PADDING_BIG * 2))
 
       Button(
-          onClick = viewModel::onCreateCircleClick,
+          onClick = onCreateCircle,
           modifier =
               Modifier.fillMaxWidth(0.75f)
                   .height(72.dp)
@@ -174,7 +157,7 @@ fun CaregiverJoinOrCreateCircle(
       Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
       Button(
-          onClick = viewModel::onJoinCircleClick,
+          onClick = onJoinCircle,
           modifier =
               Modifier.fillMaxWidth(0.75f)
                   .height(72.dp)

@@ -31,6 +31,7 @@ import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircle
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverJoinOrCreateCircleViewModel
 import com.github.se.amber.ui.invitationRedemption.RedeemInvite
+import com.github.se.amber.ui.invitationRedemption.RedeemInviteViewModel
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
@@ -153,9 +154,20 @@ fun AmberApp(
       }
       composable(route = OnboardingScreen.EnterInvitation.route) {
         RedeemInvite(
-            onRedeemSuccess = { result ->
-              navigationActions.navigateToGraph(graphForRole(result.role))
-            },
+            viewModel =
+                viewModel(
+                    factory =
+                        object : ViewModelProvider.Factory {
+                          @Suppress("UNCHECKED_CAST")
+                          override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                              RedeemInviteViewModel(
+                                  onSuccess = { result ->
+                                    navigationActions.navigateToGraph(graphForRole(result.role))
+                                  },
+                              )
+                                  as T
+                        },
+                ),
             onBack = { navigationActions.goBack() },
         )
       }

@@ -23,7 +23,6 @@ import kotlinx.coroutines.launch
  * @param surnameError whether the surname field should show a fill-out error.
  * @param isSaving true while a create-profile request is in flight.
  * @param submitError repository failure message, or null when there is none.
- * @param createdRole role written on success, for a future navigation owner; null until then.
  */
 data class CreateProfileUiState(
     val name: String = "",
@@ -32,7 +31,6 @@ data class CreateProfileUiState(
     val surnameError: Boolean = false,
     val isSaving: Boolean = false,
     val submitError: String? = null,
-    val createdRole: Role? = null,
 )
 
 /**
@@ -49,6 +47,8 @@ class CreateProfileViewModel(
 
   private val _uiState = MutableStateFlow(CreateProfileUiState())
   val uiState: StateFlow<CreateProfileUiState> = _uiState.asStateFlow()
+
+  private var hasCreatedProfile = false
 
   /**
    * Updates [CreateProfileUiState.name] and clears [CreateProfileUiState.nameError] when non-blank.
@@ -76,11 +76,11 @@ class CreateProfileViewModel(
   /**
    * Validates name and surname, then creates the profile with [role] via [ProfileRepository].
    *
-   * Does nothing while a save is already in progress. Does not call the repository when fields are
-   * blank after trim.
+   * Does nothing while a save is already in progress or after a successful create. Does not call
+   * the repository when fields are blank after trim.
    */
   fun onRoleSelected(role: Role) {
-    if (_uiState.value.isSaving || _uiState.value.createdRole != null) return
+    if (_uiState.value.isSaving || hasCreatedProfile) return
 
     val trimmedName = _uiState.value.name.trim()
     val trimmedSurname = _uiState.value.surname.trim()
@@ -108,11 +108,11 @@ class CreateProfileViewModel(
             )
         result
             .onSuccess {
+              hasCreatedProfile = true
               _uiState.value =
                   _uiState.value.copy(
                       isSaving = false,
                       submitError = null,
-                      createdRole = role,
                   )
               onSuccess(role, trimmedName)
             }
@@ -121,7 +121,6 @@ class CreateProfileViewModel(
                   _uiState.value.copy(
                       isSaving = false,
                       submitError = error.toSubmitErrorMessage(),
-                      createdRole = null,
                   )
             }
       } catch (exception: CancellationException) {

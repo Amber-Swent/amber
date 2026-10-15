@@ -38,13 +38,24 @@ import org.junit.Test
 class RedeemInviteViewModelTest {
 
   private lateinit var invitationRedemptionRepository: InvitationRedemptionRepository
+  private var successCount = 0
+  private var lastSuccessResult: InvitationRedemptionResult? = null
   private lateinit var viewModel: RedeemInviteViewModel
 
   @Before
   fun setUp() {
     Dispatchers.setMain(StandardTestDispatcher())
     invitationRedemptionRepository = mockk()
-    viewModel = RedeemInviteViewModel(invitationRedemptionRepository)
+    successCount = 0
+    lastSuccessResult = null
+    viewModel =
+        RedeemInviteViewModel(
+            invitationRedemptionRepository = invitationRedemptionRepository,
+            onSuccess = { result ->
+              successCount++
+              lastSuccessResult = result
+            },
+        )
   }
 
   @After
@@ -91,7 +102,7 @@ class RedeemInviteViewModelTest {
     assertTrue(state.showError)
     assertEquals("", state.inviteCode)
     assertFalse(state.isRedeeming)
-    assertNull(state.redemptionResult)
+    assertEquals(0, successCount)
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }
   }
 
@@ -111,7 +122,7 @@ class RedeemInviteViewModelTest {
   // ---------- Successful redeem (mocked repository) ----------
 
   @Test
-  fun onSubmit_patientSuccess_setsRedemptionResultAndClearsSaving() = runTest {
+  fun onSubmit_patientSuccess_invokesOnSuccessAndClearsSaving() = runTest {
     val result = InvitationRedemptionResult(careCircleId = "circle-1", role = Role.PATIENT)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
@@ -123,13 +134,14 @@ class RedeemInviteViewModelTest {
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
     assertFalse(state.showError)
-    assertEquals(result, state.redemptionResult)
+    assertEquals(1, successCount)
+    assertEquals(result, lastSuccessResult)
     assertEquals("invite-code", state.inviteCode)
     coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("invite-code") }
   }
 
   @Test
-  fun onSubmit_caregiverSuccess_setsRedemptionResult() = runTest {
+  fun onSubmit_caregiverSuccess_invokesOnSuccess() = runTest {
     val result = InvitationRedemptionResult(careCircleId = "circle-2", role = Role.CAREGIVER)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
@@ -138,8 +150,9 @@ class RedeemInviteViewModelTest {
     viewModel.onSubmit()
     advanceUntilIdle()
 
-    assertEquals(result, viewModel.uiState.value.redemptionResult)
-    assertEquals(Role.CAREGIVER, viewModel.uiState.value.redemptionResult?.role)
+    assertEquals(1, successCount)
+    assertEquals(result, lastSuccessResult)
+    assertEquals(Role.CAREGIVER, lastSuccessResult?.role)
     coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("caregiver-code") }
   }
 
@@ -157,7 +170,7 @@ class RedeemInviteViewModelTest {
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
     assertTrue(state.showError)
-    assertNull(state.redemptionResult)
+    assertEquals(0, successCount)
   }
 
   @Test
@@ -170,7 +183,7 @@ class RedeemInviteViewModelTest {
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.showError)
-    assertNull(viewModel.uiState.value.redemptionResult)
+    assertEquals(0, successCount)
   }
 
   @Test
@@ -183,7 +196,7 @@ class RedeemInviteViewModelTest {
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.showError)
-    assertNull(viewModel.uiState.value.redemptionResult)
+    assertEquals(0, successCount)
     assertFalse(viewModel.uiState.value.isRedeeming)
   }
 
@@ -206,7 +219,8 @@ class RedeemInviteViewModelTest {
     advanceUntilIdle()
 
     assertFalse(viewModel.uiState.value.showError)
-    assertEquals(Role.PATIENT, viewModel.uiState.value.redemptionResult?.role)
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessResult?.role)
   }
 
   // ---------- Concurrent redeem guard ----------
@@ -231,34 +245,27 @@ class RedeemInviteViewModelTest {
     )
     advanceUntilIdle()
 
-    assertEquals(Role.PATIENT, viewModel.uiState.value.redemptionResult?.role)
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessResult?.role)
     assertFalse(viewModel.uiState.value.isRedeeming)
   }
 
-  // ---------- Navigation event consumed ----------
-
   @Test
-  fun onRedemptionResultHandled_clearsResult() = runTest {
-    val result = InvitationRedemptionResult(careCircleId = "circle-1", role = Role.CAREGIVER)
+  fun onSubmit_afterSuccessfulRedeem_ignoresSecondCall() = runTest {
+    val result = InvitationRedemptionResult(careCircleId = "circle-1", role = Role.PATIENT)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
     viewModel.onInviteCodeChange("code")
 
     viewModel.onSubmit()
     advanceUntilIdle()
-    assertEquals(result, viewModel.uiState.value.redemptionResult)
+    assertEquals(1, successCount)
 
-    viewModel.onRedemptionResultHandled()
+    viewModel.onSubmit()
+    advanceUntilIdle()
 
-    assertNull(viewModel.uiState.value.redemptionResult)
-    assertEquals("code", viewModel.uiState.value.inviteCode)
-  }
-
-  @Test
-  fun onRedemptionResultHandled_whenNull_isNoOp() {
-    viewModel.onRedemptionResultHandled()
-
-    assertNull(viewModel.uiState.value.redemptionResult)
+    coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation(any()) }
+    assertEquals(1, successCount)
   }
 
   @Test
@@ -274,7 +281,8 @@ class RedeemInviteViewModelTest {
 
     // Catch rethrows cancellation before success/failure state is written.
     assertTrue(viewModel.uiState.value.isRedeeming)
-    assertNull(viewModel.uiState.value.redemptionResult)
+    assertEquals(0, successCount)
+    assertNull(lastSuccessResult)
     assertFalse(viewModel.uiState.value.showError)
   }
 }
