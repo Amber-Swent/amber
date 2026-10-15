@@ -4,12 +4,9 @@
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
-import androidx.credentials.ClearCredentialStateRequest
-import androidx.credentials.CredentialManager
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Role
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -61,10 +58,9 @@ class CaregiverHomeViewModelTest {
   @Test
   fun signOutSuccessSetsSignedOut() = runTest {
     coEvery { authRepo.signOut() } returns Result.success(Unit)
-    val credentialManager = mockk<CredentialManager>(relaxed = true)
 
     val vm = CaregiverHomeViewModel(authRepo)
-    vm.signOut(credentialManager)
+    vm.signOut()
 
     assertTrue(vm.uiState.value.signedOut)
   }
@@ -72,15 +68,11 @@ class CaregiverHomeViewModelTest {
   @Test
   fun signOutFailureSetsError_andDoesNotSignOut() = runTest {
     coEvery { authRepo.signOut() } returns Result.failure(Exception("nope"))
-    val credentialManager = mockk<CredentialManager>(relaxed = true)
 
     val vm = CaregiverHomeViewModel(authRepo)
-    vm.signOut(credentialManager)
+    vm.signOut()
 
     assertEquals("nope", vm.uiState.value.errorMsg)
     assertFalse(vm.uiState.value.signedOut)
-    coVerify(exactly = 0) {
-      credentialManager.clearCredentialState(any<ClearCredentialStateRequest>())
-    }
   }
 }
