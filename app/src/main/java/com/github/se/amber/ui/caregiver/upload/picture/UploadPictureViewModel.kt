@@ -45,7 +45,7 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   NOT_SET_CARE_CIRCLE(mess = "Your care circle isn't set up"),
   SELECT_PICTURE(mess = "Please select a picture first"),
   UNKNOW_ERROR(mess = "Upload failed: "),
-  COULD_NOT_READ_PICTURE(mess = "Could read your picture: "),
+  COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
 }

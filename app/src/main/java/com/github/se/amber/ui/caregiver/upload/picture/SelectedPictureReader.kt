@@ -82,6 +82,10 @@ class SelectedPictureReaderAndroid(
             options,
         )
 
+        require(options.outWidth > 0 && options.outHeight > 0) {
+          "Could not decode selected picture"
+        }
+
         PickedImage(
             file = file,
             width = options.outWidth,

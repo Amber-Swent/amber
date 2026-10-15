@@ -179,7 +179,7 @@ fun UploadPictureScreen(
               value = uiState.description,
               onValueChange = { viewModel.setDescription(it) },
               label = "Description",
-              placeholder = "Enter a one-line description",
+              placeholder = "Enter a description of the picture",
               emptyErrorMessage = "Description cannot be empty",
               maxLines = MAX_LINE_DESCRIPTION,
               maxChar = MAX_CHAR_DESCRIPTION,
