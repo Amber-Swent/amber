@@ -26,7 +26,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
@@ -53,7 +55,16 @@ class MediaFileStorageFirebaseTest {
 
   private val destination = File("unused.jpg") // never written: the download is mocked
 
-  private val upload = File("picture.jpg") // never read: the upload is mocked
+  @get:Rule val tmp = TemporaryFolder()
+
+  /** The file to upload: one byte, since `upload` refuses an empty file. Its bytes aren't sent. */
+  private val upload by lazy { tmp.newFile("picture.jpg").apply { writeBytes(byteArrayOf(1)) } }
+
+  /** A file whose [File.length] is [bytes], without writing them to disk. */
+  private fun fileOfLength(bytes: Long) =
+      object : File(tmp.root, "sized.jpg") {
+        override fun length() = bytes
+      }
 
   private val picture =
       MediaItem.Picture(id = "m1", authorId = "u1", storagePath = "careCircles/c1/media/m1.jpg")
@@ -148,9 +159,10 @@ class MediaFileStorageFirebaseTest {
     val fileStorage = MediaFileStorageFirebase()
     val pending = CareCircle(id = "pending")
     val message = "Storage is not ready for care circle pending"
+    val pendingPicture = picture.copy(storagePath = "careCircles/pending/media/m1.jpg")
 
     val downloadError = errorOf { fileStorage.download(pending, picture.storagePath, destination) }
-    val uploadError = errorOf { fileStorage.upload(pending, picture, upload) }
+    val uploadError = errorOf { fileStorage.upload(pending, pendingPicture, upload) }
     val deleteError = errorOf { fileStorage.delete(pending, picture.storagePath) }
 
     assertTrue("download", downloadError is IllegalArgumentException)
@@ -159,6 +171,20 @@ class MediaFileStorageFirebaseTest {
     assertEquals("upload", message, uploadError?.message)
     assertTrue("delete", deleteError is IllegalArgumentException)
     assertEquals("delete", message, deleteError?.message)
+  }
+
+  @Test
+  fun uploadChecksTheItemAndFileBeforeTheBucket() = runTest {
+    val fileStorage = MediaFileStorageFirebase()
+    val pending = CareCircle(id = "c1")
+    val text = MediaItem.Text(id = "t1")
+
+    val textError = errorOf { fileStorage.upload(pending, text, upload) }
+    val emptyError = errorOf { fileStorage.upload(pending, picture, tmp.newFile("empty.jpg")) }
+
+    // a bug in the item or file is reported as such, not as a bucket that isn't assigned yet
+    assertEquals("Media t1 is a text: it has no file to upload", textError?.message)
+    assertEquals("Media m1's file is empty or over 25 MiB", emptyError?.message)
   }
 
   @Test
@@ -310,6 +336,49 @@ class MediaFileStorageFirebaseTest {
     // the rules would refuse it: a bug, reported before anything is sent
     assertTrue("gif", gifError is IllegalArgumentException)
     verify(firebase.root, never()).child(any())
+  }
+
+  @Test
+  fun uploadRefusesAMediaOfAnotherCircle() = runTest {
+    val firebase = fakeFirebase()
+    val otherCircle = picture.copy(storagePath = "careCircles/c2/media/m1.jpg")
+
+    val error = errorOf {
+      MediaFileStorageFirebase { firebase.storage }.upload(circle, otherCircle, upload)
+    }
+
+    // the rules would answer "permission denied", which a send could retry forever
+    assertTrue(error is IllegalArgumentException)
+    assertEquals(
+        "Media m1 (careCircles/c2/media/m1.jpg) isn't a media of care circle c1",
+        error?.message,
+    )
+    verify(firebase.root, never()).child(any())
+  }
+
+  @Test
+  fun uploadRefusesAnEmptyFileOrOneOver25MiB() = runTest {
+    val firebase = fakeFirebase()
+    val fileStorage = MediaFileStorageFirebase { firebase.storage }
+    val maxBytes = 25L * 1024 * 1024
+
+    val emptyError = errorOf { fileStorage.upload(circle, picture, fileOfLength(0)) }
+    val largeError = errorOf { fileStorage.upload(circle, picture, fileOfLength(maxBytes + 1)) }
+
+    assertTrue("empty", emptyError is IllegalArgumentException)
+    assertTrue("large", largeError is IllegalArgumentException)
+    verify(firebase.root, never()).child(any())
+  }
+
+  @Test
+  fun uploadAcceptsAFileOfExactly25MiB() = runTest {
+    val firebase = fakeFirebase()
+
+    MediaFileStorageFirebase { firebase.storage }
+        .upload(circle, picture, fileOfLength(25L * 1024 * 1024))
+
+    // the rules' limit is inclusive
+    verify(firebase.file).putFile(any(), any())
   }
 
   @Test

@@ -24,6 +24,22 @@ class MediaItemTest {
   }
 
   @Test
+  fun aFileOutsideTheCirclesMediaFolderIsNot() {
+    // the security rules accept a media file only directly in careCircles/{circleId}/media/
+    val paths =
+        listOf(
+            "careCircles/c1/m1.jpg",
+            "careCircles/c1/stories/m1.jpg",
+            "careCircles/c1/media/",
+            "careCircles/c1/media/nested/m1.jpg",
+        )
+
+    for (path in paths) {
+      assertFalse(path, MediaItem.Picture(storagePath = path).isMediaOf("c1"))
+    }
+  }
+
+  @Test
   fun aTextHasNoFileSoIsAMediaOfNoCircle() {
     assertFalse(MediaItem.Text(text = "hello").isMediaOf("c1"))
   }

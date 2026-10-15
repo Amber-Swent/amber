@@ -6,6 +6,7 @@ import android.net.Uri
 import com.github.se.amber.data.storage.CircleStorageProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.isMediaOf
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
@@ -41,6 +42,13 @@ class MediaFileStorageFirebase(
             .setContentType(contentTypeOf(item))
             .setCustomMetadata(AUTHOR_ID_KEY, item.authorId)
             .build()
+    // the rules would refuse these with "permission denied", which a send could retry forever
+    require(item.isMediaOf(circle.id)) {
+      "Media ${item.id} (${item.storagePath}) isn't a media of care circle ${circle.id}"
+    }
+    require(file.length() in 1..MAX_FILE_BYTES) {
+      "Media ${item.id}'s file is empty or over 25 MiB"
+    }
     // set before putFile: the upload task reads it when it is created
     val storage = storageFor(circle).apply { maxUploadRetryTimeMillis = MAX_UPLOAD_RETRY_MS }
     storage.reference
@@ -101,6 +109,9 @@ class MediaFileStorageFirebase(
     /** Content type of each file extension the Storage security rules accept for a media. */
     private val CONTENT_TYPES =
         mapOf("jpg" to "image/jpeg", "png" to "image/png", "m4a" to "audio/mp4")
+
+    /** Largest media file the Storage security rules accept, in bytes (25 MiB). */
+    private const val MAX_FILE_BYTES = 25L * 1024 * 1024
 
     /**
      * Maximum time Firebase retries a download after a failure (Firebase's default: 10 minutes).
