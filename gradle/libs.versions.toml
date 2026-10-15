@@ -21,6 +21,7 @@ googleid = "1.2.1"
 coroutines = "1.9.0"
 navigationCompose = "2.9.8"
 mockk = "1.13.12"
+mockkAndroid = "1.13.12"
 mockitoKotlin = "5.4.0"
 coil = "3.6.3"
 work = "2.10.1"
@@ -34,6 +35,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+mockkAndroid = { group = "io.mockk", name = "mockk-android", version.ref = "mockkAndroid" }
 
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 compose-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
