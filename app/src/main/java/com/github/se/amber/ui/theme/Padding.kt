@@ -29,6 +29,11 @@ const val MAX_CHAR_DESCRIPTION = 200
 
 val SURFACE_BIG = 84.dp
 
+/* Component sizes (not spacing). */
+val BUTTON_HEIGHT = 48.dp
+val BUTTON_HEIGHT_TALL = 72.dp
+val LOGO_SIZE = 48.dp
+
 /* Caregiver parameters invitation buttons. */
 val INVITATION_BUTTON_WIDTH = 320.dp
 val INVITATION_BUTTON_HEIGHT = 100.dp

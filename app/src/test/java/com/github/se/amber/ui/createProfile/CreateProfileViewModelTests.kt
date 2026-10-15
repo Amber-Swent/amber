@@ -8,6 +8,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.accountCreation.CreateProfileUiState
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
+import com.github.se.amber.ui.accountCreation.FILL_OUT_MESSAGE
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -39,13 +40,21 @@ import org.junit.Test
 class CreateProfileViewModelTests {
 
   private lateinit var profileRepository: ProfileRepository
+  private var successCount = 0
+  private var lastSuccessRole: Role? = null
   private lateinit var viewModel: CreateProfileViewModel
+  private val onSuccess: (Role) -> Unit = { role ->
+    successCount++
+    lastSuccessRole = role
+  }
 
   @Before
   fun setUp() {
     Dispatchers.setMain(StandardTestDispatcher())
     profileRepository = mockk()
-    viewModel = CreateProfileViewModel(profileRepository)
+    successCount = 0
+    lastSuccessRole = null
+    viewModel = CreateProfileViewModel(profileRepository = profileRepository)
   }
 
   @After
@@ -59,6 +68,8 @@ class CreateProfileViewModelTests {
   @Test
   fun initialState_hasEmptyFieldsAndNoErrors() {
     assertEquals(CreateProfileUiState(), viewModel.uiState.value)
+    assertNull(viewModel.uiState.value.nameError)
+    assertNull(viewModel.uiState.value.surnameError)
   }
 
   // ---------- onNameChange / onSurnameChange ----------
@@ -78,52 +89,53 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onNameChange_clearsNameErrorWhenValueIsNonBlank() {
-    viewModel.onRoleSelected(Role.PATIENT)
-    assertTrue(viewModel.uiState.value.nameError)
+  fun onNameChange_clearsDerivedNameErrorWhenValueIsNonBlank() {
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.nameError)
 
     viewModel.onNameChange("Ada")
 
-    assertFalse(viewModel.uiState.value.nameError)
+    assertNull(viewModel.uiState.value.nameError)
     assertEquals("Ada", viewModel.uiState.value.name)
   }
 
   @Test
-  fun onSurnameChange_clearsSurnameErrorWhenValueIsNonBlank() {
-    viewModel.onRoleSelected(Role.PATIENT)
-    assertTrue(viewModel.uiState.value.surnameError)
+  fun onSurnameChange_clearsDerivedSurnameErrorWhenValueIsNonBlank() {
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.surnameError)
 
     viewModel.onSurnameChange("Lovelace")
 
-    assertFalse(viewModel.uiState.value.surnameError)
+    assertNull(viewModel.uiState.value.surnameError)
     assertEquals("Lovelace", viewModel.uiState.value.surname)
   }
 
   @Test
-  fun onNameChange_keepsNameErrorWhenValueIsStillBlank() {
-    viewModel.onRoleSelected(Role.PATIENT)
-    assertTrue(viewModel.uiState.value.nameError)
+  fun onNameChange_keepsDerivedNameErrorWhenValueIsStillBlank() {
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.nameError)
 
     viewModel.onNameChange("   ")
 
-    assertTrue(viewModel.uiState.value.nameError)
+    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.nameError)
   }
 
   // ---------- Validation (no repository call) ----------
 
   @Test
-  fun onRoleSelected_blankFields_setsErrorsAndDoesNotCallRepository() = runTest {
-    viewModel.onRoleSelected(Role.PATIENT)
+  fun onRoleSelected_blankFields_setsDerivedErrorsAndDoesNotCallRepository() = runTest {
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertTrue(state.nameError)
-    assertTrue(state.surnameError)
+    assertTrue(state.validationAttempted)
+    assertEquals(FILL_OUT_MESSAGE, state.nameError)
+    assertEquals(FILL_OUT_MESSAGE, state.surnameError)
     assertEquals("", state.name)
     assertEquals("", state.surname)
     assertFalse(state.isSaving)
     assertNull(state.submitError)
-    assertNull(state.createdRole)
+    assertEquals(0, successCount)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
 
@@ -132,12 +144,12 @@ class CreateProfileViewModelTests {
     viewModel.onNameChange("   ")
     viewModel.onSurnameChange("\t")
 
-    viewModel.onRoleSelected(Role.CAREGIVER)
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertTrue(state.nameError)
-    assertTrue(state.surnameError)
+    assertEquals(FILL_OUT_MESSAGE, state.nameError)
+    assertEquals(FILL_OUT_MESSAGE, state.surnameError)
     assertEquals("", state.name)
     assertEquals("", state.surname)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
@@ -147,12 +159,12 @@ class CreateProfileViewModelTests {
   fun onRoleSelected_blankNameOnly_setsNameErrorAndDoesNotCallRepository() = runTest {
     viewModel.onSurnameChange("Lovelace")
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertTrue(state.nameError)
-    assertFalse(state.surnameError)
+    assertEquals(FILL_OUT_MESSAGE, state.nameError)
+    assertNull(state.surnameError)
     assertEquals("Lovelace", state.surname)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
@@ -161,12 +173,12 @@ class CreateProfileViewModelTests {
   fun onRoleSelected_blankSurnameOnly_setsSurnameErrorAndDoesNotCallRepository() = runTest {
     viewModel.onNameChange("Ada")
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertFalse(state.nameError)
-    assertTrue(state.surnameError)
+    assertNull(state.nameError)
+    assertEquals(FILL_OUT_MESSAGE, state.surnameError)
     assertEquals("Ada", state.name)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
@@ -174,18 +186,19 @@ class CreateProfileViewModelTests {
   // ---------- Successful create (mocked repository) ----------
 
   @Test
-  fun onRoleSelected_patientSuccess_setsCreatedRoleAndClearsSaving() = runTest {
+  fun onRoleSelected_patientSuccess_invokesOnSuccessAndClearsSaving() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
     viewModel.onNameChange("  Ada  ")
     viewModel.onSurnameChange("  Lovelace  ")
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
     assertFalse(state.isSaving)
     assertNull(state.submitError)
-    assertEquals(Role.PATIENT, state.createdRole)
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
     assertEquals("Ada", state.name)
     assertEquals("Lovelace", state.surname)
     coVerify(exactly = 1) {
@@ -197,15 +210,16 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onRoleSelected_caregiverSuccess_setsCreatedRole() = runTest {
+  fun onRoleSelected_caregiverSuccess_invokesOnSuccess() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
     viewModel.onNameChange("Grace")
     viewModel.onSurnameChange("Hopper")
 
-    viewModel.onRoleSelected(Role.CAREGIVER)
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
     advanceUntilIdle()
 
-    assertEquals(Role.CAREGIVER, viewModel.uiState.value.createdRole)
+    assertEquals(1, successCount)
+    assertEquals(Role.CAREGIVER, lastSuccessRole)
     coVerify(exactly = 1) {
       profileRepository.createProfile(
           person = Person(firstName = "Grace", lastName = "Hopper"),
@@ -217,49 +231,49 @@ class CreateProfileViewModelTests {
   // ---------- Repository failures ----------
 
   @Test
-  fun onRoleSelected_profileCreationError_setsSubmitErrorMessage() = runTest {
+  fun onRoleSelected_profileAlreadyExists_setsMappedSubmitError() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(ProfileCreationError.ProfileAlreadyExists)
     fillValidNameAndSurname()
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
     assertFalse(state.isSaving)
-    assertNull(state.createdRole)
-    assertEquals(
-        ProfileCreationError.ProfileAlreadyExists.message,
-        state.submitError,
-    )
+    assertEquals(0, successCount)
+    assertEquals("A profile already exists for this account.", state.submitError)
   }
 
   @Test
-  fun onRoleSelected_networkError_setsOfflineSubmitError() = runTest {
+  fun onRoleSelected_networkError_setsMappedOfflineSubmitError() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(ProfileCreationError.Network)
     fillValidNameAndSurname()
 
-    viewModel.onRoleSelected(Role.CAREGIVER)
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
     advanceUntilIdle()
 
     assertEquals(
-        ProfileCreationError.Network.message,
+        "You're offline. Check your connection and try again.",
         viewModel.uiState.value.submitError,
     )
-    assertNull(viewModel.uiState.value.createdRole)
+    assertEquals(0, successCount)
   }
 
   @Test
-  fun onRoleSelected_genericFailure_usesThrowableMessageOrFallback() = runTest {
+  fun onRoleSelected_genericFailure_usesFallbackMessage() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(IllegalStateException("boom"))
     fillValidNameAndSurname()
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
-    assertEquals("boom", viewModel.uiState.value.submitError)
+    assertEquals(
+        "Couldn't create your profile. Please try again.",
+        viewModel.uiState.value.submitError,
+    )
     assertFalse(viewModel.uiState.value.isSaving)
   }
 
@@ -272,18 +286,19 @@ class CreateProfileViewModelTests {
         )
     fillValidNameAndSurname()
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
     assertEquals(
-        ProfileCreationError.Network.message,
+        "You're offline. Check your connection and try again.",
         viewModel.uiState.value.submitError,
     )
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
     assertNull(viewModel.uiState.value.submitError)
-    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
   }
 
   // ---------- Concurrent save guard ----------
@@ -294,11 +309,11 @@ class CreateProfileViewModelTests {
     coEvery { profileRepository.createProfile(any(), any()) } coAnswers { pending.await() }
     fillValidNameAndSurname()
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     runCurrent()
     assertTrue(viewModel.uiState.value.isSaving)
 
-    viewModel.onRoleSelected(Role.CAREGIVER)
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
     runCurrent()
 
     coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
@@ -306,24 +321,27 @@ class CreateProfileViewModelTests {
     pending.complete(Result.success(Unit))
     advanceUntilIdle()
 
-    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
     assertFalse(viewModel.uiState.value.isSaving)
   }
 
   @Test
-  fun onRoleSelected_afterSuccessfulSave_ignoresSecondCall() = runTest {
+  fun onRoleSelected_afterSuccessfulSave_reinvokesOnSuccessWithoutRepository() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
     fillValidNameAndSurname()
 
-    viewModel.onRoleSelected(Role.PATIENT)
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
-    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
 
-    viewModel.onRoleSelected(Role.CAREGIVER)
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
     advanceUntilIdle()
 
     coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
-    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+    assertEquals(2, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
     assertNull(viewModel.uiState.value.submitError)
   }
 
