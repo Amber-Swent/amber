@@ -20,6 +20,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -108,13 +109,15 @@ class SeePicturesScreenTest {
   }
 
   @Test
-  fun empty_message_is_not_displayed_while_the_circle_is_loading() {
-    // The profile has no circle: the care circle is never loaded, its id stays blank
+  fun error_and_retry_are_displayed_when_the_profile_has_no_circle() {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.success(profile.copy(circleIds = emptyList()))
 
     setContent()
 
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
+    composeTestRule.onNodeWithText("No care circle found for this patient.").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
   }
 
@@ -139,12 +142,37 @@ class SeePicturesScreenTest {
   }
 
   @Test
-  fun error_is_shown_in_a_toast_then_cleared() {
-    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
+  fun media_error_is_shown_in_a_toast_then_cleared() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw RuntimeException("media error") }
 
     val viewModel = setContent()
 
-    assertEquals("Failed to load the profile: boom", ShadowToast.getTextOfLatestToast())
+    assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
     assertNull(viewModel.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun error_is_displayed_in_the_screen_when_the_profile_fails_to_load() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
+
+    setContent()
+
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
+    composeTestRule.onNodeWithText("Failed to load the profile: boom").assertIsDisplayed()
+  }
+
+  @Test
+  fun retry_button_reloads_the_screen() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
+    setContent()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
+
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
   }
 }

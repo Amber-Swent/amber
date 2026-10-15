@@ -49,6 +49,8 @@ object SeePicturesScreenTestTags {
   const val TITLE = "pictures_title"
   const val NO_PICTURES = "no_pictures_text"
   const val PICTURES_LIST = "pictures_list"
+  const val ERROR = "pictures_error_text"
+  const val RETRY = "pictures_retry_button"
 
   fun picture(id: String) = "picture_$id"
 }
@@ -102,8 +104,36 @@ fun SeePicturesScreen(
       },
       content = { paddingValues ->
         when {
-          // we wait for the circle to be loaded
-          uiState.careCircle.id.isBlank() -> Unit
+          uiState.isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                contentAlignment = Alignment.Center,
+            ) {
+              CircularProgressIndicator()
+            }
+          }
+
+          uiState.loadError != null -> {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_BIG),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+              Text(
+                  modifier = Modifier.testTag(SeePicturesScreenTestTags.ERROR),
+                  text = uiState.loadError ?: "",
+                  textAlign = TextAlign.Center,
+                  color = darkGray,
+                  style = MaterialTheme.typography.titleMedium,
+              )
+              TextButton(
+                  modifier = Modifier.testTag(SeePicturesScreenTestTags.RETRY),
+                  onClick = pictureViewModel::retry,
+              ) {
+                Text("Retry")
+              }
+            }
+          }
 
           allPictures.isEmpty() -> {
             Box(

@@ -13,6 +13,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -99,7 +100,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertEquals("No profile found.", viewModel.uiState.value.errorMsg)
+    assertEquals("No profile found.", viewModel.uiState.value.loadError)
   }
 
   @Test
@@ -108,7 +109,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertEquals("Failed to load the profile: boom", viewModel.uiState.value.errorMsg)
+    assertEquals("Failed to load the profile: boom", viewModel.uiState.value.loadError)
   }
 
   @Test
@@ -118,7 +119,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertEquals("No care circle found for this patient.", viewModel.uiState.value.errorMsg)
+    assertEquals("No care circle found for this patient.", viewModel.uiState.value.loadError)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
   }
@@ -130,7 +131,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertEquals("Failed to load the care circle: circle error", viewModel.uiState.value.errorMsg)
+    assertEquals("Failed to load the care circle: circle error", viewModel.uiState.value.loadError)
   }
 
   @Test
@@ -145,9 +146,10 @@ class SeePicturesViewModelTest {
 
   @Test
   fun `clearErrorMsg resets the error`() {
-    coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw RuntimeException("media error") }
     val viewModel = createViewModel()
-    assertEquals("No profile found.", viewModel.uiState.value.errorMsg)
+    assertEquals("Failed to load media: media error", viewModel.uiState.value.errorMsg)
 
     viewModel.clearErrorMsg()
 
@@ -162,5 +164,45 @@ class SeePicturesViewModelTest {
     createViewModel()
 
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
+  }
+
+  @Test
+  fun `is not loading and has no load error once everything is loaded`() {
+    val viewModel = createViewModel()
+
+    assertTrue(!viewModel.uiState.value.isLoading)
+    assertNull(viewModel.uiState.value.loadError)
+  }
+
+  @Test
+  fun `stops loading when a blocking error happens`() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
+
+    val viewModel = createViewModel()
+
+    assertTrue(!viewModel.uiState.value.isLoading)
+  }
+
+  @Test
+  fun `retry reloads everything after a failure`() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
+    val viewModel = createViewModel()
+    assertEquals("Failed to load the profile: boom", viewModel.uiState.value.loadError)
+
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    viewModel.retry()
+
+    assertNull(viewModel.uiState.value.loadError)
+    assertTrue(!viewModel.uiState.value.isLoading)
+    assertEquals(circle, viewModel.uiState.value.careCircle)
+  }
+
+  @Test
+  fun `keeps loading until the first media list arrives`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+
+    val viewModel = createViewModel()
+
+    assertTrue(viewModel.uiState.value.isLoading)
   }
 }
