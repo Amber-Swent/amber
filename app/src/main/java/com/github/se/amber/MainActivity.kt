@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -69,7 +70,7 @@ fun AmberApp(
     startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser),
 ) {
 
-  val navigationActions = NavigationActions(navController)
+  val navigationActions = remember(navController) { NavigationActions(navController) }
 
   NavHost(
       navController = navController,
@@ -84,6 +85,7 @@ fun AmberApp(
       // SignInScreen
       composable(route = AuthScreen.Auth.route) {
         EmailSignInScreen(
+            // onContinue will be implemented in M2/M3
             onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) }
         )
       }
@@ -148,11 +150,11 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Upload.route) {
         UploadScreen(
+            // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen
-            // if we were on a top level destination
+            // Screen if we were on a top level destination
             checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
         )
       }
@@ -162,6 +164,7 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.UploadPicture.route) {
         UploadPictureScreen(
+            // For M1 at least, may change for M2
             onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
             goBack = { navigationActions.goBack() },
         )

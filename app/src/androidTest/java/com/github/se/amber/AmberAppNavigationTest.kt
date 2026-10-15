@@ -2,14 +2,15 @@
 
 package com.github.se.amber
 
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
+import androidx.test.espresso.Espresso
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceTestTags
-import com.github.se.amber.ui.authentication.EmailSignInTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
 import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionTestTags
@@ -22,7 +23,6 @@ import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onboarding.CreateCareCircleTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -47,11 +47,6 @@ class AmberAppNavigationTest {
    * tag used in the corresponding screen.
    */
   private object Tags {
-    // Sign in
-    const val SIGN_IN_BUTTON = EmailSignInTestTags.GOOGLE_BUTTON
-
-    // Onboarding
-    const val CREATE_CARE_CIRCLE_BUTTON = CreateCareCircleTestTags.SUBMIT_BUTTON
     // Onboarding
     val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
     val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
@@ -94,11 +89,12 @@ class AmberAppNavigationTest {
   /** Launches [AmberApp] with a [TestNavHostController], starting at [start] (a graph or route). */
   private fun launch(start: String) {
     composeRule.setContent {
-      navController =
-          TestNavHostController(LocalContext.current).apply {
-            navigatorProvider.addNavigator(ComposeNavigator())
-          }
-      AmberApp(navController = navController, startDestination = start)
+      val context = LocalContext.current
+      val controller = remember {
+        TestNavHostController(context).apply { navigatorProvider.addNavigator(ComposeNavigator()) }
+      }
+      navController = controller
+      AmberApp(navController = controller, startDestination = start)
     }
     composeRule.waitForIdle()
   }
@@ -419,5 +415,18 @@ class AmberAppNavigationTest {
     click(Tags.SEE_PICTURES_BACK)
 
     assertRoute(PatientScreen.Home.route)
+  }
+
+  @Test
+  fun caregiverTabs_systemBack_returnsToPreviousTab() {
+    launch(NavGraphs.CAREGIVER)
+    click(Tags.CAREGIVER_TAB_UPLOAD)
+    click(Tags.CAREGIVER_TAB_PARAMETERS)
+
+    Espresso.pressBack()
+    composeRule.waitForIdle()
+
+    // Home -> Upload -> Parameters -> back: we expect to land on Upload
+    assertRoute(CaregiverScreen.Upload.route)
   }
 }
