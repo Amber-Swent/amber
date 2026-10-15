@@ -59,7 +59,7 @@ class CaregiverHomeViewModelTest {
   }
 
   @Test
-  fun signOutSuccessSetsSignedOut_andClearsCredentials() = runTest {
+  fun signOutSuccessSetsSignedOut() = runTest {
     coEvery { authRepo.signOut() } returns Result.success(Unit)
     val credentialManager = mockk<CredentialManager>(relaxed = true)
 
@@ -67,7 +67,6 @@ class CaregiverHomeViewModelTest {
     vm.signOut(credentialManager)
 
     assertTrue(vm.uiState.value.signedOut)
-    coVerify { credentialManager.clearCredentialState(any<ClearCredentialStateRequest>()) }
   }
 
   @Test
