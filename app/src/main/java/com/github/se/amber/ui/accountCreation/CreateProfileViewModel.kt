@@ -4,9 +4,9 @@ package com.github.se.amber.ui.accountCreation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import kotlin.coroutines.cancellation.CancellationException
@@ -54,7 +54,7 @@ data class CreateProfileUiState(
  *   so the navigation owner can move to the next onboarding step without observing UI state.
  */
 class CreateProfileViewModel(
-    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val onSuccess: (role: Role, displayName: String) -> Unit = { _, _ -> },
 ) : ViewModel() {
 

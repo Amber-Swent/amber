@@ -4,9 +4,9 @@ package com.github.se.amber.ui.invitationRedemption
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.se.amber.data.invitation.FirebaseInvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
+import com.github.se.amber.data.invitation.InvitationRedemptionRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,7 +55,7 @@ data class RedeemInviteUiState(
  */
 class RedeemInviteViewModel(
     private val invitationRedemptionRepository: InvitationRedemptionRepository =
-        FirebaseInvitationRedemptionRepository(),
+        InvitationRedemptionRepositoryProvider.default.repository,
     private val onSuccess: (InvitationRedemptionResult) -> Unit = {},
 ) : ViewModel() {
 
