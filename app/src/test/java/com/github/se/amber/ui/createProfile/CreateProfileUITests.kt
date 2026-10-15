@@ -40,6 +40,10 @@ class CreateProfileUITests {
                   object : ProfileRepository {
                     override suspend fun createProfile(person: Person, role: Role) =
                         Result.success(Unit)
+
+                    override suspend fun getCurrentProfile() = Result.success(null)
+
+                    override suspend fun getProfile(uid: String) = Result.success(null)
                   },
           ),
   ) {
@@ -154,6 +158,10 @@ class CreateProfileUITests {
             savedRole = role
             return Result.success(Unit)
           }
+
+          override suspend fun getCurrentProfile() = Result.success(null)
+
+          override suspend fun getProfile(uid: String) = Result.success(null)
         }
     setCreateProfile(CreateProfileViewModel(profileRepository = repository))
 
