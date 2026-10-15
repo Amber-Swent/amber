@@ -13,6 +13,10 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
+import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModelErrorMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -35,18 +39,20 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [UploadPictureViewModel]. All repositories are mocked, nothing touches the
- * network. The care circle is loaded in `init`, so each test configures the repositories BEFORE
- * calling [createViewModel].
+ * Unit tests for [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel]. All
+ * repositories are mocked, nothing touches the network. The care circle is loaded in `init`, so
+ * each test configures the repositories BEFORE calling [createViewModel].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {
 
   private val dispatcher = UnconfinedTestDispatcher()
+  private val ERROR_MESSAGE = "Boom"
   private lateinit var mediaRepo: MediaRepository
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  lateinit var pictureReader: SelectedPictureReader
   private val pictureFile = File("picture.jpg")
   private lateinit var circle: CareCircle
 
@@ -57,6 +63,7 @@ class UploadPictureViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
+    pictureReader = mockk()
     circle = fakeCircle()
     signIn("user1")
     stubProfile(listOf("circle1"))
@@ -85,7 +92,7 @@ class UploadPictureViewModelTest {
   }
 
   private fun createViewModel() =
-      UploadPictureViewModel(mediaRepo, authRepo, profileRepo, circleRepo)
+      UploadPictureViewModel(mediaRepo, authRepo, profileRepo, circleRepo, pictureReader)
 
   private fun fakeCircle(
       circleId: String = "circle1",
@@ -517,5 +524,58 @@ class UploadPictureViewModelTest {
     val vm = readyViewModel()
     vm.uploadPicture()
     assertFalse(vm.uiState.value.isUploaded)
+  }
+
+  // ______________________________________
+
+  @Test
+  fun selectPictureRequestsSelectedUriFromReader() {
+    val uri = "content://pictures/123"
+    val vm = createViewModel()
+
+    coEvery { pictureReader.read(uri) } returns
+        PickedImage(
+            file = pictureFile,
+            width = 640,
+            height = 480,
+        )
+
+    vm.selectPicture(uri)
+
+    coVerify(exactly = 1) { pictureReader.read(uri) }
+  }
+
+  @Test
+  fun selectPictureUpdatesPictureState() {
+    val uri = "content://pictures/123"
+    val vm = createViewModel()
+
+    coEvery { pictureReader.read(uri) } returns
+        PickedImage(
+            file = pictureFile,
+            width = 640,
+            height = 480,
+        )
+
+    vm.selectPicture(uri)
+
+    assertSame(pictureFile, vm.uiState.value.pictureFile)
+    assertEquals(640, vm.uiState.value.pictureWidth)
+    assertEquals(480, vm.uiState.value.pictureHeight)
+  }
+
+  @Test
+  fun selectPictureFailureSetsReadError() {
+    val uri = "content://pictures/123"
+    val vm = createViewModel()
+
+    coEvery { pictureReader.read(uri) } throws IOException(ERROR_MESSAGE)
+
+    vm.selectPicture(uri)
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
+        vm.uiState.value.errorMsg,
+    )
   }
 }

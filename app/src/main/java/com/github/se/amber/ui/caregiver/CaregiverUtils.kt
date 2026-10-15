@@ -150,7 +150,6 @@ fun DisplayTextField(
       )
     }
   }
-  //  LaunchedEffect(Unit) { focusRequester.requestFocus() }
 }
 
 /** Test tags used by the caregiver Box with IconText components. */

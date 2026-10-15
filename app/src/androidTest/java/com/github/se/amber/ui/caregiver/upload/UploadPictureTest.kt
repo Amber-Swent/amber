@@ -20,6 +20,11 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
 import java.io.File
@@ -30,10 +35,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * Compose tests for [UploadPictureScreen]. The ViewModel is real but backed by mocked repositories:
- * nothing touches the network. Elements are checked through test tags only.
- */
+/** Compose tests for [UploadPictureScreen]. */
 class UploadPictureTest {
 
   @get:Rule val composeTestRule = createComposeRule()
@@ -42,6 +44,7 @@ class UploadPictureTest {
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private lateinit var pictureReader: SelectedPictureReader
 
   private lateinit var viewModel: UploadPictureViewModel
   private var uploadCallbackCount = 0
@@ -61,6 +64,7 @@ class UploadPictureTest {
     authRepo = mockk(relaxed = true)
     profileRepo = mockk(relaxed = true)
     circleRepo = mockk(relaxed = true)
+    pictureReader = mockk(relaxed = true)
 
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow

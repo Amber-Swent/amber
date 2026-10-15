@@ -1,7 +1,7 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.picture
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -38,6 +38,7 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   NOT_SET_CARE_CIRCLE(mess = "Your care circle isn't set up"),
   SELECT_PICTURE(mess = "Please select a picture first"),
   UNKNOW_ERROR(mess = "Upload failed: "),
+  COULD_NOT_READ_PICTURE(mess = "Could read your picture: "),
 }
 
 /**
@@ -70,17 +71,24 @@ data class UploadPictureUIState(
  *
  * @param mediaRepo The repository used to create and upload media items.
  * @param authRepo The repository used to access the currently authenticated user.
+ * @param profileRepo The repository used to load the authenticated user's profile.
+ * @param circleRepo The repository used to load the user's care circle.
+ * @param pictureReader The reader used to copy selected pictures and read their dimensions.
  */
 class UploadPictureViewModel(
     private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
     private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
     private val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    private val pictureReader: SelectedPictureReader = reader,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
+
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
 
   private val _careCircle = MutableStateFlow<CareCircle?>(null)
+
+  /** Care circle associated with the authenticated user, when available. */
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
 
   init {
@@ -91,16 +99,23 @@ class UploadPictureViewModel(
   // All the names in the care circle are clickable, using chips.
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
   // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
-  val involvedOptions: StateFlow<Map<String, String>> =
-      careCircle
-          .map { circle ->
-            if (circle == null) emptyMap()
-            else
-                circle.people.mapValues { it.value.displayName() } +
-                    circle.memberIds.associateWith { it }
-          }
-          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
-
+  /** People available for tagging, keyed by person ID and displayed by name. */
+    val involvedOptions: StateFlow<Map<String, String>> =
+        careCircle
+            .map { circle ->
+                if (circle == null) emptyMap()
+                else {
+                    val idsAsFallback = circle.memberIds.associateWith { it }
+                    val names = circle.people.mapValues { it.value.displayName() }
+                    idsAsFallback + names // names override IDs - the order matter in Kotlin
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+  /**
+   * Builds the display name used for a person in the tagging choices.
+   *
+   * @return The person's nickname, or their non-empty first and last names.
+   */
   private fun Person.displayName(): String =
       nickname?.takeIf { it.isNotBlank() }
           ?: listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
@@ -183,6 +198,30 @@ class UploadPictureViewModel(
       } catch (e: Exception) {
         _uiState.value = _uiState.value.copy(isUploading = false)
         setErrorMsg(UploadPictureViewModelErrorMessage.UNKNOW_ERROR.mess + (e.message ?: ""))
+      }
+    }
+  }
+
+  /**
+   * Reads a selected picture and stores it in the UI state.
+   *
+   * @param uri The string representation of the selected picture URI.
+   */
+  fun selectPicture(uri: String) {
+    viewModelScope.launch {
+      try {
+        val picture = pictureReader.read(uri)
+        setPicture(
+            picture.file,
+            picture.width,
+            picture.height,
+        )
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        setErrorMsg(
+            UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + (e.message ?: "")
+        )
       }
     }
   }

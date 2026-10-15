@@ -1,11 +1,8 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.picture
 
-import android.content.Context
-import android.graphics.BitmapFactory
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -38,7 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,11 +47,12 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
-import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.NO_PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.SELECT_DATE
-import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.UploadPictureScreenTestTags.UPLOAD_BUTTON
+import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.NO_PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -68,10 +65,6 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
-import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** Test tags used by the caregiver Upload Picture components. */
 object UploadPictureScreenTestTags {
@@ -84,7 +77,6 @@ object UploadPictureScreenTestTags {
   const val PERSON_INVOLVED = "upload_picture_person_involved"
 
   const val SELECT_DATE = "upload_picture_selected_date"
-
   const val UPLOAD_BUTTON = "upload_picture_button"
 }
 
@@ -106,18 +98,10 @@ fun UploadPictureScreen(
   val options by viewModel.involvedOptions.collectAsState()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
-  val scope = rememberCoroutineScope()
 
-  // Gallery: copy the picked Uri to a local file so the repository can upload a File
   val galleryLauncher =
       rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-          scope.launch {
-            runCatching { withContext(Dispatchers.IO) { readPickedImage(context, uri) } }
-                .onSuccess { viewModel.setPicture(it.file, it.width, it.height) }
-                .onFailure { viewModel.setErrorMsg("Could not read the selected picture") }
-          }
-        }
+        uri?.let { viewModel.selectPicture(it.toString()) }
       }
 
   LaunchedEffect(errorMessage) {
@@ -227,58 +211,6 @@ fun UploadPictureScreen(
         }
       },
   )
-}
-
-/**
- * Returns the pixel dimensions of an image file without decoding its bitmap data.
- *
- * @param file The image file whose dimensions should be read.
- * @return A pair containing the image width and height in pixels.
- */
-private fun imageSize(file: File): Pair<Int, Int> {
-  // creates decode options and enables bounds-only mode.
-  // Android reads the image metadata but doesn’t create the full bitmap.
-  val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-  // asks Android to inspect the file at its absolute path and puts the image dimensions into opts.
-  BitmapFactory.decodeFile(file.absolutePath, opts)
-  // returns those dimensions as a Kotlin Pair, with width first and height second.
-  return opts.outWidth to opts.outHeight
-}
-
-/**
- * Copies an image selected through a content URI to the application's cache directory.
- *
- * @param context The context used to access the content resolver and cache directory.
- * @param uri The content URI of the selected image.
- * @return The cached image file.
- */
-private fun copyUriToCache(context: Context, uri: Uri): File {
-  // creates a uniquely named temporary file in the app’s cache directory.
-  // Its name starts with picked_ and ends with .jpg.
-  val file = File.createTempFile("picked_", ".jpg", context.cacheDir)
-  // opens a stream for reading the data at the Uri.
-  context.contentResolver.openInputStream(uri)!!.use { input ->
-    // opens an output stream for the new file and copies the input data into it.
-    // The output stream is also closed automatically.
-    file.outputStream().use { input.copyTo(it) }
-  }
-  return file
-}
-
-/** A picture copied to a local file, with its pixel dimensions. */
-private data class PickedImage(val file: File, val width: Int, val height: Int)
-
-/**
- * Copies a selected image to the cache and reads its dimensions.
- *
- * @param context The context used to access the content resolver and cache directory.
- * @param uri The content URI of the selected image.
- * @return The cached image and its pixel dimensions.
- */
-private fun readPickedImage(context: Context, uri: Uri): PickedImage {
-  val file = copyUriToCache(context, uri)
-  val (width, height) = imageSize(file)
-  return PickedImage(file, width, height)
 }
 
 /**
