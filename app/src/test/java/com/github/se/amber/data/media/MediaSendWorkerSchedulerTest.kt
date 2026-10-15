@@ -55,7 +55,9 @@ class MediaSendWorkerSchedulerTest {
   }
 
   private fun jobsOf(circleId: String, mediaId: String): List<WorkInfo> =
-      workManager.getWorkInfosForUniqueWork("media-send/$circleId/$mediaId").get()
+      workManager
+          .getWorkInfosForUniqueWork(MediaSendWorkerScheduler.workName(circleId, mediaId))
+          .get()
 
   private fun jobOf(circleId: String, mediaId: String): WorkInfo =
       jobsOf(circleId, mediaId).single()
@@ -78,7 +80,11 @@ class MediaSendWorkerSchedulerTest {
     val job = jobOf("c1", "m1")
     assertEquals(WorkInfo.State.ENQUEUED, job.state)
     assertEquals(NetworkType.CONNECTED, job.constraints.requiredNetworkType)
-    assertTrue(job.tags.containsAll(setOf("media-send", "media-send/c1")))
+    assertTrue(
+        job.tags.containsAll(
+            setOf(MediaSendWorkerScheduler.ALL_SENDS_TAG, MediaSendWorkerScheduler.circleTag("c1"))
+        )
+    )
     assertTrue("no send while offline", sender.calls.isEmpty())
   }
 
@@ -148,7 +154,11 @@ class MediaSendWorkerSchedulerTest {
     val replacement = jobOf("c1", "m1")
     assertNotEquals(first, replacement.id)
     assertEquals(WorkInfo.State.ENQUEUED, replacement.state)
-    assertTrue(replacement.tags.containsAll(setOf("media-send", "media-send/c1")))
+    assertTrue(
+        replacement.tags.containsAll(
+            setOf(MediaSendWorkerScheduler.ALL_SENDS_TAG, MediaSendWorkerScheduler.circleTag("c1"))
+        )
+    )
   }
 
   @Test

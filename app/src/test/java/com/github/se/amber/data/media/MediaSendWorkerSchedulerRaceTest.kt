@@ -10,6 +10,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import androidx.work.testing.WorkManagerTestInitHelper.ExecutorsMode
+import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -89,7 +90,7 @@ class MediaSendWorkerSchedulerRaceTest {
    *
    * @return the id of the failed job.
    */
-  private fun retryWhileTheFailedSendFinishes(retry: () -> Unit): java.util.UUID {
+  private fun retryWhileTheFailedSendFinishes(retry: () -> Unit): UUID {
     scheduler.schedule("c1", "m1")
     val failing = jobs().single().id
     WorkManagerTestInitHelper.getTestDriver(context)!!.setAllConstraintsMet(failing)
@@ -98,6 +99,7 @@ class MediaSendWorkerSchedulerRaceTest {
     // the race window: the send has decided FAILED, but WorkManager still sees the job running
     assertEquals(WorkInfo.State.RUNNING, workManager.getWorkInfoById(failing).get()?.state)
     retry()
+    jobs() // the retry is handled while the job is still running, whatever the threads' timing
     answer.countDown()
 
     waitUntil("the job never ended") { jobs().none { it.state == WorkInfo.State.RUNNING } }
@@ -135,7 +137,7 @@ class MediaSendWorkerSchedulerRaceTest {
   }
 
   private companion object {
-    const val WORK_NAME = "media-send/c1/m1"
+    val WORK_NAME = MediaSendWorkerScheduler.workName("c1", "m1")
     // generous: the first test of the class also pays for starting Robolectric
     const val TIMEOUT_SECONDS = 15L
   }

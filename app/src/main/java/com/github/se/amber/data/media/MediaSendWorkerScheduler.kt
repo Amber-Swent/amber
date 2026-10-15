@@ -73,9 +73,9 @@ class MediaSendWorkerScheduler(private val context: Context) : MediaSendSchedule
     workManager.cancelAllWorkByTag(ALL_SENDS_TAG)
   }
 
-  private companion object {
+  internal companion object {
     /** The wait before the second attempt; each later wait is twice the one before. */
-    const val FIRST_RETRY_DELAY_SECONDS = 30L
+    private const val FIRST_RETRY_DELAY_SECONDS = 30L
 
     const val ALL_SENDS_TAG = "media-send"
 

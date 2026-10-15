@@ -52,8 +52,11 @@ fun interface MediaSender {
    * still running after [ATTEMPT_TIMEOUT_MS]) records a failed attempt in the media's outbox entry
    * (`MediaOutbox.recordFailedAttempt`) and gives [SendResult.RETRY], or [SendResult.FAILED] at the
    * [MAX_FAILED_ATTEMPTS]th; [MediaRepository.retrySend] starts the count again. A cancellation (a
-   * run the system stopped) records nothing, puts the entry back to [SendState.WAITING] and is
-   * rethrown. Never throws otherwise: unexpected errors count as failures that may go away.
+   * run the system stopped) records nothing and is rethrown: it only sets the entry's state back to
+   * [SendState.WAITING], leaving its other fields as they are, its failed-attempt count included.
+   * [MediaSendScheduler.reschedule] cancels the old job right after [MediaRepository.retrySend]
+   * reset the entry, so writing more could undo that reset. Never throws otherwise: unexpected
+   * errors count as failures that may go away.
    */
   suspend fun send(circleId: String, mediaId: String): SendResult
 

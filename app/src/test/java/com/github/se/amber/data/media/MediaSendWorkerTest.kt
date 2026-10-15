@@ -3,6 +3,7 @@
 package com.github.se.amber.data.media
 
 import android.content.Context
+import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Data
 import androidx.work.ListenableWorker.Result
@@ -24,6 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 /**
  * Checks how [MediaSendWorker] turns one run, and its send attempt, into WorkManager's answer.
@@ -84,8 +86,8 @@ class MediaSendWorkerTest {
   fun missingIdFailsWithoutSending() = runTest {
     val sender = FakeMediaSender()
 
-    val withoutMedia = runWorker(sender, workDataOf("circleId" to "c1"))
-    val withoutCircle = runWorker(sender, workDataOf("mediaId" to "m1"))
+    val withoutMedia = runWorker(sender, workDataOf(MediaSendWorker.KEY_CIRCLE_ID to "c1"))
+    val withoutCircle = runWorker(sender, workDataOf(MediaSendWorker.KEY_MEDIA_ID to "m1"))
 
     assertEquals(Result.failure(), withoutMedia)
     assertEquals(Result.failure(), withoutCircle)
@@ -115,6 +117,20 @@ class MediaSendWorkerTest {
     val sender = MediaSender { _, _ -> throw CancellationException("not a stop") }
 
     assertEquals(Result.retry(), runWorker(sender))
+  }
+
+  @Test
+  fun unexpectedErrorsAreLoggedAsErrorsOnceTheJobLooksStuck() = runTest {
+    val strayCancellation = MediaSender { _, _ -> throw CancellationException("not a stop") }
+    val stuck = MediaSender.MAX_FAILED_ATTEMPTS
+
+    runWorker(throwingSender, runAttemptCount = stuck - 1)
+    runWorker(throwingSender, runAttemptCount = stuck)
+    runWorker(strayCancellation, runAttemptCount = stuck)
+
+    // a send keeping its contract would usually have ended by then: the job may never end
+    val levels = ShadowLog.getLogsForTag(MediaSendWorker.TAG).map { it.type }
+    assertEquals(listOf(Log.WARN, Log.ERROR, Log.ERROR), levels)
   }
 
   @Test

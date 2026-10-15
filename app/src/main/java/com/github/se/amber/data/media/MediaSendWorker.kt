@@ -41,7 +41,9 @@ class MediaSendWorker(
    * which would leave the media's outbox entry without a job. A cancellation is passed on only if
    * this run was really stopped; a stray one is a retry too, since WorkManager would otherwise
    * count it as a failure of the job. These errors record no failed attempt, so if one happens on
-   * every run, the job keeps retrying, with waits growing up to 5 hours.
+   * every run, the job keeps retrying, with waits growing up to 5 hours. They are logged as
+   * warnings, then as errors once the job has run [MediaSender.MAX_FAILED_ATTEMPTS] times, when a
+   * send keeping its contract would usually have ended: a stuck job then stands out in the logs.
    *
    * @return [Result.failure] without sending if its input lacks an id.
    */
@@ -55,10 +57,10 @@ class MediaSendWorker(
         } catch (e: CancellationException) {
           // rethrows if WorkManager stopped this run; otherwise the cancellation came from inside
           currentCoroutineContext().ensureActive()
-          Log.w(TAG, "Send of media $mediaId was cancelled although its run wasn't", e)
+          logUnexpected("Send of media $mediaId was cancelled although its run wasn't", e)
           SendResult.RETRY
         } catch (e: Exception) {
-          Log.w(TAG, "Send of media $mediaId failed unexpectedly", e)
+          logUnexpected("Send of media $mediaId failed unexpectedly", e)
           SendResult.RETRY
         }
     return when (result) {
@@ -68,10 +70,19 @@ class MediaSendWorker(
     }
   }
 
+  /** Logs an unexpected error of this run, as an error once the job looks stuck (see [doWork]). */
+  private fun logUnexpected(message: String, e: Exception) {
+    if (runAttemptCount >= MediaSender.MAX_FAILED_ATTEMPTS) {
+      Log.e(TAG, "$message, after $runAttemptCount earlier runs", e)
+    } else {
+      Log.w(TAG, message, e)
+    }
+  }
+
   companion object {
-    private const val TAG = "MediaSendWorker"
-    private const val KEY_CIRCLE_ID = "circleId"
-    private const val KEY_MEDIA_ID = "mediaId"
+    internal const val TAG = "MediaSendWorker"
+    internal const val KEY_CIRCLE_ID = "circleId"
+    internal const val KEY_MEDIA_ID = "mediaId"
 
     /** The input of the job sending the media [mediaId] of [circleId]. */
     fun inputData(circleId: String, mediaId: String): Data =

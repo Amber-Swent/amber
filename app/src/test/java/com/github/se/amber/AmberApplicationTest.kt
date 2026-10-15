@@ -28,6 +28,10 @@ class AmberApplicationTest {
 
   private val context: Context = ApplicationProvider.getApplicationContext()
 
+  /** The instance Android runs, built from the manifest: closer to the app than a new one. */
+  private val app: AmberApplication
+    get() = context as AmberApplication
+
   @Test
   fun theManifestRunsTheApp() {
     // Without android:name in the manifest, Android would run a plain Application instead.
@@ -36,7 +40,7 @@ class AmberApplicationTest {
 
   @Test
   fun registersTheMediaPictureKeyerAndFetcher() {
-    val imageLoader = AmberApplication().newImageLoader(context)
+    val imageLoader = app.newImageLoader(context)
     val picture = MediaPicture(CareCircle(id = "c1"), MediaItem.Picture(id = "m1"))
     val options = Options(context)
 
@@ -51,7 +55,7 @@ class AmberApplicationTest {
 
   @Test
   fun givesWorkManagerTheMediaSendWorkerFactory() {
-    val factory = AmberApplication().workManagerConfiguration.workerFactory
+    val factory = app.workManagerConfiguration.workerFactory
 
     val worker =
         factory.createWorker(
@@ -61,12 +65,12 @@ class AmberApplicationTest {
         )
 
     // created without its sender: the repository is built only when the worker runs
-    assertTrue(worker is MediaSendWorker)
+    assertEquals(MediaSendWorker::class, worker!!::class)
   }
 
   @Test
   fun keepsNoCopyOfTheMediaInCoilsDiskCache() {
     // private photos are kept on disk only by the media repository's cache
-    assertNull(AmberApplication().newImageLoader(context).diskCache)
+    assertNull(app.newImageLoader(context).diskCache)
   }
 }
