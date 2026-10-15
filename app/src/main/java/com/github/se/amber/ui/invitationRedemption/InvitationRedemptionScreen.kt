@@ -30,6 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.ui.components.AmberHeader
+import com.github.se.amber.ui.theme.BUTTON_HEIGHT
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -128,7 +129,7 @@ fun InvitationRedemptionScreen(
           enabled = !uiState.isRedeeming,
           modifier =
               Modifier.fillMaxWidth(0.75f)
-                  .height(PADDING_BIG * 2)
+                  .height(BUTTON_HEIGHT)
                   .testTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name),
           shape = RoundedCornerShape(PADDING_SMALL),
           colors =
@@ -154,7 +155,7 @@ fun InvitationRedemptionScreen(
         modifier =
             Modifier.fillMaxWidth(0.55f)
                 .align(Alignment.CenterHorizontally)
-                .height(PADDING_BIG * 2)
+                .height(BUTTON_HEIGHT)
                 .testTag(InvitationRedemptionTestTags.BACK_BUTTON.name),
         shape = RoundedCornerShape(PADDING_SMALL),
         colors =

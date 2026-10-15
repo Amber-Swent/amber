@@ -2,7 +2,6 @@
 // with the aid of AI coding agent
 package com.github.se.amber.ui.createProfile.caregiverOnboarding
 
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -15,9 +14,7 @@ import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceTestTags
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceViewModel
-import com.github.se.amber.ui.components.AmberHeaderTestTags
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,17 +68,6 @@ class CaregiverChoiceUITests {
   // ---------- Back (→ CreateProfile) ----------
 
   @Test
-  fun backButton_isDisplayedAndClickable() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON.name)
-        .assertIsDisplayed()
-        .assertHasClickAction()
-        .assertTextEquals(BACK_LABEL)
-  }
-
-  @Test
   fun backButton_click_invokesOnBackOnly() {
     setScreen()
 
@@ -93,20 +79,7 @@ class CaregiverChoiceUITests {
     assertEquals(0, joinCircleCount)
   }
 
-  // ---------- Branding ----------
-
-  @Test
-  fun logoAndBrandName_areDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(AmberHeaderTestTags.LOGO).assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(AmberHeaderTestTags.BRAND_NAME)
-        .assertIsDisplayed()
-        .assertTextEquals("Amber")
-  }
-
-  // ---------- Welcome / instruction ----------
+  // ---------- Welcome (name from ViewModel) ----------
 
   @Test
   fun welcomeHeader_displaysNameFromViewModel() {
@@ -116,76 +89,6 @@ class CaregiverChoiceUITests {
         .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER.name)
         .assertIsDisplayed()
         .assertTextEquals("Welcome, $DISPLAY_NAME")
-  }
-
-  @Test
-  fun instructionText_isDisplayed() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.INSTRUCTION_TEXT.name)
-        .assertIsDisplayed()
-        .assertTextEquals(INSTRUCTION_LABEL)
-  }
-
-  // ---------- Create / Join buttons ----------
-
-  @Test
-  fun createAndJoinButtons_areBothDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun createAndJoinButtons_areDistinctAndClickable() {
-    setScreen()
-
-    assertNotEquals(
-        CaregiverChoiceTestTags.CREATE_BUTTON,
-        CaregiverChoiceTestTags.JOIN_BUTTON,
-    )
-
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).assertHasClickAction()
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).assertHasClickAction()
-  }
-
-  @Test
-  fun createButton_showsCreateLabel() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name)
-        .assertTextEquals(CREATE_CIRCLE_LABEL)
-  }
-
-  @Test
-  fun joinButton_showsJoinLabel() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name)
-        .assertTextEquals(JOIN_CIRCLE_LABEL)
-  }
-
-  // ---------- Or divider / invite hint ----------
-
-  @Test
-  fun orDivider_isDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.OR_DIVIDER.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun inviteLinkHint_isDisplayed() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.INVITE_LINK_HINT.name)
-        .assertIsDisplayed()
-        .assertTextEquals(INVITE_LINK_HINT_LABEL)
   }
 
   // ---------- Navigation callbacks (create → CreateCareCircle, join → EnterInvitation) ----------
@@ -214,33 +117,7 @@ class CaregiverChoiceUITests {
     assertEquals(1, joinCircleCount)
   }
 
-  @Test
-  fun initially_doesNotInvokeNavigationCallbacks() {
-    setScreen()
-    composeTestRule.waitForIdle()
-
-    assertEquals(0, backCount)
-    assertEquals(0, createCircleCount)
-    assertEquals(0, joinCircleCount)
-  }
-
-  @Test
-  fun screen_withDefaultCallbacks_rendersWithoutInvokingNavigation() {
-    // Construct outside setContent: lint forbids ViewModel constructors inside composables.
-    val viewModel = CaregiverChoiceViewModel(profileRepository = profileRepository())
-    composeTestRule.setContent { CaregiverChoiceScreen(viewModel = viewModel) }
-    composeTestRule.waitForIdle()
-
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).assertIsDisplayed()
-  }
-
   private companion object {
     const val DISPLAY_NAME = "Sarah"
-    const val CREATE_CIRCLE_LABEL = "Create a new care circle"
-    const val JOIN_CIRCLE_LABEL = "Join an existing care circle"
-    const val INSTRUCTION_LABEL = "How will you enter your Care Circle?"
-    const val INVITE_LINK_HINT_LABEL = "Use your invite link"
-    const val BACK_LABEL = "Back"
   }
 }

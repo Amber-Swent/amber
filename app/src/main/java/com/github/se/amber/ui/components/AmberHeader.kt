@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import com.github.se.amber.ui.theme.PADDING_BIG
+import com.github.se.amber.ui.theme.LOGO_SIZE
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.lightOrange
 
@@ -43,7 +43,7 @@ fun AmberHeader(modifier: Modifier = Modifier) {
   ) {
     Box(
         modifier =
-            Modifier.size(PADDING_BIG * 2)
+            Modifier.size(LOGO_SIZE)
                 .background(lightOrange, CircleShape)
                 .testTag(AmberHeaderTestTags.LOGO),
         contentAlignment = Alignment.Center,

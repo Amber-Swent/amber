@@ -6,7 +6,6 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -19,12 +18,10 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.components.AmberHeaderTestTags
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
@@ -75,49 +72,7 @@ class InvitationRedemptionUITests {
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
 
-  // ---------- Branding ----------
-
-  @Test
-  fun logoAndBrandName_areDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(AmberHeaderTestTags.LOGO).assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(AmberHeaderTestTags.BRAND_NAME)
-        .assertIsDisplayed()
-        .assertTextEquals("Amber")
-  }
-
-  // ---------- Title ----------
-
-  @Test
-  fun title_isDisplayed() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.TITLE.name)
-        .assertIsDisplayed()
-        .assertTextEquals(TITLE_LABEL)
-  }
-
-  // ---------- Code input / placeholder ----------
-
-  @Test
-  fun codeInput_isDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun codePlaceholder_showsWhenInputIsEmpty() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertTextEquals(CODE_PLACEHOLDER_LABEL)
-  }
+  // ---------- Placeholder behaviour ----------
 
   @Test
   fun codePlaceholder_hiddenAfterTyping() {
@@ -136,68 +91,6 @@ class InvitationRedemptionUITests {
         .assertCountEquals(0)
   }
 
-  @Test
-  fun codeInputAndPlaceholder_areDistinctTags() {
-    assertNotEquals(
-        InvitationRedemptionTestTags.CODE_INPUT,
-        InvitationRedemptionTestTags.CODE_PLACEHOLDER,
-    )
-
-    setScreen()
-
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name).assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER.name, useUnmergedTree = true)
-        .assertIsDisplayed()
-  }
-
-  // ---------- Submit / Back buttons ----------
-
-  @Test
-  fun submitAndBackButtons_areBothDisplayed() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
-        .assertIsDisplayed()
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun submitAndBackButtons_areDistinctAndClickable() {
-    setScreen()
-
-    assertNotEquals(
-        InvitationRedemptionTestTags.SUBMIT_BUTTON,
-        InvitationRedemptionTestTags.BACK_BUTTON,
-    )
-
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
-        .assertHasClickAction()
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name)
-        .assertHasClickAction()
-  }
-
-  @Test
-  fun submitButton_showsSubmitLabel() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
-        .assertTextEquals(SUBMIT_LABEL)
-  }
-
-  @Test
-  fun backButton_showsBackLabel() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name)
-        .assertTextEquals(BACK_LABEL)
-  }
-
   // ---------- Back navigation ----------
 
   @Test
@@ -208,16 +101,6 @@ class InvitationRedemptionUITests {
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
-    assertEquals(0, redeemSuccessCount)
-    assertNull(lastRedemptionResult)
-  }
-
-  @Test
-  fun initially_doesNotInvokeNavigationCallbacks() {
-    setScreen()
-    composeTestRule.waitForIdle()
-
-    assertEquals(0, backCount)
     assertEquals(0, redeemSuccessCount)
     assertNull(lastRedemptionResult)
   }

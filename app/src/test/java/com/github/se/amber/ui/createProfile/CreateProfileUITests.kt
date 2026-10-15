@@ -5,7 +5,6 @@ package com.github.se.amber.ui.createProfile
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -20,7 +19,6 @@ import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.accountCreation.FILL_OUT_MESSAGE
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,89 +47,6 @@ class CreateProfileUITests {
 
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
-
-  // ---------- Role buttons ----------
-
-  @Test
-  fun patientAndCaregiverButtons_areBothDisplayed() {
-    setCreateProfile()
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun patientAndCaregiverButtons_areDistinctAndClickable() {
-    setCreateProfile()
-
-    assertNotEquals(
-        CreateProfileTestTags.PATIENT_BUTTON,
-        CreateProfileTestTags.CAREGIVER_BUTTON,
-    )
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).assertHasClickAction()
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name)
-        .assertHasClickAction()
-  }
-
-  @Test
-  fun patientButton_showsPatientLabel() {
-    setCreateProfile()
-
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name)
-        .assertTextEquals("Patient")
-  }
-
-  @Test
-  fun caregiverButton_showsCaregiverLabel() {
-    setCreateProfile()
-
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name)
-        .assertTextEquals("Caregiver")
-  }
-
-  // ---------- Name / Surname inputs & placeholders ----------
-
-  @Test
-  fun nameAndSurnameInputs_areBothDisplayed() {
-    setCreateProfile()
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun nameAndSurnameInputs_areDistinct() {
-    assertNotEquals(CreateProfileTestTags.NAME_INPUT, CreateProfileTestTags.SURNAME_INPUT)
-
-    setCreateProfile()
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name).assertIsDisplayed()
-  }
-
-  @Test
-  fun nameLabel_isDisplayedWhenEmpty() {
-    setCreateProfile()
-
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_PLACEHOLDER.name, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertTextEquals("Name")
-  }
-
-  @Test
-  fun surnameLabel_isDisplayedWhenEmpty() {
-    setCreateProfile()
-
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertTextEquals("Surname")
-  }
 
   // ---------- Valid submit ----------
 

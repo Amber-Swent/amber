@@ -29,6 +29,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.components.AmberHeader
+import com.github.se.amber.ui.theme.BUTTON_HEIGHT
+import com.github.se.amber.ui.theme.BUTTON_HEIGHT_TALL
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -114,7 +116,7 @@ fun CaregiverChoiceScreen(
             onClick = onCreateCircle,
             modifier =
                 Modifier.fillMaxWidth(0.75f)
-                    .height(PADDING_BIG * 3)
+                    .height(BUTTON_HEIGHT_TALL)
                     .testTag(CaregiverChoiceTestTags.CREATE_BUTTON.name),
             shape = RoundedCornerShape(PADDING_SMALL),
             colors =
@@ -140,7 +142,7 @@ fun CaregiverChoiceScreen(
             onClick = onJoinCircle,
             modifier =
                 Modifier.fillMaxWidth(0.75f)
-                    .height(PADDING_BIG * 3)
+                    .height(BUTTON_HEIGHT_TALL)
                     .testTag(CaregiverChoiceTestTags.JOIN_BUTTON.name),
             shape = RoundedCornerShape(PADDING_SMALL),
             colors =
@@ -173,7 +175,7 @@ fun CaregiverChoiceScreen(
         modifier =
             Modifier.fillMaxWidth(0.55f)
                 .align(Alignment.CenterHorizontally)
-                .height(PADDING_BIG * 2)
+                .height(BUTTON_HEIGHT)
                 .testTag(CaregiverChoiceTestTags.BACK_BUTTON.name),
         shape = RoundedCornerShape(PADDING_SMALL),
         colors =

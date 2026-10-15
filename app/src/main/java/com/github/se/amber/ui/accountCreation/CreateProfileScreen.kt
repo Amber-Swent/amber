@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.components.AmberHeader
+import com.github.se.amber.ui.theme.BUTTON_HEIGHT
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -242,7 +243,7 @@ private fun RoleChoiceButton(
   Button(
       onClick = { onRoleSelected(role) },
       enabled = enabled,
-      modifier = modifier.height(PADDING_BIG * 2).testTag(testTag.name),
+      modifier = modifier.height(BUTTON_HEIGHT).testTag(testTag.name),
       shape = RoundedCornerShape(PADDING_SMALL),
       colors =
           ButtonDefaults.buttonColors(
