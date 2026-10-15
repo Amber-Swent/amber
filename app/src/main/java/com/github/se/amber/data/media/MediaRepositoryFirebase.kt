@@ -4,6 +4,7 @@ package com.github.se.amber.data.media
 
 import android.util.Log
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.circle.hasStorageBucket
 import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
@@ -123,9 +124,7 @@ class MediaRepositoryFirebase(
     if (hasFile) {
       requireMediaOf(circle, item)
       // fileStorage.delete checks it too, but only after the document is deleted: too late
-      require(circle.storageBucket.isNotBlank()) {
-        "Storage is not ready for care circle ${circle.id}"
-      }
+      require(circle.hasStorageBucket) { "Storage is not ready for care circle ${circle.id}" }
     }
     val document = mediaDocument(circle.id, item.id)
     firestore
