@@ -10,7 +10,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -125,8 +124,7 @@ private fun CreateInvitationContent(
       },
       bottomBar = {
         BottomNavigationMenu(
-            // The Setting tab arrives with the parameters home screen.
-            selectedTab = CaregiverTab.Home,
+            selectedTab = CaregiverTab.Setting,
             onTabSelected = onTabSelected,
             tabs = CaregiverTab.caregiverTabs,
             modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
@@ -179,7 +177,6 @@ private fun CreateInvitationContent(
                           .testTag(CreateInvitationTestTags.CREATE_CARD),
                   shape = RoundedCornerShape(SMALL_ROUND_CORNER),
                   colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-                  contentPadding = PaddingValues(0.dp),
               ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
