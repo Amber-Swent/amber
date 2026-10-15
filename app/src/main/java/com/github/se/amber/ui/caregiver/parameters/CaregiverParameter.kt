@@ -75,7 +75,7 @@ fun CaregiverParameterScreen(
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CHECKOUT,
-              onBackClick = { onCheckout() },
+              onBackClick = onCheckout,
           )
           DisplayCaregiverTitle("Parameters", Modifier.testTag(CaregiverParametersTestTags.TITLE))
         }
