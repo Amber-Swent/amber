@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -112,13 +113,14 @@ fun UploadPictureScreen(
   }
 
   // The upload is over: leave the screen only once it really succeeded
-  LaunchedEffect(uiState.isUploaded) { if (uiState.isUploaded) onUpload() }
-
-  val isFormValid =
-      uiState.pictureFile != null &&
-          uiState.description.isNotBlank() &&
-          uiState.date != null &&
-          !uiState.isUploading
+  val currentOnUpload by rememberUpdatedState(onUpload)
+  LaunchedEffect(Unit) {
+    viewModel.events.collect { event ->
+      when (event) {
+        UploadPictureEvent.Uploaded -> currentOnUpload()
+      }
+    }
+  }
 
   Scaffold(
       topBar = {
@@ -202,7 +204,7 @@ fun UploadPictureScreen(
               onClick = { viewModel.uploadPicture() },
               modifier = Modifier.fillMaxWidth().testTag(UPLOAD_BUTTON),
               colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-              enabled = isFormValid,
+              enabled = uiState.canUpload,
           ) {
             Text(
                 text = if (uiState.isUploading) "Uploading…" else "Upload Picture",

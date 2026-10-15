@@ -20,14 +20,21 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+sealed interface UploadPictureEvent {
+  data object Uploaded : UploadPictureEvent
+}
 
 /** Error message used by the caregiver Upload Picture ViewModel. */
 enum class UploadPictureViewModelErrorMessage(val mess: String) {
@@ -39,6 +46,8 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   SELECT_PICTURE(mess = "Please select a picture first"),
   UNKNOW_ERROR(mess = "Upload failed: "),
   COULD_NOT_READ_PICTURE(mess = "Could read your picture: "),
+  DESCRIPTION_EMPTY(mess = "description is  empty"),
+  SELECT_DATE(mess = "date can't be empty"),
 }
 
 /**
@@ -51,7 +60,6 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
  * @param pictureWidth The width of the selected picture in pixels.
  * @param pictureHeight The height of the selected picture in pixels.
  * @param isUploading Whether an upload is currently in progress.
- * @param isUploaded Whether the picture was uploaded successfully.
  * @param errorMsg The error message to display, if any.
  */
 data class UploadPictureUIState(
@@ -62,9 +70,11 @@ data class UploadPictureUIState(
     val pictureWidth: Int = 0,
     val pictureHeight: Int = 0,
     val isUploading: Boolean = false,
-    val isUploaded: Boolean = false,
     val errorMsg: String? = null,
-)
+) {
+  val canUpload: Boolean
+    get() = pictureFile != null && description.isNotBlank() && date != null && !isUploading
+}
 
 /**
  * Manages the state and user actions for the picture upload screen.
@@ -83,13 +93,13 @@ class UploadPictureViewModel(
     private val pictureReader: SelectedPictureReader = reader,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
-
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
-
+  // “Upload finished, navigate away” is an event:
+  // it should happen once and then be gone. A Channel is built for that.
   private val _careCircle = MutableStateFlow<CareCircle?>(null)
-
-  /** Care circle associated with the authenticated user, when available. */
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
+  private val _events = Channel<UploadPictureEvent>(Channel.BUFFERED)
+  val events: Flow<UploadPictureEvent> = _events.receiveAsFlow()
 
   init {
     loadCircle()
@@ -100,17 +110,18 @@ class UploadPictureViewModel(
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
   // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
   /** People available for tagging, keyed by person ID and displayed by name. */
-    val involvedOptions: StateFlow<Map<String, String>> =
-        careCircle
-            .map { circle ->
-                if (circle == null) emptyMap()
-                else {
-                    val idsAsFallback = circle.memberIds.associateWith { it }
-                    val names = circle.people.mapValues { it.value.displayName() }
-                    idsAsFallback + names // names override IDs - the order matter in Kotlin
-                }
+  val involvedOptions: StateFlow<Map<String, String>> =
+      careCircle
+          .map { circle ->
+            if (circle == null) emptyMap()
+            else {
+              val idsAsFallback = circle.memberIds.associateWith { it }
+              val names = circle.people.mapValues { it.value.displayName() }
+              idsAsFallback + names // names override IDs - the order matter in Kotlin
             }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+          }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
   /**
    * Builds the display name used for a person in the tagging choices.
    *
@@ -171,6 +182,17 @@ class UploadPictureViewModel(
     }
     if (state.isUploading) return
 
+    val description = state.description.trim()
+    if (description.isEmpty()) {
+      setErrorMsg(UploadPictureViewModelErrorMessage.DESCRIPTION_EMPTY.mess)
+      return
+    }
+    val date = state.date
+    if (date == null) {
+      setErrorMsg(UploadPictureViewModelErrorMessage.SELECT_DATE.mess)
+      return
+    }
+
     _uiState.value = state.copy(isUploading = true)
     viewModelScope.launch {
       try {
@@ -192,7 +214,7 @@ class UploadPictureViewModel(
                 height = state.pictureHeight,
             )
         mediaRepo.addMedia(circle, item, file)
-        _uiState.value = _uiState.value.copy(isUploading = false, isUploaded = true)
+          _events.send(UploadPictureEvent.Uploaded)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
