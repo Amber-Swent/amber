@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit
  */
 class MediaSendWorkerScheduler(private val context: Context) : MediaSendScheduler {
 
-  // Asked on every call rather than kept: WorkManager is built on first use, and building it reads
-  // the app's configuration, which reads the provider that builds this scheduler.
+  // Asked on every call rather than in the constructor, so building the repository (and this
+  // scheduler with it) doesn't set up WorkManager; once set up, getInstance returns it at once.
   private val workManager: WorkManager
     get() = WorkManager.getInstance(context)
 

@@ -14,9 +14,10 @@ import kotlinx.coroutines.flow.Flow
  *
  * A media added on this phone first waits in the outbox, pending its send to Firebase: until it is
  * sent, it is listed by [observeOutbox], not by [observeApprovedMedia] or [observeMediaShowing].
- * During its send, its Firestore document is written a moment before it leaves the outbox, so for
- * that moment it is in both. A screen showing both kinds uses [observeCircleMedia], which lists it
- * once.
+ * During its send, these lists may for a moment both show it, or neither: its Firestore document is
+ * created before it leaves the outbox, but the Firestore lists learn of the document only once the
+ * server sends it back. A screen showing both kinds uses [observeCircleMedia], which lists it
+ * exactly once throughout.
  *
  * Calls that may touch a file take the whole [CareCircle], since its files live in its own Storage
  * bucket ([CareCircle.storageBucket]); those that need the bucket throw [IllegalArgumentException]
@@ -51,8 +52,12 @@ interface MediaRepository {
    * ([observeOutbox]), then those in Firebase ([observeApprovedMedia]), each part newest first.
    * Emits again whenever either part changes.
    *
-   * A media being sent is listed once, as in Firebase, as soon as its document is there, so a list
-   * keyed by mediaId never sees the same key twice.
+   * A media being sent is listed once, as in Firebase, as soon as its document is there (even
+   * before [observeApprovedMedia] shows it), so a list keyed by mediaId never sees the same key
+   * twice, and never loses a media between the two parts.
+   *
+   * Like [observeApprovedMedia], the flow stops with the error if Firebase refuses to answer, and
+   * the unsent part stops with it: handle it in the ViewModel (e.g. with `catch`).
    */
   fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>>
 
@@ -71,17 +76,20 @@ interface MediaRepository {
    * first, then its details, so a Firestore document never points at a missing Storage file. If
    * sending keeps failing, it ends [SendState.FAILED] (see [observeOutbox]).
    *
-   * [item]'s id comes from [newMediaId]. [file] holds its bytes:
-   * - for a [MediaItem.Picture] or a [MediaItem.Audio], required, and [item]'s storagePath must be
-   *   inside [circle];
+   * [item]'s id comes from [newMediaId], and its authorId is the signed-in user's uid: Firebase
+   * checks it when the media is sent. [file] holds its bytes:
+   * - for a [MediaItem.Picture] or a [MediaItem.Audio], required, between 1 byte and 25 MiB, and
+   *   [item]'s storagePath must be in [circle]'s media folder, ending with .jpg, .png or .m4a;
    * - for a [MediaItem.Text], null: its content is its text, and its storagePath stays empty.
    *
    * [file] is moved into the outbox: pass a file the app owns, and don't use it afterwards.
    *
-   * @throws IllegalArgumentException if [file] is null or doesn't exist for a media that needs one,
-   *   or is given for a [MediaItem.Text]; if [item]'s storagePath doesn't follow the rule above; or
-   *   if [item] has a file and [circle]'s bucket isn't assigned yet.
+   * @throws IllegalArgumentException if [item]'s authorId is blank; if [file] is null, doesn't
+   *   exist or has the wrong size for a media that needs one, or is given for a [MediaItem.Text];
+   *   if [item]'s storagePath doesn't follow the rules above; if [item] has a file and [circle]'s
+   *   bucket isn't assigned yet; or if [item] is already in the outbox.
    * @throws java.io.IOException if the media can't be saved on the phone (e.g. disk full).
+   * @throws org.json.JSONException if [item] can't be saved as JSON (e.g. a NaN latitude).
    */
   suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?)
 
@@ -95,6 +103,9 @@ interface MediaRepository {
    * Puts the media [mediaId] of [circleId] whose send failed ([SendState.FAILED]) back to
    * [SendState.WAITING] and schedules its send again, with a new series of attempts; returns
    * without waiting for it. No effect if it isn't in the outbox or hasn't failed.
+   *
+   * @throws java.io.IOException if the change can't be saved on the phone; the media then stays
+   *   [SendState.FAILED].
    */
   suspend fun retrySend(circleId: String, mediaId: String)
 

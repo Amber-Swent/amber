@@ -16,9 +16,9 @@ import com.github.se.amber.model.location.GeoLocation
  *   "audio" or "text") telling which subclass to rebuild.
  *
  * Written: generate mediaId, upload the file to Storage first, then write this document. That order
- * guarantees a document never points at a missing file. Storage uploads aren't queued across app
- * restarts like Firestore writes are, so offline uploads are retried in the background. Only the
- * uploader ([authorId]) can edit or delete it.
+ * guarantees a document never points at a missing file. The repository saves a new media in its
+ * outbox on the phone, and a background job sends it (file, then document) once online, even after
+ * the app was restarted. Only the uploader ([authorId]) can edit or delete it.
  *
  * Read:
  * - patient feed: query media where status == "APPROVED".
@@ -30,10 +30,10 @@ import com.github.se.amber.model.location.GeoLocation
  * from a newer app version).
  */
 sealed interface MediaItem {
-  val id: String // mediaId = document id; the Storage file is named {mediaId}.jpg or .m4a
+  val id: String // mediaId = document id; the Storage file is named {mediaId}.jpg, .png or .m4a
   val authorId: String // uid of the uploader (caregiver or patient)
   val storagePath: String // full Storage path of the file; never the bytes themselves
-  val createdAt: Long // time of upload, epoch milliseconds
+  val createdAt: Long // when it was added (on the phone, before its send), epoch milliseconds
   val description: String
   val date: MemoryDate? // when it happened; null = unknown
   val location: GeoLocation? // where it happened; null = unknown

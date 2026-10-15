@@ -10,21 +10,23 @@ import com.github.se.amber.model.media.SendState
 enum class SendResult {
   /**
    * The media is in Firebase, or no longer in the outbox (e.g. discarded, or sent by an earlier
-   * attempt): nothing left to do.
+   * attempt), or [SendState.FAILED] until the user retries it: nothing left for this job to do.
    */
   DONE,
 
   /**
-   * It failed for a reason that may go away (e.g. Firestore unavailable): try again later. The
-   * failed attempt is recorded in its outbox entry, which is back to [SendState.WAITING] until
-   * then.
+   * Not sent yet, for a reason that may go away: try again later. Usually a failed attempt (e.g.
+   * Firestore unavailable), recorded in its outbox entry, which is back to [SendState.WAITING]
+   * until then. Nothing is recorded when the outbox itself couldn't be updated, or when the attempt
+   * didn't own its entry (see [MediaSender.send]).
    */
   RETRY,
 
   /**
-   * Retrying won't help (e.g. permission denied, or its file is missing), or its send has now
-   * failed [MediaSender.MAX_FAILED_ATTEMPTS] times in a row. Its outbox entry is now
-   * [SendState.FAILED]: it is sent again only through [MediaRepository.retrySend].
+   * Retrying won't help (e.g. permission denied, the file refused before anything is sent, or its
+   * file is missing), or its send has now failed [MediaSender.MAX_FAILED_ATTEMPTS] times in a row.
+   * Its outbox entry is now [SendState.FAILED]: it is sent again only through
+   * [MediaRepository.retrySend].
    */
   FAILED,
 }
@@ -55,8 +57,23 @@ fun interface MediaSender {
    * run the system stopped) records nothing and is rethrown: it only sets the entry's state back to
    * [SendState.WAITING] ([MediaOutbox.resetSending]), leaving its other fields as they are, its
    * failed-attempt count included. [MediaSendScheduler.reschedule] cancels the old job right after
-   * [MediaRepository.retrySend] reset the entry, so writing more could undo that reset. Never
-   * throws otherwise: unexpected errors count as failures that may go away.
+   * [MediaRepository.retrySend] reset the entry, so writing more could undo that reset.
+   *
+   * Never throws otherwise, except an [Error] (a bug, or out of memory), rethrown after the same
+   * reset: unexpected exceptions count as failures that may go away. Failures retrying can't fix
+   * give [SendResult.FAILED] at once, nothing counted: Firestore refusing the user, the file
+   * refused before anything is sent (an [IllegalArgumentException]), or the file of a picture or an
+   * audio gone while its document doesn't exist. If its file is gone but its document exists, an
+   * earlier attempt sent it: the entry is removed and the result is [SendResult.DONE]. If the
+   * outbox can't be updated at the start or the end of the attempt, the result is
+   * [SendResult.RETRY], nothing counted.
+   *
+   * An attempt may find that it no longer owns its entry when it ends: the outbox records nothing
+   * because the entry is gone or no longer [SendState.SENDING] (e.g. discarded, or put back by a
+   * late cancellation of an older job). It then gives [SendResult.DONE] if the entry is gone, and
+   * otherwise [SendResult.RETRY] without counting: [SendResult.DONE] would end the job and leave
+   * the entry without one. For the same reason, an entry already [SendState.SENDING] when the
+   * attempt starts gives [SendResult.RETRY].
    */
   suspend fun send(circleId: String, mediaId: String): SendResult
 
