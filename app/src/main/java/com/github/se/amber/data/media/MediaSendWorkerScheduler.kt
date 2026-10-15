@@ -16,7 +16,8 @@ import java.util.concurrent.TimeUnit
  *
  * Each media has at most one job, a unique work named after its ids, so scheduling it twice keeps
  * the first job. Once that job has ended (sent, or [SendResult.FAILED]), scheduling it again starts
- * a new job, with an attempt count of 0: this is what `retrySend` relies on.
+ * a new job, with an attempt count of 0. [reschedule] does so even if the old job hasn't ended yet,
+ * which is what `retrySend` relies on.
  *
  * A job runs only with a connection and, after each [SendResult.RETRY], waits longer before the
  * next attempt: 30 seconds, then twice as long each time. Each job is tagged with its circle, so
@@ -32,6 +33,16 @@ class MediaSendWorkerScheduler(private val context: Context) : MediaSendSchedule
     get() = WorkManager.getInstance(context)
 
   override fun schedule(circleId: String, mediaId: String) {
+    // KEEP leaves a job that is waiting or running alone, and replaces one that has ended
+    enqueue(circleId, mediaId, ExistingWorkPolicy.KEEP)
+  }
+
+  override fun reschedule(circleId: String, mediaId: String) {
+    // REPLACE also cancels a job still finishing, which KEEP would keep
+    enqueue(circleId, mediaId, ExistingWorkPolicy.REPLACE)
+  }
+
+  private fun enqueue(circleId: String, mediaId: String, policy: ExistingWorkPolicy) {
     val request =
         OneTimeWorkRequestBuilder<MediaSendWorker>()
             .setInputData(MediaSendWorker.inputData(circleId, mediaId))
@@ -46,8 +57,7 @@ class MediaSendWorkerScheduler(private val context: Context) : MediaSendSchedule
             .addTag(ALL_SENDS_TAG)
             .addTag(circleTag(circleId))
             .build()
-    // KEEP leaves a job that is waiting or running alone, and replaces one that has ended
-    workManager.enqueueUniqueWork(workName(circleId, mediaId), ExistingWorkPolicy.KEEP, request)
+    workManager.enqueueUniqueWork(workName(circleId, mediaId), policy, request)
   }
 
   override fun cancel(circleId: String, mediaId: String) {

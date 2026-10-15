@@ -36,6 +36,7 @@ class AmberApplication : Application(), SingletonImageLoader.Factory, Configurat
           .diskCache(null)
           .build()
 
-  override val workManagerConfiguration: Configuration
-    get() = Configuration.Builder().setWorkerFactory(MediaRepositoryProvider.workerFactory).build()
+  override val workManagerConfiguration: Configuration by lazy {
+    Configuration.Builder().setWorkerFactory(MediaRepositoryProvider.workerFactory).build()
+  }
 }

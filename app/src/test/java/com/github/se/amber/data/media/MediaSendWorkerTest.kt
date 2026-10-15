@@ -28,16 +28,24 @@ class MediaSendWorkerTest {
 
   /** Runs one attempt of the worker, after [runAttemptCount] earlier ones, with [sender]. */
   private suspend fun runWorker(
-      sender: FakeMediaSender,
+      sender: () -> MediaSender,
       input: Data = MediaSendWorker.inputData("c1", "m1"),
       runAttemptCount: Int = 0,
   ): Result =
       TestListenableWorkerBuilder.from(context, MediaSendWorker::class.java)
-          .setWorkerFactory(MediaSendWorkerFactory { sender })
+          .setWorkerFactory(MediaSendWorkerFactory(sender))
           .setInputData(input)
           .setRunAttemptCount(runAttemptCount)
           .build()
           .doWork()
+
+  private suspend fun runWorker(
+      sender: MediaSender,
+      input: Data = MediaSendWorker.inputData("c1", "m1"),
+      runAttemptCount: Int = 0,
+  ): Result = runWorker({ sender }, input, runAttemptCount)
+
+  private val throwingSender = MediaSender { _, _, _ -> throw IllegalStateException("bug") }
 
   @Test
   fun doneSucceeds() = runTest {
@@ -76,14 +84,16 @@ class MediaSendWorkerTest {
   }
 
   @Test
-  fun onlyTheLastAllowedAttemptIsTheLastAttempt() = runTest {
+  fun lastAttemptStartsAtTheLastAllowedAttempt() = runTest {
     val sender = FakeMediaSender()
 
-    // runAttemptCount counts the earlier attempts: MAX_ATTEMPTS - 1 means this is the last one
-    runWorker(sender, runAttemptCount = MediaSendWorker.MAX_ATTEMPTS - 2)
-    runWorker(sender, runAttemptCount = MediaSendWorker.MAX_ATTEMPTS - 1)
+    // runAttemptCount counts the earlier runs: MAX_ATTEMPTS - 1 means this is the last attempt.
+    // Runs stopped by WorkManager count too, so the count can go past the last attempt.
+    for (earlierRuns in MediaSendWorker.MAX_ATTEMPTS - 2..MediaSendWorker.MAX_ATTEMPTS + 1) {
+      runWorker(sender, runAttemptCount = earlierRuns)
+    }
 
-    assertEquals(listOf(false, true), sender.calls.map { it.lastAttempt })
+    assertEquals(listOf(false, true, true, true), sender.calls.map { it.lastAttempt })
   }
 
   @Test
@@ -93,33 +103,60 @@ class MediaSendWorkerTest {
 
     val result = runWorker(sender, runAttemptCount = MediaSendWorker.MAX_ATTEMPTS - 1)
 
+    assertTrue(sender.calls.single().lastAttempt)
     assertEquals(Result.failure(), result)
+  }
+
+  @Test
+  fun unexpectedSendErrorIsRetried() = runTest {
+    assertEquals(Result.retry(), runWorker(throwingSender))
+  }
+
+  @Test
+  fun unexpectedSendErrorOnTheLastAttemptFails() = runTest {
+    val result = runWorker(throwingSender, runAttemptCount = MediaSendWorker.MAX_ATTEMPTS - 1)
+
+    assertEquals(Result.failure(), result)
+  }
+
+  @Test
+  fun senderThatCantBeBuiltIsRetried() = runTest {
+    val result = runWorker(sender = { throw IllegalStateException("Firebase not ready") })
+
+    assertEquals(Result.retry(), result)
   }
 
   @Test
   fun factoryLeavesOtherWorkersToWorkManager() {
     // WorkManager asks the app's factory for every worker; null makes it create this one itself
-    val factory = MediaSendWorkerFactory { FakeMediaSender() }
-
-    val worker =
-        factory.createWorker(context, OtherWorker::class.java.name, mockk<WorkerParameters>())
-
-    assertNull(worker)
-  }
-
-  @Test
-  fun factoryGetsTheSenderOnlyWhenCreatingAWorker() = runTest {
     var senderRequests = 0
     val factory = MediaSendWorkerFactory {
       senderRequests++
       FakeMediaSender()
     }
+
+    val worker =
+        factory.createWorker(context, OtherWorker::class.java.name, mockk<WorkerParameters>())
+
+    assertNull(worker)
+    assertEquals(0, senderRequests)
+  }
+
+  @Test
+  fun senderIsBuiltOnlyWhenTheWorkerRuns() = runTest {
+    var senderRequests = 0
+    val factory = MediaSendWorkerFactory {
+      senderRequests++
+      FakeMediaSender()
+    }
+    val worker =
+        TestListenableWorkerBuilder.from(context, MediaSendWorker::class.java)
+            .setWorkerFactory(factory)
+            .setInputData(MediaSendWorker.inputData("c1", "m1"))
+            .build()
     assertEquals(0, senderRequests)
 
-    TestListenableWorkerBuilder.from(context, MediaSendWorker::class.java)
-        .setWorkerFactory(factory)
-        .setInputData(MediaSendWorker.inputData("c1", "m1"))
-        .build()
+    worker.doWork()
 
     assertEquals(1, senderRequests)
   }

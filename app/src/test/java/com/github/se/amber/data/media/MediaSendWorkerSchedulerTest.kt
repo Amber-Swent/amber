@@ -15,6 +15,7 @@ import com.github.se.amber.data.media.FakeMediaSender.Call
 import kotlinx.coroutines.asCoroutineDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -22,8 +23,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Checks the jobs [MediaSendWorkerScheduler] gives WorkManager, using WorkManager's test version:
- * jobs run at once on the test thread, but only once the test says their network is there.
+ * Checks the jobs [MediaSendWorkerScheduler] gives WorkManager, using WorkManager's test version: a
+ * job never runs on its own; it runs at once, on the test thread, when the test marks its
+ * constraints as met.
  */
 @RunWith(RobolectricTestRunner::class)
 class MediaSendWorkerSchedulerTest {
@@ -58,11 +60,15 @@ class MediaSendWorkerSchedulerTest {
   private fun jobOf(circleId: String, mediaId: String): WorkInfo =
       jobsOf(circleId, mediaId).single()
 
-  /** Tells WorkManager the network is there for this media's job, which then runs at once. */
-  private fun connect(circleId: String, mediaId: String) {
-    WorkManagerTestInitHelper.getTestDriver(context)!!.setAllConstraintsMet(
-        jobOf(circleId, mediaId).id
-    )
+  /**
+   * Runs this media's job once, as WorkManager would once online and past its wait. The test
+   * version ignores the real network: it only checks that the test says the constraints are met.
+   */
+  private fun runJob(circleId: String, mediaId: String) {
+    val driver = WorkManagerTestInitHelper.getTestDriver(context)!!
+    val id = jobOf(circleId, mediaId).id
+    driver.setInitialDelayMet(id)
+    driver.setAllConstraintsMet(id)
   }
 
   @Test
@@ -80,23 +86,28 @@ class MediaSendWorkerSchedulerTest {
   fun jobSendsItsMediaOnceOnline() {
     scheduler.schedule("c1", "m1")
 
-    connect("c1", "m1")
+    runJob("c1", "m1")
 
     assertEquals(listOf(Call("c1", "m1", lastAttempt = false)), sender.calls)
     assertEquals(WorkInfo.State.SUCCEEDED, jobOf("c1", "m1").state)
   }
 
   @Test
-  fun retryWaitsThirtySecondsFirst() {
-    sender.results += SendResult.RETRY
+  fun retriesWaitThirtySecondsThenTwiceAsLongEachTime() {
+    sender.results += listOf(SendResult.RETRY, SendResult.RETRY, SendResult.RETRY)
     scheduler.schedule("c1", "m1")
 
-    connect("c1", "m1")
+    // the clock is fixed, so each wait shows as the next run time minus NOW
+    val waits =
+        List(3) {
+          runJob("c1", "m1")
+          jobOf("c1", "m1").nextScheduleTimeMillis - NOW
+        }
 
-    val job = jobOf("c1", "m1")
-    assertEquals(WorkInfo.State.ENQUEUED, job.state)
-    assertEquals(1, job.runAttemptCount)
-    assertEquals(NOW + 30_000, job.nextScheduleTimeMillis)
+    // a linear backoff would give 30, 60, 90 s
+    assertEquals(listOf(30_000L, 60_000L, 120_000L), waits)
+    assertEquals(3, jobOf("c1", "m1").runAttemptCount)
+    assertEquals(WorkInfo.State.ENQUEUED, jobOf("c1", "m1").state)
   }
 
   @Test
@@ -113,7 +124,7 @@ class MediaSendWorkerSchedulerTest {
   fun schedulingAfterAFailureStartsANewJob() {
     sender.results += SendResult.FAILED
     scheduler.schedule("c1", "m1")
-    connect("c1", "m1")
+    runJob("c1", "m1")
     val failed = jobOf("c1", "m1")
     assertEquals(WorkInfo.State.FAILED, failed.state)
 
@@ -123,6 +134,21 @@ class MediaSendWorkerSchedulerTest {
     assertNotEquals(failed.id, retried.id)
     assertEquals(WorkInfo.State.ENQUEUED, retried.state)
     assertEquals(0, retried.runAttemptCount)
+  }
+
+  @Test
+  fun rescheduleReplacesAJobNotRunYet() {
+    scheduler.schedule("c1", "m1")
+    val first = jobOf("c1", "m1").id
+
+    scheduler.reschedule("c1", "m1")
+
+    // REPLACE cancels the old job and deletes it, so only the new one is left
+    assertNull(workManager.getWorkInfoById(first).get())
+    val replacement = jobOf("c1", "m1")
+    assertNotEquals(first, replacement.id)
+    assertEquals(WorkInfo.State.ENQUEUED, replacement.state)
+    assertTrue(replacement.tags.containsAll(setOf("media-send", "media-send/c1")))
   }
 
   @Test

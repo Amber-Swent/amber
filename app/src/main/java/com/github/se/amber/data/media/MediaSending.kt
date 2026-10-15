@@ -81,6 +81,17 @@ interface MediaSendScheduler {
    */
   fun schedule(circleId: String, mediaId: String)
 
+  /**
+   * Schedules a new send of the media [mediaId] of [circleId], replacing its current job if any.
+   * For [MediaRepository.retrySend] only, once the entry is [SendState.FAILED]: the job that failed
+   * may still be finishing when the user asks to retry, and [schedule] would then keep that job and
+   * schedule nothing, leaving the entry [SendState.WAITING] without a job.
+   *
+   * Never call it while the entry may be [SendState.WAITING] or [SendState.SENDING]: it would
+   * cancel a send under way and restart its attempt count.
+   */
+  fun reschedule(circleId: String, mediaId: String)
+
   /** Cancels the scheduled send of the media [mediaId] of [circleId], if any. */
   fun cancel(circleId: String, mediaId: String)
 

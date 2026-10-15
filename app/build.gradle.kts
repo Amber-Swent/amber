@@ -198,7 +198,7 @@ dependencies {
 
   // ----------      WorkManager      ------------
   // background sends of the media outbox
-  implementation(libs.androidx.work.runtime)
+  implementation(libs.androidx.work.runtime.ktx)
   testImplementation(libs.androidx.work.testing)
 }
 
