@@ -98,8 +98,8 @@ class UploadTest {
 
   @Test
   fun titleIsDisplayed() {
-    setUpload()
-    checkIsDisplayed(UploadTestTags.TITLE)
+    setUpload() // setContent must run first
+    composeTestRule.onNodeWithTag(UploadTestTags.TITLE).assertIsDisplayed()
   }
 
   @Test

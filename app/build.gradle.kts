@@ -63,7 +63,13 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-  packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+  packaging {
+    resources {
+      excludes += "/META-INF/{AL2.0,LGPL2.1}"
+      excludes += "META-INF/LICENSE.md"
+      excludes += "META-INF/LICENSE-notice.md"
+    }
+  }
 
   testOptions {
     unitTests {
@@ -139,7 +145,8 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(platform(libs.compose.bom))
   testImplementation(libs.junit)
-  testImplementation("org.mockito:mockito-core:5.23.0")
+  testImplementation(libs.mockk)
+  androidTestImplementation(libs.mockkAndroid)
   globalTestImplementation(libs.androidx.junit)
   globalTestImplementation(libs.androidx.espresso.core)
 
