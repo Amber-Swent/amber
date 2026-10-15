@@ -30,4 +30,3 @@ val LOGO_SIZE = 48.dp
 /* Caregiver parameters invitation buttons. */
 val INVITATION_BUTTON_WIDTH = 320.dp
 val INVITATION_BUTTON_HEIGHT = 100.dp
-
