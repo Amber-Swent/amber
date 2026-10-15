@@ -33,6 +33,12 @@ val orange = Color(0xFFCE5431)
  */
 val darkOrange = Color(0xFF9D3121)
 
+/* DarkRed
+ * For :
+ * Invitation code borders
+ */
+val darkRed = Color(0xFFD32F2F)
+
 /* Unused */
 val lightCyan = Color(0xFF9BBDa3)
 

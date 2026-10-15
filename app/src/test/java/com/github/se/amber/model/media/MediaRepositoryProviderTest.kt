@@ -66,6 +66,6 @@ class MediaRepositoryProviderTest {
     val file = MediaRepositoryProvider.repository.getFile(circle, item)
 
     assertEquals("cached before", file.readText())
-    MediaRepositoryProvider.repository.clearCachedMedia("cached")
+    MediaRepositoryProvider.repository.clearLocalMedia("cached")
   }
 }

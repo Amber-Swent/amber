@@ -1,7 +1,8 @@
+/* Written by Lou-Anne Maier, with assistance from
+ * Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.ui.caregiver
 
-import android.R.attr.fontWeight
-import android.R.attr.text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -13,7 +14,7 @@ import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.orange
 
 /**
- * Displays the title for caregiver's [Screen]
+ * Displays the title for caregiver's Screen
  *
  * @param title title to display
  * @param modifier modifier to apply to the text (can for e.g. contains the necessary TestTag)
