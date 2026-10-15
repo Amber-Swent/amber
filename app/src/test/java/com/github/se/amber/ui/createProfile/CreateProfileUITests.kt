@@ -16,8 +16,8 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.accountCreation.CreateProfile
 import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
+import com.github.se.amber.ui.accountCreation.CreateProfileScreen
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
 import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
 import com.github.se.amber.ui.theme.darkGray
@@ -39,7 +39,7 @@ class CreateProfileUITests {
               profileRepository = ProfileRepository { _, _ -> Result.success(Unit) },
           ),
   ) {
-    composeTestRule.setContent { CreateProfile(viewModel = viewModel) }
+    composeTestRule.setContent { CreateProfileScreen(viewModel = viewModel) }
   }
 
   private fun hasErrorSemantics(): SemanticsMatcher =
@@ -116,7 +116,7 @@ class CreateProfileUITests {
     assertPlaceholderIsGrey(CreateProfilePlaceholderColor)
 
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_PLACEHOLDER.name)
+        .onNodeWithTag(CreateProfileTestTags.NAME_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals("Name")
   }
@@ -129,7 +129,7 @@ class CreateProfileUITests {
     assertPlaceholderIsGrey(CreateProfilePlaceholderColor)
 
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name)
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals("Surname")
   }

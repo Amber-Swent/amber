@@ -36,7 +36,8 @@ data class CreateProfileUiState(
 )
 
 /**
- * ViewModel for [CreateProfile]: validates name/surname and persists the profile on role choice.
+ * ViewModel for [CreateProfileScreen]: validates name/surname and persists the profile on role
+ * choice.
  */
 class CreateProfileViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
