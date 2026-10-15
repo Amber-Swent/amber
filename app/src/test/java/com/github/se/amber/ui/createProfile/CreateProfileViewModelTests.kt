@@ -310,6 +310,23 @@ class CreateProfileViewModelTests {
     assertFalse(viewModel.uiState.value.isSaving)
   }
 
+  @Test
+  fun onRoleSelected_afterSuccessfulSave_ignoresSecondCall() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT)
+    advanceUntilIdle()
+    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+
+    viewModel.onRoleSelected(Role.CAREGIVER)
+    advanceUntilIdle()
+
+    coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
+    assertEquals(Role.PATIENT, viewModel.uiState.value.createdRole)
+    assertNull(viewModel.uiState.value.submitError)
+  }
+
   private fun fillValidNameAndSurname() {
     viewModel.onNameChange("Ada")
     viewModel.onSurnameChange("Lovelace")

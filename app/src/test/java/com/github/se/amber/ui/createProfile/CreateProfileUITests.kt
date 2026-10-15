@@ -12,7 +12,10 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.accountCreation.CreateProfile
 import com.github.se.amber.ui.accountCreation.CreateProfilePlaceholderColor
 import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
@@ -129,6 +132,38 @@ class CreateProfileUITests {
         .onNodeWithTag(CreateProfileTestTags.SURNAME_PLACEHOLDER.name)
         .assertIsDisplayed()
         .assertTextEquals("Surname")
+  }
+
+  // ---------- Valid submit ----------
+
+  @Test
+  fun enteringDetailsAndChoosingPatient_sendsPatientProfile() {
+    var savedPerson: Person? = null
+    var savedRole: Role? = null
+    var callCount = 0
+
+    val repository = ProfileRepository { person, role ->
+      callCount++
+      savedPerson = person
+      savedRole = role
+      Result.success(Unit)
+    }
+    setCreateProfile(CreateProfileViewModel(profileRepository = repository))
+
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name)
+        .performTextInput(" Ada ")
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
+        .performTextInput(" Lovelace ")
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, callCount)
+    assertEquals("Ada", savedPerson?.firstName)
+    assertEquals("Lovelace", savedPerson?.lastName)
+    assertEquals(Role.PATIENT, savedRole)
   }
 
   // ---------- Validation when role is chosen with empty fields ----------

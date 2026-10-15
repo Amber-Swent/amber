@@ -75,7 +75,7 @@ class CreateProfileViewModel(
    * blank after trim.
    */
   fun onRoleSelected(role: Role) {
-    if (_uiState.value.isSaving) return
+    if (_uiState.value.isSaving || _uiState.value.createdRole != null) return
 
     val trimmedName = _uiState.value.name.trim()
     val trimmedSurname = _uiState.value.surname.trim()
