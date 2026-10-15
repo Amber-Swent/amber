@@ -1,4 +1,5 @@
 // Written by GitHub Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 rules_version = '2';
 
 service firebase.storage {
@@ -47,9 +48,11 @@ service firebase.storage {
         && resource.metadata.authorId == request.auth.uid
         && uploadedByCurrentUser()
         && validMediaUpload(fileName);
+      // resource is null for a missing file: deleting it is allowed, so a member deleting twice
+      // gets "not found", not "permission denied"
       allow delete: if circleCaregiver(circleId)
         || (circleBucketMember(circleId)
-          && resource.metadata.authorId == request.auth.uid);
+          && (resource == null || resource.metadata.authorId == request.auth.uid));
     }
 
     match /{allPaths=**} {
