@@ -12,6 +12,11 @@ import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.workDataOf
 import com.github.se.amber.data.media.FakeMediaSender.Call
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -20,7 +25,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** Checks how [MediaSendWorker] turns one send attempt into WorkManager's answer. */
+/**
+ * Checks how [MediaSendWorker] turns one run, and its send attempt, into WorkManager's answer.
+ * Counting failed attempts and giving up are the sender's job, so the worker never ends a job on
+ * its own, except for a malformed input.
+ */
 @RunWith(RobolectricTestRunner::class)
 class MediaSendWorkerTest {
 
@@ -45,7 +54,7 @@ class MediaSendWorkerTest {
       runAttemptCount: Int = 0,
   ): Result = runWorker({ sender }, input, runAttemptCount)
 
-  private val throwingSender = MediaSender { _, _, _ -> throw IllegalStateException("bug") }
+  private val throwingSender = MediaSender { _, _ -> throw IllegalStateException("bug") }
 
   @Test
   fun doneSucceeds() = runTest {
@@ -68,7 +77,7 @@ class MediaSendWorkerTest {
 
     runWorker(sender, MediaSendWorker.inputData("circle-7", "media-42"))
 
-    assertEquals(listOf(Call("circle-7", "media-42", lastAttempt = false)), sender.calls)
+    assertEquals(listOf(Call("circle-7", "media-42")), sender.calls)
   }
 
   @Test
@@ -84,27 +93,14 @@ class MediaSendWorkerTest {
   }
 
   @Test
-  fun lastAttemptStartsAtTheLastAllowedAttempt() = runTest {
-    val sender = FakeMediaSender()
-
-    // runAttemptCount counts the earlier runs: MAX_ATTEMPTS - 1 means this is the last attempt.
-    // Runs stopped by WorkManager count too, so the count can go past the last attempt.
-    for (earlierRuns in MediaSendWorker.MAX_ATTEMPTS - 2..MediaSendWorker.MAX_ATTEMPTS + 1) {
-      runWorker(sender, runAttemptCount = earlierRuns)
-    }
-
-    assertEquals(listOf(false, true, true, true), sender.calls.map { it.lastAttempt })
-  }
-
-  @Test
-  fun retryOnTheLastAttemptFails() = runTest {
-    // a sender breaking its contract (RETRY although lastAttempt) must not keep the job alive
+  fun retryIsNeverTurnedIntoAFailure() = runTest {
+    // only the sender decides when to give up: the worker has no limit on runs, however many
+    // earlier runs WorkManager counted (stopped ones included)
     val sender = FakeMediaSender(mutableListOf(SendResult.RETRY))
 
-    val result = runWorker(sender, runAttemptCount = MediaSendWorker.MAX_ATTEMPTS - 1)
+    val result = runWorker(sender, runAttemptCount = 1_000)
 
-    assertTrue(sender.calls.single().lastAttempt)
-    assertEquals(Result.failure(), result)
+    assertEquals(Result.retry(), result)
   }
 
   @Test
@@ -113,10 +109,35 @@ class MediaSendWorkerTest {
   }
 
   @Test
-  fun unexpectedSendErrorOnTheLastAttemptFails() = runTest {
-    val result = runWorker(throwingSender, runAttemptCount = MediaSendWorker.MAX_ATTEMPTS - 1)
+  fun strayCancellationIsRetried() = runTest {
+    // a CancellationException although the run wasn't stopped (e.g. a timeout leaking from send):
+    // passed on, WorkManager would mark the job failed while the entry stays WAITING
+    val sender = MediaSender { _, _ -> throw CancellationException("not a stop") }
 
-    assertEquals(Result.failure(), result)
+    assertEquals(Result.retry(), runWorker(sender))
+  }
+
+  @Test
+  fun stoppedRunIsPassedOn() = runTest {
+    val sending = CompletableDeferred<Unit>()
+    val sender = MediaSender { _, _ ->
+      sending.complete(Unit)
+      awaitCancellation()
+    }
+    val worker =
+        TestListenableWorkerBuilder.from(context, MediaSendWorker::class.java)
+            .setWorkerFactory(MediaSendWorkerFactory { sender })
+            .setInputData(MediaSendWorker.inputData("c1", "m1"))
+            .build()
+    var result: Result? = null
+    val run = launch { result = worker.doWork() }
+    sending.await()
+
+    // what WorkManager does to stop a run: cancel the coroutine running doWork
+    run.cancelAndJoin()
+
+    assertNull("a stopped run must not answer, so WorkManager reruns it", result)
+    assertTrue(run.isCancelled)
   }
 
   @Test

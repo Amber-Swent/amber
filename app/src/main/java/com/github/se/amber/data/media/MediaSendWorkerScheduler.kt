@@ -19,9 +19,10 @@ import java.util.concurrent.TimeUnit
  * a new job, with an attempt count of 0. [reschedule] does so even if the old job hasn't ended yet,
  * which is what `retrySend` relies on.
  *
- * A job runs only with a connection and, after each [SendResult.RETRY], waits longer before the
- * next attempt: 30 seconds, then twice as long each time. Each job is tagged with its circle, so
- * [cancelCircle] finds them all, and with a tag common to every media send, for [cancelAll].
+ * A job runs only with a connection. After each [SendResult.RETRY], its next run is due 30 seconds
+ * × 2^(runs so far − 1) after that RETRY, at most 5 hours; runs the system stopped count among the
+ * runs (see [MediaSendWorker]). Each job is tagged with its circle, so [cancelCircle] finds them
+ * all, and with a tag common to every media send, for [cancelAll].
  *
  * @param context any context of the app; WorkManager keeps only the application context.
  */

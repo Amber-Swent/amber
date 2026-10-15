@@ -136,6 +136,7 @@ class MediaSendWorkerSchedulerRaceTest {
 
   private companion object {
     const val WORK_NAME = "media-send/c1/m1"
-    const val TIMEOUT_SECONDS = 5L
+    // generous: the first test of the class also pays for starting Robolectric
+    const val TIMEOUT_SECONDS = 15L
   }
 }

@@ -10,7 +10,7 @@ package com.github.se.amber.data.media
 class FakeMediaSender(val results: MutableList<SendResult> = mutableListOf()) : MediaSender {
 
   /** One [send] call. */
-  data class Call(val circleId: String, val mediaId: String, val lastAttempt: Boolean)
+  data class Call(val circleId: String, val mediaId: String)
 
   /** Every [send] call, in order. */
   val calls = mutableListOf<Call>()
@@ -18,8 +18,8 @@ class FakeMediaSender(val results: MutableList<SendResult> = mutableListOf()) : 
   /** Runs during each [send], just before it answers. */
   var beforeAnswer: () -> Unit = {}
 
-  override suspend fun send(circleId: String, mediaId: String, lastAttempt: Boolean): SendResult {
-    calls += Call(circleId, mediaId, lastAttempt)
+  override suspend fun send(circleId: String, mediaId: String): SendResult {
+    calls += Call(circleId, mediaId)
     val result = results.removeFirstOrNull() ?: SendResult.DONE
     beforeAnswer()
     return result

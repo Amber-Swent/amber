@@ -4,11 +4,14 @@ package com.github.se.amber
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.work.WorkerParameters
 import coil3.request.Options
+import com.github.se.amber.data.media.MediaSendWorker
 import com.github.se.amber.data.media.image.MediaPictureFetcher
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaPicture
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -16,7 +19,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** Checks that the app's image loader shows media pictures through the repository. */
+/**
+ * Checks that the app sets up its two libraries: the image loader showing media pictures through
+ * the repository, and WorkManager creating the media send worker.
+ */
 @RunWith(RobolectricTestRunner::class)
 class AmberApplicationTest {
 
@@ -41,6 +47,21 @@ class AmberApplicationTest {
           factory is MediaPictureFetcher.Factory && type == MediaPicture::class
         }
     )
+  }
+
+  @Test
+  fun givesWorkManagerTheMediaSendWorkerFactory() {
+    val factory = AmberApplication().workManagerConfiguration.workerFactory
+
+    val worker =
+        factory.createWorker(
+            context,
+            MediaSendWorker::class.java.name,
+            mockk<WorkerParameters>(relaxed = true),
+        )
+
+    // created without its sender: the repository is built only when the worker runs
+    assertTrue(worker is MediaSendWorker)
   }
 
   @Test

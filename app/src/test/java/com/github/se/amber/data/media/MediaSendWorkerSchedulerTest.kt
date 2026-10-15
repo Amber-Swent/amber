@@ -88,7 +88,7 @@ class MediaSendWorkerSchedulerTest {
 
     runJob("c1", "m1")
 
-    assertEquals(listOf(Call("c1", "m1", lastAttempt = false)), sender.calls)
+    assertEquals(listOf(Call("c1", "m1")), sender.calls)
     assertEquals(WorkInfo.State.SUCCEEDED, jobOf("c1", "m1").state)
   }
 
