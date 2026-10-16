@@ -14,5 +14,7 @@ ui-debug.log
 # Firebase Functions environment configuration is deployment-specific.
 functions/.env*
 !functions/.env.example
+# Emulator-only values for the demo-amber project of the e2e tests.
+!functions/.env.demo-amber
 functions/node_modules/
 .kotlin/

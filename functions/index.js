@@ -1,6 +1,7 @@
 // Written by GitHub Copilot.
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -211,6 +212,13 @@ exports.provisionCareCircleBucket = onDocumentCreated(
     retry: true,
   },
   async (event) => {
+    // The emulators can't create buckets or release Storage rules, so provisioning there would call
+    // the real Cloud Storage and Security Rules APIs. Circles created there keep an empty
+    // storageBucket.
+    if (process.env.FUNCTIONS_EMULATOR === "true") {
+      return;
+    }
+
     const circleId = event.params.circleId;
     const projectId = process.env.GCLOUD_PROJECT;
     if (!projectId) {

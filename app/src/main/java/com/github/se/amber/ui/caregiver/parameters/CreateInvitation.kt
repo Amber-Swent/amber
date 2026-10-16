@@ -1,6 +1,7 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
  * Modified by Yuhan YANG, with assistance from Cursor.
+ * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
  */
 
 package com.github.se.amber.ui.caregiver.parameters
@@ -79,6 +80,8 @@ object CreateInvitationTestTags {
   const val HINT_BOX = "create_invitation_hint_box"
   const val USAGE_TEXT = "create_invitation_usage_text"
   const val CODE_LIST = "create_invitation_code_list"
+  // one per invitation, its text starting with the code
+  const val CODE_ROW = "create_invitation_code_row"
   const val CIRCLE_CHOICES = "create_invitation_circle_choices"
   const val ERROR_MESSAGE = "create_invitation_error_message"
 
@@ -265,6 +268,7 @@ private fun CreateInvitationContent(
                 Text(
                     text =
                         "${invitation.code} | ${formatCreatedAt(invitation.createdAt)} | ${invitation.status}",
+                    modifier = Modifier.testTag(CreateInvitationTestTags.CODE_ROW),
                     color = Color.Black,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,

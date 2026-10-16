@@ -122,7 +122,26 @@ jobs:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
 
-      # Run connected tests on the emulator
+      # Node 22, as functions/package.json declares, for the Functions emulator and its tests.
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Install Firebase CLI
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+
+      # The Functions emulator loads the functions from functions/node_modules.
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions --ignore-scripts
+
+      - name: Test Functions
+        run: npm test --prefix functions
+
+      # Run connected tests on the emulator, with the Firebase emulators for the e2e tests.
+      # Those tests use the fake demo-amber project, so they can't reach the real one, and the
+      # bucket trigger skips itself in the emulator. requireFirebaseEmulators makes them fail,
+      # not skip, if the emulators are unreachable.
       - name: run tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d #v2
         with:
@@ -132,10 +151,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew connectedCheck --parallel --build-cache
-
-      - name: Install Firebase CLI
-        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+          script: firebase emulators:exec --project demo-amber --only auth,firestore,functions './gradlew connectedCheck --parallel --build-cache -Pandroid.testInstrumentationRunnerArguments.requireFirebaseEmulators=true'
 
       # Run unit tests once, with the Firestore emulator available for the rules tests.
       - name: Run tests
