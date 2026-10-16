@@ -1,20 +1,18 @@
 // this code was written with the aid of AI
 package com.github.se.amber.ui.roleloading
 
+import android.util.Log
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.google.android.gms.tasks.TaskCompletionSource
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.CollectionReference
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FirebaseFirestore
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -25,37 +23,33 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoleLoadingViewModelTest {
 
-  private val uid = "uid123"
+  private val signOutErrorMsg = "Could not sign out. Please try again."
 
-  private lateinit var auth: FirebaseAuth
-  private lateinit var firestore: FirebaseFirestore
-  private lateinit var collection: CollectionReference
-  private lateinit var document: DocumentReference
-  private lateinit var user: FirebaseUser
+  private lateinit var profileRepository: ProfileRepository
+  private lateinit var authRepository: AuthRepository
   private lateinit var viewModel: RoleLoadingViewModel
 
   @Before
   fun setUp() {
     Dispatchers.setMain(StandardTestDispatcher())
 
-    auth = mockk(relaxed = true)
-    firestore = mockk()
-    collection = mockk()
-    document = mockk()
-    user = mockk()
+    // android.util.Log is not available in plain JVM unit tests
+    mockkStatic(Log::class)
+    every { Log.e(any(), any(), any()) } returns 0
 
-    every { auth.currentUser } returns user
-    every { user.uid } returns uid
-    every { firestore.collection("users") } returns collection
-    every { collection.document(uid) } returns document
+    profileRepository = mockk()
+    authRepository = mockk()
 
-    viewModel = RoleLoadingViewModel(auth, firestore)
+    viewModel = RoleLoadingViewModel(profileRepository, authRepository)
   }
 
   @After
@@ -64,137 +58,229 @@ class RoleLoadingViewModelTest {
     unmockkAll()
   }
 
-  private fun mockSnapshot(profile: UserProfile?, hasRoleField: Boolean = true): DocumentSnapshot {
-    val snapshot = mockk<DocumentSnapshot>()
-    every { snapshot.toObject(UserProfile::class.java) } returns profile
-    every { snapshot.contains("role") } returns hasRoleField
-    return snapshot
+  private fun stubProfile(profile: UserProfile?) {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
   }
 
-  /** Makes Firestore return a document with the given profile / "role" field presence. */
-  private fun stubDocument(profile: UserProfile?, hasRoleField: Boolean = true) {
-    every { document.get() } returns Tasks.forResult(mockSnapshot(profile, hasRoleField))
-  }
+  // ---------- Initial state ----------
 
   @Test
-  fun initialState_isLoading() {
-    assertEquals(RoleState.Loading, viewModel.state.value)
+  fun initialState_isLoadingAndNotSigningOut() {
+    val state = viewModel.state.value
+
+    assertEquals(RoleState.Loading, state.roleState)
+    assertFalse(state.isSigningOut)
+    assertFalse(state.signedOut)
+    assertNull(state.errorMsg)
   }
 
-  @Test
-  fun loadRole_userNotConnected_emitsError() = runTest {
-    every { auth.currentUser } returns null
-
-    viewModel.loadRole()
-    advanceUntilIdle()
-
-    assertEquals(RoleState.Error, viewModel.state.value)
-  }
-
-  @Test
-  fun loadRole_userNotConnected_doesNotQueryFirestore() = runTest {
-    every { auth.currentUser } returns null
-
-    viewModel.loadRole()
-    advanceUntilIdle()
-
-    verify(exactly = 0) { firestore.collection(any()) }
-  }
+  // ---------- loadRole ----------
 
   @Test
   fun loadRole_patientProfile_emitsLoadedPatient() = runTest {
-    stubDocument(UserProfile(uid = uid, role = Role.PATIENT))
+    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT))
 
     viewModel.loadRole()
     advanceUntilIdle()
 
-    assertEquals(RoleState.Loaded(Role.PATIENT), viewModel.state.value)
+    assertEquals(RoleState.Loaded(Role.PATIENT), viewModel.state.value.roleState)
   }
 
   @Test
   fun loadRole_caregiverProfile_emitsLoadedCaregiver() = runTest {
-    stubDocument(UserProfile(uid = uid, role = Role.CAREGIVER))
+    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER))
 
     viewModel.loadRole()
     advanceUntilIdle()
 
-    assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value)
+    assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value.roleState)
   }
 
   @Test
-  fun loadRole_noUserDocument_emitsNoProfile() = runTest {
-    stubDocument(profile = null)
+  fun loadRole_noProfile_emitsNoProfile() = runTest {
+    stubProfile(null)
 
     viewModel.loadRole()
     advanceUntilIdle()
 
-    assertEquals(RoleState.NoProfile, viewModel.state.value)
+    assertEquals(RoleState.NoProfile, viewModel.state.value.roleState)
   }
 
   @Test
-  fun loadRole_roleFieldMissing_emitsError() = runTest {
-    // the profile exists but "role" is absent: must not silently fall back to the default role
-    stubDocument(UserProfile(uid = uid), hasRoleField = false)
+  fun loadRole_repositoryFails_emitsError() = runTest {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.failure(RuntimeException("Firestore down"))
 
     viewModel.loadRole()
     advanceUntilIdle()
 
-    assertEquals(RoleState.Error, viewModel.state.value)
-  }
-
-  @Test
-  fun loadRole_firestoreFails_emitsError() = runTest {
-    every { document.get() } returns Tasks.forException(RuntimeException("Firestore down"))
-
-    viewModel.loadRole()
-    advanceUntilIdle()
-
-    assertEquals(RoleState.Error, viewModel.state.value)
+    assertEquals(RoleState.Error, viewModel.state.value.roleState)
   }
 
   @Test
   fun loadRole_calledTwiceWhileLoading_secondCallIsIgnored() = runTest {
-    // The Firestore task stays pending, so the first call is guaranteed to be in flight.
-    val pending = TaskCompletionSource<DocumentSnapshot>()
-    every { document.get() } returns pending.task
+    // The repository call stays suspended, so the first call is guaranteed to be in flight.
+    val gate = CompletableDeferred<Unit>()
+    coEvery { profileRepository.getCurrentProfile() } coAnswers
+        {
+          gate.await()
+          Result.success(UserProfile(uid = "uid123", role = Role.PATIENT))
+        }
 
     viewModel.loadRole()
-    runCurrent() // the first call starts and suspends on the pending task
+    runCurrent() // the first call starts and suspends on the gate
     viewModel.loadRole() // happens while the first call is still in flight
     runCurrent()
 
-    verify(exactly = 1) { firestore.collection("users") }
-    assertEquals(RoleState.Loading, viewModel.state.value)
+    coVerify(exactly = 1) { profileRepository.getCurrentProfile() }
+    assertEquals(RoleState.Loading, viewModel.state.value.roleState)
 
     // Let the first call finish
-    pending.setResult(mockSnapshot(UserProfile(uid = uid, role = Role.PATIENT)))
+    gate.complete(Unit)
     advanceUntilIdle()
 
-    assertEquals(RoleState.Loaded(Role.PATIENT), viewModel.state.value)
+    assertEquals(RoleState.Loaded(Role.PATIENT), viewModel.state.value.roleState)
   }
 
   @Test
   fun loadRole_retryAfterError_emitsLoadingThenCanSucceed() = runTest {
-    every { document.get() } returns Tasks.forException(RuntimeException("Firestore down"))
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.failure(RuntimeException("Firestore down"))
     viewModel.loadRole()
     advanceUntilIdle()
-    assertEquals(RoleState.Error, viewModel.state.value)
+    assertEquals(RoleState.Error, viewModel.state.value.roleState)
 
-    val pending = TaskCompletionSource<DocumentSnapshot>()
-    every { document.get() } returns pending.task
+    val gate = CompletableDeferred<Unit>()
+    coEvery { profileRepository.getCurrentProfile() } coAnswers
+        {
+          gate.await()
+          Result.success(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+        }
     viewModel.loadRole()
     runCurrent()
-    assertEquals(RoleState.Loading, viewModel.state.value)
+    assertEquals(RoleState.Loading, viewModel.state.value.roleState)
 
-    pending.setResult(mockSnapshot(UserProfile(uid = uid, role = Role.CAREGIVER)))
+    gate.complete(Unit)
     advanceUntilIdle()
-    assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value)
+    assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value.roleState)
+  }
+
+  // ---------- signOut ----------
+
+  @Test
+  fun signOut_success_setsSignedOutAndStopsSigningOut() = runTest {
+    coEvery { authRepository.signOut() } returns Result.success(Unit)
+
+    viewModel.signOut()
+    advanceUntilIdle()
+
+    val state = viewModel.state.value
+    assertTrue(state.signedOut)
+    assertFalse(state.isSigningOut)
+    assertNull(state.errorMsg)
+    coVerify(exactly = 1) { authRepository.signOut() }
   }
 
   @Test
-  fun signOut_callsFirebaseAuthSignOut() {
-    viewModel.signOut()
+  fun signOut_whileInProgress_setsIsSigningOutTrue() = runTest {
+    val gate = CompletableDeferred<Unit>()
+    coEvery { authRepository.signOut() } coAnswers
+        {
+          gate.await()
+          Result.success(Unit)
+        }
 
-    verify(exactly = 1) { auth.signOut() }
+    viewModel.signOut()
+    runCurrent()
+
+    assertTrue(viewModel.state.value.isSigningOut)
+    assertFalse(viewModel.state.value.signedOut)
+
+    gate.complete(Unit)
+    advanceUntilIdle()
+    assertFalse(viewModel.state.value.isSigningOut)
+  }
+
+  @Test
+  fun signOut_calledTwiceWhileInProgress_signsOutOnlyOnce() = runTest {
+    val gate = CompletableDeferred<Unit>()
+    coEvery { authRepository.signOut() } coAnswers
+        {
+          gate.await()
+          Result.success(Unit)
+        }
+
+    viewModel.signOut()
+    runCurrent()
+    viewModel.signOut() // double tap while the first sign-out is in flight
+    runCurrent()
+
+    coVerify(exactly = 1) { authRepository.signOut() }
+
+    gate.complete(Unit)
+    advanceUntilIdle()
+    assertTrue(viewModel.state.value.signedOut)
+  }
+
+  @Test
+  fun signOut_failureButUserAlreadySignedOut_treatedAsSignedOut() = runTest {
+    coEvery { authRepository.signOut() } returns
+        Result.failure(RuntimeException("Credential error"))
+    every { authRepository.currentUser } returns null
+
+    viewModel.signOut()
+    advanceUntilIdle()
+
+    val state = viewModel.state.value
+    assertTrue(state.signedOut)
+    assertFalse(state.isSigningOut)
+    assertNull(state.errorMsg)
+  }
+
+  @Test
+  fun signOut_failureAndUserStillSignedIn_showsFixedErrorMessage() = runTest {
+    coEvery { authRepository.signOut() } returns
+        Result.failure(RuntimeException("raw firebase text"))
+    every { authRepository.currentUser } returns mockk(relaxed = true)
+
+    viewModel.signOut()
+    advanceUntilIdle()
+
+    val state = viewModel.state.value
+    assertFalse(state.signedOut)
+    assertFalse(state.isSigningOut)
+    // the raw exception text must not be shown to the user
+    assertEquals(signOutErrorMsg, state.errorMsg)
+  }
+
+  @Test
+  fun signOut_retryAfterFailure_isAllowed() = runTest {
+    coEvery { authRepository.signOut() } returns Result.failure(RuntimeException("fail"))
+    every { authRepository.currentUser } returns mockk(relaxed = true)
+    viewModel.signOut()
+    advanceUntilIdle()
+    assertFalse(viewModel.state.value.isSigningOut)
+
+    coEvery { authRepository.signOut() } returns Result.success(Unit)
+    viewModel.signOut()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.state.value.signedOut)
+    coVerify(exactly = 2) { authRepository.signOut() }
+  }
+
+  // ---------- Error message ----------
+
+  @Test
+  fun clearErrorMsg_resetsErrorMessage() = runTest {
+    coEvery { authRepository.signOut() } returns Result.failure(RuntimeException("fail"))
+    every { authRepository.currentUser } returns mockk(relaxed = true)
+    viewModel.signOut()
+    advanceUntilIdle()
+    assertEquals(signOutErrorMsg, viewModel.state.value.errorMsg)
+
+    viewModel.clearErrorMsg()
+
+    assertNull(viewModel.state.value.errorMsg)
   }
 }
