@@ -82,7 +82,6 @@ fun RoleLoadingScreen(
   // when sign-out
   LaunchedEffect(state.signedOut) {
     if (state.signedOut) {
-      Toast.makeText(context, "Logout successful", Toast.LENGTH_SHORT).show()
       onSignedOut()
     }
   }

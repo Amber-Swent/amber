@@ -4,8 +4,8 @@ package com.github.se.amber.ui.roleloading
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Role
@@ -39,7 +39,7 @@ data class RoleLoadingUIState(
 )
 
 class RoleLoadingViewModel(
-    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
 ) : ViewModel() {
   private val _state = MutableStateFlow(RoleLoadingUIState())

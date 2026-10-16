@@ -4,6 +4,7 @@ package com.github.se.amber.ui.roleloading
 import android.util.Log
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
@@ -241,8 +242,7 @@ class RoleLoadingViewModelTest {
   fun signOut_failureAndUserStillSignedIn_showsFixedErrorMessage() = runTest {
     coEvery { authRepository.signOut() } returns
         Result.failure(RuntimeException("raw firebase text"))
-    every { authRepository.currentUser } returns mockk(relaxed = true)
-
+    every { authRepository.currentUser } returns AuthUser("uid123")
     viewModel.signOut()
     advanceUntilIdle()
 
@@ -256,7 +256,7 @@ class RoleLoadingViewModelTest {
   @Test
   fun signOut_retryAfterFailure_isAllowed() = runTest {
     coEvery { authRepository.signOut() } returns Result.failure(RuntimeException("fail"))
-    every { authRepository.currentUser } returns mockk(relaxed = true)
+    every { authRepository.currentUser } returns AuthUser("uid123")
     viewModel.signOut()
     advanceUntilIdle()
     assertFalse(viewModel.state.value.isSigningOut)
@@ -274,7 +274,7 @@ class RoleLoadingViewModelTest {
   @Test
   fun clearErrorMsg_resetsErrorMessage() = runTest {
     coEvery { authRepository.signOut() } returns Result.failure(RuntimeException("fail"))
-    every { authRepository.currentUser } returns mockk(relaxed = true)
+    every { authRepository.currentUser } returns AuthUser("uid123")
     viewModel.signOut()
     advanceUntilIdle()
     assertEquals(signOutErrorMsg, viewModel.state.value.errorMsg)
