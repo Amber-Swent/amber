@@ -3,6 +3,7 @@
 package com.github.se.amber.data.media
 
 import android.util.Log
+import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.media.SendState
@@ -33,21 +34,25 @@ import org.json.JSONObject
  *
  * On disk, one folder per circle, named by its circleId, and two files per media:
  * ```
- * {dir}/{circleId}/{mediaId}.json   {"state": "WAITING", "failedAttempts": 0, "item": {...}}
+ * {dir}/{circleId}/{mediaId}.json   {"state": "WAITING", "failedAttempts": 0, "storageBucket": "...",
+ *                                    "item": {...}}
  * {dir}/{circleId}/{mediaId}.bin    the media's file, moved in by add(); none for a text
  * ```
  *
- * The `.json` holds the media's [OutboxEntry] and how many of its send attempts failed in a row:
- * `"item"` is the media's fields as they will be written to Firestore (see [toMap]; the id is the
- * file's name), `"state"` its [SendState], and `"failedAttempts"` that count (0 if missing). The
- * `.bin` is written before the `.json` and removed after it, so a `.json` always has its file. Each
- * file is written to a temporary `.tmp` file and renamed once complete, so an entry is always
- * whole.
+ * The `.json` holds the media's [OutboxEntry], how many of its send attempts failed in a row, and
+ * its circle's bucket: `"item"` is the media's fields as they will be written to Firestore (see
+ * [toMap]; the id is the file's name), `"state"` its [SendState], `"failedAttempts"` that count (0
+ * if missing), and `"storageBucket"` the [CareCircle.storageBucket] its file goes to (blank if
+ * missing, and for a text, which needs none). The `.bin` is written before the `.json` and removed
+ * after it, so a `.json` always has its file. Each file is written to a temporary `.tmp` file and
+ * renamed once complete, so an entry is always whole.
  *
  * Both are stored so that they survive a restart. A [SendState.FAILED] entry has no background job
  * left to send it, and the user must still see it and be able to retry or discard it. The count
  * lets the send give up after a number of failures even when they are spread over several runs of
- * the app. The count stays inside the outbox: [observe] and [get] show only the [OutboxEntry].
+ * the app. The bucket lets the send upload the file without looking the circle up. Both stay inside
+ * the outbox: [observe] and [get] show only the [OutboxEntry]; the send reads the bucket through
+ * [toSend].
  *
  * The entries are read from disk once, on the first call, then kept in memory; calls run one at a
  * time, so each sees the changes of the previous ones. At that first read, entries still
@@ -104,6 +109,32 @@ class MediaOutbox(
   }
 
   /**
+   * What a send of the entry [mediaId] of [circleId] needs, read in one step; null if the entry
+   * isn't in the outbox.
+   */
+  suspend fun toSend(circleId: String, mediaId: String): ToSend? = locked {
+    val record = records.value[circleId]?.get(mediaId) ?: return@locked null
+    ToSend(
+        item = record.entry.item,
+        storageBucket = record.storageBucket,
+        file = binFile(circleId, mediaId).takeIf { it.exists() },
+    )
+  }
+
+  /**
+   * Every [SendState.WAITING] entry, of every circle, as (circleId, mediaId) pairs: those a send
+   * job should exist for. Read after the [SendState.SENDING] reset of the first call, so entries
+   * cut short by the end of their process are included.
+   */
+  suspend fun waitingIds(): List<Pair<String, String>> = locked {
+    records.value.flatMap { (circleId, circleRecords) ->
+      circleRecords.values
+          .filter { it.entry.state == SendState.WAITING }
+          .map { circleId to it.entry.item.id }
+    }
+  }
+
+  /**
    * The file of the entry [mediaId] of [circleId], or null if it isn't in the outbox or has no file
    * (a text). It stays in the outbox: open it right away, since it is gone once the media is sent.
    */
@@ -113,20 +144,22 @@ class MediaOutbox(
   }
 
   /**
-   * Adds [item] to the outbox of [circleId], [SendState.WAITING] with no failed attempt, with
-   * [file] as its file, or none if [file] is null (a text). [file] is moved into the outbox: once
-   * the call returns it is gone from where it was.
+   * Adds [item] to the outbox of [circle], [SendState.WAITING] with no failed attempt, with [file]
+   * as its file, or none if [file] is null (a text). [circle]'s bucket is kept with the entry
+   * ([toSend]); it isn't checked here. [file] is moved into the outbox: once the call returns it is
+   * gone from where it was.
    *
    * If the call fails, nothing is added and [file] is back where it was: [item] is turned into JSON
    * before [file] is touched, and if writing the entry fails after the move, [file] is moved back.
    * Only if that move back fails too (logged) is [file] lost.
    *
-   * @throws IllegalArgumentException if [circleId] or [item]'s id isn't a valid id (blank, `.`,
+   * @throws IllegalArgumentException if [circle]'s id or [item]'s id isn't a valid id (blank, `.`,
    *   `..`, or containing '/'), if [item] is already in the outbox, or if [file] doesn't exist.
    * @throws IOException if the media can't be written (e.g. disk full).
    * @throws org.json.JSONException if [item] can't be written as JSON (e.g. a NaN latitude).
    */
-  suspend fun add(circleId: String, item: MediaItem, file: File?) {
+  suspend fun add(circle: CareCircle, item: MediaItem, file: File?) {
+    val circleId = circle.id
     requireValidId(circleId)
     requireValidId(item.id)
     locked {
@@ -136,7 +169,7 @@ class MediaOutbox(
       require(file == null || file.isFile) { "No file to add at $file" }
       // mkdirs() doesn't do anything if the directory already exists
       val folder = File(dir, circleId).apply { mkdirs() }
-      val record = OutboxRecord(OutboxEntry(item, SendState.WAITING))
+      val record = OutboxRecord(OutboxEntry(item, SendState.WAITING), circle.storageBucket)
       // before touching file: bad data is refused while the file is still where it was
       val json = recordJson(record)
       var moved: File? = null // where the caller's file is, once moved into the outbox
@@ -223,7 +256,7 @@ class MediaOutbox(
       if (record?.entry?.state != SendState.SENDING) return@locked null
       val failedAttempts = record.failedAttempts + 1
       val state = if (failedAttempts >= maxAttempts) SendState.FAILED else SendState.WAITING
-      save(circleId, OutboxRecord(record.entry.copy(state = state), failedAttempts))
+      save(circleId, record.withState(state).copy(failedAttempts = failedAttempts))
       failedAttempts
     }
   }
@@ -262,7 +295,7 @@ class MediaOutbox(
   suspend fun retry(circleId: String, mediaId: String): Boolean = locked {
     val record = records.value[circleId]?.get(mediaId)
     if (record?.entry?.state != SendState.FAILED) return@locked false
-    save(circleId, OutboxRecord(record.entry.copy(state = SendState.WAITING), failedAttempts = 0))
+    save(circleId, record.withState(SendState.WAITING).copy(failedAttempts = 0))
     true
   }
 
@@ -353,7 +386,8 @@ class MediaOutbox(
 
   /**
    * The record stored in `{mediaId}.json`, or null (logged) if it can't be read. A missing or
-   * invalid failed-attempt count reads as 0. Must be called inside [locked].
+   * invalid failed-attempt count reads as 0, a missing or invalid bucket as blank (entries written
+   * before the bucket was kept). Must be called inside [locked].
    */
   private fun readRecord(circleId: String, mediaId: String): OutboxRecord? {
     val record =
@@ -362,8 +396,9 @@ class MediaOutbox(
           val state = SendState.entries.find { it.name == json.optString(STATE) }
           val item = mediaItemFromMap(mediaId, json.getJSONObject(ITEM).toMap())
           val failedAttempts = json.optInt(FAILED_ATTEMPTS, 0).coerceAtLeast(0)
+          val storageBucket = json.opt(STORAGE_BUCKET) as? String ?: ""
           if (state != null && item != null) {
-            OutboxRecord(OutboxEntry(item, state), failedAttempts)
+            OutboxRecord(OutboxEntry(item, state), storageBucket, failedAttempts)
           } else {
             null
           }
@@ -444,6 +479,7 @@ class MediaOutbox(
       JSONObject()
           .put(STATE, record.entry.state.name)
           .put(FAILED_ATTEMPTS, record.failedAttempts)
+          .put(STORAGE_BUCKET, record.storageBucket)
           .put(ITEM, record.entry.item.toMap().toJson())
           .toString()
 
@@ -534,11 +570,26 @@ class MediaOutbox(
   private fun binFile(circleId: String, mediaId: String) = File(File(dir, circleId), mediaId + BIN)
 
   /**
-   * What the outbox keeps of one media: its [entry], as [observe] and [get] show it, and how many
-   * of its send attempts failed in a row, which only the outbox sees.
+   * What a send of one entry needs ([toSend]).
+   *
+   * @property item the media, as it will be written to Firestore.
+   * @property storageBucket the bucket its file goes to, as given to [add]; blank for a text.
+   * @property file its file in the outbox, to upload; null for a text, or if the file is gone (e.g.
+   *   an earlier send moved it into the cache, then couldn't remove the entry).
    */
-  private data class OutboxRecord(val entry: OutboxEntry, val failedAttempts: Int = 0) {
-    /** This record with its entry in [state], and the same failed-attempt count. */
+  data class ToSend(val item: MediaItem, val storageBucket: String, val file: File?)
+
+  /**
+   * What the outbox keeps of one media: its [entry], as [observe] and [get] show it, and what only
+   * the outbox and the send see: the [storageBucket] its file goes to, and how many of its send
+   * attempts failed in a row.
+   */
+  private data class OutboxRecord(
+      val entry: OutboxEntry,
+      val storageBucket: String,
+      val failedAttempts: Int = 0,
+  ) {
+    /** This record with its entry in [state], and the same bucket and failed-attempt count. */
     fun withState(state: SendState) = copy(entry = entry.copy(state = state))
   }
 
@@ -549,6 +600,7 @@ class MediaOutbox(
     const val TMP = ".tmp"
     const val STATE = "state"
     const val FAILED_ATTEMPTS = "failedAttempts"
+    const val STORAGE_BUCKET = "storageBucket"
     const val ITEM = "item"
 
     /** A circle or media id, used as a folder or file name: never a path. */

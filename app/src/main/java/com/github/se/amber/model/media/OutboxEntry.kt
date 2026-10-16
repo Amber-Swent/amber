@@ -12,7 +12,8 @@ enum class SendState {
 
   /**
    * Being sent right now. If the app is killed meanwhile, the media is back to [WAITING] the next
-   * time the app starts, and its send is attempted again.
+   * time the app starts, and its send is attempted again (its job is scheduled again if it was
+   * lost).
    */
   SENDING,
 

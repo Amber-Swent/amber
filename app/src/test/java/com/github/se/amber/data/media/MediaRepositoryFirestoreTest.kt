@@ -3,8 +3,10 @@
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
+import com.github.se.amber.model.media.SendState
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
@@ -16,6 +18,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.Transaction
+import com.google.firebase.storage.StorageException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -24,12 +27,15 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
@@ -40,28 +46,36 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
- * Checks the methods of [MediaRepositoryFirebase] that use Firestore: ids, the two lists,
- * [MediaRepositoryFirebase.getMedia], [MediaRepositoryFirebase.updateMedia] and
- * [MediaRepositoryFirebase.deleteMedia] (with its file and copy steps). Firestore is mocked (no
- * network), files go through a [FakeMediaFileStorage], and copies on the phone through a real
- * [MediaFileCache] in a temporary folder. [MediaRepositoryFirebase.getFile] and the clears are
- * checked in [MediaRepositoryFirebaseTest].
+ * Checks the methods of [MediaRepositoryFirebase] that use Firestore: ids, the lists (with the
+ * outbox for [MediaRepositoryFirebase.observeCircleMedia]), [MediaRepositoryFirebase.getMedia],
+ * [MediaRepositoryFirebase.updateMedia], [MediaRepositoryFirebase.deleteMedia] (with its file and
+ * copy steps) and the send ([MediaRepositoryFirebase.send]). Firestore is mocked (no network),
+ * files go through a [FakeMediaFileStorage], sends are scheduled on a [FakeMediaSendScheduler], and
+ * the outbox and the copies on the phone are real, in a temporary folder (Robolectric gives the
+ * outbox Android's org.json). Adding, retrying and discarding unsent media,
+ * [MediaRepositoryFirebase.getFile] and the clears are checked in [MediaRepositoryFirebaseTest].
  */
-@OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher, runCurrent
+@OptIn(ExperimentalCoroutinesApi::class) // UnconfinedTestDispatcher, runCurrent, currentTime
+@RunWith(RobolectricTestRunner::class)
 class MediaRepositoryFirestoreTest {
 
   @get:Rule val tmp = TemporaryFolder()
 
   /**
-   * What was deleted, in order: "delete document" for the Firestore document, then "delete
-   * {circleId}:{storagePath}" for the file (recorded by [fileStorage]).
+   * What reached Firebase, in order: "upload {bucket}:{storagePath}" and "delete
+   * {circleId}:{storagePath}" for files (recorded by [fileStorage]), "create document" and "delete
+   * document" for the Firestore document.
    */
-  private val deletions = mutableListOf<String>()
+  private val events = mutableListOf<String>()
 
-  private val fileStorage = FakeMediaFileStorage(deletions)
+  private val fileStorage = FakeMediaFileStorage(events)
+  private val scheduler = FakeMediaSendScheduler()
   private val cacheDir by lazy { File(tmp.root, "media") }
+  private val outboxDir by lazy { File(tmp.root, "media-outbox") }
 
   private val firestore = mockk<FirebaseFirestore>()
   private val circles = mockk<CollectionReference>()
@@ -69,6 +83,7 @@ class MediaRepositoryFirestoreTest {
   private val mediaCollection = mockk<CollectionReference>()
   private val mediaDocument = mockk<DocumentReference>()
   private val transaction = mockk<Transaction>()
+  private val created = slot<Any>()
   private val listener = slot<EventListener<QuerySnapshot>>()
   private val registration = mockk<ListenerRegistration>(relaxed = true)
 
@@ -102,7 +117,12 @@ class MediaRepositoryFirestoreTest {
         }
     every { transaction.delete(mediaDocument) } answers
         {
-          deletions += "delete document"
+          events += "delete document"
+          transaction
+        }
+    every { transaction.set(mediaDocument, capture(created)) } answers
+        {
+          events += "create document"
           transaction
         }
   }
@@ -110,8 +130,16 @@ class MediaRepositoryFirestoreTest {
   private fun TestScope.newCache() =
       MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler))
 
-  private fun TestScope.newRepository(cache: MediaFileCache = newCache()) =
-      MediaRepositoryFirebase(fileStorage, cache, firestore)
+  private fun TestScope.newOutbox() =
+      MediaOutbox(outboxDir, ioDispatcher = StandardTestDispatcher(testScheduler))
+
+  private fun TestScope.newRepository(
+      cache: MediaFileCache = newCache(),
+      outbox: MediaOutbox = newOutbox(),
+  ) = MediaRepositoryFirebase(fileStorage, cache, outbox, firestore, scheduler)
+
+  /** A file holding [content], as the camera would give it. */
+  private fun source(content: String = "bytes"): File = tmp.newFile().apply { writeText(content) }
 
   /** A media document as Firestore returns it: [data] null when there is no document. */
   private fun documentOf(id: String, data: Map<String, Any?>?): DocumentSnapshot {
@@ -127,6 +155,20 @@ class MediaRepositoryFirestoreTest {
 
   /** [item]'s document as the repository writes it. */
   private fun documentOf(item: MediaItem) = documentOf(item.id, item.toMap() + ("id" to item.id))
+
+  /** No document yet: the media was never sent. */
+  private fun noDocument() = documentOf("m1", null)
+
+  /** Firestore answering [code] to the send's transaction (e.g. offline: UNAVAILABLE). */
+  private fun stubFirestoreError(code: FirebaseFirestoreException.Code) {
+    every { transaction.get(mediaDocument) } throws FirebaseFirestoreException("refused", code)
+  }
+
+  /** The error Firebase Storage reports for an HTTP [httpCode] (403: not authorized). */
+  private fun storageError(httpCode: Int) =
+      requireNotNull(StorageException.fromExceptionAndHttpCode(null, httpCode))
+
+  private suspend fun MediaOutbox.stateOf(mediaId: String) = get("c1", mediaId)?.state
 
   /** A document a newer app version could write: a kind of media this one doesn't know. */
   private fun unreadableDocument(id: String) = documentOf(id, mapOf("id" to id, "type" to "video"))
@@ -325,7 +367,7 @@ class MediaRepositoryFirestoreTest {
 
     newRepository(cache).deleteMedia(circle, picture)
 
-    assertEquals(listOf("delete document", "delete c1:careCircles/c1/media/m1.jpg"), deletions)
+    assertEquals(listOf("delete document", "delete c1:careCircles/c1/media/m1.jpg"), events)
     assertEquals(emptyList<String>(), copiesOnPhone())
   }
 
@@ -340,7 +382,7 @@ class MediaRepositoryFirestoreTest {
 
     assertTrue("failed with $error", error is IOException)
     // the document is gone, the file and the copy are left for a second call
-    assertEquals(listOf("delete document"), deletions)
+    assertEquals(listOf("delete document"), events)
     assertEquals(listOf("careCircles_c1_media_m1.jpg"), copiesOnPhone())
   }
 
@@ -361,7 +403,7 @@ class MediaRepositoryFirestoreTest {
         FirebaseFirestoreException.Code.PERMISSION_DENIED,
         (error as? FirebaseFirestoreException)?.code,
     )
-    assertEquals(emptyList<String>(), deletions)
+    assertEquals(emptyList<String>(), events)
     assertEquals(listOf("careCircles_c1_media_m1.jpg"), copiesOnPhone())
   }
 
@@ -372,7 +414,7 @@ class MediaRepositoryFirestoreTest {
     newRepository().deleteMedia(circle, picture)
 
     verify(exactly = 0) { transaction.delete(any()) }
-    assertEquals(listOf("delete c1:careCircles/c1/media/m1.jpg"), deletions)
+    assertEquals(listOf("delete c1:careCircles/c1/media/m1.jpg"), events)
   }
 
   @Test
@@ -381,7 +423,7 @@ class MediaRepositoryFirestoreTest {
 
     newRepository().deleteMedia(circle.copy(storageBucket = ""), text)
 
-    assertEquals(listOf("delete document"), deletions)
+    assertEquals(listOf("delete document"), events)
   }
 
   @Test
@@ -406,6 +448,307 @@ class MediaRepositoryFirestoreTest {
       assertTrue("$case: failed with $error", error is IllegalArgumentException)
     }
     verify(exactly = 0) { firestore.runTransaction<Any?>(any()) }
-    assertEquals(emptyList<String>(), deletions)
+    assertEquals(emptyList<String>(), events)
+  }
+
+  @Test
+  fun sendUploadsTheFileThenCreatesTheDocumentThenKeepsTheFileOnThePhone() = runTest {
+    stubStoredDocument(noDocument())
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source("photo bytes"))
+
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+
+    // the file first, so the document never points at a missing file
+    assertEquals(
+        listOf("upload bucket-c1:careCircles/c1/media/m1.jpg", "create document"),
+        events,
+    )
+    assertEquals("photo bytes", fileStorage.lastUploadedContent)
+    assertEquals(picture.toMap() + ("id" to "m1"), created.captured)
+    assertNull(outbox.get("c1", "m1"))
+    // the file moved into the cache: it opens without a download
+    assertEquals("photo bytes", repository.getFile(circle, picture).readText())
+  }
+
+  @Test
+  fun sendKeepsADocumentAnEarlierAttemptCreated() = runTest {
+    // e.g. the app was killed after creating it, and the media was edited since
+    stubStoredDocument(documentOf(picture.copy(description = "Edited since")))
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+
+    verify(exactly = 0) { transaction.set(any<DocumentReference>(), any<Any>()) }
+    assertNull(outbox.get("c1", "m1"))
+  }
+
+  @Test
+  fun sendOfATextOnlyCreatesItsDocument() = runTest {
+    stubStoredDocument(noDocument())
+    val repository = newRepository()
+    repository.addMedia(circle, text, null)
+
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+
+    assertEquals(listOf("create document"), events)
+    assertEquals(text.toMap() + ("id" to "m1"), created.captured)
+  }
+
+  @Test
+  fun aFailureThatMayGoAwayIsCountedAndTheTenthInARowFails() = runTest {
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+    val mayGoAway =
+        mapOf(
+            "Firestore unavailable (e.g. offline)" to
+                {
+                  stubFirestoreError(FirebaseFirestoreException.Code.UNAVAILABLE)
+                },
+            // what Storage answers when it sends a request without the user's token, e.g. on a
+            // network that isn't really working yet
+            "Storage: not authenticated" to { fileStorage.onUpload = { throw storageError(401) } },
+            "Storage: not authorized" to { fileStorage.onUpload = { throw storageError(403) } },
+        )
+
+    for ((case, stub) in mayGoAway) {
+      stub()
+      val results = List(MediaSender.MAX_FAILED_ATTEMPTS) { repository.send("c1", "m1") }
+
+      assertEquals(case, List(9) { SendResult.RETRY } + SendResult.FAILED, results)
+      assertEquals(case, SendState.FAILED, outbox.stateOf("m1"))
+      // a failed media has no job left: its next run, if any, does nothing
+      assertEquals(case, SendResult.DONE, repository.send("c1", "m1"))
+      repository.retrySend("c1", "m1") // a new series of attempts for the next case
+    }
+  }
+
+  @Test
+  fun aFailureRetryingCantFixFailsAtOnce() = runTest {
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+    val permanent =
+        mapOf(
+            "Firestore refusing the user" to
+                {
+                  stubFirestoreError(FirebaseFirestoreException.Code.PERMISSION_DENIED)
+                },
+            "the file refused before sending" to
+                {
+                  fileStorage.onUpload = { throw IllegalArgumentException("file over 25 MiB") }
+                },
+        )
+
+    for ((case, stub) in permanent) {
+      stub()
+      assertEquals(case, SendResult.FAILED, repository.send("c1", "m1"))
+      assertEquals(case, SendState.FAILED, outbox.stateOf("m1"))
+      repository.retrySend("c1", "m1") // back to WAITING for the next case
+    }
+  }
+
+  @Test
+  fun anAttemptOverTheTimeLimitStopsItsUploadAndIsCounted() = runTest {
+    var uploadStopped = false
+    fileStorage.onUpload = {
+      try {
+        awaitCancellation() // an upload that never ends
+      } finally {
+        uploadStopped = true
+      }
+    }
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+
+    assertEquals(SendResult.RETRY, repository.send("c1", "m1"))
+
+    assertTrue(uploadStopped)
+    assertTrue(currentTime >= MediaSender.ATTEMPT_TIMEOUT_MS)
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+    // counted: 9 more failures make the 10th, so an upload that always hangs still ends FAILED
+    fileStorage.onUpload = {}
+    stubFirestoreError(FirebaseFirestoreException.Code.UNAVAILABLE)
+    val results = List(MediaSender.MAX_FAILED_ATTEMPTS - 1) { repository.send("c1", "m1") }
+    assertEquals(SendResult.FAILED, results.last())
+  }
+
+  @Test
+  fun aCancelledSendIsWaitingAgainAndCountsNothing() = runTest {
+    fileStorage.onUpload = { awaitCancellation() }
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+    val run = launch { repository.send("c1", "m1") }
+    runCurrent()
+    assertEquals(SendState.SENDING, outbox.stateOf("m1"))
+
+    // the system stops the run, e.g. the connection was lost
+    run.cancel()
+    run.join()
+
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+    // had the cancellation counted, the 9th failure below would be the 10th
+    fileStorage.onUpload = {}
+    stubFirestoreError(FirebaseFirestoreException.Code.UNAVAILABLE)
+    repeat(MediaSender.MAX_FAILED_ATTEMPTS - 1) { repository.send("c1", "m1") }
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+  }
+
+  @Test
+  fun anErrorDuringASendIsRethrownWithItsEntryWaitingAgain() = runTest {
+    // e.g. a TODO() left in the code
+    fileStorage.onUpload = { throw NotImplementedError("a bug") }
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+
+    val error = runCatching { repository.send("c1", "m1") }.exceptionOrNull()
+
+    assertTrue("failed with $error", error is NotImplementedError)
+    // left SENDING, it would wait for the next start of the app
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+  }
+
+  @Test
+  fun anEntryWhoseFileIsGoneFailsUnlessAnEarlierAttemptSentIt() = runTest {
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+    // e.g. moved into the cache by an attempt that then couldn't remove the entry
+    File(outboxDir, "c1/m1.bin").delete()
+
+    stubStoredDocument(noDocument())
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+
+    repository.retrySend("c1", "m1")
+    stubStoredDocument(documentOf(picture))
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+    assertNull(outbox.get("c1", "m1"))
+    assertEquals(emptyList<String>(), events) // nothing uploaded or written
+  }
+
+  @Test
+  fun anAttemptThatNoLongerOwnsItsEntryRetriesOrEndsIfTheEntryIsGone() = runTest {
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+
+    // e.g. a late cancellation of an older job put it back meanwhile: nothing is counted, and the
+    // job must stay, or the entry would be left without one
+    fileStorage.onUpload = {
+      outbox.resetSending("c1", "m1")
+      throw IOException("connection reset")
+    }
+    assertEquals(SendResult.RETRY, repository.send("c1", "m1"))
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+
+    // the same for a failure retrying can't fix: FAILED would end the job
+    fileStorage.onUpload = {
+      outbox.resetSending("c1", "m1")
+      throw IllegalArgumentException("file refused")
+    }
+    assertEquals(SendResult.RETRY, repository.send("c1", "m1"))
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+
+    // discarded meanwhile: nothing left to send
+    fileStorage.onUpload = {
+      outbox.remove("c1", "m1")
+      throw IOException("connection reset")
+    }
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+  }
+
+  @Test
+  fun aSendFindingItsEntryAlreadySendingRetriesLater() = runTest {
+    stubStoredDocument(noDocument())
+    val repository = newRepository()
+    repository.addMedia(circle, picture, source())
+    var secondRun: SendResult? = null
+    // a second run while the first one is still sending, e.g. the job replaced by a retry
+    fileStorage.onUpload = { secondRun = repository.send("c1", "m1") }
+
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+
+    assertEquals(SendResult.RETRY, secondRun)
+    // a media no longer in the outbox has nothing left to send
+    assertEquals(SendResult.DONE, repository.send("c1", "unknown"))
+  }
+
+  @Test
+  fun observeCircleMediaListsUnsentMediaNewestFirstThenSentMediaEachOnce() = runTest {
+    stubApprovedQuery()
+    val repository = newRepository()
+    val older = picture.copy(id = "m2", storagePath = "careCircles/c1/media/m2.jpg", createdAt = 1)
+    val newer = picture.copy(id = "m3", storagePath = "careCircles/c1/media/m3.jpg", createdAt = 5)
+    val both = picture.copy(id = "m4", storagePath = "careCircles/c1/media/m4.jpg", createdAt = 9)
+    for (item in listOf(older, newer, both)) repository.addMedia(circle, item, source())
+    val lists = async { repository.observeCircleMedia("c1").first() }
+    runCurrent()
+
+    // m4 is in Firestore while still in the outbox: listed once, as sent
+    listener.captured.onEvent(queryResult(documentOf(both), documentOf(picture)), null)
+
+    assertEquals(
+        listOf(
+            CircleMedia(newer, SendState.WAITING),
+            CircleMedia(older, SendState.WAITING),
+            CircleMedia(both, sendState = null),
+            CircleMedia(picture, sendState = null),
+        ),
+        lists.await(),
+    )
+  }
+
+  @Test
+  fun aMediaBeingSentIsNeverMissingFromObserveCircleMedia() = runTest {
+    stubApprovedQuery()
+    stubStoredDocument(noDocument())
+    val repository = newRepository()
+    val lists = mutableListOf<List<CircleMedia>>()
+    backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+      repository.observeCircleMedia("c1").toList(lists)
+    }
+    listener.captured.onEvent(queryResult(), null)
+    repository.addMedia(circle, picture, source())
+    runCurrent()
+
+    repository.send("c1", "m1")
+    runCurrent()
+    // the transaction's document reaches this phone only now, after the entry left the outbox
+    listener.captured.onEvent(queryResult(documentOf(picture)), null)
+    runCurrent()
+
+    assertEquals(emptyList<CircleMedia>(), lists.first())
+    for (list in lists.drop(1)) assertEquals(list.toString(), 1, list.count { it.item == picture })
+    assertEquals(listOf(CircleMedia(picture, sendState = null)), lists.last())
+  }
+
+  @Test
+  fun aMediaDeletedRightAfterItsSendIsNoLongerListed() = runTest {
+    stubApprovedQuery()
+    stubStoredDocument(noDocument())
+    val repository = newRepository()
+    val lists = mutableListOf<List<CircleMedia>>()
+    backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+      repository.observeCircleMedia("c1").toList(lists)
+    }
+    listener.captured.onEvent(queryResult(), null)
+    repository.addMedia(circle, picture, source())
+    repository.send("c1", "m1")
+    runCurrent()
+    assertEquals(listOf(CircleMedia(picture, sendState = null)), lists.last())
+
+    // deleted before Firestore's list showed it: it must not stay listed until a restart
+    stubStoredDocument(documentOf(picture))
+    repository.deleteMedia(circle, picture)
+    runCurrent()
+
+    assertEquals(emptyList<CircleMedia>(), lists.last())
   }
 }
