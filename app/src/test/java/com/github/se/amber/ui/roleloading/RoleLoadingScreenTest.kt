@@ -1,7 +1,9 @@
 // this code was written with the aid of AI
-package com.github.se.amber.ui.roleLoading
+package com.github.se.amber.ui.roleloading
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -23,18 +25,16 @@ class RoleLoadingScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
   private lateinit var viewModel: RoleLoadingViewModel
-  private lateinit var stateFlow: MutableStateFlow<RoleState>
+  private lateinit var stateFlow: MutableStateFlow<RoleLoadingUIState>
 
   // Spy: onRoleLoaded adds each role it receives to this list (see setScreen),
   // so the tests can check how many times it was called and with which role.
   private val loadedRoles = mutableListOf<Role>()
 
-  // Spy: onSignedOut increments this counter (see setScreen),
-  // so the tests can check how many times it was called.
+  // Spy: onSignedOut increments this counter (see setScreen).
   private var signedOutCount = 0
 
-  // Spy: noProfile increments this counter (see setScreen), so the tests can check how many times
-  // it was called.
+  // Spy: noProfile increments this counter (see setScreen).
   private var noProfileCount = 0
 
   @Before
@@ -42,12 +42,12 @@ class RoleLoadingScreenTest {
     loadedRoles.clear()
     signedOutCount = 0
     noProfileCount = 0
-    stateFlow = MutableStateFlow(RoleState.Loading)
+    stateFlow = MutableStateFlow(RoleLoadingUIState())
     viewModel = mockk(relaxed = true)
     every { viewModel.state } returns stateFlow
   }
 
-  private fun setScreen(initialState: RoleState) {
+  private fun setScreen(initialState: RoleLoadingUIState) {
     stateFlow.value = initialState
     composeTestRule.setContent {
       RoleLoadingScreen(
@@ -58,6 +58,8 @@ class RoleLoadingScreenTest {
       )
     }
   }
+
+  private fun setScreen(roleState: RoleState) = setScreen(RoleLoadingUIState(roleState = roleState))
 
   private fun assertNothingButLoadingIsShown() {
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertDoesNotExist()
@@ -144,26 +146,82 @@ class RoleLoadingScreenTest {
   }
 
   @Test
-  fun error_clickOnBackToLogin_signsOutAndCallsOnSignedOut() {
+  fun error_backToLoginButton_isEnabledByDefault() {
+    setScreen(RoleState.Error)
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsEnabled()
+  }
+
+  @Test
+  fun error_clickOnBackToLogin_callsSignOut() {
     setScreen(RoleState.Error)
 
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
 
     verify(exactly = 1) { viewModel.signOut() }
+  }
+
+  @Test
+  fun error_backToLoginButton_isDisabledWhileSigningOut() {
+    setScreen(RoleLoadingUIState(roleState = RoleState.Error, isSigningOut = true))
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun error_backToLoginButton_isDisabledOnceSignedOut() {
+    setScreen(RoleLoadingUIState(roleState = RoleState.Error, signedOut = true))
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun transitionToSigningOut_disablesBackToLoginButton() {
+    setScreen(RoleState.Error)
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsEnabled()
+
+    stateFlow.value = stateFlow.value.copy(isSigningOut = true)
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsNotEnabled()
+  }
+
+  // ---------- Sign-out ----------
+
+  @Test
+  fun signedOut_callsOnSignedOutOnce() {
+    setScreen(RoleLoadingUIState(roleState = RoleState.Error, signedOut = true))
+    composeTestRule.waitForIdle()
+
     assertEquals(1, signedOutCount)
     assertEquals(0, noProfileCount)
     assertTrue(loadedRoles.isEmpty())
   }
 
   @Test
-  fun error_doubleClickOnBackToLogin_signsOutOnlyOnce() {
+  fun notSignedOut_doesNotCallOnSignedOut() {
     setScreen(RoleState.Error)
+    composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
+    assertEquals(0, signedOutCount)
+  }
 
-    verify(exactly = 1) { viewModel.signOut() }
-    assertEquals(1, signedOutCount)
+  // ---------- Error message ----------
+
+  @Test
+  fun errorMsg_isClearedAfterBeingShown() {
+    setScreen(RoleLoadingUIState(roleState = RoleState.Error, errorMsg = "Something failed"))
+    composeTestRule.waitForIdle()
+
+    verify(exactly = 1) { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  fun noErrorMsg_doesNotCallClearErrorMsg() {
+    setScreen(RoleState.Error)
+    composeTestRule.waitForIdle()
+
+    verify(exactly = 0) { viewModel.clearErrorMsg() }
   }
 
   // ---------- NoProfile ----------
@@ -225,7 +283,7 @@ class RoleLoadingScreenTest {
     composeTestRule.waitForIdle()
     assertTrue(loadedRoles.isEmpty())
 
-    stateFlow.value = RoleState.Loaded(Role.CAREGIVER)
+    stateFlow.value = RoleLoadingUIState(roleState = RoleState.Loaded(Role.CAREGIVER))
     composeTestRule.waitForIdle()
 
     assertEquals(listOf(Role.CAREGIVER), loadedRoles)
@@ -236,7 +294,7 @@ class RoleLoadingScreenTest {
     setScreen(RoleState.Loading)
     composeTestRule.waitForIdle()
 
-    stateFlow.value = RoleState.Error
+    stateFlow.value = RoleLoadingUIState(roleState = RoleState.Error)
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertIsDisplayed()
@@ -248,7 +306,7 @@ class RoleLoadingScreenTest {
     composeTestRule.waitForIdle()
     assertEquals(0, noProfileCount)
 
-    stateFlow.value = RoleState.NoProfile
+    stateFlow.value = RoleLoadingUIState(roleState = RoleState.NoProfile)
     composeTestRule.waitForIdle()
 
     assertEquals(1, noProfileCount)

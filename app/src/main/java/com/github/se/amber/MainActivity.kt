@@ -44,7 +44,7 @@ import com.github.se.amber.ui.navigation.startDestinationForAuthState
 import com.github.se.amber.ui.onboarding.CreateCareCircleScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
 import com.github.se.amber.ui.patient.see_pictures.SeePicturesScreen
-import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
+import com.github.se.amber.ui.roleloading.RoleLoadingScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
 
