@@ -9,12 +9,13 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Role
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val TAG = "RoleLoadingViewModel"
 
 sealed interface RoleState {
   // waiting for finding the role
@@ -32,6 +33,7 @@ sealed interface RoleState {
 
 data class RoleLoadingUIState(
     val roleState: RoleState = RoleState.Loading,
+    val isSigningOut: Boolean = false,
     val signedOut: Boolean = false,
     val errorMsg: String? = null,
 )
@@ -64,12 +66,6 @@ class RoleLoadingViewModel(
     if (loadJob?.isActive == true) return
     loadJob = viewModelScope.launch {
       setRoleState(RoleState.Loading)
-      val uid = authRepository.currentUser?.uid
-      // case where no one is connected
-      if (uid == null) {
-        setRoleState(RoleState.Error)
-        return@launch
-      }
       profileRepository
           .getCurrentProfile()
           .fold(
@@ -79,8 +75,7 @@ class RoleLoadingViewModel(
                 )
               },
               onFailure = { e ->
-                if (e is CancellationException) throw e
-                Log.e("RoleLoadingViewModel", "Failed to load role", e)
+                Log.e(TAG, "Failed to load role", e)
                 setRoleState(RoleState.Error)
               },
           )
@@ -88,12 +83,23 @@ class RoleLoadingViewModel(
   }
 
   fun signOut() {
+    if (_state.value.isSigningOut) return
+    _state.update { it.copy(isSigningOut = true) }
     viewModelScope.launch {
       authRepository
           .signOut()
           .fold(
-              onSuccess = { _state.update { it.copy(signedOut = true) } },
-              onFailure = { e -> setErrorMsg(e.localizedMessage ?: "Sign out failed") },
+              onSuccess = { _state.update { it.copy(signedOut = true, isSigningOut = false) } },
+              onFailure = { e ->
+                Log.e(TAG, "Failed to sign out", e)
+                if (authRepository.currentUser == null) {
+                  // Firebase is already signed out: treat it as a successful sign-out
+                  _state.update { it.copy(signedOut = true, isSigningOut = false) }
+                } else {
+                  _state.update { it.copy(isSigningOut = false) }
+                  setErrorMsg("Could not sign out. Please try again.")
+                }
+              },
           )
     }
   }
