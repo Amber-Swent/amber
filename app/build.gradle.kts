@@ -36,6 +36,11 @@ android {
     versionName = "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    // With the orchestrator below, each test runs in a fresh process with cleared app data, so no
+    // state (Firebase instances, signed-in user, repositories) leaks from one test to the next.
+    testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    // Lets the orchestrator collect each process's coverage file
+    testInstrumentationRunnerArguments["useTestStorageService"] = "true"
     vectorDrawables { useSupportLibrary = true }
   }
 
@@ -63,9 +68,16 @@ android {
     targetCompatibility = JavaVersion.VERSION_17
   }
 
-  packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+  packaging {
+    resources {
+      excludes += "/META-INF/{AL2.0,LGPL2.1}"
+      excludes += "META-INF/LICENSE.md"
+      excludes += "META-INF/LICENSE-notice.md"
+    }
+  }
 
   testOptions {
+    execution = "ANDROIDX_TEST_ORCHESTRATOR"
     unitTests {
       isIncludeAndroidResources = true
       isReturnDefaultValues = true
@@ -138,9 +150,12 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(platform(libs.compose.bom))
   testImplementation(libs.junit)
-  testImplementation("org.mockito:mockito-core:5.23.0")
+  testImplementation(libs.mockk)
+  androidTestImplementation(libs.mockkAndroid)
   globalTestImplementation(libs.androidx.junit)
   globalTestImplementation(libs.androidx.espresso.core)
+  androidTestUtil(libs.androidx.test.orchestrator)
+  androidTestUtil(libs.androidx.test.services)
 
   // ------------- Jetpack Compose ------------------
   val composeBom = platform(libs.compose.bom)
@@ -164,6 +179,7 @@ dependencies {
   // UI Tests
   globalTestImplementation(libs.compose.test.junit)
   debugImplementation(libs.compose.test.manifest)
+  androidTestImplementation(libs.androidx.navigation.testing)
 
   // --------- Kaspresso test framework ----------
   globalTestImplementation(libs.kaspresso)
@@ -195,7 +211,20 @@ dependencies {
   implementation(libs.firebase.storage)
   // Task.await() for Firebase calls
   implementation(libs.kotlinx.coroutines.play.services)
+
+  // ----------      WorkManager      ------------
+  // background sends of the media outbox
+  implementation(libs.androidx.work.runtime.ktx)
+  testImplementation(libs.androidx.work.testing)
 }
+
+// Kaspresso brings protobuf-lite 3.0.1 (through Kakao, espresso-contrib and the Accessibility Test
+// Framework), which shadows the protobuf-javalite Firestore needs: the test APK then crashes on its
+// first Firestore call (NoSuchMethodError). No test runs accessibility checks yet; enabling them
+// may need another fix.
+configurations
+    .matching { it.name.contains("AndroidTest") }
+    .configureEach { exclude(group = "com.google.protobuf", module = "protobuf-lite") }
 
 tasks.withType<Test> {
   // Configure Jacoco for each tests
@@ -236,7 +265,8 @@ tasks.register("jacocoTestReport", JacocoReport::class) {
   executionData.setFrom(
       fileTree(project.layout.buildDirectory.get()) {
         include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
-        include("outputs/code_coverage/debugAndroidTest/connected/*/coverage.ec")
+        // the orchestrator writes one file per test, named after it
+        include("outputs/code_coverage/debugAndroidTest/connected/*/*.ec")
       }
   )
 }

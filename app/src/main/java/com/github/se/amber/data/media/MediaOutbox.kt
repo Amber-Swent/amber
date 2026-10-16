@@ -3,6 +3,7 @@
 package com.github.se.amber.data.media
 
 import android.util.Log
+import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.media.SendState
@@ -33,27 +34,36 @@ import org.json.JSONObject
  *
  * On disk, one folder per circle, named by its circleId, and two files per media:
  * ```
- * {dir}/{circleId}/{mediaId}.json   {"state": "WAITING", "item": {"type": "picture", ...}}
+ * {dir}/{circleId}/{mediaId}.json   {"state": "WAITING", "failedAttempts": 0, "storageBucket": "...",
+ *                                    "item": {...}}
  * {dir}/{circleId}/{mediaId}.bin    the media's file, moved in by add(); none for a text
  * ```
  *
- * The `.json` is the whole [OutboxEntry]: `"item"` holds the media's fields as they will be written
- * to Firestore (see [toMap]; the id is the file's name), and `"state"` its [SendState]. The `.bin`
- * is written before the `.json`, and removed after it, so a `.json` always has its file. Each file
- * is written to a temporary `.tmp` file and renamed once complete, so an entry is always whole.
+ * The `.json` holds the media's [OutboxEntry], how many of its send attempts failed in a row, and
+ * its circle's bucket: `"item"` is the media's fields as they will be written to Firestore (see
+ * [toMap]; the id is the file's name), `"state"` its [SendState], `"failedAttempts"` that count (0
+ * if missing), and `"storageBucket"` the [CareCircle.storageBucket] its file goes to (blank if
+ * missing, and for a text, which needs none). The `.bin` is written before the `.json` and removed
+ * after it, so a `.json` always has its file. Each file is written to a temporary `.tmp` file and
+ * renamed once complete, so an entry is always whole.
  *
- * The state is stored because [SendState.FAILED] must survive a restart: the media's background job
- * has ended, so nothing would send it again, and the user must still see it failed and be able to
- * retry or discard it. [SendState.WAITING] is the state of any other entry after a restart.
+ * Both are stored so that they survive a restart. A [SendState.FAILED] entry has no background job
+ * left to send it, and the user must still see it and be able to retry or discard it. The count
+ * lets the send give up after a number of failures even when they are spread over several runs of
+ * the app. The bucket lets the send upload the file without looking the circle up. Both stay inside
+ * the outbox: [observe] and [get] show only the [OutboxEntry]; the send reads the bucket through
+ * [toSend].
  *
- * The entries are read from disk once, on the first call, then kept in memory; every call waits for
- * the previous ones. At that first read, entries still [SendState.SENDING] go back to
- * [SendState.WAITING], on disk too: the process that was sending them is gone, so none can be
- * running. Memory and disk then always hold the same state.
+ * The entries are read from disk once, on the first call, then kept in memory; calls run one at a
+ * time, so each sees the changes of the previous ones. At that first read, entries still
+ * [SendState.SENDING] go back to [SendState.WAITING]: the process that was sending them is gone.
  *
- * The outbox only stores the [SendState] it is given ([setState]); it never sends or retries
- * anything itself. A [SendState.FAILED] entry stays as it is, across restarts, until the repository
- * puts it back to [SendState.WAITING] (`retrySend`) or removes it (`discardUnsent`).
+ * The outbox only records what the repository tells it; it never sends anything itself. A send
+ * attempt marks its entry [SendState.SENDING] ([startSending]), then ends it with exactly one of:
+ * [remove] (sent), [resetSending] (cancelled), [recordFailedAttempt] (failed, may succeed later) or
+ * [markFailed] (failed, retrying can't help). A [SendState.FAILED] entry stays so until [retry] or
+ * [remove]. Each state change happens only from the state it expects, checked and changed in one
+ * step, so a call that comes too late (e.g. from a job that was replaced) changes nothing.
  *
  * Only one instance may use a given [dir]. The constructor doesn't touch the disk.
  *
@@ -66,26 +76,27 @@ class MediaOutbox(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
 
-  /** Every entry, by circleId then mediaId; empty until [loaded]. */
-  private val entries = MutableStateFlow<Map<String, Map<String, OutboxEntry>>>(emptyMap())
+  /** Every entry with its failed-attempt count, by circleId then mediaId; empty until [loaded]. */
+  private val records = MutableStateFlow<Map<String, Map<String, OutboxRecord>>>(emptyMap())
 
-  /** Guards the disk and [entries]: every call runs alone. */
+  /** Guards the disk and [records]: every call runs alone. */
   private val mutex = Mutex()
 
   private var loaded = false // guarded by mutex
 
   /**
    * The entries of [circleId], oldest first ([MediaItem.createdAt]). Emits again whenever one is
-   * added, changes state or is removed.
+   * added, changes state or is removed, but not when only its failed-attempt count changes.
    */
   fun observe(circleId: String): Flow<List<OutboxEntry>> = flow {
     locked {} // reads the disk on first use
     emitAll(
-        entries
+        records
             .map { all ->
               all[circleId]
                   .orEmpty()
                   .values
+                  .map { it.entry }
                   .sortedWith(compareBy({ it.item.createdAt }, { it.item.id }))
             }
             .distinctUntilChanged()
@@ -94,7 +105,33 @@ class MediaOutbox(
 
   /** The entry [mediaId] of [circleId], or null if it isn't in the outbox. */
   suspend fun get(circleId: String, mediaId: String): OutboxEntry? = locked {
-    entries.value[circleId]?.get(mediaId)
+    records.value[circleId]?.get(mediaId)?.entry
+  }
+
+  /**
+   * What a send of the entry [mediaId] of [circleId] needs, read in one step; null if the entry
+   * isn't in the outbox.
+   */
+  suspend fun toSend(circleId: String, mediaId: String): ToSend? = locked {
+    val record = records.value[circleId]?.get(mediaId) ?: return@locked null
+    ToSend(
+        item = record.entry.item,
+        storageBucket = record.storageBucket,
+        file = binFile(circleId, mediaId).takeIf { it.exists() },
+    )
+  }
+
+  /**
+   * Every [SendState.WAITING] entry, of every circle, as (circleId, mediaId) pairs: those a send
+   * job should exist for. Read after the [SendState.SENDING] reset of the first call, so entries
+   * cut short by the end of their process are included.
+   */
+  suspend fun waitingIds(): List<Pair<String, String>> = locked {
+    records.value.flatMap { (circleId, circleRecords) ->
+      circleRecords.values
+          .filter { it.entry.state == SendState.WAITING }
+          .map { circleId to it.entry.item.id }
+    }
   }
 
   /**
@@ -102,37 +139,39 @@ class MediaOutbox(
    * (a text). It stays in the outbox: open it right away, since it is gone once the media is sent.
    */
   suspend fun fileOf(circleId: String, mediaId: String): File? = locked {
-    if (entries.value[circleId]?.containsKey(mediaId) != true) return@locked null
+    if (records.value[circleId]?.containsKey(mediaId) != true) return@locked null
     binFile(circleId, mediaId).takeIf { it.exists() }
   }
 
   /**
-   * Adds [item] to the outbox of [circleId], [SendState.WAITING], with [file] as its file, or none
-   * if [file] is null (a text). [file] is moved into the outbox: once the call returns it is gone
-   * from where it was.
+   * Adds [item] to the outbox of [circle], [SendState.WAITING] with no failed attempt, with [file]
+   * as its file, or none if [file] is null (a text). [circle]'s bucket is kept with the entry
+   * ([toSend]); it isn't checked here. [file] is moved into the outbox: once the call returns it is
+   * gone from where it was.
    *
    * If the call fails, nothing is added and [file] is back where it was: [item] is turned into JSON
    * before [file] is touched, and if writing the entry fails after the move, [file] is moved back.
    * Only if that move back fails too (logged) is [file] lost.
    *
-   * @throws IllegalArgumentException if [circleId] or [item]'s id isn't a valid id (blank, `.`,
+   * @throws IllegalArgumentException if [circle]'s id or [item]'s id isn't a valid id (blank, `.`,
    *   `..`, or containing '/'), if [item] is already in the outbox, or if [file] doesn't exist.
    * @throws IOException if the media can't be written (e.g. disk full).
    * @throws org.json.JSONException if [item] can't be written as JSON (e.g. a NaN latitude).
    */
-  suspend fun add(circleId: String, item: MediaItem, file: File?) {
+  suspend fun add(circle: CareCircle, item: MediaItem, file: File?) {
+    val circleId = circle.id
     requireValidId(circleId)
     requireValidId(item.id)
     locked {
-      require(entries.value[circleId]?.containsKey(item.id) != true) {
+      require(records.value[circleId]?.containsKey(item.id) != true) {
         "Media ${item.id} is already in the outbox of $circleId"
       }
       require(file == null || file.isFile) { "No file to add at $file" }
       // mkdirs() doesn't do anything if the directory already exists
       val folder = File(dir, circleId).apply { mkdirs() }
-      val entry = OutboxEntry(item, SendState.WAITING)
+      val record = OutboxRecord(OutboxEntry(item, SendState.WAITING), circle.storageBucket)
       // before touching file: bad data is refused while the file is still where it was
-      val json = entryJson(entry)
+      val json = recordJson(record)
       var moved: File? = null // where the caller's file is, once moved into the outbox
       try {
         if (file != null) {
@@ -155,23 +194,108 @@ class MediaOutbox(
         if (moved != null) giveBack(moved, checkNotNull(file), item.id, e)
         throw e
       }
-      entries.update { it + (circleId to (it[circleId].orEmpty() + (item.id to entry))) }
+      remember(circleId, record)
     }
   }
 
   /**
-   * Sets the [SendState] of the entry [mediaId] of [circleId], on disk and in memory.
+   * Starts a send attempt of the entry [mediaId] of [circleId]: moves it from [SendState.WAITING]
+   * to [SendState.SENDING]. Its failed-attempt count stays as it is.
    *
-   * @return false if it isn't in the outbox (nothing changes).
-   * @throws IOException if the change can't be written; the entry then keeps its old state.
+   * Changes the entry only if it is [SendState.WAITING]. Otherwise there is nothing for the attempt
+   * to do: the entry is gone, already being sent, or [SendState.FAILED] (sent again only after
+   * [retry]).
+   *
+   * @return true if the entry was [SendState.WAITING] and is now [SendState.SENDING]; false if it
+   *   isn't in the outbox or is in another state (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [SendState.WAITING].
    */
-  suspend fun setState(circleId: String, mediaId: String, state: SendState): Boolean = locked {
-    val entry = entries.value[circleId]?.get(mediaId) ?: return@locked false
-    if (entry.state != state) {
-      val changed = entry.copy(state = state)
-      writeEntry(circleId, changed)
-      entries.update { it + (circleId to (it[circleId].orEmpty() + (mediaId to changed))) }
+  suspend fun startSending(circleId: String, mediaId: String): Boolean = locked {
+    moveState(circleId, mediaId, from = SendState.WAITING, to = SendState.SENDING)
+  }
+
+  /**
+   * Ends a cancelled send attempt of the entry [mediaId] of [circleId]: moves it from
+   * [SendState.SENDING] back to [SendState.WAITING], without counting a failure (the system stopped
+   * the attempt; nothing went wrong with the media).
+   *
+   * Changes the entry only if it is still [SendState.SENDING], and then only its state: a change
+   * made since the attempt started (e.g. [retry] resetting the count) is kept.
+   *
+   * @return true if the entry was [SendState.SENDING] and is now [SendState.WAITING]; false if it
+   *   isn't in the outbox or is in another state (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [SendState.SENDING]
+   *   until the next start of the app resets it.
+   */
+  suspend fun resetSending(circleId: String, mediaId: String): Boolean = locked {
+    moveState(circleId, mediaId, from = SendState.SENDING, to = SendState.WAITING)
+  }
+
+  /**
+   * Ends a failed send attempt of the entry [mediaId] of [circleId], when the failure may go away
+   * (e.g. a network error): adds 1 to its failed-attempt count, and moves it from
+   * [SendState.SENDING] back to [SendState.WAITING] for a later attempt, or to [SendState.FAILED]
+   * once the count reaches [maxAttempts]. The count and the state are saved in one write, so a
+   * crash can't keep one without the other.
+   *
+   * Changes the entry only if it is still [SendState.SENDING]: otherwise the attempt has already
+   * been ended some other way, and nothing is recorded.
+   *
+   * @param maxAttempts how many failed attempts in a row make the entry [SendState.FAILED]; at
+   *   least 1. The send passes [MediaSender.MAX_FAILED_ATTEMPTS].
+   * @return the new failed-attempt count; null if the entry isn't in the outbox or isn't
+   *   [SendState.SENDING] (nothing changes).
+   * @throws IllegalArgumentException if [maxAttempts] is less than 1.
+   * @throws IOException if the change can't be written; the entry then keeps its old count and
+   *   state.
+   */
+  suspend fun recordFailedAttempt(circleId: String, mediaId: String, maxAttempts: Int): Int? {
+    require(maxAttempts >= 1) { "maxAttempts must be at least 1, not $maxAttempts" }
+    return locked {
+      val record = records.value[circleId]?.get(mediaId)
+      if (record?.entry?.state != SendState.SENDING) return@locked null
+      val failedAttempts = record.failedAttempts + 1
+      val state = if (failedAttempts >= maxAttempts) SendState.FAILED else SendState.WAITING
+      save(circleId, record.withState(state).copy(failedAttempts = failedAttempts))
+      failedAttempts
     }
+  }
+
+  /**
+   * Ends a send attempt of the entry [mediaId] of [circleId] that failed for a reason retrying
+   * can't fix (e.g. permission denied, or its file is missing): moves it from [SendState.SENDING]
+   * to [SendState.FAILED] at once. Unlike [recordFailedAttempt], nothing is counted; the count
+   * stays as it is, and [retry] resets it.
+   *
+   * Changes the entry only if it is still [SendState.SENDING]: otherwise the attempt has already
+   * been ended some other way.
+   *
+   * @return true if the entry was [SendState.SENDING] and is now [SendState.FAILED]; false if it
+   *   isn't in the outbox or is in another state (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [SendState.SENDING]
+   *   until the next start of the app resets it.
+   */
+  suspend fun markFailed(circleId: String, mediaId: String): Boolean = locked {
+    moveState(circleId, mediaId, from = SendState.SENDING, to = SendState.FAILED)
+  }
+
+  /**
+   * Lets the [SendState.FAILED] entry [mediaId] of [circleId] be sent again: moves it back to
+   * [SendState.WAITING] and its failed-attempt count back to 0, so its next send has all its
+   * attempts again. The caller then schedules that send ([MediaSendScheduler.reschedule]).
+   *
+   * Changes the entry only if it is [SendState.FAILED]. The check and the change happen together,
+   * so if the user taps "retry" twice quickly, only the first call returns true, and the caller
+   * schedules a single send.
+   *
+   * @return true if the entry was [SendState.FAILED] and is now [SendState.WAITING]; false if it
+   *   isn't in the outbox or is in another state (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [SendState.FAILED].
+   */
+  suspend fun retry(circleId: String, mediaId: String): Boolean = locked {
+    val record = records.value[circleId]?.get(mediaId)
+    if (record?.entry?.state != SendState.FAILED) return@locked false
+    save(circleId, record.withState(SendState.WAITING).copy(failedAttempts = 0))
     true
   }
 
@@ -184,7 +308,7 @@ class MediaOutbox(
    *   next start.
    */
   suspend fun remove(circleId: String, mediaId: String): Unit = locked {
-    if (entries.value[circleId]?.containsKey(mediaId) != true) return@locked
+    if (records.value[circleId]?.containsKey(mediaId) != true) return@locked
     try {
       // the .json first: once it is gone, a .bin left alone is no longer an entry
       deleteFiles(listOf(jsonFile(circleId, mediaId), binFile(circleId, mediaId)))
@@ -212,13 +336,13 @@ class MediaOutbox(
 
   /**
    * Runs [block] alone, on [ioDispatcher], after reading the disk once if not done yet. Every call
-   * touching the disk or [entries] goes through it; the private helpers below don't take the lock
+   * touching the disk or [records] goes through it; the private helpers below don't take the lock
    * themselves, so they must only be called from inside a [block].
    */
   private suspend fun <T> locked(block: suspend () -> T): T = mutex.withLock {
     withContext(ioDispatcher) {
       if (!loaded) {
-        entries.value = readAll()
+        records.value = readAll()
         loaded = true
       }
       block()
@@ -228,15 +352,12 @@ class MediaOutbox(
   /**
    * Reads every entry from disk, and deletes what an interrupted call left behind: `.tmp` files,
    * and `.bin` files without their `.json`. An entry that can't be read (e.g. written by a newer
-   * app version) is skipped and left on disk. Must be called inside [locked].
-   *
-   * An entry still [SendState.SENDING] is set back to [SendState.WAITING], and its `.json` is
-   * rewritten so. If that write fails, the entry is still WAITING in memory (logged): its `.json`
-   * says SENDING only until the next state change, or until the next start resets it again.
+   * app version) is skipped and left on disk. Entries still [SendState.SENDING] are reset
+   * ([resetOnLoad]). Must be called inside [locked].
    */
-  private fun readAll(): Map<String, Map<String, OutboxEntry>> {
+  private fun readAll(): Map<String, Map<String, OutboxRecord>> {
     dir.mkdirs()
-    val all = mutableMapOf<String, Map<String, OutboxEntry>>()
+    val all = mutableMapOf<String, Map<String, OutboxRecord>>()
     for (folder in dir.listFiles { f -> f.isDirectory }.orEmpty()) {
       val circleId = folder.name
       val files = folder.listFiles().orEmpty()
@@ -249,66 +370,118 @@ class MediaOutbox(
           Log.w(TAG, "Couldn't delete the leftover ${leftover.name} of the outbox")
         }
       }
-      val circleEntries =
+      val circleRecords =
           ids.mapNotNull { mediaId ->
-                readEntry(circleId, mediaId)?.let { entry ->
+                readRecord(circleId, mediaId)?.let { record ->
                   mediaId to
-                      if (entry.state == SendState.SENDING) resetSend(circleId, entry) else entry
+                      if (record.entry.state == SendState.SENDING) resetOnLoad(circleId, record)
+                      else record
                 }
               }
               .toMap()
-      if (circleEntries.isNotEmpty()) all[circleId] = circleEntries
+      if (circleRecords.isNotEmpty()) all[circleId] = circleRecords
     }
     return all
   }
 
   /**
-   * [entry], whose send was interrupted, back to [SendState.WAITING], on disk and in the returned
-   * entry. A failed write is only logged (see [readAll]). Must be called inside [locked].
+   * The record stored in `{mediaId}.json`, or null (logged) if it can't be read. A missing or
+   * invalid failed-attempt count reads as 0, a missing or invalid bucket as blank (entries written
+   * before the bucket was kept). Must be called inside [locked].
    */
-  private fun resetSend(circleId: String, entry: OutboxEntry): OutboxEntry {
-    val waiting = entry.copy(state = SendState.WAITING)
+  private fun readRecord(circleId: String, mediaId: String): OutboxRecord? {
+    val record =
+        try {
+          val json = JSONObject(jsonFile(circleId, mediaId).readText())
+          val state = SendState.entries.find { it.name == json.optString(STATE) }
+          val item = mediaItemFromMap(mediaId, json.getJSONObject(ITEM).toMap())
+          val failedAttempts = json.optInt(FAILED_ATTEMPTS, 0).coerceAtLeast(0)
+          val storageBucket = json.opt(STORAGE_BUCKET) as? String ?: ""
+          if (state != null && item != null) {
+            OutboxRecord(OutboxEntry(item, state), storageBucket, failedAttempts)
+          } else {
+            null
+          }
+        } catch (e: Exception) { // unreadable file or malformed JSON
+          Log.w(TAG, "Couldn't read outbox entry $mediaId", e)
+          return null
+        }
+    if (record == null) Log.w(TAG, "Couldn't read outbox entry $mediaId: unknown type or state")
+    return record
+  }
+
+  /**
+   * [record], whose send attempt was cut short by the end of its process, back to
+   * [SendState.WAITING], on disk and in the returned record. The interrupted attempt isn't counted
+   * as failed. If the write fails (logged), the entry is WAITING in memory all the same: its
+   * `.json` still says SENDING, until its next change or the next start. Must be called inside
+   * [locked].
+   */
+  private fun resetOnLoad(circleId: String, record: OutboxRecord): OutboxRecord {
+    val waiting = record.withState(SendState.WAITING)
     try {
-      writeEntry(circleId, waiting)
+      writeRecord(circleId, waiting)
     } catch (e: Exception) {
-      Log.w(TAG, "Couldn't save outbox entry ${entry.item.id} as waiting", e)
+      Log.w(TAG, "Couldn't save outbox entry ${record.entry.item.id} as waiting", e)
     }
     return waiting
   }
 
   /**
-   * The entry stored in `{mediaId}.json`, or null (logged) if it can't be read. Must be called
-   * inside [locked].
+   * Moves the entry [mediaId] of [circleId] from [from] to [to], keeping its failed-attempt count,
+   * if it is [from]. Must be called inside [locked], which makes the check and the change one step.
+   *
+   * @return true if it moved; false if it isn't in the outbox or isn't [from] (nothing changes).
+   * @throws IOException if the change can't be written; the entry then stays [from].
    */
-  private fun readEntry(circleId: String, mediaId: String): OutboxEntry? {
-    val entry =
-        try {
-          val json = JSONObject(jsonFile(circleId, mediaId).readText())
-          val state = SendState.entries.find { it.name == json.optString(STATE) }
-          val item = mediaItemFromMap(mediaId, json.getJSONObject(ITEM).toMap())
-          if (state != null && item != null) OutboxEntry(item, state) else null
-        } catch (e: Exception) { // unreadable file or malformed JSON
-          Log.w(TAG, "Couldn't read outbox entry $mediaId", e)
-          return null
-        }
-    if (entry == null) Log.w(TAG, "Couldn't read outbox entry $mediaId: unknown type or state")
-    return entry
+  private fun moveState(
+      circleId: String,
+      mediaId: String,
+      from: SendState,
+      to: SendState,
+  ): Boolean {
+    val record = records.value[circleId]?.get(mediaId)
+    if (record?.entry?.state != from) return false
+    save(circleId, record.withState(to))
+    return true
   }
 
   /**
-   * Writes [entry] to its `.json`, replacing the previous one at once. Must be called inside
-   * [locked].
+   * Writes [record] to its `.json`, then keeps it in memory. If the write fails, memory keeps the
+   * old record, like the disk. Must be called inside [locked].
+   *
+   * @throws IOException if it can't be written.
    */
-  private fun writeEntry(circleId: String, entry: OutboxEntry) =
-      writeJson(circleId, entry.item.id, entryJson(entry))
+  private fun save(circleId: String, record: OutboxRecord) {
+    writeRecord(circleId, record)
+    remember(circleId, record)
+  }
+
+  /** Keeps [record] in memory, replacing the previous one. Must be called inside [locked]. */
+  private fun remember(circleId: String, record: OutboxRecord) {
+    val mediaId = record.entry.item.id
+    records.update { it + (circleId to (it[circleId].orEmpty() + (mediaId to record))) }
+  }
 
   /**
-   * The `.json` text of [entry].
+   * Writes [record] to its `.json`, replacing the previous one at once. Must be called inside
+   * [locked].
+   */
+  private fun writeRecord(circleId: String, record: OutboxRecord) =
+      writeJson(circleId, record.entry.item.id, recordJson(record))
+
+  /**
+   * The `.json` text of [record].
    *
    * @throws org.json.JSONException if it can't be written as JSON (e.g. a NaN latitude).
    */
-  private fun entryJson(entry: OutboxEntry): String =
-      JSONObject().put(STATE, entry.state.name).put(ITEM, entry.item.toMap().toJson()).toString()
+  private fun recordJson(record: OutboxRecord): String =
+      JSONObject()
+          .put(STATE, record.entry.state.name)
+          .put(FAILED_ATTEMPTS, record.failedAttempts)
+          .put(STORAGE_BUCKET, record.storageBucket)
+          .put(ITEM, record.entry.item.toMap().toJson())
+          .toString()
 
   /**
    * Writes [json] to the `.json` of [mediaId], replacing the previous one at once. Must be called
@@ -317,21 +490,6 @@ class MediaOutbox(
   private fun writeJson(circleId: String, mediaId: String, json: String) {
     val folder = File(dir, circleId).apply { mkdirs() }
     moveIntoPlace(folder, jsonFile(circleId, mediaId)) { it.writeText(json) }
-  }
-
-  /**
-   * Moves the file of a failed [add] back from [moved] to [source], where the caller had it. If
-   * even that fails, the file is lost: it is logged, and the reason is added to [cause]. Must be
-   * called inside [locked].
-   */
-  private fun giveBack(moved: File, source: File, mediaId: String, cause: Exception) {
-    try {
-      Files.move(moved.toPath(), source.toPath(), REPLACE_EXISTING)
-    } catch (e: Exception) {
-      cause.addSuppressed(e)
-      // its copy in the outbox is a leftover now, removed at the next start
-      Log.e(TAG, "Couldn't give back the file of media $mediaId after a failed add: it is lost", e)
-    }
   }
 
   /**
@@ -346,6 +504,21 @@ class MediaOutbox(
       Files.move(temp.toPath(), target.toPath(), ATOMIC_MOVE, REPLACE_EXISTING)
     } finally {
       temp.delete() // NOSONAR: no-op once renamed; a leftover is removed at the next start
+    }
+  }
+
+  /**
+   * Moves the file of a failed [add] back from [moved] to [source], where the caller had it. If
+   * even that fails, the file is lost: it is logged, and the reason is added to [cause]. Must be
+   * called inside [locked].
+   */
+  private fun giveBack(moved: File, source: File, mediaId: String, cause: Exception) {
+    try {
+      Files.move(moved.toPath(), source.toPath(), REPLACE_EXISTING)
+    } catch (e: Exception) {
+      cause.addSuppressed(e)
+      // its copy in the outbox is a leftover now, removed at the next start
+      Log.e(TAG, "Couldn't give back the file of media $mediaId after a failed add: it is lost", e)
     }
   }
 
@@ -366,19 +539,6 @@ class MediaOutbox(
   }
 
   /**
-   * Keeps in [entries] only those whose `.json` is still on disk, after some were deleted. Must be
-   * called inside [locked].
-   */
-  private fun forgetDeletedEntries() {
-    entries.update { all ->
-      all.mapValues { (circleId, circleEntries) ->
-            circleEntries.filterKeys { jsonFile(circleId, it).exists() }
-          }
-          .filterValues { it.isNotEmpty() }
-    }
-  }
-
-  /**
    * Deletes each of [files], trying them all even if some fail. Must be called inside [locked].
    *
    * @throws IOException if some still exist afterwards.
@@ -391,10 +551,47 @@ class MediaOutbox(
     }
   }
 
+  /**
+   * Keeps in [records] only those whose `.json` is still on disk, after some were deleted. Must be
+   * called inside [locked].
+   */
+  private fun forgetDeletedEntries() {
+    records.update { all ->
+      all.mapValues { (circleId, circleRecords) ->
+            circleRecords.filterKeys { jsonFile(circleId, it).exists() }
+          }
+          .filterValues { it.isNotEmpty() }
+    }
+  }
+
   private fun jsonFile(circleId: String, mediaId: String) =
       File(File(dir, circleId), mediaId + JSON)
 
   private fun binFile(circleId: String, mediaId: String) = File(File(dir, circleId), mediaId + BIN)
+
+  /**
+   * What a send of one entry needs ([toSend]).
+   *
+   * @property item the media, as it will be written to Firestore.
+   * @property storageBucket the bucket its file goes to, as given to [add]; blank for a text.
+   * @property file its file in the outbox, to upload; null for a text, or if the file is gone (e.g.
+   *   an earlier send moved it into the cache, then couldn't remove the entry).
+   */
+  data class ToSend(val item: MediaItem, val storageBucket: String, val file: File?)
+
+  /**
+   * What the outbox keeps of one media: its [entry], as [observe] and [get] show it, and what only
+   * the outbox and the send see: the [storageBucket] its file goes to, and how many of its send
+   * attempts failed in a row.
+   */
+  private data class OutboxRecord(
+      val entry: OutboxEntry,
+      val storageBucket: String,
+      val failedAttempts: Int = 0,
+  ) {
+    /** This record with its entry in [state], and the same bucket and failed-attempt count. */
+    fun withState(state: SendState) = copy(entry = entry.copy(state = state))
+  }
 
   private companion object {
     const val TAG = "MediaOutbox"
@@ -402,6 +599,8 @@ class MediaOutbox(
     const val BIN = ".bin"
     const val TMP = ".tmp"
     const val STATE = "state"
+    const val FAILED_ATTEMPTS = "failedAttempts"
+    const val STORAGE_BUCKET = "storageBucket"
     const val ITEM = "item"
 
     /** A circle or media id, used as a folder or file name: never a path. */

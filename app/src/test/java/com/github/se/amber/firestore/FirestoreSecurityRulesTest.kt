@@ -1,8 +1,10 @@
 // Written by Alaabrine, with assistance from
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.media.toMap
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.circle.Invitation
@@ -149,11 +151,64 @@ class FirestoreSecurityRulesTest {
   @Test
   fun mediaStoragePathMatches_requiresCirclePrefix() {
     val rules = FirestoreSecurityRules(authUid = "u1", lookup = MockDocumentLookup())
-    assertTrue(rules.mediaStoragePathMatches("c1", "careCircles/c1/media/m1.jpg"))
-    assertFalse(rules.mediaStoragePathMatches("c1", "careCircles/other/media/m1.jpg"))
-    assertFalse(rules.mediaStoragePathMatches("c1", "elsewhere/m1.jpg"))
-    assertFalse(rules.mediaStoragePathMatches("c1", "careCircles/c1/media/subfolder/nested.jpg"))
-    assertFalse(rules.mediaStoragePathMatches("c1", "careCircles/c1/admin/secret.txt"))
+    fun pictureAt(path: String) = MediaItem.Picture(storagePath = path)
+    assertTrue(rules.mediaStoragePathMatches("c1", pictureAt("careCircles/c1/media/m1.jpg")))
+    assertFalse(rules.mediaStoragePathMatches("c1", pictureAt("careCircles/other/media/m1.jpg")))
+    assertFalse(rules.mediaStoragePathMatches("c1", pictureAt("elsewhere/m1.jpg")))
+    assertFalse(
+        rules.mediaStoragePathMatches("c1", pictureAt("careCircles/c1/media/subfolder/nested.jpg"))
+    )
+    assertFalse(rules.mediaStoragePathMatches("c1", pictureAt("careCircles/c1/admin/secret.txt")))
+  }
+
+  @Test
+  fun mediaStoragePathMatches_acceptsAnEmptyPathOnlyForAText() {
+    val rules = FirestoreSecurityRules(authUid = "u1", lookup = MockDocumentLookup())
+    assertTrue(rules.mediaStoragePathMatches("c1", MediaItem.Text(storagePath = "")))
+    assertFalse(rules.mediaStoragePathMatches("c1", MediaItem.Picture(storagePath = "")))
+    assertFalse(rules.mediaStoragePathMatches("c1", MediaItem.Audio(storagePath = "")))
+    assertFalse(
+        rules.mediaStoragePathMatches(
+            "c1",
+            MediaItem.Text(storagePath = "careCircles/c1/media/t.jpg"),
+        )
+    )
+  }
+
+  @Test
+  fun onlyEditableMediaFieldsChanged_refusesAuthorFileTypeStatusAndCreationTime() {
+    val rules = FirestoreSecurityRules(authUid = "u1", lookup = MockDocumentLookup())
+    val picture =
+        MediaItem.Picture(
+            id = "m1",
+            authorId = "u1",
+            storagePath = "careCircles/c1/media/m1.jpg",
+            createdAt = 1L,
+        )
+    assertTrue(
+        rules.onlyEditableMediaFieldsChanged(
+            picture,
+            picture.copy(description = "Beach", shownIds = listOf("u2")),
+        )
+    )
+    assertFalse(
+        rules.onlyEditableMediaFieldsChanged(picture, picture.copy(status = MediaStatus.REJECTED))
+    )
+    assertFalse(rules.onlyEditableMediaFieldsChanged(picture, picture.copy(createdAt = 2L)))
+    assertFalse(
+        rules.onlyEditableMediaFieldsChanged(
+            picture,
+            picture.copy(storagePath = "careCircles/c1/media/other.jpg"),
+        )
+    )
+    assertFalse(rules.onlyEditableMediaFieldsChanged(picture, picture.copy(authorId = "u2")))
+    // a picture turned into a text would leave its file without a document
+    assertFalse(
+        rules.onlyEditableMediaFieldsChanged(
+            picture,
+            MediaItem.Text(id = "m1", authorId = "u1", createdAt = 1L),
+        )
+    )
   }
 
   // ---------------------------------------------------------------------------
@@ -519,8 +574,11 @@ private class FirestoreSecurityRules(
   fun placesChangedOnlyByCaregiver(before: Map<*, *>, after: Map<*, *>): Boolean =
       before == after || isCaregiver()
 
-  fun mediaStoragePathMatches(circleId: String, storagePath: String): Boolean =
-      storagePath.matches(Regex("^careCircles/$circleId/media/[^/]+$"))
+  // A text has no file: its storagePath must be empty. Any other media's file is in the circle's
+  // media folder.
+  fun mediaStoragePathMatches(circleId: String, resource: MediaItem): Boolean =
+      if (resource is MediaItem.Text) resource.storagePath.isEmpty()
+      else resource.storagePath.matches(Regex("^careCircles/$circleId/media/[^/]+$"))
 
   fun memberCircleFieldEdit(circleId: String, before: CareCircle, after: CareCircle): Boolean {
     if (!isMember(circleId)) return false
@@ -594,14 +652,21 @@ private class FirestoreSecurityRules(
       isMember(circleId) &&
           resource.id.isNotEmpty() &&
           resource.authorId == authUid &&
-          mediaStoragePathMatches(circleId, resource.storagePath)
+          mediaStoragePathMatches(circleId, resource)
+
+  // What the author may change in a media; the stored fields are those of toMap, plus its id.
+  fun onlyEditableMediaFieldsChanged(before: MediaItem, after: MediaItem): Boolean {
+    val old = before.toMap() + ("id" to before.id)
+    val new = after.toMap() + ("id" to after.id)
+    val editable =
+        setOf("description", "date", "location", "shownIds", "authorizedIds", "text", "transcript")
+    return (old.keys + new.keys).filter { old[it] != new[it] }.all { it in editable }
+  }
 
   fun canUpdateMedia(circleId: String, before: MediaItem, after: MediaItem): Boolean =
       isMember(circleId) &&
           before.authorId == authUid &&
-          after.id == before.id &&
-          after.authorId == before.authorId &&
-          mediaStoragePathMatches(circleId, after.storagePath)
+          onlyEditableMediaFieldsChanged(before, after)
 
   fun canDeleteMedia(circleId: String, before: MediaItem): Boolean =
       isMember(circleId) && before.authorId == authUid

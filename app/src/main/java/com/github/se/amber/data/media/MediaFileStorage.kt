@@ -4,6 +4,7 @@ package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.isMediaOf
 import java.io.File
 
 /**
@@ -15,8 +16,8 @@ import java.io.File
  * assigned yet: [MediaRepository] passes that error on as its own, so a fake should throw it too.
  *
  * Used by [MediaRepositoryFirebase] only, never by ViewModels: it passes its downloads to
- * [MediaFileCache.getFile], and will upload a media's file when sending it and delete the file of a
- * deleted media.
+ * [MediaFileCache.getFile], deletes the file of a deleted media, and uploads a media's file when
+ * sending it.
  */
 interface MediaFileStorage {
   /**
@@ -58,4 +59,34 @@ interface MediaFileStorage {
    *   denied).
    */
   suspend fun delete(circle: CareCircle, storagePath: String)
+}
+
+/** Content type of each file extension the Storage security rules accept for a media. */
+private val CONTENT_TYPES = mapOf("jpg" to "image/jpeg", "png" to "image/png", "m4a" to "audio/mp4")
+
+/** Largest media file the Storage security rules accept, in bytes (25 MiB). */
+private const val MAX_FILE_BYTES = 25L * 1024 * 1024
+
+/**
+ * Checks what the Storage security rules check before accepting [file] as [item]'s file in [circle]
+ * (except the uploader and the bucket): [item] has a file, its path is in [circle]'s media folder
+ * with a .jpg, .png or .m4a extension, and [file] is between 1 byte and 25 MiB. Used by
+ * [MediaFileStorage.upload] and, so a media the rules would refuse never waits in the outbox, by
+ * [MediaRepositoryFirebase.addMedia].
+ *
+ * @return the content type the rules expect for that extension.
+ * @throws IllegalArgumentException if one of these doesn't hold.
+ */
+internal fun requireUploadable(circle: CareCircle, item: MediaItem, file: File): String {
+  require(item !is MediaItem.Text) { "Media ${item.id} is a text: it has no file to upload" }
+  val extension = item.storagePath.substringAfterLast('.', missingDelimiterValue = "")
+  val contentType =
+      requireNotNull(CONTENT_TYPES[extension]) {
+        "Media ${item.id} (${item.storagePath}) has no .jpg, .png or .m4a extension"
+      }
+  require(item.isMediaOf(circle.id)) {
+    "Media ${item.id} (${item.storagePath}) isn't a media of care circle ${circle.id}"
+  }
+  require(file.length() in 1..MAX_FILE_BYTES) { "Media ${item.id}'s file is empty or over 25 MiB" }
+  return contentType
 }

@@ -12,14 +12,16 @@ enum class SendState {
 
   /**
    * Being sent right now. If the app is killed meanwhile, the media is back to [WAITING] the next
-   * time the app starts, and its send is attempted again.
+   * time the app starts, and its send is attempted again (its job is scheduled again if it was
+   * lost).
    */
   SENDING,
 
   /**
    * Won't be sent again on its own: retrying can't help (e.g. permission denied, or its file is
-   * missing), or every attempt failed. The user can retry it ([MediaRepository.retrySend]) or
-   * discard it ([MediaRepository.discardUnsent]).
+   * missing), or its send failed too many times in a row (10; a run the system stops doesn't
+   * count). The user can retry it ([MediaRepository.retrySend]) or discard it
+   * ([MediaRepository.discardUnsent]).
    */
   FAILED,
 }
