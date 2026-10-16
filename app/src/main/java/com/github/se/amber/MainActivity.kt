@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -11,8 +12,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.credentials.CredentialManager
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -62,10 +65,10 @@ class MainActivity : ComponentActivity() {
   }
 }
 
-@Suppress("java:S1135")
 @Composable
 fun AmberApp(
-    // TODO add context and credential manager
+    // Gives Google sign-in its account; tests pass a fake one
+    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
     navController: NavHostController = rememberNavController(),
     startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser),
 ) {
@@ -85,8 +88,9 @@ fun AmberApp(
       // SignInScreen
       composable(route = AuthScreen.Auth.route) {
         EmailSignInScreen(
+            credentialManager = credentialManager,
             // onContinue will be implemented in M2/M3
-            onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) }
+            onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) },
         )
       }
     }

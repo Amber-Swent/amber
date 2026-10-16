@@ -1,6 +1,7 @@
 // Written by GitHub Copilot.
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const assert = require("node:assert/strict");
 const {createHash} = require("node:crypto");
 const Module = require("node:module");
@@ -340,6 +341,34 @@ test("provisioning rejects absent project configuration and skips irrelevant doc
       assert.deepEqual(state.updates, []);
     });
   }
+});
+
+test("provisioning does nothing in the emulator, which can't create buckets", async () => {
+  process.env.GCLOUD_PROJECT = "test-project";
+  process.env.FUNCTIONS_EMULATOR = "true";
+  resetState();
+  const untouchable = () => assert.fail("no real Google API may be called in the emulator");
+  // a circle that would be provisioned outside the emulator
+  provisionSetup({
+    circle: {storageBucket: ""},
+    bucket: configuredBucket({create: untouchable, onSetMetadata: untouchable}),
+    securityRules: {
+      getStorageRuleset: untouchable,
+      createRulesFileFromSource: untouchable,
+      createRuleset: untouchable,
+      releaseStorageRuleset: untouchable,
+    },
+  });
+  const {provisionCareCircleBucket} = callableModule();
+
+  try {
+    await provisionCareCircleBucket({params: {circleId: "circle-1"}});
+  } finally {
+    delete process.env.FUNCTIONS_EMULATOR;
+  }
+
+  assert.equal(state.circleReadIndex, 0);
+  assert.deepEqual(state.updates, []);
 });
 
 test("provisions a bucket, creates changed rules, and records its name", async () => {
