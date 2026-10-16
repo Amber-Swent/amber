@@ -121,10 +121,10 @@ sealed class CaregiverScreen(
           isTopLevelDestination = true,
       )
 
-  data object SeeInvitationCode :
+  data object CreateInvitationCode :
       CaregiverScreen(
-          route = "see_invitation_code",
-          name = "See the invitation code",
+          route = "create_invitation_code",
+          name = "Create an invitation code",
       )
 }
 

@@ -171,6 +171,7 @@ dependencies {
   // UI Tests
   globalTestImplementation(libs.compose.test.junit)
   debugImplementation(libs.compose.test.manifest)
+  androidTestImplementation(libs.androidx.navigation.testing)
 
   // --------- Kaspresso test framework ----------
   globalTestImplementation(libs.kaspresso)

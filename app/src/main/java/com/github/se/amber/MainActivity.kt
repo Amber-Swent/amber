@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -21,6 +22,12 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
 import com.github.se.amber.ui.accountCreation.CreateProfileScreen
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
+import com.github.se.amber.ui.authentication.EmailSignInScreen
+import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
+import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
+import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.upload.UploadScreen
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -31,6 +38,9 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
+import com.github.se.amber.ui.onboarding.CreateCareCircleScreen
+import com.github.se.amber.ui.patient.PatientHomeScreen
+import com.github.se.amber.ui.patient.see_pictures.SeePicturesScreen
 import com.github.se.amber.ui.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -56,10 +66,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AmberApp(
     // TODO add context and credential manager
-    startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser)
+    navController: NavHostController = rememberNavController(),
+    startDestination: String = startDestinationForAuthState(FirebaseAuth.getInstance().currentUser),
 ) {
-  val navController: NavHostController = rememberNavController()
-  val navigationActions = NavigationActions(navController)
+
+  val navigationActions = remember(navController) { NavigationActions(navController) }
 
   NavHost(
       navController = navController,
@@ -72,9 +83,11 @@ fun AmberApp(
         route = NavGraphs.AUTH,
     ) {
       // SignInScreen
-      @Suppress("java:S1135")
       composable(route = AuthScreen.Auth.route) {
-        // TODO
+        EmailSignInScreen(
+            // onContinue will be implemented in M2/M3
+            onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) }
+        )
       }
     }
 
@@ -109,9 +122,10 @@ fun AmberApp(
             onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },
         )
       }
-      @Suppress("java:S1135")
       composable(route = OnboardingScreen.CreateCareCircle.route) {
-        // Todo
+        CreateCareCircleScreen(
+            onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) }
+        )
       }
       composable(route = OnboardingScreen.EnterInvitation.route) {
         InvitationRedemptionScreen(
@@ -128,33 +142,56 @@ fun AmberApp(
         startDestination = CaregiverScreen.Home.route,
         route = NavGraphs.CAREGIVER,
     ) {
-      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Home.route) {
-        // TODO
+        CaregiverHomeScreen(
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+        )
       }
-      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Upload.route) {
-        // TODO
+        UploadScreen(
+            // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
+            onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            // For M1 we have decided that the back button on the top bar redirect to the Home
+            // Screen if we were on a top level destination
+            checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+        )
       }
       @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadText.route) {
-        // TODO
+        // TODO in M2/M3
       }
-      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadPicture.route) {
-        // TODO
+        UploadPictureScreen(
+            // For M1 at least, may change for M2
+            onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            goBack = { navigationActions.goBack() },
+        )
       }
       @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadAudio.route) {
-        // TODO
+        // TODO in M2/M3
       }
-      @Suppress("java:S1135")
       composable(route = CaregiverScreen.Parameters.route) {
-        // TODO
+        CaregiverParameterScreen(
+            // For M1 we have decided that the back button on the top bar redirect to the Home
+            // Screen if we were on a top level destination
+            onCheckout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onCreateInvitationClick = {
+              navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
+            },
+            onEnterInvitationClick = {
+              navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
+            },
+        )
       }
-      @Suppress("java:S1135")
-      composable(route = CaregiverScreen.SeeInvitationCode.route) {
-        // TODO
+      composable(route = CaregiverScreen.CreateInvitationCode.route) {
+        CreateInvitationScreen(
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            checkout = { navigationActions.goBack() },
+        )
       }
     }
 
@@ -163,13 +200,20 @@ fun AmberApp(
         startDestination = PatientScreen.Home.route,
         route = NavGraphs.PATIENT,
     ) {
-      @Suppress("java:S1135")
       composable(route = PatientScreen.Home.route) {
-        // TODO
+        PatientHomeScreen(
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
       }
-      @Suppress("java:S1135")
       composable(route = PatientScreen.SeePictures.route) {
-        // TODO
+        SeePicturesScreen(
+            // For M1 we have decided that the back button on the top bar redirect to the Home
+            // Screen
+            // if we were on a top level destination
+            onBackClick = { navigationActions.navigateToGraph(NavGraphs.PATIENT) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
       }
     }
   }
