@@ -75,11 +75,11 @@ sealed class PatientTab(
 ) : Tab {
   data object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
 
-  data object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
+  data object SeeMedias : PatientTab("Medias", Icons.Outlined.Photo, PatientScreen.SeeMedias)
 
   companion object {
     val patientTabs: List<PatientTab>
-      get() = listOf(Home, SeePictures)
+      get() = listOf(Home, SeeMedias)
   }
 }
 

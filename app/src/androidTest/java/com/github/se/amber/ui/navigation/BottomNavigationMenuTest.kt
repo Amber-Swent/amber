@@ -17,7 +17,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.github.se.amber.ui.navigation.PatientTab.Companion.patientTabs
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -140,7 +139,7 @@ class BottomNavigationMenuTest {
     checkTabIsNotDisplayed(CaregiverTab.Home)
     checkTabIsNotDisplayed(CaregiverTab.Upload)
     checkTabIsNotDisplayed(PatientTab.Home)
-    checkTabIsNotDisplayed(PatientTab.SeePictures)
+    checkTabIsNotDisplayed(PatientTab.SeeMedias)
   }
 
   // ---------- Selection state (fixed selectedTab) ----------
@@ -168,7 +167,7 @@ class BottomNavigationMenuTest {
   fun patientSelectedTabIsSelected() {
     setMenu(selectedTab = PatientTab.Home, tabs = PatientTab.patientTabs)
     checkTabIsSelected(PatientTab.Home)
-    checkTabIsNotSelected(PatientTab.SeePictures)
+    checkTabIsNotSelected(PatientTab.SeeMedias)
   }
 
   // ---------- Selection state (real state holder) ----------
@@ -184,9 +183,9 @@ class BottomNavigationMenuTest {
   fun clickingPatientTabSelectsIt() {
     setStatefulMenu(initialTab = PatientTab.Home, tabs = PatientTab.patientTabs)
 
-    tabNode(PatientTab.SeePictures).performClick()
+    tabNode(PatientTab.SeeMedias).performClick()
 
-    checkTabIsSelected(PatientTab.SeePictures)
+    checkTabIsSelected(PatientTab.SeeMedias)
   }
 
   @Test
