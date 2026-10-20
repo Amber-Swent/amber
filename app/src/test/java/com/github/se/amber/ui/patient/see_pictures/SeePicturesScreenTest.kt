@@ -16,6 +16,10 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreenTestTags
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesUIState
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesViewModel
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -79,11 +83,11 @@ class SeePicturesScreenTest {
     val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
     composeTestRule.setContent {
       AmberAppTheme(dynamicColor = false) {
-        SeePicturesScreen(
-            pictureViewModel = viewModel,
-            onBackClick = onBackClick,
-            onTabSelected = {},
-        )
+          SeePicturesScreen(
+              pictureViewModel = viewModel,
+              onBackClick = onBackClick,
+              onTabSelected = {},
+          )
       }
     }
     composeTestRule.waitForIdle()
