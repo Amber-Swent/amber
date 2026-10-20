@@ -273,5 +273,6 @@ private fun DisplayWhoIsInvolved(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun UploadPictureScreenPreview() {
+
   AmberAppTheme(dynamicColor = false) { UploadPictureScreen() }
 }
