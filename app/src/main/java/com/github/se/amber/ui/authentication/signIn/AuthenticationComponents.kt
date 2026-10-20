@@ -154,8 +154,7 @@ internal fun AuthenticationTextField(
     placeholder: String,
     keyboardOptions: KeyboardOptions,
     modifier: Modifier = Modifier,
-    visualTransformation: VisualTransformation =
-        VisualTransformation.None,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
   OutlinedTextField(
       value = value,

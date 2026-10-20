@@ -35,7 +35,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] state, email validation, and Google sign-in behavior.
+ * Tests [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] state, email
+ * validation, and Google sign-in behavior.
  *
  * Mocked Credential Manager and repository responses cover successful sign-in, failures,
  * cancellation, missing credentials, and repeated attempts without live services.

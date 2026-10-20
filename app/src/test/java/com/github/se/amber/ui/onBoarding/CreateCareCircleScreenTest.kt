@@ -30,11 +30,11 @@ class CreateCareCircleScreenTest {
   private fun showContent(state: CreateCareCircleUiState = CreateCareCircleUiState()) {
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-          CreateCareCircleContent(
-              uiState = state,
-              onNameChange = { enteredName = it },
-              onSubmit = { submittedCount++ },
-          )
+        CreateCareCircleContent(
+            uiState = state,
+            onNameChange = { enteredName = it },
+            onSubmit = { submittedCount++ },
+        )
       }
     }
   }

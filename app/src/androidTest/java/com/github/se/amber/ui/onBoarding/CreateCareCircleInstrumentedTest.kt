@@ -41,10 +41,10 @@ class CreateCareCircleInstrumentedTest {
     createdCount.set(0)
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-          CreateCareCircleScreen(
-              onCreated = { createdCount.incrementAndGet() },
-              viewModel = viewModel,
-          )
+        CreateCareCircleScreen(
+            onCreated = { createdCount.incrementAndGet() },
+            viewModel = viewModel,
+        )
       }
     }
   }

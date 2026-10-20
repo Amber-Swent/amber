@@ -55,12 +55,12 @@ class RoleLoadingScreenTest {
   private fun setScreen(initialState: RoleLoadingUIState) {
     stateFlow.value = initialState
     composeTestRule.setContent {
-        RoleLoadingScreen(
-            onRoleLoaded = { loadedRoles.add(it) },
-            noProfile = { noProfileCount++ },
-            onSignedOut = { signedOutCount++ },
-            viewModel = viewModel,
-        )
+      RoleLoadingScreen(
+          onRoleLoaded = { loadedRoles.add(it) },
+          noProfile = { noProfileCount++ },
+          onSignedOut = { signedOutCount++ },
+          viewModel = viewModel,
+      )
     }
   }
 

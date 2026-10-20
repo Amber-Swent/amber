@@ -4,12 +4,11 @@ import androidx.compose.ui.unit.dp
 
 /* App's primary padding value */
 
-/** THIS FILE WILL BE DELETED
- * ONCE THE NECESSARY CHANGES HAVE BEEN MADE INSIDE THE UI FILES
+/**
+ * THIS FILE WILL BE DELETED ONCE THE NECESSARY CHANGES HAVE BEEN MADE INSIDE THE UI FILES
  *
  * Use the one in Constant.kt
  */
-
 val PADDING_SMALL = 8.dp
 val PADDING_REGULAR = 12.dp
 val PADDING_MEDIUM = 16.dp

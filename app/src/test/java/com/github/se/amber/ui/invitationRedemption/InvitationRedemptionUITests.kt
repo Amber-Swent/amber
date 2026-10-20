@@ -52,14 +52,14 @@ class InvitationRedemptionUITests {
             invitationRedemptionRepository = repository,
         )
     composeTestRule.setContent {
-        InvitationRedemptionScreen(
-            viewModel = viewModel,
-            onRedeemSuccess = { result ->
-                redeemSuccessCount++
-                lastRedemptionResult = result
-            },
-            onBack = { backCount++ },
-        )
+      InvitationRedemptionScreen(
+          viewModel = viewModel,
+          onRedeemSuccess = { result ->
+            redeemSuccessCount++
+            lastRedemptionResult = result
+          },
+          onBack = { backCount++ },
+      )
     }
     return viewModel
   }

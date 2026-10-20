@@ -32,7 +32,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionViewModel] with a mocked [InvitationRedemptionRepository].
+ * Unit tests for
+ * [com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionViewModel] with a
+ * mocked [InvitationRedemptionRepository].
  *
  * Repository Firebase/Functions coverage lives in FirebaseInvitationRedemptionRepositoryTest; this
  * class only verifies ViewModel validation and UI-state transitions.

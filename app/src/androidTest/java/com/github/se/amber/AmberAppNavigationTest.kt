@@ -10,10 +10,8 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
-import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
-import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags.tabTag
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -23,6 +21,8 @@ import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceTestTags
+import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule

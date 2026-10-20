@@ -4,7 +4,6 @@ import android.R.id.primary
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.Button
@@ -13,19 +12,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.github.se.amber.model.media.MediaItem
 
-/** App's Constant value
+/**
+ * App's Constant value
  *
  * E.g. padding, size and any other "Magic Number"
  */
-
 
 // ------- PADDING -------
 val PADDING_MINI = 4.dp
@@ -40,22 +36,22 @@ val PATIENT_PADDING_MEDIUM = 24.dp
 val PATIENT_PADDING_BIG = 32.dp
 val PATIENT_PADDING_ENORMOUS = 64.dp
 
-/** Preview of padding
- * Useful to visualize each value
+/**
+ * Preview of padding Useful to visualize each value
  *
  * The CAREGIVER_PADDING_MEDIUM is a default value.
  */
 @Preview(showBackground = true)
 @Composable
 private fun PaddingPreview() {
-    AmberAppTheme(
-        content = {
-            Text(
-                text = "Hello",
-                modifier = Modifier.padding(CAREGIVER_PADDING_MEDIUM)
-            )
-        }
-    )
+  AmberAppTheme(
+      content = {
+        Text(
+            text = "Hello",
+            modifier = Modifier.padding(CAREGIVER_PADDING_MEDIUM),
+        )
+      }
+  )
 }
 
 // ------- BOX -------
@@ -93,25 +89,27 @@ val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 // It may be necessary to add some Small, Medium, Big Wight.
 // If it's the case, do a specific Pr for this
 const val CAREGIVER_BUTTON_WIGHT = 0.5f
+
 /** Preview of CaregiverButtonSize using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
 private fun CaregiverButtonSizePreview() {
-    AmberAppTheme(
-        darkTheme = false,
-        dynamicColor = false,
-    content = {
+  AmberAppTheme(
+      darkTheme = false,
+      dynamicColor = false,
+      content = {
         Button(
-        onClick = { },
-        modifier = Modifier
-            .height(CAREGIVER_BUTTON_HEIGHT_MEDIUM)
-            .fillMaxWidth(CAREGIVER_BUTTON_WIGHT),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-        ){
-        Icon(imageVector = Icons.Outlined.Home, contentDescription = "Home", tint = Color.Black)
+            onClick = {},
+            modifier =
+                Modifier.height(CAREGIVER_BUTTON_HEIGHT_MEDIUM)
+                    .fillMaxWidth(CAREGIVER_BUTTON_WIGHT),
+            colors =
+                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        ) {
+          Icon(imageVector = Icons.Outlined.Home, contentDescription = "Home", tint = Color.Black)
         }
-    }
-    )
+      },
+  )
 }
 
 // ------- PATIENT BUTTON -------
@@ -127,19 +125,19 @@ const val PATIENT_BUTTON_WIGHT = 0.7f
 @Preview(showBackground = true)
 @Composable
 private fun PatientButtonSizePreview() {
-    AmberAppTheme(
-        darkTheme = false,
-        dynamicColor = false,
-        content = {
-            Button(
-                onClick = { },
-                modifier = Modifier
-                    .height(PATIENT_BUTTON_HEIGHT_MEDIUM)
-                    .fillMaxWidth(PATIENT_BUTTON_WIGHT),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            ){
-                Icon(imageVector = Icons.Outlined.Home, contentDescription = "Home", tint = Color.Black)
-            }
+  AmberAppTheme(
+      darkTheme = false,
+      dynamicColor = false,
+      content = {
+        Button(
+            onClick = {},
+            modifier =
+                Modifier.height(PATIENT_BUTTON_HEIGHT_MEDIUM).fillMaxWidth(PATIENT_BUTTON_WIGHT),
+            colors =
+                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        ) {
+          Icon(imageVector = Icons.Outlined.Home, contentDescription = "Home", tint = Color.Black)
         }
-    )
+      },
+  )
 }

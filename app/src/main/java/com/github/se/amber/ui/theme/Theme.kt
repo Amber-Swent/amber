@@ -15,7 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-/** Amber Color Scheme for dark Mode
+/**
+ * Amber Color Scheme for dark Mode
  *
  * If an element doesn't fit inside one of the description, use the color define in [Color]
  */
@@ -35,14 +36,13 @@ private val DarkColorScheme =
         /** Button, unselected icon */
         tertiary = lightGray,
         onTertiary = darkCyan,
-
         surface = darkCyan,
         onSurface = Color.White,
-
         error = Color.White,
     )
 
-/** Amber Color Scheme for light Mode
+/**
+ * Amber Color Scheme for light Mode
  *
  * If an element doesn't fit inside one of the description, use the color define in [Color]
  */
@@ -62,17 +62,15 @@ private val LightColorScheme =
         /** Button, unselected icon */
         tertiary = lightOrange,
         onTertiary = Color.Black,
-
         surface = Color.White,
         onSurface = Color.Black,
-
         error = darkOrange,
     )
 
 @Composable
 fun AmberAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,     // Dynamic color is available on Android 12+
+    dynamicColor: Boolean = false, // Dynamic color is available on Android 12+
     content: @Composable () -> Unit,
 ) {
   val colorScheme =
@@ -84,14 +82,13 @@ fun AmberAppTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
       }
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                !darkTheme
-        }
+  val view = LocalView.current
+  if (!view.isInEditMode) {
+    SideEffect {
+      val window = (view.context as Activity).window
+      WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
     }
+  }
 
-    MaterialTheme(colorScheme = colorScheme, content = content)
+  MaterialTheme(colorScheme = colorScheme, content = content)
 }

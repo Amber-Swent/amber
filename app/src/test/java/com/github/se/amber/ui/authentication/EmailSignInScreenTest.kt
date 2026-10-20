@@ -31,8 +31,9 @@ import org.robolectric.RobolectricTestRunner
 /**
  * Tests the email sign-in screen's rendering, input, loading state, and callbacks with Compose.
  *
- * A real [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] covers email entry, Continue validation, and existing-user
- * navigation. Mocked ViewModels isolate Google button clicks and error-clearing behavior.
+ * A real [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] covers email entry,
+ * Continue validation, and existing-user navigation. Mocked ViewModels isolate Google button clicks
+ * and error-clearing behavior.
  */
 @RunWith(RobolectricTestRunner::class)
 class EmailSignInScreenTest {
@@ -61,12 +62,12 @@ class EmailSignInScreenTest {
   /** Composes the screen with [model] and counts navigation callback invocations. */
   private fun setScreen(model: EmailSignInViewModel = viewModel) {
     composeTestRule.setContent {
-        EmailSignInScreen(
-            credentialManager = credentialManager,
-            emailSignInViewModel = model,
-            onContinue = { continueCount++ },
-            onGoogleSignIn = { googleSignInCount++ },
-        )
+      EmailSignInScreen(
+          credentialManager = credentialManager,
+          emailSignInViewModel = model,
+          onContinue = { continueCount++ },
+          onGoogleSignIn = { googleSignInCount++ },
+      )
     }
   }
 
