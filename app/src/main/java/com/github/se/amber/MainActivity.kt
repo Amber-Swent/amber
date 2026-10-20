@@ -43,6 +43,7 @@ import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
 import com.github.se.amber.ui.onboarding.CreateCareCircleScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
+import com.github.se.amber.ui.patient.seeMedias.SeeMediasScreen
 import com.github.se.amber.ui.patient.see_pictures.SeePicturesScreen
 import com.github.se.amber.ui.roleloading.RoleLoadingScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -210,12 +211,14 @@ fun AmberApp(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
+      composable(route = PatientScreen.SeeMedias.route){
+          SeeMediasScreen(
+              // TODO add callbacks when the screen is finished
+          )
+      }
       composable(route = PatientScreen.SeePictures.route) {
         SeePicturesScreen(
-            // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen
-            // if we were on a top level destination
-            onBackClick = { navigationActions.navigateToGraph(NavGraphs.PATIENT) },
+            onBackClick = { navigationActions.goBack()},
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
