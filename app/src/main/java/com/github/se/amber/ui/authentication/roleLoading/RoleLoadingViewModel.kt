@@ -1,5 +1,5 @@
 // this code was written with the aid of AI
-package com.github.se.amber.ui.roleloading
+package com.github.se.amber.ui.authentication.roleLoading
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

@@ -1,5 +1,5 @@
 // This file was written with the aid of AI.
-package com.github.se.amber.ui.onboarding
+package com.github.se.amber.ui.onBoarding
 
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -9,6 +9,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleContent
+import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleTestTags
+import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleUiState
 import com.github.se.amber.ui.theme.AmberAppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -27,11 +30,11 @@ class CreateCareCircleScreenTest {
   private fun showContent(state: CreateCareCircleUiState = CreateCareCircleUiState()) {
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleContent(
-            uiState = state,
-            onNameChange = { enteredName = it },
-            onSubmit = { submittedCount++ },
-        )
+          CreateCareCircleContent(
+              uiState = state,
+              onNameChange = { enteredName = it },
+              onSubmit = { submittedCount++ },
+          )
       }
     }
   }

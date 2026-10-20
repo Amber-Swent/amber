@@ -1,6 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
-package com.github.se.amber.ui.accountCreation.caregiverOnboarding
+package com.github.se.amber.ui.onBoarding.careCircle
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.components.AmberHeader
+import com.github.se.amber.ui.onBoarding.AmberHeader
 import com.github.se.amber.ui.theme.BUTTON_HEIGHT
 import com.github.se.amber.ui.theme.BUTTON_HEIGHT_TALL
 import com.github.se.amber.ui.theme.PADDING_BIG

@@ -1,5 +1,5 @@
 // This file was written with the aid of AI.
-package com.github.se.amber.ui.onboarding
+package com.github.se.amber.ui.onBoarding
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,6 +12,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleScreen
+import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleTestTags
+import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleViewModel
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
@@ -38,10 +41,10 @@ class CreateCareCircleInstrumentedTest {
     createdCount.set(0)
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleScreen(
-            onCreated = { createdCount.incrementAndGet() },
-            viewModel = viewModel,
-        )
+          CreateCareCircleScreen(
+              onCreated = { createdCount.incrementAndGet() },
+              viewModel = viewModel,
+          )
       }
     }
   }

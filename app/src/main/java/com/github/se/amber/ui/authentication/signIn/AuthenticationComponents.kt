@@ -1,5 +1,5 @@
 // This file was written with the aid of AI
-package com.github.se.amber.ui.authentication
+package com.github.se.amber.ui.authentication.signIn
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.theme.PADDING_BIG
@@ -153,8 +154,8 @@ internal fun AuthenticationTextField(
     placeholder: String,
     keyboardOptions: KeyboardOptions,
     modifier: Modifier = Modifier,
-    visualTransformation: androidx.compose.ui.text.input.VisualTransformation =
-        androidx.compose.ui.text.input.VisualTransformation.None,
+    visualTransformation: VisualTransformation =
+        VisualTransformation.None,
 ) {
   OutlinedTextField(
       value = value,

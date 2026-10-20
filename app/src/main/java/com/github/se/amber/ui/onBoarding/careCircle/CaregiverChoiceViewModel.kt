@@ -1,6 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of an AI coding agent
-package com.github.se.amber.ui.accountCreation.caregiverOnboarding
+package com.github.se.amber.ui.onBoarding.careCircle
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

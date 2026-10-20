@@ -15,6 +15,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+/** Amber Color Scheme for dark Mode
+ *
+ * If an element doesn't fit inside one of the description, use the color define in [Color]
+ */
 private val DarkColorScheme =
     darkColorScheme(
         background = darkCyan,
@@ -38,6 +42,10 @@ private val DarkColorScheme =
         error = Color.White,
     )
 
+/** Amber Color Scheme for light Mode
+ *
+ * If an element doesn't fit inside one of the description, use the color define in [Color]
+ */
 private val LightColorScheme =
     lightColorScheme(
         background = Color.White,
@@ -85,5 +93,5 @@ fun AmberAppTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+    MaterialTheme(colorScheme = colorScheme, content = content)
 }

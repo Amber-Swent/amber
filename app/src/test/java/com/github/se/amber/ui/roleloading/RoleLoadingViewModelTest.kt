@@ -7,6 +7,8 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
+import com.github.se.amber.ui.authentication.roleLoading.RoleState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

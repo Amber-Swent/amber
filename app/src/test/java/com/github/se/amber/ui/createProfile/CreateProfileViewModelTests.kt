@@ -6,9 +6,9 @@ import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.accountCreation.CreateProfileUiState
-import com.github.se.amber.ui.accountCreation.CreateProfileViewModel
-import com.github.se.amber.ui.accountCreation.FILL_OUT_MESSAGE
+import com.github.se.amber.ui.onBoarding.createProfile.CreateProfileUiState
+import com.github.se.amber.ui.onBoarding.createProfile.CreateProfileViewModel
+import com.github.se.amber.ui.onBoarding.createProfile.FILL_OUT_MESSAGE
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

@@ -18,6 +18,11 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.onBoarding.invitationRedemption.CODE_REQUIRED_MESSAGE
+import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionScreen
+import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionTestTags
+import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionViewModel
+import com.github.se.amber.ui.onBoarding.invitationRedemption.toActionableMessage
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -47,14 +52,14 @@ class InvitationRedemptionUITests {
             invitationRedemptionRepository = repository,
         )
     composeTestRule.setContent {
-      InvitationRedemptionScreen(
-          viewModel = viewModel,
-          onRedeemSuccess = { result ->
-            redeemSuccessCount++
-            lastRedemptionResult = result
-          },
-          onBack = { backCount++ },
-      )
+        InvitationRedemptionScreen(
+            viewModel = viewModel,
+            onRedeemSuccess = { result ->
+                redeemSuccessCount++
+                lastRedemptionResult = result
+            },
+            onBack = { backCount++ },
+        )
     }
     return viewModel
   }

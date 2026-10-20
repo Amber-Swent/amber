@@ -11,9 +11,9 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceTestTags
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceViewModel
+import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceScreen
+import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceTestTags
+import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

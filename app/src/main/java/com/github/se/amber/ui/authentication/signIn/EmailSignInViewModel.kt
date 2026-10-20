@@ -1,5 +1,5 @@
 // This file was written with the aid of AI
-package com.github.se.amber.ui.authentication
+package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
 import androidx.credentials.CredentialManager

@@ -6,8 +6,8 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceUiState
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceViewModel
+import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceUiState
+import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceViewModel
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.unmockkAll

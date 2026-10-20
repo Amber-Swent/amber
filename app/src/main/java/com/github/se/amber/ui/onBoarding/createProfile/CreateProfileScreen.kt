@@ -1,6 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
-package com.github.se.amber.ui.accountCreation
+package com.github.se.amber.ui.onBoarding.createProfile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.components.AmberHeader
+import com.github.se.amber.ui.onBoarding.AmberHeader
 import com.github.se.amber.ui.theme.BUTTON_HEIGHT
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM

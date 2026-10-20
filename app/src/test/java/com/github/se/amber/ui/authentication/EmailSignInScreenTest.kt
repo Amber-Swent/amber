@@ -12,6 +12,11 @@ import androidx.compose.ui.test.performTextInput
 import androidx.credentials.CredentialManager
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
+import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
+import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
+import com.github.se.amber.ui.authentication.signIn.EmailSignInUiState
+import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -26,7 +31,7 @@ import org.robolectric.RobolectricTestRunner
 /**
  * Tests the email sign-in screen's rendering, input, loading state, and callbacks with Compose.
  *
- * A real [EmailSignInViewModel] covers email entry, Continue validation, and existing-user
+ * A real [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] covers email entry, Continue validation, and existing-user
  * navigation. Mocked ViewModels isolate Google button clicks and error-clearing behavior.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -56,12 +61,12 @@ class EmailSignInScreenTest {
   /** Composes the screen with [model] and counts navigation callback invocations. */
   private fun setScreen(model: EmailSignInViewModel = viewModel) {
     composeTestRule.setContent {
-      EmailSignInScreen(
-          credentialManager = credentialManager,
-          emailSignInViewModel = model,
-          onContinue = { continueCount++ },
-          onGoogleSignIn = { googleSignInCount++ },
-      )
+        EmailSignInScreen(
+            credentialManager = credentialManager,
+            emailSignInViewModel = model,
+            onContinue = { continueCount++ },
+            onGoogleSignIn = { googleSignInCount++ },
+        )
     }
   }
 

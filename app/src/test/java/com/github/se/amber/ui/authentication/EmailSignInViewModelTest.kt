@@ -11,6 +11,8 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.ui.authentication.signIn.EmailSignInUiState
+import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -33,7 +35,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests [EmailSignInViewModel] state, email validation, and Google sign-in behavior.
+ * Tests [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] state, email validation, and Google sign-in behavior.
  *
  * Mocked Credential Manager and repository responses cover successful sign-in, failures,
  * cancellation, missing credentials, and repeated attempts without live services.

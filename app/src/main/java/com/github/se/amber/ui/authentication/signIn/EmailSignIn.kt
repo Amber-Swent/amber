@@ -1,5 +1,5 @@
 // This file was written with the aid of AI
-package com.github.se.amber.ui.authentication
+package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
 import android.widget.Toast
@@ -124,90 +124,90 @@ private fun EmailSignInContent(
 ) {
 
   // Parameter spacing spaces the layout content (heading, email field, action group)
-  AuthenticationLayout(modifier = modifier, spacing = PADDING_REGULAR) {
-    AuthenticationText(
-        modifier = Modifier.testTag(EmailSignInTestTags.HEADING),
-        text = "Enter your email to sign in with Amber",
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
-    )
-    AuthenticationTextField(
-        value = uiState.email,
-        onValueChange = onEmailChange,
-        placeholder = "email@domain.com",
-        modifier = Modifier.testTag(EmailSignInTestTags.EMAIL_FIELD),
-        keyboardOptions =
-            KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Done,
-            ),
-    )
-
-    // Action group
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
-    ) {
-      // This button redirects the user to the Amber sign in page
-      // This is an alternative to Google sign in
-      AuthenticationButton(
-          text = "Continue",
-          onClick = onContinue,
-          modifier = Modifier.testTag(EmailSignInTestTags.CONTINUE_BUTTON),
-      )
-      OrDivider()
-
-      // Google section
-      Column(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(PADDING_ENORMOUS),
-      ) {
-        Button(
-            onClick = onGoogleClick,
-            enabled = !uiState.isLoading,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .height(PADDING_ENORMOUS)
-                    .testTag(EmailSignInTestTags.GOOGLE_BUTTON),
-            shape = RoundedCornerShape(SMALL_ROUND_CORNER),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = lightOrange,
-                    contentColor = Color.Black,
+    AuthenticationLayout(modifier = modifier, spacing = PADDING_REGULAR) {
+        AuthenticationText(
+            modifier = Modifier.testTag(EmailSignInTestTags.HEADING),
+            text = "Enter your email to sign in with Amber",
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        AuthenticationTextField(
+            value = uiState.email,
+            onValueChange = onEmailChange,
+            placeholder = "email@domain.com",
+            modifier = Modifier.testTag(EmailSignInTestTags.EMAIL_FIELD),
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done,
                 ),
-        ) {
-          Image(
-              painter = painterResource(R.drawable.google_logo),
-              contentDescription = null, // no need to put a description for the logo
-              modifier = Modifier.size(PADDING_BIG),
-          )
-          Spacer(modifier = Modifier.size(PADDING_REGULAR))
-          AuthenticationText(
-              text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
-              style = MaterialTheme.typography.labelLarge,
-          )
-        }
+        )
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          AuthenticationText(
-              modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_PROMPT),
-              text = "Don't have an Amber account?",
-              // TextAlign is added in case the text has to wrap around in a narrow screen
-              textAlign = TextAlign.Center,
-              style = MaterialTheme.typography.labelLarge,
-          )
-          AuthenticationText(
-              modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_LINK),
-              text = "Click here to sign up.",
-              textAlign = TextAlign.Center,
-              style = MaterialTheme.typography.labelLarge,
-          )
+        // Action group
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
+        ) {
+            // This button redirects the user to the Amber sign in page
+            // This is an alternative to Google sign in
+            AuthenticationButton(
+                text = "Continue",
+                onClick = onContinue,
+                modifier = Modifier.testTag(EmailSignInTestTags.CONTINUE_BUTTON),
+            )
+            OrDivider()
+
+            // Google section
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(PADDING_ENORMOUS),
+            ) {
+                Button(
+                    onClick = onGoogleClick,
+                    enabled = !uiState.isLoading,
+                    modifier =
+                        Modifier.fillMaxWidth()
+                            .height(PADDING_ENORMOUS)
+                            .testTag(EmailSignInTestTags.GOOGLE_BUTTON),
+                    shape = RoundedCornerShape(SMALL_ROUND_CORNER),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = lightOrange,
+                            contentColor = Color.Black,
+                        ),
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.google_logo),
+                        contentDescription = null, // no need to put a description for the logo
+                        modifier = Modifier.size(PADDING_BIG),
+                    )
+                    Spacer(modifier = Modifier.size(PADDING_REGULAR))
+                    AuthenticationText(
+                        text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AuthenticationText(
+                        modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_PROMPT),
+                        text = "Don't have an Amber account?",
+                        // TextAlign is added in case the text has to wrap around in a narrow screen
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    AuthenticationText(
+                        modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_LINK),
+                        text = "Click here to sign up.",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
         }
-      }
     }
-  }
 }
 
 /**
@@ -227,12 +227,12 @@ private fun OrDivider() {
         color = lightGray,
     )
 
-    AuthenticationText(
-        modifier = Modifier.padding(horizontal = PADDING_MEDIUM),
-        text = "or",
-        style = MaterialTheme.typography.bodySmall,
-        color = darkGray,
-    )
+      AuthenticationText(
+          modifier = Modifier.padding(horizontal = PADDING_MEDIUM),
+          text = "or",
+          style = MaterialTheme.typography.bodySmall,
+          color = darkGray,
+      )
 
     HorizontalDivider(
         modifier = Modifier.weight(1f),

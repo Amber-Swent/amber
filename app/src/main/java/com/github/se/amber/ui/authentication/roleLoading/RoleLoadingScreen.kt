@@ -1,5 +1,5 @@
 // this code was written with the aid of AI
-package com.github.se.amber.ui.roleloading
+package com.github.se.amber.ui.authentication.roleLoading
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement

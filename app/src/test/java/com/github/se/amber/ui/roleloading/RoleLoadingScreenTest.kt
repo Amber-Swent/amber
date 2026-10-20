@@ -8,6 +8,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingTestTags
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingUIState
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
+import com.github.se.amber.ui.authentication.roleLoading.RoleState
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -50,12 +55,12 @@ class RoleLoadingScreenTest {
   private fun setScreen(initialState: RoleLoadingUIState) {
     stateFlow.value = initialState
     composeTestRule.setContent {
-      RoleLoadingScreen(
-          onRoleLoaded = { loadedRoles.add(it) },
-          noProfile = { noProfileCount++ },
-          onSignedOut = { signedOutCount++ },
-          viewModel = viewModel,
-      )
+        RoleLoadingScreen(
+            onRoleLoaded = { loadedRoles.add(it) },
+            noProfile = { noProfileCount++ },
+            onSignedOut = { signedOutCount++ },
+            viewModel = viewModel,
+        )
     }
   }
 

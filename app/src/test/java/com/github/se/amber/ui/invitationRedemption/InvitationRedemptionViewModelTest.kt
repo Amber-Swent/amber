@@ -6,6 +6,10 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.onBoarding.invitationRedemption.CODE_REQUIRED_MESSAGE
+import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionUiState
+import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionViewModel
+import com.github.se.amber.ui.onBoarding.invitationRedemption.toActionableMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -28,7 +32,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [InvitationRedemptionViewModel] with a mocked [InvitationRedemptionRepository].
+ * Unit tests for [com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionViewModel] with a mocked [InvitationRedemptionRepository].
  *
  * Repository Firebase/Functions coverage lives in FirebaseInvitationRedemptionRepositoryTest; this
  * class only verifies ViewModel validation and UI-state transitions.

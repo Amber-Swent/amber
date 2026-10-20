@@ -1,6 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
-package com.github.se.amber.ui.components
+package com.github.se.amber.ui.onBoarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

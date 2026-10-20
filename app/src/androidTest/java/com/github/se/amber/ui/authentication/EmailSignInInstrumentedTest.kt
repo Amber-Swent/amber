@@ -13,6 +13,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
+import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
+import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
