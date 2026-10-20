@@ -44,9 +44,9 @@ import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.lightOrange
 
 object SeeMediasTestTags {
-    const val PICTURE_BUTTON = "see_picture_button"
-    const val TEXT_BUTTON = "see_text_button"
-    const val AUDIO_BUTTON = "see_audio_button"
+  const val PICTURE_BUTTON = "see_picture_button"
+  const val TEXT_BUTTON = "see_text_button"
+  const val AUDIO_BUTTON = "see_audio_button"
 }
 
 /**
@@ -66,55 +66,53 @@ fun SeeMediasScreen(
     onSeeAudioClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = { tab -> },
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+  val uiState by viewModel.uiState.collectAsState()
 
+  Scaffold(
+      bottomBar = {
+        BottomNavigationMenu(
+            selectedTab = PatientTab.SeeMedias,
+            onTabSelected = onTabSelected,
+            tabs = patientTabs,
+            Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
+        )
+      },
+      content = { paddingValues ->
+        Column(
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = PADDING_MEDIUM)
+                    .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+          DisplayButton(
+              modifier = Modifier.testTag(SeeMediasTestTags.PICTURE_BUTTON),
+              icon = Icons.Outlined.PhotoCamera,
+              text = "See Picture",
+              description = "Picture",
+              onClick = onSeePictureClick,
+          )
 
-    Scaffold(
-        bottomBar = {
-            BottomNavigationMenu(
-                selectedTab = PatientTab.SeeMedias,
-                onTabSelected = onTabSelected,
-                tabs = patientTabs,
-                Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
-            )
-        },
-        content = { paddingValues ->
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = PADDING_MEDIUM)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                DisplayButton(
-                    modifier = Modifier.testTag(SeeMediasTestTags.PICTURE_BUTTON),
-                    icon = Icons.Outlined.PhotoCamera,
-                    text = "See Picture",
-                    description = "Picture",
-                    onClick = onSeePictureClick,
-                )
+          DisplayButton(
+              modifier = Modifier.testTag(SeeMediasTestTags.TEXT_BUTTON),
+              icon = Icons.Outlined.Description,
+              text = "See Text",
+              description = "Text",
+              onClick = onSeeTextClick,
+          )
 
-                DisplayButton(
-                    modifier = Modifier.testTag(SeeMediasTestTags.TEXT_BUTTON),
-                    icon = Icons.Outlined.Description,
-                    text = "See Text",
-                    description = "Text",
-                    onClick = onSeeTextClick,
-                )
-
-                DisplayButton(
-                    modifier = Modifier.testTag(SeeMediasTestTags.AUDIO_BUTTON),
-                    icon = Icons.Outlined.Mic,
-                    text = "See Audio",
-                    description = "Audio",
-                    onClick = onSeeAudioClick,
-                )
-            }
-        },
-    )
+          DisplayButton(
+              modifier = Modifier.testTag(SeeMediasTestTags.AUDIO_BUTTON),
+              icon = Icons.Outlined.Mic,
+              text = "See Audio",
+              description = "Audio",
+              onClick = onSeeAudioClick,
+          )
+        }
+      },
+  )
 }
 
 /**
@@ -134,36 +132,35 @@ fun DisplayButton(
     description: String,
     onClick: () -> Unit,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.height(PADDING_ENORMOUS),
-        colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+  Button(
+      onClick = onClick,
+      modifier = modifier.height(PADDING_ENORMOUS),
+      colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+  ) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text,
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                icon,
-                contentDescription = description,
-                tint = Color.Black,
-            )
-        }
+      Text(
+          text,
+          color = Color.Black,
+          style = MaterialTheme.typography.bodyLarge,
+          fontWeight = FontWeight.Bold,
+          textAlign = TextAlign.Center,
+          modifier = Modifier.weight(1f),
+      )
+      Icon(
+          icon,
+          contentDescription = description,
+          tint = Color.Black,
+      )
     }
+  }
 }
-
 
 /** Preview of [SeeMediasScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun SeeMediasScreenPreview() {
-    AmberAppTheme(dynamicColor = false) { SeeMediasScreen()}
+  AmberAppTheme(dynamicColor = false) { SeeMediasScreen() }
 }

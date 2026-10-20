@@ -211,14 +211,15 @@ fun AmberApp(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
-      composable(route = PatientScreen.SeeMedias.route){
-          SeeMediasScreen(
-              // TODO add callbacks when the screen is finished
-          )
+      composable(route = PatientScreen.SeeMedias.route) {
+        SeeMediasScreen(
+            onSeePictureClick = { navigationActions.navigateTo(PatientScreen.SeePictures) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
       }
       composable(route = PatientScreen.SeePictures.route) {
         SeePicturesScreen(
-            onBackClick = { navigationActions.goBack()},
+            onBackClick = { navigationActions.goBack() },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
