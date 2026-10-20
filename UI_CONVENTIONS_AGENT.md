@@ -5,8 +5,6 @@ Goal: a simple, consistent UI that is easy to review and easy to change. Prefer 
 
 Keywords: MUST / MUST NOT are mandatory. SHOULD is the default unless there is a justified reason.
 
----
-
 ## Before writing any UI code
 1. Reuse before creating: look in `Theme.kt`, `Constant.kt` files, `Typography` and the `*Utils.kt` helper files first.
 2. If a rule below conflicts with an explicit request from the user, follow the user and mention the conflict.
@@ -103,12 +101,11 @@ Run through this list on every UI change. Fix violations before reporting the ta
 - [ ] Only `MaterialTheme.typography` styles; no direct font sizes.
 - [ ] No magic numbers; values come from `Constants` files.
 - [ ] Widths use `fillMaxWidth(fraction)`; fixed heights only with scrolling.
-- [ ] No unwrapped `Spacer`.
-- [ ] Buttons come from the shared helpers; same color and shape as other buttons.
+- [ ] No useless `Spacer`.
 - [ ] Reusable code is in a `*Utils.kt` file and reused.
 - [ ] Every function parameter has a default value.
 - [ ] Naming follows `NameScreen` / `NameViewModel` / `NameUIState` / `NameTestTags`.
 - [ ] A ViewModel exists for the screen (even if minimal).
 - [ ] `collectAsStateWithLifecycle()` is used.
-- [ ] No top bar on `TopLevelDestination` screens; logo only on onboarding/authentication.
+- [ ] No top bar on `TopLevelDestination` screens except HomeScreen.
 - [ ] Figma status mentioned to the user if the screen changed.
