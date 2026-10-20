@@ -193,7 +193,6 @@ dependencies {
 
   // ----------          MockK        ------------
   testImplementation(libs.mockk)
-  testImplementation(libs.kotlinx.coroutines.test)
 
   // ----------        Mockito        ------------
   testImplementation(libs.mockito.kotlin)

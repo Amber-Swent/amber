@@ -67,6 +67,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AmberApp(
+    modifier: Modifier = Modifier,
     // Gives Google sign-in its account; tests pass a fake one
     credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
     navController: NavHostController = rememberNavController(),
@@ -78,6 +79,7 @@ fun AmberApp(
   NavHost(
       navController = navController,
       startDestination = startDestination,
+      modifier = modifier,
   ) {
 
     // Authentication Graph
