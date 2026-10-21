@@ -61,7 +61,7 @@ class RoleLoadingScreenTest {
 
   private fun setScreen(roleState: RoleState) = setScreen(RoleLoadingUIState(roleState = roleState))
 
-  private fun assertNothingButLoadingIsShown() {
+  private fun assertNoErrorOrBackToLoginShown() {
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertDoesNotExist()
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertDoesNotExist()
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertDoesNotExist()
@@ -80,7 +80,7 @@ class RoleLoadingScreenTest {
   fun loading_doesNotShowErrorNorBackToLogin() {
     setScreen(RoleState.Loading)
 
-    assertNothingButLoadingIsShown()
+    assertNoErrorOrBackToLoginShown()
   }
 
   @Test
@@ -241,7 +241,7 @@ class RoleLoadingScreenTest {
     setScreen(RoleState.NoProfile)
     composeTestRule.waitForIdle()
 
-    assertNothingButLoadingIsShown()
+    assertNoErrorOrBackToLoginShown()
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertDoesNotExist()
   }
 
@@ -272,7 +272,8 @@ class RoleLoadingScreenTest {
     setScreen(RoleState.Loaded(Role.PATIENT))
     composeTestRule.waitForIdle()
 
-    assertNothingButLoadingIsShown()
+    assertNoErrorOrBackToLoginShown()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertDoesNotExist()
   }
 
   // ---------- State transitions ----------
