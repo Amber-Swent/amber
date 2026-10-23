@@ -18,22 +18,21 @@ Keywords: MUST / MUST NOT are mandatory. SHOULD is the default unless there is a
 
 ### Role mapping - current palette
 
-| Role | Light | Dark | Use for |
-|---|---|---|---|
-| `background` / `onBackground` | White / Black | darkCyan / White | Screen background and text on it |
-| `primary` / `onPrimary` | darkOrange / Black | cyan / Black | Main title, selected icon |
-| `secondary` / `onSecondary` | orange / Black | lightCyan / darkCyan | Secondary title, selected icon (light) / unselected icon and button (dark) |
-| `tertiary` / `onTertiary` | lightOrange / Black | lightGray / darkCyan | Button, unselected icon |
-| `surface` / `onSurface` | White / Black | darkCyan / White | Surfaces and text on them |
-| `error` | darkOrange | White | Errors |
+| Role                          | Light               | Dark                 | Use for                                                                  |
+|-------------------------------|---------------------|----------------------|--------------------------------------------------------------------------|
+| `background` / `onBackground` | White / Black       | darkCyan / White     | Screen background and text on it                                         |
+| `primary` / `onPrimary`       | darkOrange / Black  | cyan / Black         | Main title, selected icon                                                |
+| `secondary` / `onSecondary`   | orange / Black      | lightCyan / darkCyan | Secondary title, selected icon                                           |
+| `tertiary` / `onTertiary`     | lightOrange / Black | lightGray / darkCyan | Button, unselected icon                                                  |
+| `surface` / `onSurface`       | White / Black       | darkCyan / White     | Surfaces and text on them                                                |
+| `error`                       | darkOrange          | White                | Errors                                                                   |
 
 Content color rule: a container color and its content color MUST come as a pair.
 Example: `containerColor = MaterialTheme.colorScheme.primary` goes with `contentColor` / icon tint `MaterialTheme.colorScheme.onPrimary`.
 
 #### Buttons
 - All buttons of the same kind use the same container color, content color, `RoundedCornerShape` and text size. Do not restyle a button locally. Use the Helper function.
-- Do not hand-build buttons in screens. Use the shared button helpers : `caregiverButton*(...)` and `patientButton*(...)`.
-- Known open issue: the way theme colors pair for button + icon (primary/onPrimary) is not fully settled. Until the helpers exist, apply the pairing rule above and do not invent a new approach.
+- Do not hand-build buttons in screens. Use the shared button helpers : `CaregiverButton*(...)` and `PatientButton*(...)`.
 
 Preview note: the top bar looks purple in `@Preview`. This is expected. Do not "fix" it.
 
@@ -59,11 +58,11 @@ Preview note: the top bar looks purple in `@Preview`. This is expected. Do not "
 
 Replace `Name` with the screen name.
 
-| Thing | File | Identifier |
-|---|---|---|
-| Screen | `Name.kt` | `fun NameScreen(...)` |
-| ViewModel | `NameViewModel.kt` | `class NameViewModel(...)` |
-| UI state | `NameViewModel.kt` | `data class NameUIState(...)` |
+| Thing     | File               | Identifier                                                      |
+|-----------|--------------------|-----------------------------------------------------------------|
+| Screen    | `Name.kt`          | `fun NameScreen(...)`                                           |
+| ViewModel | `NameViewModel.kt` | `class NameViewModel(...)`                                      |
+| UI state  | `NameViewModel.kt` | `data class NameUIState(...)`                                   |
 | Test tags | in the screen file | `object NameTestTags { const val NAME = "Name_test_tag_name" }` |
 
 - Screens shared by caregiver and patient and needing separate versions: `CaregiverNameScreen` / `PatientNameScreen`.
@@ -79,13 +78,6 @@ Replace `Name` with the screen name.
 
 - Extract repeated UI into helper composables. MUST NOT copy-paste styling between screens.
 - Code reusable across screens goes into `<NameForAllScreensUsingIt>Utils.kt` (for example `CaregiverUtils.kt`). Screens MUST use those functions instead of rebuilding them.
-
-## Navigation and screens decisions
-> note for reader - NOT FOR THE AGENT : once refractor is done, this can be remove
-
-- `TopLevelDestination` screens (Upload, Parameters, See Pictures, ...) except HomeScreen MUST NOT show the top bar. There is no "go back" to define on them.
-- Sign-out is only in the Parameters screen, not on Home.
-- If a screen needs to go back to the previous screen via a top bar, add a `TopNavigationAction`. Only for non-top-level screens.
 
 ## Figma
 
@@ -107,5 +99,5 @@ Run through this list on every UI change. Fix violations before reporting the ta
 - [ ] Naming follows `NameScreen` / `NameViewModel` / `NameUIState` / `NameTestTags`.
 - [ ] A ViewModel exists for the screen (even if minimal).
 - [ ] `collectAsStateWithLifecycle()` is used.
-- [ ] No top bar on `TopLevelDestination` screens except HomeScreen.
+- [ ] No top bar on `TopLevelDestination` screens.
 - [ ] Figma status mentioned to the user if the screen changed.
