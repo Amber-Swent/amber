@@ -2,9 +2,10 @@
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.user.Person
 
 /** Reads care circles the signed-in user belongs to. */
-fun interface CareCircleRepository {
+interface CareCircleRepository {
 
   /**
    * Loads the care circle stored at careCircles/[circleId].
@@ -14,6 +15,8 @@ fun interface CareCircleRepository {
    * surfaces as `PermissionDenied` rather than `NotFound`. Cancellation is rethrown.
    */
   suspend fun getCircle(circleId: String): Result<CareCircle>
+
+  suspend fun addPerson(circleId: String, person: Person): Result<Person>
 }
 
 /** Typed failures returned by [CareCircleRepository.getCircle]. */
@@ -28,6 +31,8 @@ sealed class CareCircleError(message: String) : Exception(message) {
       CareCircleError("You do not have permission to view this care circle")
 
   data object Network : CareCircleError("Unable to load the care circle while offline")
+
+  data object InvalidPersonName: CareCircleError("A first name is required")
 
   data class Unknown(val source: Throwable) : CareCircleError("Unable to load the care circle")
 }
