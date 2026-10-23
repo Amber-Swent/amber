@@ -1,3 +1,4 @@
+/** Written by Lou-Anne Maier */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.ui.graphics.Color
@@ -10,7 +11,7 @@ import androidx.compose.ui.graphics.Color
  */
 
 /**
- * For : Empty Space that shouldn't be (example : no Picture/Audio upload; empty galeri)
+ * For : Empty Space that shouldn't be (example : no Text/Picture/Audio upload)
  *
  * Note: This isn't one of the app's primary colors, but it's the color used in Figma for areas that
  * will be filled with pictures

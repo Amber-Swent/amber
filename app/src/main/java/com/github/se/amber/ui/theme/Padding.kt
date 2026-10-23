@@ -5,7 +5,8 @@ import androidx.compose.ui.unit.dp
 /* App's primary padding value */
 
 /**
- * THIS FILE WILL BE DELETED ONCE THE NECESSARY CHANGES HAVE BEEN MADE INSIDE THE UI FILES
+ * THIS FILE WILL BE DELETED ONCE THE NECESSARY CHANGES HAVE BEEN MADE INSIDE THE UI FILES Your
+ * refractor files should use none of the following cst.
  *
  * Use the one in Constant.kt
  */
