@@ -56,9 +56,9 @@ internal const val BACK_LABEL = "Back"
 /**
  * Caregiver onboarding step: choose to create a new care circle or join an existing one.
  *
- * [onBack] should navigate to [CreateProfile]. [onCreateCircle] and [onJoinCircle]
- * are invoked directly from the buttons so a navigation owner can route to
- * [CreateCareCircle] or [EnterInvitation].
+ * [onBack] should navigate to [CreateProfile]. [onCreateCircle] and [onJoinCircle] are invoked
+ * directly from the buttons so a navigation owner can route to [CreateCareCircle] or
+ * [EnterInvitation].
  */
 @Composable
 fun CaregiverChoiceScreen(

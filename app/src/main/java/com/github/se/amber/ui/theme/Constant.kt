@@ -1,7 +1,6 @@
 /** Written by Lou-Anne Maier */
 package com.github.se.amber.ui.theme
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +44,7 @@ private fun PaddingPreview() {
       }
   )
 }
+
 // ------- CAREGIVER BUTTON -------
 val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
