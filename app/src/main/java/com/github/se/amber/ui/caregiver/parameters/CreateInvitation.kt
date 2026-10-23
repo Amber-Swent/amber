@@ -1,9 +1,8 @@
-/* Written by Yuhan YANG, with assistance from
- * Cursor.
- * Modified by Yuhan YANG, with assistance from Cursor.
- * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+/**
+ * Written by Yuhan YANG, with assistance from Cursor. Modified by Viktor Jurczenko, with assistance
+ * from Claude (Anthropic) via Claude Code. Modified by Lou-Anne Maier, with assistance from Claude
+ * (Anthropic) via Claude Code.
  */
-
 package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.foundation.border
@@ -81,9 +80,10 @@ object CreateInvitationTestTags {
   const val USAGE_TEXT = "create_invitation_usage_text"
   const val CODE_LIST = "create_invitation_code_list"
   // one per invitation, its text starting with the code
-  const val CODE_ROW = "create_invitation_code_row"
   const val CIRCLE_CHOICES = "create_invitation_circle_choices"
   const val ERROR_MESSAGE = "create_invitation_error_message"
+
+  fun codeRow(code: String) = "CreateInvitation.codeRow.$code"
 
   fun circleChoice(circleId: String) = "create_invitation_circle_$circleId"
 }
@@ -104,6 +104,8 @@ fun CreateInvitationScreen(
       checkout = checkout,
   )
 }
+
+internal const val CREATE_CODE_PLACEHOLDER = "Click the left button to create a code"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -203,7 +205,7 @@ private fun CreateInvitationContent(
               }
 
               Text(
-                  text = uiState.generatedCode ?: "Click the left button to create a code",
+                  text = uiState.generatedCode ?: CREATE_CODE_PLACEHOLDER,
                   modifier =
                       Modifier.padding(top = PADDING_SMALL)
                           .width(hintBoxWidth)
@@ -268,7 +270,7 @@ private fun CreateInvitationContent(
                 Text(
                     text =
                         "${invitation.code} | ${formatCreatedAt(invitation.createdAt)} | ${invitation.status}",
-                    modifier = Modifier.testTag(CreateInvitationTestTags.CODE_ROW),
+                    modifier = Modifier.testTag(CreateInvitationTestTags.codeRow(invitation.code)),
                     color = Color.Black,
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
