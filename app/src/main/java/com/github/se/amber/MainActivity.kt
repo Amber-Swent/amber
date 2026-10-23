@@ -40,10 +40,10 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
-import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceScreen
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleScreen
-import com.github.se.amber.ui.onBoarding.createProfile.CreateProfileScreen
-import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionScreen
+import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
+import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
 import com.github.se.amber.ui.patient.seePictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme

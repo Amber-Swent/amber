@@ -21,8 +21,8 @@ import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceTestTags
-import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionTestTags
+import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule

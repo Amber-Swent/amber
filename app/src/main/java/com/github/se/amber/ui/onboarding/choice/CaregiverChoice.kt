@@ -1,6 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
-package com.github.se.amber.ui.onBoarding.careCircle
+package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.onBoarding.AmberHeader
+import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.BUTTON_HEIGHT
 import com.github.se.amber.ui.theme.BUTTON_HEIGHT_TALL
 import com.github.se.amber.ui.theme.PADDING_BIG
@@ -56,9 +56,9 @@ internal const val BACK_LABEL = "Back"
 /**
  * Caregiver onboarding step: choose to create a new care circle or join an existing one.
  *
- * [onBack] should navigate to [OnboardingScreen.CreateProfile]. [onCreateCircle] and [onJoinCircle]
+ * [onBack] should navigate to [CreateProfile]. [onCreateCircle] and [onJoinCircle]
  * are invoked directly from the buttons so a navigation owner can route to
- * [OnboardingScreen.CreateCareCircle] or [OnboardingScreen.EnterInvitation].
+ * [CreateCareCircle] or [EnterInvitation].
  */
 @Composable
 fun CaregiverChoiceScreen(

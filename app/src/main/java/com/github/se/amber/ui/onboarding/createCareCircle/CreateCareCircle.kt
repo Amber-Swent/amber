@@ -1,5 +1,5 @@
 // This file was written with the aid of AI.
-package com.github.se.amber.ui.onBoarding.careCircle
+package com.github.se.amber.ui.onboarding.createCareCircle
 
 import android.content.Context
 import android.widget.Toast

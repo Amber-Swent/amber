@@ -1,6 +1,7 @@
 /** Written by Lou-Anne Maier */
 package com.github.se.amber.ui.theme
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,15 +78,15 @@ val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
 val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 
-// It may be necessary to add some Small, Medium, Big Wight.
+// It may be necessary to add some Small, Medium, Big Width.
 // If it's the case, do a specific Pr for this and remove this comment
-const val CAREGIVER_BUTTON_WIGHT = 0.5f
+const val CAREGIVER_BUTTON_WIDTH = 0.5f
 
 // ------- PATIENT BUTTON -------
 val PATIENT_BUTTON_HEIGHT_SMALL = 52.dp
 val PATIENT_BUTTON_HEIGHT_MEDIUM = 96.dp
 val PATIENT_BUTTON_HEIGHT_BIG = 120.dp
 
-// It may be necessary to add some Small, Medium, Big Wight.
+// It may be necessary to add some Small, Medium, Big Width.
 // If it's the case, do a specific Pr for this and remove this comment
-const val PATIENT_BUTTON_WIGHT = 0.7f
+const val PATIENT_BUTTON_WIDTH = 0.7f

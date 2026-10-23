@@ -20,10 +20,10 @@ import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onBoarding.careCircle.CaregiverChoiceTestTags
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleTestTags
-import com.github.se.amber.ui.onBoarding.createProfile.CreateProfileTestTags
-import com.github.se.amber.ui.onBoarding.invitationRedemption.InvitationRedemptionTestTags
+import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
+import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.util.UUID
 import org.junit.Assert.assertNotEquals
