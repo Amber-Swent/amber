@@ -18,14 +18,14 @@ Keywords: MUST / MUST NOT are mandatory. SHOULD is the default unless there is a
 
 ### Role mapping - current palette
 
-| Role                          | Light               | Dark                 | Use for                                                                  |
-|-------------------------------|---------------------|----------------------|--------------------------------------------------------------------------|
-| `background` / `onBackground` | White / Black       | darkCyan / White     | Screen background and text on it                                         |
-| `primary` / `onPrimary`       | darkOrange / Black  | cyan / Black         | Main title, selected icon                                                |
-| `secondary` / `onSecondary`   | orange / Black      | lightCyan / darkCyan | Secondary title, selected icon                                           |
-| `tertiary` / `onTertiary`     | lightOrange / Black | lightGray / darkCyan | Button, unselected icon                                                  |
-| `surface` / `onSurface`       | White / Black       | darkCyan / White     | Surfaces and text on them                                                |
-| `error`                       | darkOrange          | White                | Errors                                                                   |
+| Role                          | Light               | Dark                 | Use for                                                            |
+|-------------------------------|---------------------|----------------------|--------------------------------------------------------------------|
+| `background` / `onBackground` | White / Black       | darkCyan / White     | Screen background and text on it                                   |
+| `primary` / `onPrimary`       | darkOrange / Black  | cyan / Black         | Main title                                                         |
+| `secondary` / `onSecondary`   | orange / Black      | lightCyan / darkCyan | Secondary title, selected icon                                     |
+| `tertiary` / `onTertiary`     | lightOrange / Black | lightGray / darkCyan | Button, unselected icon                                            |
+| `surface` / `onSurface`       | White / Black       | darkCyan / White     | Surfaces and text on them                                          |
+| `error`                       | darkOrange          | White                | Errors                                                             |
 
 Content color rule: a container color and its content color MUST come as a pair.
 Example: `containerColor = MaterialTheme.colorScheme.primary` goes with `contentColor` / icon tint `MaterialTheme.colorScheme.onPrimary`.
