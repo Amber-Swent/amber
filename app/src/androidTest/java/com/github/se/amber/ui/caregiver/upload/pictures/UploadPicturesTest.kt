@@ -36,7 +36,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Compose tests for [UploadPictureScreen]. */
-class UploadPictureTest {
+class UploadPicturesTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
