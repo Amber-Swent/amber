@@ -1,14 +1,27 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
 package com.github.se.amber.e2e
 
+/** Written by Viktor Jurczenko, with assistance from
+ * Claude (Anthropic) via Claude Code.
+ * Modified by Lou-Anne Maier, with assistance from
+ * Claude (Anthropic) via Claude Code.
+ */
+
+import android.util.Log
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.printToLog
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -17,6 +30,7 @@ import com.github.se.amber.ui.accountCreation.CreateProfileTestTags
 import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceTestTags
 import com.github.se.amber.ui.authentication.EmailSignInTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
+import com.github.se.amber.ui.caregiver.parameters.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
 import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionTestTags
@@ -25,7 +39,13 @@ import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.CreateCareCircleTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.google.firebase.Firebase
+import com.google.firebase.functions.functions
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -33,6 +53,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * End-to-end journeys through the real app, its screens and navigation, against the Firebase
@@ -47,7 +68,6 @@ import org.junit.runner.RunWith
 class InvitationEndToEndTest {
 
   @get:Rule val composeTestRule = createComposeRule()
-
   private val googleAccount = FakeGoogleAccount(ApplicationProvider.getApplicationContext())
   private val runId = UUID.randomUUID().toString().take(8)
 
@@ -56,11 +76,30 @@ class InvitationEndToEndTest {
     val message = "Firebase emulators are not running on the host"
     // CI starts the emulators, so there a missing one is broken wiring, not a reason to skip
     val required =
-        InstrumentationRegistry.getArguments().getString(REQUIRE_EMULATORS_ARGUMENT) == "true"
+      InstrumentationRegistry.getArguments().getString(REQUIRE_EMULATORS_ARGUMENT) == "true"
     if (required) assertTrue(message, FirebaseEmulator.isRunning())
     else assumeTrue(message, FirebaseEmulator.isRunning())
 
     FirebaseEmulator.useForDefaultApp()
+
+    // Pays the Functions worker start and the failing Installations lookup here,
+    // not in a journey step.
+    // The call itself is expected to fail (no auth, bad code); only the warm-up matters.
+    runBlocking {
+      withTimeoutOrNull(WARM_UP_MILLIS.milliseconds) {
+        try {
+          Firebase.functions
+            .getHttpsCallable("redeemInvitation")
+            .call(mapOf("code" to "warm-up"))
+            .await()
+        } catch (e: CancellationException) {
+          throw e
+        } catch (_: Exception) {
+          // The warm-up only starts the Functions emulator worker.
+        }
+      }
+    }
+
     composeTestRule.setContent { AmberAppTheme { AmberApp(credentialManager = googleAccount) } }
   }
 
@@ -82,13 +121,22 @@ class InvitationEndToEndTest {
 
     click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
     waitFor(CaregiverHomeTestTags.TITLE)
+    // FIXME: this will fails once the refractor of Home has been done
     click(TopNavigationMenuTestTags.BACK_BUTTON) // signs out
     waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
 
     signInWithGoogle("bob-$runId@amber.test", "Bob")
     createCaregiverProfile(firstName = "Bob", lastName = "Martin")
+    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
+    //  Fixing this is the responsibility of the one doing the CaregiverChoice Refractor.
     click(CaregiverChoiceTestTags.JOIN_BUTTON.name)
     typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
+
+    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
+    //  Fixing this is the responsibility of the one doing the InvitationRedemptionScreen Refractor.
+    composeTestRule
+      .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+      .assert(hasEditableText(adasCode))
     click(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
     waitFor(CaregiverHomeTestTags.TITLE)
 
@@ -102,6 +150,8 @@ class InvitationEndToEndTest {
   }
 
   /** Fills in the profile; choosing the role saves it. */
+  // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
+  //  Fixing this is the responsibility of the one doing the CreateProfile Refractor.
   private fun createCaregiverProfile(firstName: String, lastName: String) {
     typeInto(CreateProfileTestTags.NAME_INPUT.name, firstName)
     typeInto(CreateProfileTestTags.SURNAME_INPUT.name, lastName)
@@ -113,37 +163,48 @@ class InvitationEndToEndTest {
     click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
     click(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
     click(CreateInvitationTestTags.CREATE_CARD)
-    waitFor(CreateInvitationTestTags.CODE_ROW)
-    val row =
-        composeTestRule
-            .onNodeWithTag(CreateInvitationTestTags.CODE_ROW)
-            .fetchSemanticsNode()
-            .config
-            .getOrNull(SemanticsProperties.Text)
-            ?.joinToString()
-    return checkNotNull(row) { "The code row has no text" }.substringBefore(" | ")
+    composeTestRule.waitUntil(TIMEOUT_MILLIS) {
+      textOf(CreateInvitationTestTags.HINT_BOX)?.let { it.isNotBlank() && it != CREATE_CODE_PLACEHOLDER } == true
+    }
+    val code = checkNotNull(textOf(CreateInvitationTestTags.HINT_BOX))
+    waitFor(CreateInvitationTestTags.codeRow(code)) // the new invitation also reached the list
+    return code
   }
 
   private fun click(tag: String) {
-    waitFor(tag)
+    waitForNode(hasTestTag(tag) and isEnabled(), "enabled node '$tag'")
     composeTestRule.onNodeWithTag(tag).performClick()
   }
 
   private fun typeInto(tag: String, text: String) {
-    waitFor(tag)
+    waitForNode(hasTestTag(tag) and isEnabled(), "enabled node '$tag'")
     composeTestRule.onNodeWithTag(tag).performTextInput(text)
   }
+  private fun textOf(tag: String): String? =
+    composeTestRule.onAllNodesWithTag(tag).fetchSemanticsNodes().firstOrNull()
+      ?.config?.getOrNull(SemanticsProperties.Text)?.joinToString("")
 
-  /** Waits for a screen to show [tag]: navigation and backend calls take real time here. */
-  private fun waitFor(tag: String) {
-    composeTestRule.waitUntil(TIMEOUT_MILLIS) {
-      composeTestRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+  @OptIn(ExperimentalTestApi::class)
+  private fun waitForNode(matcher: SemanticsMatcher, description: String) {
+    try {
+      composeTestRule.waitUntilExactlyOneExists(matcher, TIMEOUT_MILLIS)
+    } catch (e: Exception) {
+      composeTestRule.onRoot().printToLog("E2E")
+      throw AssertionError("Timed out waiting for $description", e)
     }
   }
+  /** Waits for a screen to show [tag]: navigation and backend calls take real time here. */
+  private fun waitFor(tag: String) = waitForNode(hasTestTag(tag), "node '$tag'")
+
+  private fun hasEditableText(expected: String) =
+    SemanticsMatcher("has editable text '$expected'") {
+      it.config.getOrNull(SemanticsProperties.EditableText)?.text == expected
+    }
 
   private companion object {
     const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
     // the first callable call starts the Functions emulator's worker, which takes a few seconds
     const val TIMEOUT_MILLIS = 30_000L
+    const val WARM_UP_MILLIS = 60_000L
   }
 }

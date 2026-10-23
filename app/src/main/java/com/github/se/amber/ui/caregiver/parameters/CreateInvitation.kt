@@ -75,17 +75,16 @@ private val createIconSize = 30.dp
 private val invitationBorder = Color(0xFFD32F2F)
 
 object CreateInvitationTestTags {
-  const val TITLE = "create_invitation_title"
-  const val CREATE_CARD = "create_invitation_card"
-  const val HINT_BOX = "create_invitation_hint_box"
-  const val USAGE_TEXT = "create_invitation_usage_text"
-  const val CODE_LIST = "create_invitation_code_list"
-  // one per invitation, its text starting with the code
-  const val CODE_ROW = "create_invitation_code_row"
-  const val CIRCLE_CHOICES = "create_invitation_circle_choices"
-  const val ERROR_MESSAGE = "create_invitation_error_message"
-
-  fun circleChoice(circleId: String) = "create_invitation_circle_$circleId"
+    const val TITLE = "create_invitation_title"
+    const val CREATE_CARD = "create_invitation_card"
+    const val HINT_BOX = "create_invitation_hint_box"
+    const val USAGE_TEXT = "create_invitation_usage_text"
+    const val CODE_LIST = "create_invitation_code_list"
+    // one per invitation, its text starting with the code
+    const val CIRCLE_CHOICES = "create_invitation_circle_choices"
+    const val ERROR_MESSAGE = "create_invitation_error_message"
+    fun codeRow(code: String) = "CreateInvitation.codeRow.$code"
+    fun circleChoice(circleId: String) = "create_invitation_circle_$circleId"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -95,15 +94,17 @@ fun CreateInvitationScreen(
     onTabSelected: (Tab) -> Unit = { tab -> },
     checkout: () -> Unit = {},
 ) {
-  val uiState by viewModel.uiState.collectAsState()
-  CreateInvitationContent(
-      uiState = uiState,
-      onSelectCircle = viewModel::selectCircle,
-      onCreateInvitation = viewModel::createInvitation,
-      onTabSelected = onTabSelected,
-      checkout = checkout,
-  )
+    val uiState by viewModel.uiState.collectAsState()
+    CreateInvitationContent(
+        uiState = uiState,
+        onSelectCircle = viewModel::selectCircle,
+        onCreateInvitation = viewModel::createInvitation,
+        onTabSelected = onTabSelected,
+        checkout = checkout,
+    )
 }
+
+internal const val CREATE_CODE_PLACEHOLDER = "Click the left button to create a code"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,171 +115,171 @@ private fun CreateInvitationContent(
     onTabSelected: (Tab) -> Unit = { tab -> },
     checkout: () -> Unit = {},
 ) {
-  Scaffold(
-      topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
-          TopNavigationMenu(
-              modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
-              action = TopNavigationAction.CANCEL,
-              onBackClick = checkout,
-          )
-          DisplayCaregiverTitle("Parameters", Modifier.testTag(CreateInvitationTestTags.TITLE))
-        }
-      },
-      bottomBar = {
-        BottomNavigationMenu(
-            selectedTab = CaregiverTab.Setting,
-            onTabSelected = onTabSelected,
-            tabs = CaregiverTab.caregiverTabs,
-            modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
-        )
-      },
-      content = { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-          Column(
-              modifier =
-                  Modifier.fillMaxSize()
-                      .padding(horizontal = screenHorizontalPadding)
-                      .padding(top = contentTopPadding),
-          ) {
-            if (uiState.circles.size > 1) {
-              Row(
-                  modifier =
-                      Modifier.fillMaxWidth()
-                          .horizontalScroll(rememberScrollState())
-                          .testTag(CreateInvitationTestTags.CIRCLE_CHOICES),
-                  horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-              ) {
-                uiState.circles.forEach { circle ->
-                  val selected = circle.id == uiState.selectedCircleId
-                  TextButton(
-                      onClick = { onSelectCircle(circle.id) },
-                      enabled = !uiState.isCreating,
-                      modifier = Modifier.testTag(CreateInvitationTestTags.circleChoice(circle.id)),
-                  ) {
-                    Text(
-                        text = circle.name,
-                        color = if (selected) invitationBorder else Color.Black,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                    )
-                  }
-                }
-              }
-              Spacer(modifier = Modifier.height(PADDING_SMALL))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-              Button(
-                  onClick = { onCreateInvitation() },
-                  enabled = !uiState.isCreating,
-                  modifier =
-                      Modifier.width(createCardWidth)
-                          .height(createCardHeight)
-                          .testTag(CreateInvitationTestTags.CREATE_CARD),
-                  shape = RoundedCornerShape(SMALL_ROUND_CORNER),
-                  colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-              ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement =
-                        Arrangement.spacedBy(PADDING_SMALL, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                  Icon(
-                      Icons.Outlined.GroupAdd,
-                      contentDescription = "Create invitation",
-                      modifier = Modifier.size(createIconSize),
-                      tint = Color.Black,
-                  )
-                  Text(
-                      text = "Create invitation",
-                      color = Color.Black,
-                      fontSize = 16.sp,
-                      fontWeight = FontWeight.SemiBold,
-                  )
-                }
-              }
-
-              Text(
-                  text = uiState.generatedCode ?: "Click the left button to create a code",
-                  modifier =
-                      Modifier.padding(top = PADDING_SMALL)
-                          .width(hintBoxWidth)
-                          .height(hintBoxHeight)
-                          .border(
-                              DIVIDER_THICKNESS,
-                              invitationBorder,
-                              RoundedCornerShape(SMALL_ROUND_CORNER),
-                          )
-                          .padding(horizontal = PADDING_MEDIUM, vertical = PADDING_SMALL)
-                          .testTag(CreateInvitationTestTags.HINT_BOX),
-                  color = Color.Black,
-                  fontSize = 15.sp,
-                  lineHeight = 21.sp,
-              )
-            }
-            Spacer(modifier = Modifier.height(sectionGap))
-            Text(
-                text = "This code can only be used once.\nIt's active 30 days after its creation.",
-                modifier = Modifier.fillMaxWidth().testTag(CreateInvitationTestTags.USAGE_TEXT),
-                color = Color.Black,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                lineHeight = 22.sp,
-            )
-            uiState.errorMessage?.let { message ->
-              Text(
-                  text = message,
-                  modifier =
-                      Modifier.fillMaxWidth()
-                          .padding(top = PADDING_SMALL)
-                          .testTag(CreateInvitationTestTags.ERROR_MESSAGE),
-                  color = invitationBorder,
-                  fontSize = 14.sp,
-                  textAlign = TextAlign.Center,
-              )
-            }
-
-            Spacer(modifier = Modifier.height(sectionGap))
-            Column(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .height(codeListHeight)
-                        .border(
-                            DIVIDER_THICKNESS,
-                            invitationBorder,
-                            RoundedCornerShape(SMALL_ROUND_CORNER),
-                        )
-                        .verticalScroll(rememberScrollState())
-                        .padding(top = codeListTopPadding)
-                        .testTag(CreateInvitationTestTags.CODE_LIST),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-              Text(
-                  text = "Code | Creation  Time | Status",
-                  color = Color.Black,
-                  fontSize = 20.sp,
-                  fontWeight = FontWeight.SemiBold,
-                  textAlign = TextAlign.Center,
-              )
-              uiState.invitations.forEach { invitation ->
-                Text(
-                    text =
-                        "${invitation.code} | ${formatCreatedAt(invitation.createdAt)} | ${invitation.status}",
-                    modifier = Modifier.testTag(CreateInvitationTestTags.CODE_ROW),
-                    color = Color.Black,
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center,
+    Scaffold(
+        topBar = {
+            Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
+                TopNavigationMenu(
+                    modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+                    action = TopNavigationAction.CANCEL,
+                    onBackClick = checkout,
                 )
-              }
+                DisplayCaregiverTitle("Parameters", Modifier.testTag(CreateInvitationTestTags.TITLE))
             }
-          }
-        }
-      },
-  )
+        },
+        bottomBar = {
+            BottomNavigationMenu(
+                selectedTab = CaregiverTab.Setting,
+                onTabSelected = onTabSelected,
+                tabs = CaregiverTab.caregiverTabs,
+                modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
+            )
+        },
+        content = { paddingValues ->
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                Column(
+                    modifier =
+                        Modifier.fillMaxSize()
+                            .padding(horizontal = screenHorizontalPadding)
+                            .padding(top = contentTopPadding),
+                ) {
+                    if (uiState.circles.size > 1) {
+                        Row(
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .testTag(CreateInvitationTestTags.CIRCLE_CHOICES),
+                            horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+                        ) {
+                            uiState.circles.forEach { circle ->
+                                val selected = circle.id == uiState.selectedCircleId
+                                TextButton(
+                                    onClick = { onSelectCircle(circle.id) },
+                                    enabled = !uiState.isCreating,
+                                    modifier = Modifier.testTag(CreateInvitationTestTags.circleChoice(circle.id)),
+                                ) {
+                                    Text(
+                                        text = circle.name,
+                                        color = if (selected) invitationBorder else Color.Black,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(PADDING_SMALL))
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Button(
+                            onClick = { onCreateInvitation() },
+                            enabled = !uiState.isCreating,
+                            modifier =
+                                Modifier.width(createCardWidth)
+                                    .height(createCardHeight)
+                                    .testTag(CreateInvitationTestTags.CREATE_CARD),
+                            shape = RoundedCornerShape(SMALL_ROUND_CORNER),
+                            colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement =
+                                    Arrangement.spacedBy(PADDING_SMALL, Alignment.CenterVertically),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.GroupAdd,
+                                    contentDescription = "Create invitation",
+                                    modifier = Modifier.size(createIconSize),
+                                    tint = Color.Black,
+                                )
+                                Text(
+                                    text = "Create invitation",
+                                    color = Color.Black,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = uiState.generatedCode ?: CREATE_CODE_PLACEHOLDER,
+                            modifier =
+                                Modifier.padding(top = PADDING_SMALL)
+                                    .width(hintBoxWidth)
+                                    .height(hintBoxHeight)
+                                    .border(
+                                        DIVIDER_THICKNESS,
+                                        invitationBorder,
+                                        RoundedCornerShape(SMALL_ROUND_CORNER),
+                                    )
+                                    .padding(horizontal = PADDING_MEDIUM, vertical = PADDING_SMALL)
+                                    .testTag(CreateInvitationTestTags.HINT_BOX),
+                            color = Color.Black,
+                            fontSize = 15.sp,
+                            lineHeight = 21.sp,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(sectionGap))
+                    Text(
+                        text = "This code can only be used once.\nIt's active 30 days after its creation.",
+                        modifier = Modifier.fillMaxWidth().testTag(CreateInvitationTestTags.USAGE_TEXT),
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 22.sp,
+                    )
+                    uiState.errorMessage?.let { message ->
+                        Text(
+                            text = message,
+                            modifier =
+                                Modifier.fillMaxWidth()
+                                    .padding(top = PADDING_SMALL)
+                                    .testTag(CreateInvitationTestTags.ERROR_MESSAGE),
+                            color = invitationBorder,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(sectionGap))
+                    Column(
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .height(codeListHeight)
+                                .border(
+                                    DIVIDER_THICKNESS,
+                                    invitationBorder,
+                                    RoundedCornerShape(SMALL_ROUND_CORNER),
+                                )
+                                .verticalScroll(rememberScrollState())
+                                .padding(top = codeListTopPadding)
+                                .testTag(CreateInvitationTestTags.CODE_LIST),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "Code | Creation  Time | Status",
+                            color = Color.Black,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                        )
+                        uiState.invitations.forEach { invitation ->
+                            Text(
+                                text =
+                                    "${invitation.code} | ${formatCreatedAt(invitation.createdAt)} | ${invitation.status}",
+                                modifier = Modifier.testTag(CreateInvitationTestTags.codeRow(invitation.code)),
+                                color = Color.Black,
+                                fontSize = 16.sp,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    )
 }
 
 private fun formatCreatedAt(createdAtMillis: Long): String =
@@ -288,11 +289,11 @@ private fun formatCreatedAt(createdAtMillis: Long): String =
 @Preview(showBackground = true, showSystemUi = false)
 @Composable
 private fun CreateInvitationScreenPreview() {
-  AmberAppTheme(dynamicColor = false) {
-    CreateInvitationContent(
-        uiState = CreateInvitationUiState(),
-        onSelectCircle = {},
-        onCreateInvitation = {},
-    )
-  }
+    AmberAppTheme(dynamicColor = false) {
+        CreateInvitationContent(
+            uiState = CreateInvitationUiState(),
+            onSelectCircle = {},
+            onCreateInvitation = {},
+        )
+    }
 }

@@ -33,53 +33,54 @@ import java.net.Socket
  * Android emulator, the host is 10.0.2.2.
  */
 object FirebaseEmulator {
-  const val PROJECT_ID = "demo-amber"
+    const val PROJECT_ID = "demo-amber"
 
-  private const val HOST = "10.0.2.2"
-  private const val AUTH_PORT = 9099
-  private const val FIRESTORE_PORT = 8080
-  private const val FUNCTIONS_PORT = 5001
-  private const val CONNECT_TIMEOUT_MILLIS = 1_000
+    private const val HOST = "10.0.2.2"
+    private const val AUTH_PORT = 9099
+    private const val FIRESTORE_PORT = 8080
+    private const val FUNCTIONS_PORT = 5001
+    private const val CONNECT_TIMEOUT_MILLIS = 1_000
 
-  /**
-   * Replaces the default Firebase app with a [PROJECT_ID] one wired to the emulators.
-   *
-   * Call it before anything uses Firebase, so before the app's content is set: an instance created
-   * earlier would keep the real project. The test orchestrator runs each test in a fresh process,
-   * where nothing has used Firebase yet.
-   */
-  fun useForDefaultApp() {
-    val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-    FirebaseApp.getApps(context).forEach { it.delete() }
-    val options =
-        FirebaseOptions.Builder()
-            .setProjectId(PROJECT_ID)
-            .setApplicationId("1:000000000000:android:0000000000000000")
-            // Auth refused "demo-api-key" even for the emulator; this well-formed key is fake
-            .setApiKey("AIzaSyD-amber-emulator-only-fake-key-00")
-            .build()
-    FirebaseApp.initializeApp(context, options)
+    /**
+     * Replaces the default Firebase app with a [PROJECT_ID] one wired to the emulators.
+     *
+     * Call it before anything uses Firebase, so before the app's content is set: an instance created
+     * earlier would keep the real project. The test orchestrator runs each test in a fresh process,
+     * where nothing has used Firebase yet.
+     */
+    fun useForDefaultApp() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        FirebaseApp.getApps(context).forEach { it.delete() }
+        val options =
+            FirebaseOptions.Builder()
+                .setProjectId(PROJECT_ID)
+                .setApplicationId("1:000000000000:android:0000000000000000")
+                // Auth refused "demo-api-key" even for the emulator; this well-formed key is fake
+                .setApiKey("AIzaSyD-amber-emulator-only-fake-key-00")
+                .build()
+        FirebaseApp.initializeApp(context, options)
 
-    // useEmulator throws once an instance has been used, so wire all three before anything else
-    Firebase.auth.useEmulator(HOST, AUTH_PORT)
-    Firebase.firestore.apply {
-      // no disk cache, so a run never reads documents left by an earlier one
-      firestoreSettings = firestoreSettings { setLocalCacheSettings(memoryCacheSettings {}) }
-      useEmulator(HOST, FIRESTORE_PORT)
+        // useEmulator throws once an instance has been used, so wire all three before anything else
+        Firebase.auth.useEmulator(HOST, AUTH_PORT)
+        Firebase.auth.signOut() // clears a user persisted by an earlier run
+        Firebase.firestore.apply {
+            // no disk cache, so a run never reads documents left by an earlier one
+            firestoreSettings = firestoreSettings { setLocalCacheSettings(memoryCacheSettings {}) }
+            useEmulator(HOST, FIRESTORE_PORT)
+        }
+        Firebase.functions.useEmulator(HOST, FUNCTIONS_PORT)
+
+        check(Firebase.app.options.projectId == PROJECT_ID) { "The default app is not the demo one" }
     }
-    Firebase.functions.useEmulator(HOST, FUNCTIONS_PORT)
 
-    check(Firebase.app.options.projectId == PROJECT_ID) { "The default app is not the demo one" }
-  }
+    /** Whether all three emulators accept connections. */
+    fun isRunning(): Boolean = listOf(AUTH_PORT, FIRESTORE_PORT, FUNCTIONS_PORT).all(::accepts)
 
-  /** Whether all three emulators accept connections. */
-  fun isRunning(): Boolean = listOf(AUTH_PORT, FIRESTORE_PORT, FUNCTIONS_PORT).all(::accepts)
-
-  private fun accepts(port: Int): Boolean =
-      try {
-        Socket().use { it.connect(InetSocketAddress(HOST, port), CONNECT_TIMEOUT_MILLIS) }
-        true
-      } catch (_: IOException) {
-        false
-      }
+    private fun accepts(port: Int): Boolean =
+        try {
+            Socket().use { it.connect(InetSocketAddress(HOST, port), CONNECT_TIMEOUT_MILLIS) }
+            true
+        } catch (_: IOException) {
+            false
+        }
 }
