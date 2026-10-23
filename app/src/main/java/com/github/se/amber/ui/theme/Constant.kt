@@ -45,34 +45,6 @@ private fun PaddingPreview() {
       }
   )
 }
-
-// ------- BOX -------
-val ROUND_CORNER = 12.dp
-val DIVIDER_THICKNESS = 1.dp
-val BORDER_THICKNESS = 1.dp
-
-// ------- TEXT_FIELD -------
-val TEXT_FIELD_SMALL = 50.dp
-val TEXT_FIELD_DEFAULT = 70.dp
-val TEXT_FIELD_BIG = 200.dp
-
-// ------- MAX -------
-
-const val MAX_LINE_DEFAULT = 2
-const val MAX_LINE_DESCRIPTION = 5
-
-const val MAX_CHAR_DEFAULT = 20
-const val MAX_CHAR_DESCRIPTION = 200
-
-// ------- SURFACE -------
-
-val SURFACE_SMALL = 24.dp
-val SURFACE_MEDIUM = 48.dp
-val SURFACE_BIG = 84.dp
-
-// ------- LOGO -------
-val LOGO_SIZE = 48.dp
-
 // ------- CAREGIVER BUTTON -------
 val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
@@ -90,3 +62,35 @@ val PATIENT_BUTTON_HEIGHT_BIG = 120.dp
 // It may be necessary to add some Small, Medium, Big Width.
 // If it's the case, do a specific Pr for this and remove this comment
 const val PATIENT_BUTTON_WIDTH = 0.7f
+
+// ------- BOX -------
+val ROUND_CORNER = 12.dp
+val DIVIDER_THICKNESS = 1.dp
+val BORDER_THICKNESS = 1.dp
+
+// ------- SURFACE -------
+
+val SURFACE_SMALL = 24.dp
+val SURFACE_MEDIUM = 48.dp
+val SURFACE_BIG = 84.dp
+
+// ------- TEXT_FIELD -------
+val TEXT_FIELD_SMALL = 50.dp
+val TEXT_FIELD_DEFAULT = 70.dp
+val TEXT_FIELD_BIG = 200.dp
+
+// ------- MAX -------
+
+const val MAX_LINE_DEFAULT = 2
+const val MAX_LINE_DESCRIPTION = 5
+
+const val MAX_CHAR_DEFAULT = 20
+const val MAX_CHAR_DESCRIPTION = 200
+
+// ------- WEIGHT -------
+const val WEIGHT_ONE = 1f
+
+const val WEIGHT_TWO = 2f
+
+// ------- LOGO -------
+val LOGO_SIZE = 48.dp
