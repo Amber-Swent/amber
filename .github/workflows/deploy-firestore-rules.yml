@@ -1,0 +1,55 @@
+# This file was written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+name: Deploy Firestore rules
+
+# The rules in the repository only reach the real project when they are deployed: this deploys them
+# whenever main changes them, so the live project never falls behind the code. CI tests the rules
+# before they can be merged.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "firebase/firestore/firestore.rules"
+  # Lets the rules be deployed again by hand from the Actions tab
+  workflow_dispatch:
+
+# Two deploys never run at the same time; the latest one wins
+concurrency:
+  group: deploy-firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Install Firebase CLI
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+
+      # FIREBASE_SERVICE_ACCOUNT is the JSON key of a service account that only has the
+      # Firebase Rules Admin role
+      - name: Deploy Firestore rules
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::The FIREBASE_SERVICE_ACCOUNT secret is not set."
+            exit 1
+          fi
+          echo "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json"
+          firebase deploy --only firestore:rules --project amber-34abf --non-interactive
+
+      - name: Remove the service account key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
