@@ -1,5 +1,5 @@
 // This file was written with the aid of AI.
-package com.github.se.amber.ui.onBoarding
+package com.github.se.amber.ui.onboarding
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,9 +12,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleScreen
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleTestTags
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleViewModel
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger

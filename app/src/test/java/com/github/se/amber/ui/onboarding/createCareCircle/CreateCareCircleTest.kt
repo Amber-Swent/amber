@@ -1,5 +1,5 @@
 // This file was written with the aid of AI.
-package com.github.se.amber.ui.onBoarding
+package com.github.se.amber.ui.onboarding
 
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -9,9 +9,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleContent
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleTestTags
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleUiState
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleContent
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleUiState
 import com.github.se.amber.ui.theme.AmberAppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule

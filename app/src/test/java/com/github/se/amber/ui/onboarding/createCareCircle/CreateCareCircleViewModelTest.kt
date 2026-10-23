@@ -1,11 +1,11 @@
 // This file was written with the aid of AI.
-package com.github.se.amber.ui.onBoarding
+package com.github.se.amber.ui.onboarding
 
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleUiState
-import com.github.se.amber.ui.onBoarding.careCircle.CreateCareCircleViewModel
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleUiState
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
