@@ -108,7 +108,7 @@ class UploadPictureViewModel(
   // id -> label shown on the "who is involved" chips.
   // All the names in the care circle are clickable, using chips.
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
-  // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
+
   /** People available for tagging, keyed by person ID and displayed by name. */
   val involvedOptions: StateFlow<Map<String, String>> =
       careCircle
@@ -308,4 +308,8 @@ class UploadPictureViewModel(
       state.copy(shownIds = updated)
     }
   }
+
+    fun onAddPerson()  {
+        // TODO when backend is implemented
+    }
 }

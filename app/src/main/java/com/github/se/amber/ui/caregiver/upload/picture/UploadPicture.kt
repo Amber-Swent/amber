@@ -3,6 +3,7 @@
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
+import android.text.Layout
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -13,7 +14,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,6 +54,7 @@ import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.ADD_PERSON
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.NO_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
@@ -74,6 +80,7 @@ object UploadPictureScreenTestTags {
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
   const val SELECT_PERSON_INVOLVED = "upload_picture_selected_person_involved"
+  const val ADD_PERSON = "upload_picture_add_person"
   const val NO_PERSON_INVOLVED = "upload_picture_no_person_involved"
   const val PERSON_INVOLVED = "upload_picture_person_involved"
 
@@ -189,6 +196,7 @@ fun UploadPictureScreen(
               options = options,
               shownIds = uiState.shownIds,
               toggleShownId = viewModel::toggleShownId,
+              onAddPerson = viewModel::onAddPerson
           )
 
           DisplayScrollableDatePicker(
@@ -213,10 +221,15 @@ fun UploadPictureScreen(
         }
       },
   )
+
+  // TODO Alert dialog if user is adding a Person
 }
 
 /**
  * Displays selectable chips for people who are involved in a picture.
+ * Displays button that allows the caregiver to add a person to be associated to this picture:
+ * This person does not have a userId, will be added to the care circle and will be an
+ * Instance of `Person`.
  *
  * @param options The available person IDs and labels.
  * @param shownIds The IDs of the people currently selected.
@@ -228,46 +241,65 @@ private fun DisplayWhoIsInvolved(
     options: Map<String, String>, // id -> label
     shownIds: Set<String>,
     toggleShownId: (String) -> Unit,
+    onAddPerson: () -> Unit
 ) {
   Column {
     Text("Who is involved - optional", color = Color.Black)
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-        modifier = Modifier.fillMaxWidth().testTag(SELECT_PERSON_INVOLVED),
-    ) {
-      if (options.isEmpty()) {
-        Box(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .testTag(NO_PERSON_INVOLVED)
-                    .border(
-                        width = BORDER_THICKNESS,
-                        color = lightGray,
-                        shape = RoundedCornerShape(ROUND_CORNER),
-                    )
-                    .clip(RoundedCornerShape(ROUND_CORNER))
-                    .padding(PADDING_MEDIUM),
-            contentAlignment = Alignment.Center,
-        ) {
-          Text(
-              text = "No one is part of your care circle",
-              color = Color.Black,
+    if (options.isEmpty()) {
+      Row(
+          modifier = Modifier.fillMaxWidth()
+              .height(IntrinsicSize.Min) // Takes the height of its tallest child
+              .testTag(SELECT_PERSON_INVOLVED),
+          horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+          verticalAlignment = Alignment.CenterVertically
+
+      ) {
+          Box(
+              modifier =
+                  Modifier.weight(1f)
+                      .testTag(NO_PERSON_INVOLVED)
+                      .border(
+                          width = BORDER_THICKNESS,
+                          color = lightGray,
+                          shape = RoundedCornerShape(ROUND_CORNER),)
+                      .clip(RoundedCornerShape(ROUND_CORNER))
+                      .padding(PADDING_MEDIUM),
+              contentAlignment = Alignment.Center,) {
+              Text(
+                  text = "No one is part of your care circle",
+                  color = Color.Black,)
+          }
+          // Display a button to add another person to the care circle
+          AssistChip(
+              onClick = { onAddPerson() },
+              label = {Text("+")},
+              modifier = Modifier.fillMaxHeight().testTag(ADD_PERSON)
           )
-        }
-      } else {
-        options.forEach { (id, label) ->
-          FilterChip(
-              selected = id in shownIds,
-              onClick = { toggleShownId(id) },
-              label = { Text(label) },
-              modifier = Modifier.testTag(PERSON_INVOLVED),
-          )
-        }
       }
-      // TODO: add a button to add other person in the care circle - M2
+      } else {
+          FlowRow(
+              horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+              modifier = Modifier.fillMaxWidth().testTag(SELECT_PERSON_INVOLVED),
+          ) {
+              // Display a chip for each person associated to the photo
+              options.forEach { (id, label) ->
+                  FilterChip(
+                      selected = id in shownIds,
+                      onClick = { toggleShownId(id) },
+                      label = { Text(label) },
+                      modifier = Modifier.testTag(PERSON_INVOLVED),
+                  )
+              }
+              AssistChip(
+                  onClick = { onAddPerson() },
+                  label = {Text("+")},
+                  modifier = Modifier.testTag(ADD_PERSON)
+              )
+          }
+      }
     }
   }
-}
+
 
 /** Preview of [UploadPictureScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
