@@ -1,10 +1,12 @@
 // This file was written by Neha Chakraborty and Claude Code
+// Modified with assistance from OpenAI Codex
+
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 
-/** Reads care circles the signed-in user belongs to. */
+/** Reads care circles the signed-in user belongs to and adds people without accounts. */
 interface CareCircleRepository {
 
   /**
@@ -16,6 +18,14 @@ interface CareCircleRepository {
    */
   suspend fun getCircle(circleId: String): Result<CareCircle>
 
+  /**
+   * Adds a person without an account to the care circle's [CareCircle.people] map.
+   *
+   * The repository generates the person's ID and returns the saved [Person]. This does not add the
+   * person to [CareCircle.memberIds] or create a user account.
+   *
+   * Returns a failed [Result] for invalid input or a Firestore error. Cancellation is rethrown.
+   */
   suspend fun addPerson(circleId: String, person: Person): Result<Person>
 }
 
@@ -32,7 +42,7 @@ sealed class CareCircleError(message: String) : Exception(message) {
 
   data object Network : CareCircleError("Unable to load the care circle while offline")
 
-  data object InvalidPersonName: CareCircleError("A first name is required")
+  data object InvalidPersonName : CareCircleError("A first name is required")
 
   data class Unknown(val source: Throwable) : CareCircleError("Unable to load the care circle")
 }

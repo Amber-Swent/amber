@@ -1,4 +1,6 @@
 // This file was written by Neha Chakraborty and Claude Code
+// Modified with assistance from OpenAI Codex
+
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
@@ -37,7 +39,6 @@ class FirebaseCareCircleRepository(
     }
   }
 
-
   override suspend fun addPerson(circleId: String, person: Person): Result<Person> {
     if (!isValidId(circleId)) {
       return Result.failure(CareCircleError.InvalidCircleId)
@@ -51,17 +52,16 @@ class FirebaseCareCircleRepository(
       val circleDocument = firestore.collection(CARE_CIRCLES_COLLECTION).document(circleId)
       // Generates an ID
       val personId = firestore.collection(CARE_CIRCLES_COLLECTION).document().id
-      val savedPerson = person.copy(
-        id = personId,
-        firstName = person.firstName.trim(),
-        lastName = person.lastName.trim(),
-        nickname = person.nickname?.trim()?.takeIf { it.isNotEmpty() },
-      )
+      val savedPerson =
+          person.copy(
+              id = personId,
+              firstName = person.firstName.trim(),
+              lastName = person.lastName.trim(),
+              nickname = person.nickname?.trim()?.takeIf { it.isNotEmpty() },
+          )
 
       // Writes one entry to CareCircle.people
-      circleDocument
-        .update(FieldPath.of("people", personId), savedPerson)
-        .await()
+      circleDocument.update(FieldPath.of("people", personId), savedPerson).await()
 
       Result.success(savedPerson)
     } catch (exception: CancellationException) {
