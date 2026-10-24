@@ -14,6 +14,9 @@ on:
       - synchronize
       - reopened
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: CI
@@ -194,5 +197,6 @@ jobs:
         with:
           tag_name: latest-debug
           name: Latest debug build
+          body: "Built from ${{ github.sha }}"
           prerelease: true
           files: app-debug.apk
