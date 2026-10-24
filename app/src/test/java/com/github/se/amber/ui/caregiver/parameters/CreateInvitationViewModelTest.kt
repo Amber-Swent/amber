@@ -1,6 +1,7 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
  * Modified by Yuhan YANG, with assistance from Cursor.
+ * Modified with assistance from OpenAI Codex
  */
 package com.github.se.amber.ui.caregiver.parameters
 
@@ -423,6 +424,9 @@ private class FakeCircleRepository(private val circles: Map<String, CareCircle>)
     val circle = circles[circleId] ?: return Result.failure(CareCircleError.NotFound)
     return Result.success(circle)
   }
+
+  override suspend fun addPerson(circleId: String, person: Person): Result<Person> =
+      error("Not used by invitation test")
 }
 
 private class FakeLookupRepository : InvitationLookupRepository {

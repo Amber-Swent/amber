@@ -1,8 +1,12 @@
 // This file was written by Neha Chakraborty and Claude Code
+// Modified with assistance from OpenAI Codex
+
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.user.Person
 import com.google.firebase.Firebase
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.firestore
@@ -26,6 +30,40 @@ class FirebaseCareCircleRepository(
               ?: return Result.failure(CareCircleError.NotFound)
       // toObject leaves id at its default: the document id is not a stored field.
       Result.success(circle.copy(id = snapshot.id))
+    } catch (exception: CancellationException) {
+      throw exception
+    } catch (exception: FirebaseFirestoreException) {
+      Result.failure(exception.toCareCircleError())
+    } catch (exception: Exception) {
+      Result.failure(CareCircleError.Unknown(exception))
+    }
+  }
+
+  override suspend fun addPerson(circleId: String, person: Person): Result<Person> {
+    if (!isValidId(circleId)) {
+      return Result.failure(CareCircleError.InvalidCircleId)
+    }
+
+    if (!person.hasValidName()) {
+      return Result.failure(CareCircleError.InvalidPersonName)
+    }
+
+    return try {
+      val circleDocument = firestore.collection(CARE_CIRCLES_COLLECTION).document(circleId)
+      // Generates an ID
+      val personId = firestore.collection(CARE_CIRCLES_COLLECTION).document().id
+      val savedPerson =
+          person.copy(
+              id = personId,
+              firstName = person.firstName.trim(),
+              lastName = person.lastName.trim(),
+              nickname = person.nickname?.trim()?.takeIf { it.isNotEmpty() },
+          )
+
+      // Writes one entry to CareCircle.people
+      circleDocument.update(FieldPath.of("people", personId), savedPerson).await()
+
+      Result.success(savedPerson)
     } catch (exception: CancellationException) {
       throw exception
     } catch (exception: FirebaseFirestoreException) {
