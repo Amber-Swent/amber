@@ -1,0 +1,60 @@
+# This code was written with the aid of AI
+
+# Temporary workflow: regenerates Gradle dependency verification metadata on Linux
+# so platform-specific artifacts (e.g. aapt2 linux jar) are recorded. Delete after use.
+name: Regenerate dependency verification (temporary)
+
+on:
+  push:
+    branches:
+      - chore/fix-sonar-issues
+
+jobs:
+  regen:
+    name: Regenerate verification metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad #v6
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 #v6
+
+      - name: Decode google-services.json
+        env:
+          GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES" ]; then
+            echo "$GOOGLE_SERVICES" | base64 --decode > ./app/google-services.json
+          else
+            echo "::warning::GOOGLE_SERVICES secret is not set. google-services.json will not be created."
+          fi
+
+      # Existing entries are kept; only missing ones (e.g. Linux artifacts) are added.
+      - name: Write verification metadata
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --write-verification-metadata pgp,sha256 --export-keys --continue \
+            help ktfmtCheck assemble lint check jacocoTestReport sonar
+
+      - name: Upload verification metadata
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4
+        with:
+          name: verification-metadata
+          path: |
+            gradle/verification-metadata.xml
+            gradle/verification-keyring.keys
