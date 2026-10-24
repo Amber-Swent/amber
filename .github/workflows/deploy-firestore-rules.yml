@@ -13,7 +13,8 @@ on:
   # Lets the rules be deployed again by hand from the Actions tab
   workflow_dispatch:
 
-# Two deploys never run at the same time; the latest one wins
+# Deploys run one at a time, in order: a new deploy waits for the running one to finish and
+# replaces any deploy still waiting, so the newest rules are always deployed last
 concurrency:
   group: deploy-firestore-rules
   cancel-in-progress: false
@@ -26,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
@@ -46,7 +47,7 @@ jobs:
             echo "::error::The FIREBASE_SERVICE_ACCOUNT secret is not set."
             exit 1
           fi
-          echo "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json"
           firebase deploy --only firestore:rules --project amber-34abf --non-interactive
 
