@@ -1,3 +1,4 @@
+/** Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code. */
 package com.github.se.amber.ui.theme
 
 import android.app.Activity
@@ -11,48 +12,66 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+/**
+ * Amber Color Scheme for dark Mode
+ *
+ * If an element doesn't fit inside one of the description, use the color define in [Color]
+ */
 private val DarkColorScheme =
     darkColorScheme(
-        primary = cyan,
-        onPrimary = lightGray,
-        secondary = cyan,
-        onSecondary = lightGray,
-        tertiary = lightCyan,
-        onTertiary = lightGray,
         background = darkCyan,
+        onBackground = Color.White,
+
+        /** Main Title */
+        primary = cyan,
+        onPrimary = Color.Black,
+
+        /** Secondary Title, selected icon */
+        secondary = lightCyan,
+        onSecondary = darkCyan,
+
+        /** Button, unselected icon */
+        tertiary = lightGray,
+        onTertiary = darkCyan,
+        surface = darkCyan,
+        onSurface = Color.White,
+        error = Color.White,
     )
 
+/**
+ * Amber Color Scheme for light Mode
+ *
+ * If an element doesn't fit inside one of the description, use the color define in [Color]
+ */
 private val LightColorScheme =
     lightColorScheme(
-        primary = Color.White,
-        onPrimary = lightGray,
-        secondary = Color.Black,
-        onSecondary = lightGray,
-        tertiary = lightOrange,
-        onTertiary = lightGray,
         background = Color.White,
+        onBackground = Color.Black,
 
-        /* Other default colors to override
-        background = Color(0xFFFFFBFE),
-        surface = Color(0xFFFFFBFE),
-        onPrimary = Color.White,
-        onSecondary = Color.White,
-        onTertiary = Color.White,
-        onBackground = Color(0xFF1C1B1F),
-        onSurface = Color(0xFF1C1B1F),
-        */
+        /** Main Title */
+        primary = darkOrange,
+        onPrimary = Color.Black,
+
+        /** Secondary Title, selected icon */
+        secondary = orange,
+        onSecondary = Color.Black,
+
+        /** Button, unselected icon */
+        tertiary = lightOrange,
+        onTertiary = Color.Black,
+        surface = Color.White,
+        onSurface = Color.Black,
+        error = darkOrange,
     )
 
 @Composable
 fun AmberAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Dynamic color is available on Android 12+
     content: @Composable () -> Unit,
 ) {
   val colorScheme =
@@ -68,11 +87,9 @@ fun AmberAppTheme(
   if (!view.isInEditMode) {
     SideEffect {
       val window = (view.context as Activity).window
-      window.statusBarColor = colorScheme.primary.toArgb()
-      // Light icons when it's light mode (white background)
-      WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = true
+      WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
     }
   }
 
-  MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
+  MaterialTheme(colorScheme = colorScheme, content = content)
 }
