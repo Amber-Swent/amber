@@ -38,11 +38,11 @@ sealed class CareCircleError(message: String) : Exception(message) {
   data object NotAuthenticated : CareCircleError("No user is signed in")
 
   data object PermissionDenied :
-      CareCircleError("You do not have permission to view this care circle")
+      CareCircleError("You do not have permission to access this care circle")
 
-  data object Network : CareCircleError("Unable to load the care circle while offline")
+  data object Network : CareCircleError("Unable to reach the care circle")
 
   data object InvalidPersonName : CareCircleError("A first name is required")
 
-  data class Unknown(val source: Throwable) : CareCircleError("Unable to load the care circle")
+  data class Unknown(val source: Throwable) : CareCircleError("The care circle operation failed")
 }
