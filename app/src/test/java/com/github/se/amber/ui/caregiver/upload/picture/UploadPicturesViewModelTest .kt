@@ -19,6 +19,7 @@ import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModelErrorMessage
 import io.mockk.coEvery
@@ -741,6 +742,35 @@ class UploadPictureViewModelTest {
   }
 
   @Test
+  fun selectPlaceIgnoresAPlaceWithOnlyALatitude() {
+    val vm = createViewModel()
+    vm.selectPlace(GeoLocation(lat = 46.52, placeName = "Lausanne"))
+    assertNull(vm.uiState.value.location)
+  }
+
+  @Test
+  fun aPickedPlaceWithoutNameLeavesTheFieldEmpty() {
+    val vm = createViewModel()
+    vm.searchPlace("46.52, 6.63")
+    vm.selectPlace(GeoLocation(lat = 46.52, lng = 6.63))
+
+    assertEquals("", vm.uiState.value.placeQuery)
+    assertTrue(vm.uiState.value.hasValidPlace)
+  }
+
+  @Test
+  fun failedPlaceSearchWithoutMessageReportsTheErrorAlone() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException())
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess,
+        vm.uiState.value.errorMsg,
+    )
+  }
+
+  @Test
   fun typingAfterPickingAPlaceDropsIt() {
     val vm = createViewModel()
     vm.selectPlace(lausanne)
@@ -822,5 +852,28 @@ class UploadPictureViewModelTest {
   @Test
   fun canUploadIsFalseWithoutDate() {
     assertFalse(readyViewModel(date = null).uiState.value.canUpload)
+  }
+
+  private val completeState =
+      UploadPictureUIState(
+          description = "A description",
+          date = MemoryDate(2024, 5, 12),
+          pictureFile = File("picture.jpg"),
+      )
+
+  @Test
+  fun canUploadIsFalseWithoutPicture() {
+    assertTrue(completeState.canUpload)
+    assertFalse(completeState.copy(pictureFile = null).canUpload)
+  }
+
+  @Test
+  fun canUploadIsFalseWithBlankDescription() {
+    assertFalse(completeState.copy(description = "  ").canUpload)
+  }
+
+  @Test
+  fun canUploadIsFalseWhileUploading() {
+    assertFalse(completeState.copy(isUploading = true).canUpload)
   }
 }

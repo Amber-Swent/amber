@@ -168,14 +168,18 @@ class UploadPictureViewModel(
       return
     }
     viewModelScope.launch {
-      val profile =
-          profileRepo.getProfile(uid).getOrElse {
-            setErrorMsg(
-                UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "${it.message}"
-            )
-            return@launch
-          }
-      val circleId = profile?.circleIds?.firstOrNull()
+      // null when the user has no profile, or a profile in no circle
+      val circleId =
+          profileRepo
+              .getProfile(uid)
+              .map { profile -> profile?.circleIds?.firstOrNull() }
+              .getOrElse {
+                setErrorMsg(
+                    UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess +
+                        "${it.message}"
+                )
+                return@launch
+              }
       if (circleId == null) {
         setErrorMsg(UploadPictureViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess)
         return@launch

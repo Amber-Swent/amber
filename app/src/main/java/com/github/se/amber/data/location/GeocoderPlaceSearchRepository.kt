@@ -11,6 +11,7 @@ import java.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -25,7 +26,11 @@ class GeocoderPlaceSearchRepository(
     private val findAddresses: suspend (name: String, maxResults: Int) -> List<Address>,
 ) : PlaceSearchRepository {
 
-  constructor(context: Context) : this(geocoderLookup(Geocoder(context)))
+  /** @param ioDispatcher where the blocking lookup of older Android runs; tests pass their own. */
+  constructor(
+      context: Context,
+      ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+  ) : this(geocoderLookup(Geocoder(context), ioDispatcher))
 
   override suspend fun search(query: String): Result<List<GeoLocation>> {
     val name = query.trim()
@@ -43,30 +48,32 @@ class GeocoderPlaceSearchRepository(
     const val MAX_RESULTS = 5
 
     /** Looks addresses up with [geocoder], with the non-blocking call where Android has it. */
-    private fun geocoderLookup(geocoder: Geocoder): suspend (String, Int) -> List<Address> =
-        { name, maxResults ->
-          if (!Geocoder.isPresent()) throw IOException("No place search on this device")
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            suspendCancellableCoroutine { continuation ->
-              geocoder.getFromLocationName(
-                  name,
-                  maxResults,
-                  object : Geocoder.GeocodeListener {
-                    override fun onGeocode(addresses: MutableList<Address>) =
-                        continuation.resume(addresses)
+    internal fun geocoderLookup(
+        geocoder: Geocoder,
+        ioDispatcher: CoroutineDispatcher,
+    ): suspend (String, Int) -> List<Address> = { name, maxResults ->
+      if (!Geocoder.isPresent()) throw IOException("No place search on this device")
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        suspendCancellableCoroutine { continuation ->
+          geocoder.getFromLocationName(
+              name,
+              maxResults,
+              object : Geocoder.GeocodeListener {
+                override fun onGeocode(addresses: MutableList<Address>) =
+                    continuation.resume(addresses)
 
-                    override fun onError(errorMessage: String?) =
-                        continuation.resumeWithException(IOException(errorMessage))
-                  },
-              )
-            }
-          } else {
-            // blocks on the network: older Android has no other way
-            withContext(Dispatchers.IO) {
-              @Suppress("DEPRECATION") geocoder.getFromLocationName(name, maxResults).orEmpty()
-            }
-          }
+                override fun onError(errorMessage: String?) =
+                    continuation.resumeWithException(IOException(errorMessage))
+              },
+          )
         }
+      } else {
+        // blocks on the network: older Android has no other way
+        withContext(ioDispatcher) {
+          @Suppress("DEPRECATION") geocoder.getFromLocationName(name, maxResults).orEmpty()
+        }
+      }
+    }
   }
 }
 
