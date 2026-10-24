@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.location.GeoLocation
@@ -123,8 +124,34 @@ class MediaItemMappingTest {
     assertEquals(1_700_000_000L, read.createdAt)
     assertEquals(4032, read.width)
     assertEquals(3024, read.height)
-    assertEquals(46.0, read.location!!.lat, 0.0)
-    assertEquals(6.6, read.location!!.lng, 1e-6)
+    assertEquals(46.0, read.location!!.lat!!, 0.0)
+    assertEquals(6.6, read.location!!.lng!!, 1e-6)
+  }
+
+  @Test
+  fun aTypedPlaceNameComesBackWithoutCoordinates() {
+    val item = picture.copy(location = GeoLocation(placeName = "Grandma's house"))
+
+    val fields = item.toMap()
+    val read = mediaItemFromMap("m1", fields)
+
+    assertEquals(
+        mapOf("lat" to null, "lng" to null, "placeName" to "Grandma's house"),
+        fields["location"],
+    )
+    assertEquals(item, read)
+  }
+
+  @Test
+  fun missingCoordinatesAreReadAsUnknownNotZero() {
+    // an outbox entry drops null values; an older document may lack them too
+    val read =
+        mediaItemFromMap(
+            "m1",
+            mapOf("type" to "picture", "location" to mapOf("placeName" to "Lake Geneva")),
+        )
+
+    assertEquals(GeoLocation(placeName = "Lake Geneva"), read?.location)
   }
 
   @Test
