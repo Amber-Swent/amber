@@ -14,9 +14,6 @@ on:
       - synchronize
       - reopened
 
-permissions:
-  contents: write
-
 jobs:
   ci:
     name: CI
@@ -118,16 +115,6 @@ jobs:
           # To run the CI with debug information, add --info
           ./gradlew assemble lint --parallel --build-cache
 
-      # This step publish the APK into the releases. For now we use the APK debug.
-      - name: publish the APK into the releases
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 #v2.6.2
-        with:
-          tag_name: latest-debug
-          name: Latest debug build
-          prerelease: true
-          files: app/build/outputs/apk/debug/app-debug.apk
-
       # This step upload the APK as an artifact
       - name: Upload APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4
@@ -186,3 +173,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew sonar --parallel --build-cache
+
+  release:
+    name: Release
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Download the APK from the artifacts
+      - name: Download APK
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: app-debug
+
+      # This step publish the APK into the releases. For now we use the APK debug.
+      - name: publish the APK into the releases
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 #v2.6.2
+        with:
+          tag_name: latest-debug
+          name: Latest debug build
+          prerelease: true
+          files: app-debug.apk
