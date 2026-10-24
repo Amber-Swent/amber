@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -7,11 +8,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
@@ -20,7 +24,9 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -48,6 +54,8 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
+  PICK_A_PLACE(mess = "Pick the place from the suggestions"),
+  COULD_NOT_SEARCH_PLACES(mess = "Could not search places: "),
 }
 
 /**
@@ -55,6 +63,11 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
  *
  * @param description The description entered for the picture.
  * @param date The date associated with the picture, if one was selected.
+ * @param placeQuery What the user typed to search for where the picture was taken.
+ * @param placeSuggestions Real places matching [placeQuery], to pick from.
+ * @param isSearchingPlaces Whether a search for [placeQuery] is waiting or running, so the screen
+ *   can tell "searching" from "no places found".
+ * @param location The real place picked from [placeSuggestions]; null if none was picked.
  * @param shownIds The IDs of the people tagged in the picture.
  * @param pictureFile The local picture file selected for upload.
  * @param pictureWidth The width of the selected picture in pixels.
@@ -65,6 +78,10 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
 data class UploadPictureUIState(
     val description: String = "",
     val date: MemoryDate? = null,
+    val placeQuery: String = "",
+    val placeSuggestions: List<GeoLocation> = emptyList(),
+    val isSearchingPlaces: Boolean = false,
+    val location: GeoLocation? = null,
     val shownIds: Set<String> = emptySet(),
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
@@ -72,8 +89,17 @@ data class UploadPictureUIState(
     val isUploading: Boolean = false,
     val errorMsg: String? = null,
 ) {
+  /** A typed place must be picked from the suggestions: only real places are saved. */
+  val hasValidPlace: Boolean
+    get() = placeQuery.isBlank() || location != null
+
   val canUpload: Boolean
-    get() = pictureFile != null && description.isNotBlank() && date != null && !isUploading
+    get() =
+        pictureFile != null &&
+            description.isNotBlank() &&
+            date != null &&
+            hasValidPlace &&
+            !isUploading
 }
 
 /**
@@ -83,6 +109,7 @@ data class UploadPictureUIState(
  * @param authRepo The repository used to access the currently authenticated user.
  * @param profileRepo The repository used to load the authenticated user's profile.
  * @param circleRepo The repository used to load the user's care circle.
+ * @param placeRepo The repository used to find real places from what the user types.
  * @param pictureReader The reader used to copy selected pictures and read their dimensions.
  */
 class UploadPictureViewModel(
@@ -90,6 +117,7 @@ class UploadPictureViewModel(
     private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
     private val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadPictureUIState())
@@ -100,6 +128,7 @@ class UploadPictureViewModel(
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
   private val _events = Channel<UploadPictureEvent>(Channel.BUFFERED)
   val events: Flow<UploadPictureEvent> = _events.receiveAsFlow()
+  private var placeSearch: Job? = null
 
   init {
     loadCircle()
@@ -192,6 +221,10 @@ class UploadPictureViewModel(
       setErrorMsg(UploadPictureViewModelErrorMessage.SELECT_DATE.mess)
       return
     }
+    if (!state.hasValidPlace) {
+      setErrorMsg(UploadPictureViewModelErrorMessage.PICK_A_PLACE.mess)
+      return
+    }
 
     _uiState.value = state.copy(isUploading = true)
     viewModelScope.launch {
@@ -206,7 +239,7 @@ class UploadPictureViewModel(
                 createdAt = System.currentTimeMillis(),
                 description = state.description,
                 date = state.date,
-                location = null,
+                location = state.location,
                 shownIds = state.shownIds.toList(),
                 authorizedIds = emptyList(), // empty = whole circle can see it, for the moment
                 status = MediaStatus.APPROVED,
@@ -298,6 +331,56 @@ class UploadPictureViewModel(
   }
 
   /**
+   * Updates the place search typed by the user and, after a short pause in typing, looks for real
+   * places matching it. Any place picked before is dropped: the text no longer names it.
+   *
+   * @param query The text typed in the place field.
+   */
+  fun setPlaceQuery(query: String) {
+    placeSearch?.cancel()
+    val isSearching = query.isNotBlank()
+    _uiState.update {
+      it.copy(placeQuery = query, location = null, isSearchingPlaces = isSearching)
+    }
+    if (!isSearching) {
+      _uiState.update { it.copy(placeSuggestions = emptyList()) }
+      return
+    }
+    placeSearch = viewModelScope.launch {
+      delay(PLACE_SEARCH_DELAY_MS) // wait for the user to stop typing
+      placeRepo
+          .search(query)
+          .onSuccess { places ->
+            _uiState.update { it.copy(placeSuggestions = places, isSearchingPlaces = false) }
+          }
+          .onFailure {
+            _uiState.update { it.copy(placeSuggestions = emptyList(), isSearchingPlaces = false) }
+            setErrorMsg(
+                UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess + (it.message ?: "")
+            )
+          }
+    }
+  }
+
+  /**
+   * Picks one of the suggested real places as where the picture was taken.
+   *
+   * @param place One of [UploadPictureUIState.placeSuggestions].
+   */
+  fun selectPlace(place: GeoLocation) {
+    if (place.lat == null || place.lng == null) return // not a point on the map
+    placeSearch?.cancel()
+    _uiState.update {
+      it.copy(
+          placeQuery = place.placeName.orEmpty(),
+          placeSuggestions = emptyList(),
+          isSearchingPlaces = false,
+          location = place,
+      )
+    }
+  }
+
+  /**
    * Adds a person to the tagged people, or removes them if already tagged.
    *
    * @param id The ID of the person to select or deselect.
@@ -307,5 +390,9 @@ class UploadPictureViewModel(
       val updated = if (id in state.shownIds) state.shownIds - id else state.shownIds + id
       state.copy(shownIds = updated)
     }
+  }
+
+  private companion object {
+    const val PLACE_SEARCH_DELAY_MS = 300L
   }
 }

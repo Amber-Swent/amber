@@ -1,12 +1,15 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload
 
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaStatus
@@ -59,6 +62,7 @@ class UploadPictureViewModelTest {
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
   private lateinit var pictureReader: SelectedPictureReader
+  private lateinit var placeRepo: PlaceSearchRepository
 
   private lateinit var circle: CareCircle
   private val pictureFile = File("picked_test.jpg") // never touched on disk, addMedia is mocked
@@ -72,6 +76,7 @@ class UploadPictureViewModelTest {
     profileRepo = mockk()
     circleRepo = mockk()
     pictureReader = mockk()
+    placeRepo = mockk()
 
     circle = fakeCircle()
 
@@ -79,6 +84,7 @@ class UploadPictureViewModelTest {
     stubProfile(listOf("circle1")) // <-- was missing
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepo.newMediaId(any()) } returns "media1"
+    coEvery { placeRepo.search(any()) } returns Result.success(listOf(lausanne))
   }
 
   @After
@@ -96,7 +102,16 @@ class UploadPictureViewModelTest {
           profileRepo = profileRepo,
           circleRepo = circleRepo,
           pictureReader = pictureReader,
+          placeRepo = placeRepo,
       )
+
+  private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
+
+  /** Types [query] in the place field and lets its search run. */
+  private fun UploadPictureViewModel.searchPlace(query: String) {
+    setPlaceQuery(query)
+    testDispatcher.scheduler.advanceUntilIdle()
+  }
 
   private fun readyViewModel(
       description: String = "A description",
@@ -648,6 +663,153 @@ class UploadPictureViewModelTest {
     val date = MemoryDate(2024, 5, 12)
     readyViewModel(date = date).uploadPicture()
     assertEquals(date, captureUploadedItem().date)
+  }
+
+  // ---------- place search ----------
+
+  @Test
+  fun initialStateHasNoPlace() {
+    val state = createViewModel().uiState.value
+    assertEquals("", state.placeQuery)
+    assertTrue(state.placeSuggestions.isEmpty())
+    assertNull(state.location)
+  }
+
+  @Test
+  fun typedPlaceIsSearchedAfterAPause() {
+    val vm = createViewModel()
+    vm.setPlaceQuery("Lausanne")
+    coVerify(exactly = 0) { placeRepo.search(any()) }
+
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    coVerify(exactly = 1) { placeRepo.search("Lausanne") }
+    assertEquals(listOf(lausanne), vm.uiState.value.placeSuggestions)
+  }
+
+  @Test
+  fun fastTypingSearchesOnlyTheLastText() {
+    val vm = createViewModel()
+    vm.setPlaceQuery("Lau")
+    vm.setPlaceQuery("Lausa")
+    vm.searchPlace("Lausanne")
+
+    coVerify(exactly = 1) { placeRepo.search(any()) }
+    coVerify { placeRepo.search("Lausanne") }
+  }
+
+  @Test
+  fun blankPlaceQueryClearsSuggestionsWithoutSearching() {
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.searchPlace("  ")
+
+    assertTrue(vm.uiState.value.placeSuggestions.isEmpty())
+    coVerify(exactly = 1) { placeRepo.search(any()) }
+  }
+
+  @Test
+  fun failedPlaceSearchReportsErrorAndShowsNoSuggestions() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess + "offline",
+        vm.uiState.value.errorMsg,
+    )
+    assertTrue(vm.uiState.value.placeSuggestions.isEmpty())
+  }
+
+  @Test
+  fun selectPlaceKeepsTheRealPlaceAndShowsItsName() {
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.selectPlace(lausanne)
+
+    val state = vm.uiState.value
+    assertEquals(lausanne, state.location)
+    assertEquals("Lausanne, Switzerland", state.placeQuery)
+    assertTrue(state.placeSuggestions.isEmpty())
+  }
+
+  @Test
+  fun selectPlaceIgnoresAPlaceWithoutCoordinates() {
+    val vm = createViewModel()
+    vm.selectPlace(GeoLocation(placeName = "Grandma's house"))
+    assertNull(vm.uiState.value.location)
+  }
+
+  @Test
+  fun typingAfterPickingAPlaceDropsIt() {
+    val vm = createViewModel()
+    vm.selectPlace(lausanne)
+    vm.setPlaceQuery("Grandma's house")
+    assertNull(vm.uiState.value.location)
+  }
+
+  @Test
+  fun placeSearchIsInProgressUntilItsResultsArrive() {
+    val vm = createViewModel()
+    vm.setPlaceQuery("Lausanne")
+    assertTrue(vm.uiState.value.isSearchingPlaces)
+
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    assertFalse(vm.uiState.value.isSearchingPlaces)
+  }
+
+  @Test
+  fun aSearchWithNoResultsIsNotInProgress() {
+    coEvery { placeRepo.search(any()) } returns Result.success(emptyList())
+    val vm = createViewModel()
+    vm.searchPlace("Grandma's house")
+
+    assertFalse(vm.uiState.value.isSearchingPlaces)
+    assertTrue(vm.uiState.value.placeSuggestions.isEmpty())
+  }
+
+  @Test
+  fun failedOrClearedOrPickedSearchIsNotInProgress() {
+    val vm = createViewModel()
+    vm.setPlaceQuery("Lausanne")
+    vm.setPlaceQuery("")
+    assertFalse(vm.uiState.value.isSearchingPlaces)
+
+    vm.setPlaceQuery("Lausanne")
+    vm.selectPlace(lausanne)
+    assertFalse(vm.uiState.value.isSearchingPlaces)
+
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    vm.searchPlace("Geneva")
+    assertFalse(vm.uiState.value.isSearchingPlaces)
+  }
+
+  @Test
+  fun uploadedItemHasThePickedPlaceWithItsCoordinates() {
+    val vm = readyViewModel()
+    vm.searchPlace("Lausanne")
+    vm.selectPlace(lausanne)
+    vm.uploadPicture()
+    assertEquals(lausanne, captureUploadedItem().location)
+  }
+
+  @Test
+  fun uploadedItemHasNoLocationWhenNoPlaceIsTyped() {
+    readyViewModel().uploadPicture()
+    assertNull(captureUploadedItem().location)
+  }
+
+  @Test
+  fun typedButUnpickedPlaceBlocksTheUpload() {
+    val vm = readyViewModel()
+    vm.searchPlace("Grandma's house")
+
+    assertFalse(vm.uiState.value.canUpload)
+    vm.uploadPicture()
+
+    assertEquals(UploadPictureViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
+    coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
   // ---------- canUpload ----------
