@@ -192,4 +192,83 @@ class PatientUtilsTest {
     assertEquals(0, firstClicks)
     assertEquals(1, secondClicks)
   }
+
+  // ---------- Defaults and custom modifier ----------
+
+  @Test
+  fun title_withAllDefaults_isDisplayed() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle() } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun title_appliesCustomModifier() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientTitle(title = "Width", modifier = Modifier.width(100.dp)) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertWidthIsEqualTo(100.dp)
+  }
+
+  @Test
+  fun button_withAllDefaults_clickDoesNothing() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton() } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick().assertIsDisplayed()
+  }
+
+  @Test
+  fun button_appliesCustomModifier() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientButton(text = "Go", modifier = Modifier.width(200.dp)) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertWidthIsEqualTo(200.dp)
+  }
+
+  @Test
+  fun button_updatesWhenTextChanges() {
+    val text = mutableStateOf("First")
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = text.value) } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertTextEquals("First")
+
+    text.value = "Second"
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertTextEquals("Second")
+  }
+
+  @Test
+  fun buttonWithIcon_withAllDefaults_clickDoesNothing() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon() } }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .performClick()
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun buttonWithIcon_appliesCustomModifier() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientButtonWithIcon(text = "Add", modifier = Modifier.width(200.dp))
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertWidthIsEqualTo(200.dp)
+  }
+
+  @Test
+  fun buttonWithIcon_updatesWhenTextChanges() {
+    val text = mutableStateOf("First")
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon(text = text.value) } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("First")
+
+    text.value = "Second"
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("Second")
+  }
 }
