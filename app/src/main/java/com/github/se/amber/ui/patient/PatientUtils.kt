@@ -43,6 +43,7 @@ object PatientUtilsTestTags {
  *
  * @param modifier modifier to apply to the text
  * @param title title to display
+ * @param titleStyle typography style of the title
  * @param testTag test tag of the title
  */
 @Composable
@@ -68,8 +69,14 @@ fun DisplayPatientTitle(
 /**
  * Displays a button with an icon, label, and click action.
  *
+ * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
+ * height)
+ *
  * @param modifier modifier applied to the button
+ * @param buttonHeight height of the button
+ * @param buttonWidth fraction of the available width taken by the button
  * @param text label displayed on the button.
+ * @param textStyle typography style of the button label
  * @param icon icon displayed on the button.
  * @param description content description for the icon.
  * @param onClick callback invoked when the button is selected.
@@ -127,8 +134,14 @@ fun DisplayPatientButtonWithIcon(
 /**
  * Displays a button, label, and click action.
  *
+ * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
+ * height)
+ *
  * @param modifier modifier applied to the button
+ * @param buttonHeight height of the button
+ * @param buttonWidth fraction of the available width taken by the button
  * @param text label displayed on the button.
+ * @param textStyle typography style of the button label
  * @param onClick callback invoked when the button is selected.
  * @param testTag test tag of the button
  */
