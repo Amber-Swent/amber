@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
@@ -19,9 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import com.github.se.amber.ui.theme.PADDING_ENORMOUS
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_SMALL
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
+import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
+import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 object PatientUtilsTestTags {
   const val TITLE = "PatientUtils_test_tag_title"
@@ -33,14 +36,14 @@ object PatientUtilsTestTags {
 /**
  * Displays the title for patient's Screen
  *
- * @param title title to display
  * @param modifier modifier to apply to the text
+ * @param title title to display
  * @param testTag test tag of the title
  */
 @Composable
 fun DisplayPatientTitle(
-    title: String = "",
     modifier: Modifier = Modifier,
+    title: String = "",
     testTag: String = PatientUtilsTestTags.TITLE,
 ) {
   Text(
@@ -50,7 +53,7 @@ fun DisplayPatientTitle(
       modifier =
           modifier
               .fillMaxWidth()
-              .padding(top = PADDING_SMALL, bottom = PADDING_MEDIUM)
+              .padding(top = PATIENT_PADDING_SMALL, bottom = PATIENT_PADDING_MEDIUM)
               .testTag(testTag),
       textAlign = TextAlign.Center,
   )
@@ -79,7 +82,8 @@ fun DisplayPatientButtonWithIcon(
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.height(PADDING_ENORMOUS).testTag(testTag),
+      modifier = modifier.height(PATIENT_BUTTON_HEIGHT_SMALL).testTag(testTag),
+      shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
               containerColor = MaterialTheme.colorScheme.tertiary,
@@ -94,7 +98,7 @@ fun DisplayPatientButtonWithIcon(
           text,
           style = MaterialTheme.typography.bodyLarge,
           textAlign = TextAlign.Center,
-          modifier = Modifier.weight(1f),
+          modifier = Modifier.weight(WEIGHT_ONE),
       )
       Icon(
           icon,
@@ -122,7 +126,8 @@ fun DisplayPatientButton(
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.height(PADDING_ENORMOUS).testTag(testTag),
+      modifier = modifier.height(PATIENT_BUTTON_HEIGHT_SMALL).testTag(testTag),
+      shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
               containerColor = MaterialTheme.colorScheme.tertiary,
@@ -151,7 +156,7 @@ fun DisplayPatientButton(
 // private fun DisplayButtonWithIconPreview() {
 //  AmberAppTheme(dynamicColor = false) {
 //    DisplayPatientButtonWithIcon(
-//        modifier = Modifier.fillMaxWidth().padding(PADDING_MEDIUM),
+//        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
 //        icon = Icons.Default.Add,
 //        text = "Button with icon example",
 //        description = "click on the button",
@@ -165,7 +170,7 @@ fun DisplayPatientButton(
 // private fun DisplayButtonPreview() {
 //  AmberAppTheme(dynamicColor = false) {
 //    DisplayPatientButton(
-//        modifier = Modifier.fillMaxWidth().padding(PADDING_MEDIUM),
+//        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
 //        text = "Button example",
 //        onClick = {},
 //    )
