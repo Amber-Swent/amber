@@ -153,7 +153,6 @@ fun AmberApp(
       composable(route = CaregiverScreen.Home.route) {
         CaregiverHomeScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
         )
       }
       composable(route = CaregiverScreen.Upload.route) {
