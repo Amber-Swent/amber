@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -30,10 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
@@ -115,20 +116,11 @@ internal fun AuthenticationHeader(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_REGULAR),
   ) {
-    Surface(
+    Image(
+        painter = painterResource(R.drawable.amber_logomark),
+        contentDescription = "Amber logo",
         modifier = Modifier.size(SURFACE_BIG),
-        // TODO to modify when we will have our app logo
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.tertiary,
-        contentColor = MaterialTheme.colorScheme.onTertiary,
-    ) {
-      Box(contentAlignment = Alignment.Center) {
-        AuthenticationText(
-            text = "logo",
-            style = MaterialTheme.typography.titleMedium,
-        )
-      }
-    }
+    )
 
     AuthenticationText(
         text = "Amber",
