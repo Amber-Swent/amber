@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.lightColorScheme
@@ -523,5 +524,93 @@ class PatientUtilsTest {
     composeTestRule.onNodeWithTag("button_explicit").assertTextEquals("Button explicit")
     composeTestRule.onNodeWithTag("icon_default").assertTextEquals("Icon default")
     composeTestRule.onNodeWithTag("icon_explicit").assertTextEquals("Icon explicit")
+  }
+
+  // Layout and content parameters change in separate recompositions, so each parameter is
+  // sometimes changed and sometimes unchanged between two compositions of the same helper.
+  @Test
+  fun helpers_updateWhenLayoutAndContentParametersChangeSeparately() {
+    val layoutChanged = mutableStateOf(false)
+    val contentChanged = mutableStateOf(false)
+    val clicks = mutableListOf<String>()
+
+    composeTestRule.setContent {
+      AmberAppTheme {
+        val layout = layoutChanged.value
+        val content = contentChanged.value
+        Column {
+          DisplayPatientTitle(
+              modifier = Modifier.width(if (layout) 300.dp else 200.dp),
+              title = if (content) "Updated title" else "Initial title",
+              titleStyle = TextStyle(fontSize = if (content) 30.sp else 20.sp),
+              testTag = if (content) "updated_title" else "initial_title",
+          )
+          DisplayPatientButton(
+              modifier = Modifier.width(if (layout) 300.dp else 200.dp),
+              buttonHeight = if (layout) 96.dp else 80.dp,
+              buttonWidth = if (layout) 1f else 0.5f,
+              text = if (content) "Updated button" else "Initial button",
+              textStyle = TextStyle(fontSize = if (content) 30.sp else 20.sp),
+              onClick = { clicks += if (content) "updated button" else "initial button" },
+              testTag = if (content) "updated_button" else "initial_button",
+          )
+          DisplayPatientButtonWithIcon(
+              modifier = Modifier.width(if (layout) 300.dp else 200.dp),
+              buttonHeight = if (layout) 96.dp else 80.dp,
+              buttonWidth = if (layout) 1f else 0.5f,
+              text = if (content) "Updated icon button" else "Initial icon button",
+              textStyle = TextStyle(fontSize = if (content) 30.sp else 20.sp),
+              icon = if (content) Icons.Default.Close else Icons.Default.Add,
+              description = if (content) "close icon" else "add icon",
+              onClick = { clicks += if (content) "updated icon" else "initial icon" },
+              testTag = if (content) "updated_icon_button" else "initial_icon_button",
+              iconTestTag = if (content) "updated_icon" else "initial_icon",
+          )
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithTag("initial_title").assertTextEquals("Initial title")
+    composeTestRule.onNodeWithTag("initial_button").assertWidthIsEqualTo(100.dp)
+    composeTestRule.onNodeWithTag("initial_icon_button").assertWidthIsEqualTo(100.dp)
+    composeTestRule
+        .onNodeWithTag("initial_icon", useUnmergedTree = true)
+        .assertContentDescriptionEquals("add icon")
+
+    composeTestRule.runOnIdle { layoutChanged.value = true }
+
+    composeTestRule.onNodeWithTag("initial_title").assertWidthIsEqualTo(300.dp)
+    composeTestRule
+        .onNodeWithTag("initial_button")
+        .assertTextEquals("Initial button")
+        .assertWidthIsEqualTo(300.dp)
+        .assertHeightIsEqualTo(96.dp)
+    composeTestRule
+        .onNodeWithTag("initial_icon_button")
+        .assertTextEquals("Initial icon button")
+        .assertWidthIsEqualTo(300.dp)
+        .assertHeightIsEqualTo(96.dp)
+
+    composeTestRule.runOnIdle { contentChanged.value = true }
+
+    composeTestRule.onNodeWithTag("initial_title").assertDoesNotExist()
+    composeTestRule.onNodeWithTag("updated_title").assertTextEquals("Updated title")
+    composeTestRule.onNodeWithTag("updated_title").assertWidthIsEqualTo(300.dp)
+    composeTestRule
+        .onNodeWithTag("updated_button")
+        .assertTextEquals("Updated button")
+        .assertWidthIsEqualTo(300.dp)
+        .assertHeightIsEqualTo(96.dp)
+        .performClick()
+    composeTestRule
+        .onNodeWithTag("updated_icon_button")
+        .assertTextEquals("Updated icon button")
+        .assertWidthIsEqualTo(300.dp)
+        .assertHeightIsEqualTo(96.dp)
+        .performClick()
+    composeTestRule
+        .onNodeWithTag("updated_icon", useUnmergedTree = true)
+        .assertContentDescriptionEquals("close icon")
+    assertEquals(listOf("updated button", "updated icon"), clicks)
   }
 }
