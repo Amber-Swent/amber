@@ -77,6 +77,22 @@ class FirebaseCareCircleRepositoryInstrumentedTest {
     assertEquals(second, stored.people[second.id])
   }
 
+  // Create the circle as a member, switches to a different signed-in user, and attempts the write
+  @Test
+  fun addPerson_deniesSignedInNonMember() = runBlocking {
+    val circle = createCaregiverCircle("Ada")
+
+    // Creating another Auth user signs the test in as that user.
+    val email = "outsider-${UUID.randomUUID()}@amber.test"
+    Firebase.auth.createUserWithEmailAndPassword(email, "Password123!").await()
+    val outsiderId = checkNotNull(Firebase.auth.currentUser).uid
+    assertTrue(outsiderId !in circle.memberIds)
+
+    val result = FirebaseCareCircleRepository().addPerson(circle.id, Person(firstName = "Anne"))
+
+    assertEquals(CareCircleError.PermissionDenied, result.exceptionOrNull())
+  }
+
   private suspend fun createCaregiverCircle(firstName: String): CareCircle {
     val uniqueId = UUID.randomUUID().toString()
     Firebase.auth

@@ -420,6 +420,11 @@ private class FakeProfileRepository(var result: Result<UserProfile?>) : ProfileR
 
 private class FakeCircleRepository(private val circles: Map<String, CareCircle>) :
     CareCircleRepository {
+
+  override fun newId(): String {
+    error("Not used by invitation test")
+  }
+
   override suspend fun getCircle(circleId: String): Result<CareCircle> {
     val circle = circles[circleId] ?: return Result.failure(CareCircleError.NotFound)
     return Result.success(circle)

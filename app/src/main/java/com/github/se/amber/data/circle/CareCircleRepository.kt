@@ -10,6 +10,12 @@ import com.github.se.amber.model.user.Person
 interface CareCircleRepository {
 
   /**
+   * Generates a Firestore ID locally without creating a document. Not a suspending function ince
+   * generating a document ID is local and has no await().
+   */
+  fun newId(): String
+
+  /**
    * Loads the care circle stored at careCircles/[circleId].
    *
    * The returned [Result] fails only with [CareCircleError]. Security rules only let members read a
@@ -21,15 +27,20 @@ interface CareCircleRepository {
   /**
    * Adds a person without an account to the care circle's [CareCircle.people] map.
    *
-   * The repository generates the person's ID and returns the saved [Person]. This does not add the
-   * person to [CareCircle.memberIds] or create a user account.
+   * Requires a nonblank first name. Generates the person's ID, trims the first name, last name, and
+   * nickname, and stores a blank nickname as null. This does not add the person to
+   * [CareCircle.memberIds] or create a user account.
    *
-   * Returns a failed [Result] for invalid input or a Firestore error. Cancellation is rethrown.
+   * On a valid request, this function awaits Firestore's confirmation of the write before returning
+   * success. If the device is offline, Firestore may queue the write locally and this function
+   * remains suspended until the server confirms or rejects it after reconnection.
+   *
+   * A failed [Result] contains a [CareCircleError]. Cancellation is rethrown.
    */
   suspend fun addPerson(circleId: String, person: Person): Result<Person>
 }
 
-/** Typed failures returned by [CareCircleRepository.getCircle]. */
+/** Typed failures returned by [CareCircleRepository]. */
 sealed class CareCircleError(message: String) : Exception(message) {
   data object InvalidCircleId : CareCircleError("A valid care circle ID is required")
 
