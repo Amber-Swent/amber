@@ -1,7 +1,5 @@
 package com.github.se.amber.ui.caregiver
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.Modifier
@@ -10,7 +8,6 @@ import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -24,7 +21,6 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAG
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -147,7 +143,6 @@ class DisplayCaregiverButtonTest {
       enabled: Boolean = true,
       withIcon: Boolean = false,
       height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
-      width: Float = CAREGIVER_BUTTON_WIDTH,
   ) {
     composeTestRule.setContent {
       DisplayCaregiverButton(
@@ -157,7 +152,6 @@ class DisplayCaregiverButtonTest {
           icon = if (withIcon) icon else null,
           description = if (withIcon) iconDescription else "",
           height = height,
-          width = width,
       )
     }
   }

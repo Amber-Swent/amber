@@ -77,12 +77,28 @@ object DisplayCaregiverButtonTestTags {
   const val ICON = "caregiver_button_icon"
 }
 
+/**
+ * Displays a caregiver button with optional icon content.
+ *
+ * An icon and its content description must either both be provided or both be omitted. If there is
+ * no icon, the text is center. If there is an icon, the text is on the left and the icon on the
+ * right
+ *
+ * @param modifier modifier applied to the button.
+ * @param onClick callback invoked when the button is clicked.
+ * @param enabled whether the button is enabled and can be clicked.
+ * @param icon optional icon displayed on the button.
+ * @param description content description for [icon], required when an icon is provided.
+ * @param text text displayed on the button.
+ * @param height height of the button.
+ * @param width fraction of the available width occupied by the button.
+ * @param paddingTextAndIcon padding applied between the button content and its edges.
+ */
 @Composable
 fun DisplayCaregiverButton(
     // If needed, pass the testTag of the button through here
     // this buttonTag allow another function want to ensure a specific button is display
     modifier: Modifier = Modifier,
-
     onClick: () -> Unit = {},
     enabled: Boolean = true,
     icon: ImageVector? = null,
