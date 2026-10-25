@@ -229,7 +229,10 @@ class DisplayCaregiverButtonTest {
   fun button_becomesEnabled_whenConditionTurnsTrue() {
     var condition by mutableStateOf(false)
     composeTestRule.setContent {
-      DisplayCaregiverButton(modifier = Modifier.testTag(buttonTagFromAnotherFunction), enabled = condition)
+      DisplayCaregiverButton(
+          modifier = Modifier.testTag(buttonTagFromAnotherFunction),
+          enabled = condition,
+      )
     }
     composeTestRule.runOnIdle { condition = true }
     composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertIsEnabled()
