@@ -6,6 +6,7 @@ package com.github.se.amber
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -23,15 +24,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
-import com.github.se.amber.ui.accountCreation.CreateProfileScreen
-import com.github.se.amber.ui.accountCreation.caregiverOnboarding.CaregiverChoiceScreen
-import com.github.se.amber.ui.authentication.EmailSignInScreen
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
+import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
-import com.github.se.amber.ui.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
 import com.github.se.amber.ui.navigation.NavGraphs
@@ -41,15 +40,18 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
-import com.github.se.amber.ui.onboarding.CreateCareCircleScreen
+import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
+import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
-import com.github.se.amber.ui.patient.see_pictures.SeePicturesScreen
-import com.github.se.amber.ui.roleloading.RoleLoadingScreen
+import com.github.se.amber.ui.patient.seePictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
+    enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     setContent {
       AmberAppTheme {
