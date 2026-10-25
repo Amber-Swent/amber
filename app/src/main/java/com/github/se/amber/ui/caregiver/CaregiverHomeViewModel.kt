@@ -23,7 +23,9 @@ import kotlinx.coroutines.launch
 /**
  * UI state displayed by the caregiver home screen.
  *
- * @param patient Patient whose information is displayed on the screen.
+ * @param caregiver Caregiver's profile, owner of this Amber account
+ * @param careCircle actual careCircle.
+ * @param patient Patient of the actual careCircle - whose information is displayed on the screen.
  * @param errorMsg Error message to display, or null when there is no error.
  */
 data class CaregiverHomeUIState(
