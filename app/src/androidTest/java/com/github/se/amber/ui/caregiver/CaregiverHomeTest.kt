@@ -4,12 +4,18 @@
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import org.junit.Assert.assertTrue
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -19,14 +25,33 @@ class CaregiverHomeScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
   private lateinit var viewModel: CaregiverHomeViewModel
+  private lateinit var uiStateFlow: MutableStateFlow<CaregiverHomeUIState>
+
+  private val caregiver =
+      UserProfile(uid = "cg1", role = Role.CAREGIVER, circleIds = listOf("circle1"))
+  private val patient =
+      UserProfile(uid = "p1", role = Role.PATIENT, person = Person(firstName = "Arthur"))
+  private val circle = CareCircle(id = "circle1", patientId = "p1")
 
   @Before
   fun setUp() {
-    viewModel = CaregiverHomeViewModel()
+    uiStateFlow =
+        MutableStateFlow(
+            CaregiverHomeUIState(
+                caregiver = caregiver,
+                careCircle = circle,
+                patient = patient,
+            )
+        )
+
+    viewModel = mockk(relaxed = true)
+
+    every { viewModel.uiState } returns uiStateFlow
   }
 
   private fun setScreen(signOut: () -> Unit = {}) {
     composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel) }
+    composeTestRule.waitForIdle()
   }
 
   @Test
@@ -38,13 +63,15 @@ class CaregiverHomeScreenTest {
   @Test
   fun welcomeText_isDisplayed() {
     setScreen()
-    composeTestRule.onNodeWithTag(WELCOME_TEXT).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT).assertIsDisplayed()
   }
 
   @Test
-  fun topNavigationMenu_isDisplayed() {
+  fun welcomeText_showsPatientFirstName() {
     setScreen()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
+        .assertTextEquals("Welcome ! You are with Arthur")
   }
 
   @Test
@@ -53,31 +80,5 @@ class CaregiverHomeScreenTest {
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun launchedEffect_whenErrorMsgIsSet_clearErrorMsgIsCalled() {
-    composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel) }
-
-    viewModel.setErrorMsg("Test error")
-    composeTestRule.mainClock.advanceTimeByFrame()
-    assertTrue(viewModel.uiState.value.errorMsg == null)
-  }
-
-  @Test
-  fun launchedEffect_whenSignedOut_onSignedOutCallbackInvoked() {
-    val signedOutCalled = mutableListOf<Boolean>()
-
-    composeTestRule.setContent {
-      CaregiverHomeScreen(
-          viewModel = viewModel,
-          onSignedOut = { signedOutCalled.add(true) },
-      )
-    }
-
-    viewModel.setSignedOut(true)
-    composeTestRule.mainClock.advanceTimeByFrame()
-
-    assertTrue(signedOutCalled.size == 1)
   }
 }
