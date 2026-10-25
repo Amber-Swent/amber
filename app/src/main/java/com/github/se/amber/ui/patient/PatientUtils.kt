@@ -3,9 +3,11 @@
 package com.github.se.amber.ui.patient
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -19,8 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
-import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
+import androidx.compose.ui.unit.Dp
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
@@ -44,12 +49,13 @@ object PatientUtilsTestTags {
 fun DisplayPatientTitle(
     modifier: Modifier = Modifier,
     title: String = "",
+    titleStyle: TextStyle = MaterialTheme.typography.headlineLarge,
     testTag: String = PatientUtilsTestTags.TITLE,
 ) {
   Text(
       text = title,
       color = MaterialTheme.colorScheme.primary,
-      style = MaterialTheme.typography.headlineSmall,
+      style = titleStyle,
       modifier =
           modifier
               .fillMaxWidth()
@@ -73,7 +79,10 @@ fun DisplayPatientTitle(
 @Composable
 fun DisplayPatientButtonWithIcon(
     modifier: Modifier = Modifier,
+    buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
+    buttonWidth: Float = PATIENT_BUTTON_WIDTH,
     text: String = "",
+    textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
     icon: ImageVector = Icons.Default.Add,
     description: String = "",
     onClick: () -> Unit = {},
@@ -82,7 +91,13 @@ fun DisplayPatientButtonWithIcon(
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.height(PATIENT_BUTTON_HEIGHT_SMALL).testTag(testTag),
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .wrapContentWidth(Alignment.CenterHorizontally)
+              .fillMaxWidth(buttonWidth)
+              .height(buttonHeight)
+              .testTag(testTag),
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
@@ -91,12 +106,12 @@ fun DisplayPatientButtonWithIcon(
           ),
   ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxSize(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
           text,
-          style = MaterialTheme.typography.bodyLarge,
+          style = textStyle,
           textAlign = TextAlign.Center,
           modifier = Modifier.weight(WEIGHT_ONE),
       )
@@ -120,13 +135,22 @@ fun DisplayPatientButtonWithIcon(
 @Composable
 fun DisplayPatientButton(
     modifier: Modifier = Modifier,
+    buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
+    buttonWidth: Float = PATIENT_BUTTON_WIDTH,
     text: String = "",
+    textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
     onClick: () -> Unit = {},
     testTag: String = PatientUtilsTestTags.BUTTON,
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.height(PATIENT_BUTTON_HEIGHT_SMALL).testTag(testTag),
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .wrapContentWidth(Alignment.CenterHorizontally)
+              .fillMaxWidth(buttonWidth)
+              .height(buttonHeight)
+              .testTag(testTag),
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
@@ -136,7 +160,7 @@ fun DisplayPatientButton(
   ) {
     Text(
         text,
-        style = MaterialTheme.typography.bodyLarge,
+        style = textStyle,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -154,25 +178,34 @@ fun DisplayPatientButton(
 // @Preview(showBackground = true)
 // @Composable
 // private fun DisplayButtonWithIconPreview() {
-//  AmberAppTheme(dynamicColor = false) {
-//    DisplayPatientButtonWithIcon(
-//        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//        icon = Icons.Default.Add,
-//        text = "Button with icon example",
-//        description = "click on the button",
-//        onClick = {},
-//    )
-//  }
+//    AmberAppTheme(dynamicColor = false) {
+//        Column(
+//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+//            horizontalAlignment = Alignment.CenterHorizontally,
+//        ) {
+//            DisplayPatientButtonWithIcon(
+//                icon = Icons.Default.Add,
+//                text = "Button with icon example",
+//                description = "click on the button",
+//                onClick = {},
+//            )
+//        }
+//    }
 // }
 //
 // @Preview(showBackground = true)
 // @Composable
 // private fun DisplayButtonPreview() {
 //  AmberAppTheme(dynamicColor = false) {
-//    DisplayPatientButton(
+//    Column(
 //        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//        text = "Button example",
-//        onClick = {},
-//    )
+//        horizontalAlignment = Alignment.CenterHorizontally,
+//    ){
+//        DisplayPatientButton(
+//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+//            text = "Button example",
+//            onClick = {},
+//        )
+//    }
 //  }
 // }
