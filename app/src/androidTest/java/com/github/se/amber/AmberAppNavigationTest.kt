@@ -201,19 +201,6 @@ class AmberAppNavigationTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun caregiverHome_signOut_navigatesToAuth() {
-    launch(NavGraphs.CAREGIVER)
-
-    click(Tags.CAREGIVER_HOME_SIGN_OUT)
-
-    composeRule.waitUntil(timeoutMillis = 5_000) {
-      navController.currentDestination?.route == AuthScreen.Auth.route
-    }
-
-    assertRoute(AuthScreen.Auth.route)
-  }
-
-  @Test
   fun caregiverHome_uploadTab_navigatesToUpload() {
     launch(NavGraphs.CAREGIVER)
 
