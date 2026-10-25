@@ -71,7 +71,7 @@ class CaregiverChoiceUITests {
   fun backButton_click_invokesOnBackOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -86,7 +86,7 @@ class CaregiverChoiceUITests {
     setScreen(displayName = DISPLAY_NAME)
 
     composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER.name)
+        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER)
         .assertIsDisplayed()
         .assertTextEquals("Welcome, $DISPLAY_NAME")
   }
@@ -97,7 +97,7 @@ class CaregiverChoiceUITests {
   fun createButton_click_invokesOnCreateCircleOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)
@@ -109,7 +109,7 @@ class CaregiverChoiceUITests {
   fun joinButton_click_invokesOnJoinCircleOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)

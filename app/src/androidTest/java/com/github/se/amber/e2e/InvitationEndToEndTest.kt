@@ -114,7 +114,7 @@ class InvitationEndToEndTest {
   fun caregiverSharesCode_secondCaregiverJoinsTheCircle() {
     signInWithGoogle("ada-$runId@amber.test", "Ada")
     createCaregiverProfile(firstName = "Ada", lastName = "Lovelace")
-    click(CaregiverChoiceTestTags.CREATE_BUTTON.name)
+    click(CaregiverChoiceTestTags.CREATE_BUTTON)
     typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
     click(CreateCareCircleTestTags.SUBMIT_BUTTON)
     waitFor(CaregiverHomeTestTags.TITLE)
@@ -133,9 +133,7 @@ class InvitationEndToEndTest {
     signInWithGoogle("bob-$runId@amber.test", "Bob")
     createCaregiverProfile(firstName = "Bob", lastName = "Martin")
 
-    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the CaregiverChoice Refactor.
-    click(CaregiverChoiceTestTags.JOIN_BUTTON.name)
+    click(CaregiverChoiceTestTags.JOIN_BUTTON)
     typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
 
     // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
