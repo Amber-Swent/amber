@@ -2,6 +2,9 @@ package com.github.se.amber.ui.caregiver
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -220,6 +223,16 @@ class DisplayCaregiverButtonTest {
     setButton(onClick = { clickCount++ }, enabled = false)
     composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).performClick()
     assertEquals(0, clickCount)
+  }
+
+  @Test
+  fun button_becomesEnabled_whenConditionTurnsTrue() {
+    var condition by mutableStateOf(false)
+    composeTestRule.setContent {
+      DisplayCaregiverButton(modifier = Modifier.testTag(buttonTagFromAnotherFunction), enabled = condition)
+    }
+    composeTestRule.runOnIdle { condition = true }
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertIsEnabled()
   }
 
   @Test
