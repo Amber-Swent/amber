@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,6 +47,7 @@ object PatientUtilsTestTags {
  * @param titleStyle typography style of the title
  * @param testTag test tag of the title
  */
+@NonRestartableComposable
 @Composable
 fun DisplayPatientTitle(
     modifier: Modifier = Modifier,
@@ -79,10 +81,12 @@ fun DisplayPatientTitle(
  * @param textStyle typography style of the button label
  * @param icon icon displayed on the button.
  * @param description content description for the icon.
+ * @param enabled say if the button is clickable or not
  * @param onClick callback invoked when the button is selected.
  * @param testTag test tag of the button
  * @param iconTestTag test tag of the icon
  */
+@NonRestartableComposable
 @Composable
 fun DisplayPatientButtonWithIcon(
     modifier: Modifier = Modifier,
@@ -92,6 +96,7 @@ fun DisplayPatientButtonWithIcon(
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
     icon: ImageVector = Icons.Default.Add,
     description: String = "",
+    enabled: Boolean = true,
     onClick: () -> Unit = {},
     testTag: String = PatientUtilsTestTags.BUTTON_WITH_ICON,
     iconTestTag: String = PatientUtilsTestTags.BUTTON_ICON,
@@ -105,6 +110,7 @@ fun DisplayPatientButtonWithIcon(
               .fillMaxWidth(buttonWidth)
               .height(buttonHeight)
               .testTag(testTag),
+      enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
@@ -142,9 +148,11 @@ fun DisplayPatientButtonWithIcon(
  * @param buttonWidth fraction of the available width taken by the button
  * @param text label displayed on the button.
  * @param textStyle typography style of the button label
+ * @param enabled say if the button is clickable or not
  * @param onClick callback invoked when the button is selected.
  * @param testTag test tag of the button
  */
+@NonRestartableComposable
 @Composable
 fun DisplayPatientButton(
     modifier: Modifier = Modifier,
@@ -152,6 +160,7 @@ fun DisplayPatientButton(
     buttonWidth: Float = PATIENT_BUTTON_WIDTH,
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
+    enabled: Boolean = true,
     onClick: () -> Unit = {},
     testTag: String = PatientUtilsTestTags.BUTTON,
 ) {
@@ -164,6 +173,7 @@ fun DisplayPatientButton(
               .fillMaxWidth(buttonWidth)
               .height(buttonHeight)
               .testTag(testTag),
+      enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(

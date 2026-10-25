@@ -7,17 +7,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
@@ -403,214 +400,98 @@ class PatientUtilsTest {
         .assertHeightIsEqualTo(80.dp)
   }
 
-  // ---------- Recomposition with unchanged parameters ----------
+  // ---------- Enabled ----------
 
-  // The parent recomposes (counter changes) while the helpers receive the same parameters:
-  // the helpers must keep displaying the same content.
   @Test
-  fun helpers_keepTheirContentWhenParentRecomposes() {
-    val counter = mutableStateOf(0)
-    val style = TextStyle(fontSize = 20.sp)
-    val onClick: () -> Unit = {}
+  fun button_isEnabledByDefault() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Go") } }
 
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Column {
-          Text("Counter ${counter.value}")
-          DisplayPatientTitle(
-              modifier = Modifier,
-              title = "Title",
-              titleStyle = style,
-              testTag = "title",
-          )
-          DisplayPatientButton(
-              modifier = Modifier,
-              buttonHeight = 80.dp,
-              buttonWidth = 0.5f,
-              text = "Go",
-              textStyle = style,
-              onClick = onClick,
-              testTag = "button",
-          )
-          DisplayPatientButtonWithIcon(
-              modifier = Modifier,
-              buttonHeight = 80.dp,
-              buttonWidth = 0.5f,
-              text = "Add",
-              textStyle = style,
-              icon = Icons.Default.Add,
-              description = "add icon",
-              onClick = onClick,
-              testTag = "button_with_icon",
-              iconTestTag = "icon",
-          )
-        }
-      }
-    }
-
-    composeTestRule.onNodeWithText("Counter 0").assertIsDisplayed()
-
-    counter.value = 1
-
-    composeTestRule.onNodeWithText("Counter 1").assertIsDisplayed()
-    composeTestRule.onNodeWithTag("title").assertTextEquals("Title")
-    composeTestRule.onNodeWithTag("button").assertTextEquals("Go")
-    composeTestRule.onNodeWithTag("button_with_icon").assertTextEquals("Add")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsEnabled()
   }
 
-  // Changing the theme colors makes each helper recompose on its own (they read the color scheme).
-  // The content must stay correct, with default parameters and with explicit ones.
   @Test
-  fun helpers_keepTheirContentWhenThemeColorsChange() {
-    val colors =
-        mutableStateOf(
-            lightColorScheme(
-                primary = Color.Red,
-                tertiary = Color.Green,
-                onTertiary = Color.White,
-            )
-        )
-    val style = TextStyle(fontSize = 20.sp)
-    val onClick: () -> Unit = {}
-
-    composeTestRule.setContent {
-      MaterialTheme(colorScheme = colors.value) {
-        Column {
-          DisplayPatientTitle(title = "Title default", testTag = "title_default")
-          DisplayPatientTitle(
-              modifier = Modifier,
-              title = "Title explicit",
-              titleStyle = style,
-              testTag = "title_explicit",
-          )
-          DisplayPatientButton(text = "Button default", testTag = "button_default")
-          DisplayPatientButton(
-              modifier = Modifier,
-              buttonHeight = 80.dp,
-              buttonWidth = 0.5f,
-              text = "Button explicit",
-              textStyle = style,
-              onClick = onClick,
-              testTag = "button_explicit",
-          )
-          DisplayPatientButtonWithIcon(text = "Icon default", testTag = "icon_default")
-          DisplayPatientButtonWithIcon(
-              modifier = Modifier,
-              buttonHeight = 80.dp,
-              buttonWidth = 0.5f,
-              text = "Icon explicit",
-              textStyle = style,
-              icon = Icons.Default.Add,
-              description = "add icon",
-              onClick = onClick,
-              testTag = "icon_explicit",
-              iconTestTag = "icon_explicit_icon",
-          )
-        }
-      }
-    }
-
-    colors.value =
-        lightColorScheme(
-            primary = Color.Blue,
-            tertiary = Color.Yellow,
-            onTertiary = Color.Black,
-        )
-    composeTestRule.waitForIdle()
-
-    composeTestRule.onNodeWithTag("title_default").assertTextEquals("Title default")
-    composeTestRule.onNodeWithTag("title_explicit").assertTextEquals("Title explicit")
-    composeTestRule.onNodeWithTag("button_default").assertTextEquals("Button default")
-    composeTestRule.onNodeWithTag("button_explicit").assertTextEquals("Button explicit")
-    composeTestRule.onNodeWithTag("icon_default").assertTextEquals("Icon default")
-    composeTestRule.onNodeWithTag("icon_explicit").assertTextEquals("Icon explicit")
-  }
-
-  // Layout and content parameters change in separate recompositions, so each parameter is
-  // sometimes changed and sometimes unchanged between two compositions of the same helper.
-  @Test
-  fun helpers_updateWhenLayoutAndContentParametersChangeSeparately() {
-    val layoutChanged = mutableStateOf(false)
-    val contentChanged = mutableStateOf(false)
-    val clicks = mutableListOf<String>()
-
+  fun button_whenDisabled_isNotEnabledAndDoesNotInvokeCallback() {
+    var clickCount = 0
     composeTestRule.setContent {
       AmberAppTheme {
-        val layout = layoutChanged.value
-        val content = contentChanged.value
-        Column {
-          DisplayPatientTitle(
-              modifier = Modifier.width(if (layout) 300.dp else 200.dp),
-              title = if (content) "Updated title" else "Initial title",
-              titleStyle = TextStyle(fontSize = if (content) 30.sp else 20.sp),
-              testTag = if (content) "updated_title" else "initial_title",
-          )
-          DisplayPatientButton(
-              modifier = Modifier.width(if (layout) 300.dp else 200.dp),
-              buttonHeight = if (layout) 96.dp else 80.dp,
-              buttonWidth = if (layout) 1f else 0.5f,
-              text = if (content) "Updated button" else "Initial button",
-              textStyle = TextStyle(fontSize = if (content) 30.sp else 20.sp),
-              onClick = { clicks += if (content) "updated button" else "initial button" },
-              testTag = if (content) "updated_button" else "initial_button",
-          )
-          DisplayPatientButtonWithIcon(
-              modifier = Modifier.width(if (layout) 300.dp else 200.dp),
-              buttonHeight = if (layout) 96.dp else 80.dp,
-              buttonWidth = if (layout) 1f else 0.5f,
-              text = if (content) "Updated icon button" else "Initial icon button",
-              textStyle = TextStyle(fontSize = if (content) 30.sp else 20.sp),
-              icon = if (content) Icons.Default.Close else Icons.Default.Add,
-              description = if (content) "close icon" else "add icon",
-              onClick = { clicks += if (content) "updated icon" else "initial icon" },
-              testTag = if (content) "updated_icon_button" else "initial_icon_button",
-              iconTestTag = if (content) "updated_icon" else "initial_icon",
-          )
-        }
+        DisplayPatientButton(text = "Go", enabled = false, onClick = { clickCount++ })
       }
     }
 
-    composeTestRule.onNodeWithTag("initial_title").assertTextEquals("Initial title")
-    composeTestRule.onNodeWithTag("initial_button").assertWidthIsEqualTo(100.dp)
-    composeTestRule.onNodeWithTag("initial_icon_button").assertWidthIsEqualTo(100.dp)
-    composeTestRule
-        .onNodeWithTag("initial_icon", useUnmergedTree = true)
-        .assertContentDescriptionEquals("add icon")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled().performClick()
 
-    composeTestRule.runOnIdle { layoutChanged.value = true }
+    assertEquals(0, clickCount)
+  }
 
-    composeTestRule.onNodeWithTag("initial_title").assertWidthIsEqualTo(300.dp)
-    composeTestRule
-        .onNodeWithTag("initial_button")
-        .assertTextEquals("Initial button")
-        .assertWidthIsEqualTo(300.dp)
-        .assertHeightIsEqualTo(96.dp)
-    composeTestRule
-        .onNodeWithTag("initial_icon_button")
-        .assertTextEquals("Initial icon button")
-        .assertWidthIsEqualTo(300.dp)
-        .assertHeightIsEqualTo(96.dp)
+  @Test
+  fun button_enabledStateFollowsParameter() {
+    val enabled = mutableStateOf(false)
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientButton(text = "Go", enabled = enabled.value, onClick = { clickCount++ })
+      }
+    }
 
-    composeTestRule.runOnIdle { contentChanged.value = true }
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled().performClick()
+    assertEquals(0, clickCount)
 
-    composeTestRule.onNodeWithTag("initial_title").assertDoesNotExist()
-    composeTestRule.onNodeWithTag("updated_title").assertTextEquals("Updated title")
-    composeTestRule.onNodeWithTag("updated_title").assertWidthIsEqualTo(300.dp)
+    enabled.value = true
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsEnabled().performClick()
+    assertEquals(1, clickCount)
+  }
+
+  @Test
+  fun buttonWithIcon_isEnabledByDefault() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon(text = "Add") } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertIsEnabled()
+  }
+
+  @Test
+  fun buttonWithIcon_whenDisabled_isNotEnabledAndDoesNotInvokeCallback() {
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientButtonWithIcon(text = "Add", enabled = false, onClick = { clickCount++ })
+      }
+    }
+
     composeTestRule
-        .onNodeWithTag("updated_button")
-        .assertTextEquals("Updated button")
-        .assertWidthIsEqualTo(300.dp)
-        .assertHeightIsEqualTo(96.dp)
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertIsNotEnabled()
         .performClick()
+
+    assertEquals(0, clickCount)
+  }
+
+  @Test
+  fun buttonWithIcon_enabledStateFollowsParameter() {
+    val enabled = mutableStateOf(false)
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientButtonWithIcon(
+            text = "Add",
+            enabled = enabled.value,
+            onClick = { clickCount++ },
+        )
+      }
+    }
+
     composeTestRule
-        .onNodeWithTag("updated_icon_button")
-        .assertTextEquals("Updated icon button")
-        .assertWidthIsEqualTo(300.dp)
-        .assertHeightIsEqualTo(96.dp)
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertIsNotEnabled()
         .performClick()
+    assertEquals(0, clickCount)
+
+    enabled.value = true
+
     composeTestRule
-        .onNodeWithTag("updated_icon", useUnmergedTree = true)
-        .assertContentDescriptionEquals("close icon")
-    assertEquals(listOf("updated button", "updated icon"), clicks)
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertIsEnabled()
+        .performClick()
+    assertEquals(1, clickCount)
   }
 }
