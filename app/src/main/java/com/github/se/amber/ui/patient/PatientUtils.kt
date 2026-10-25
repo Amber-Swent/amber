@@ -19,8 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -140,36 +138,36 @@ fun DisplayPatientButton(
   }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun DisplayPatientTitlePreview() {
-  AmberAppTheme(dynamicColor = false) {
-    DisplayPatientTitle(title = "Title Example", modifier = Modifier)
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun DisplayButtonWithIconPreview() {
-  AmberAppTheme(dynamicColor = false) {
-    DisplayPatientButtonWithIcon(
-        modifier = Modifier.fillMaxWidth().padding(PADDING_MEDIUM),
-        icon = Icons.Default.Add,
-        text = "Button with icon example",
-        description = "click on the button",
-        onClick = {},
-    )
-  }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun DisplayButtonPreview() {
-  AmberAppTheme(dynamicColor = false) {
-    DisplayPatientButton(
-        modifier = Modifier.fillMaxWidth().padding(PADDING_MEDIUM),
-        text = "Button example",
-        onClick = {},
-    )
-  }
-}
+// @Preview(showBackground = true)
+// @Composable
+// private fun DisplayPatientTitlePreview() {
+//  AmberAppTheme(dynamicColor = false) {
+//    DisplayPatientTitle(title = "Title Example", modifier = Modifier)
+//  }
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DisplayButtonWithIconPreview() {
+//  AmberAppTheme(dynamicColor = false) {
+//    DisplayPatientButtonWithIcon(
+//        modifier = Modifier.fillMaxWidth().padding(PADDING_MEDIUM),
+//        icon = Icons.Default.Add,
+//        text = "Button with icon example",
+//        description = "click on the button",
+//        onClick = {},
+//    )
+//  }
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DisplayButtonPreview() {
+//  AmberAppTheme(dynamicColor = false) {
+//    DisplayPatientButton(
+//        modifier = Modifier.fillMaxWidth().padding(PADDING_MEDIUM),
+//        text = "Button example",
+//        onClick = {},
+//    )
+//  }
+// }
