@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -39,9 +40,9 @@ class PatientUtilsTest {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle(title = "My Stories") } }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.TITLE)
-        .assertIsDisplayed()
-        .assertTextEquals("My Stories")
+      .onNodeWithTag(PatientUtilsTestTags.TITLE)
+      .assertIsDisplayed()
+      .assertTextEquals("My Stories")
   }
 
   @Test
@@ -88,9 +89,9 @@ class PatientUtilsTest {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Go") } }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
-        .assertIsDisplayed()
-        .assertTextEquals("Go")
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+      .assertIsDisplayed()
+      .assertTextEquals("Go")
   }
 
   @Test
@@ -121,9 +122,9 @@ class PatientUtilsTest {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon(text = "Add") } }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertIsDisplayed()
-        .assertTextEquals("Add")
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+      .assertIsDisplayed()
+      .assertTextEquals("Add")
   }
 
   @Test
@@ -131,17 +132,17 @@ class PatientUtilsTest {
     composeTestRule.setContent {
       AmberAppTheme {
         DisplayPatientButtonWithIcon(
-            text = "Add",
-            icon = Icons.Default.Add,
-            description = "add icon",
+          text = "Add",
+          icon = Icons.Default.Add,
+          description = "add icon",
         )
       }
     }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertContentDescriptionEquals("add icon")
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
+      .assertIsDisplayed()
+      .assertContentDescriptionEquals("add icon")
   }
 
   @Test
@@ -161,9 +162,9 @@ class PatientUtilsTest {
     composeTestRule.setContent {
       AmberAppTheme {
         DisplayPatientButtonWithIcon(
-            text = "Add",
-            testTag = "custom_button",
-            iconTestTag = "custom_icon",
+          text = "Add",
+          testTag = "custom_button",
+          iconTestTag = "custom_icon",
         )
       }
     }
@@ -218,13 +219,15 @@ class PatientUtilsTest {
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick().assertIsDisplayed()
   }
 
+  // The custom modifier defines the space available to the button:
+  // the button then takes PATIENT_BUTTON_WIDTH (0.7f) of it, i.e. 140.dp out of 200.dp.
   @Test
   fun button_appliesCustomModifier() {
     composeTestRule.setContent {
       AmberAppTheme { DisplayPatientButton(text = "Go", modifier = Modifier.width(200.dp)) }
     }
 
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertWidthIsEqualTo(200.dp)
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertWidthIsEqualTo(140.dp)
   }
 
   @Test
@@ -243,11 +246,12 @@ class PatientUtilsTest {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon() } }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .performClick()
-        .assertIsDisplayed()
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+      .performClick()
+      .assertIsDisplayed()
   }
 
+  // Same logic as button_appliesCustomModifier: 0.7f of 200.dp = 140.dp.
   @Test
   fun buttonWithIcon_appliesCustomModifier() {
     composeTestRule.setContent {
@@ -257,8 +261,8 @@ class PatientUtilsTest {
     }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertWidthIsEqualTo(200.dp)
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+      .assertWidthIsEqualTo(140.dp)
   }
 
   @Test
@@ -270,5 +274,67 @@ class PatientUtilsTest {
 
     text.value = "Second"
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("Second")
+  }
+
+  // ---------- Button width and centering ----------
+
+  @Test
+  fun button_takesGivenFractionOfParentWidth_andIsCentered() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Box(Modifier.width(300.dp)) { DisplayPatientButton(text = "Go", buttonWidth = 0.5f) }
+      }
+    }
+
+    composeTestRule
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+      .assertWidthIsEqualTo(150.dp)
+      .assertLeftPositionInRootIsEqualTo(75.dp)
+  }
+
+  @Test
+  fun buttonWithIcon_takesGivenFractionOfParentWidth_andIsCentered() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Box(Modifier.width(300.dp)) {
+          DisplayPatientButtonWithIcon(text = "Add", buttonWidth = 0.5f)
+        }
+      }
+    }
+
+    composeTestRule
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+      .assertWidthIsEqualTo(150.dp)
+      .assertLeftPositionInRootIsEqualTo(75.dp)
+  }
+
+  @Test
+  fun button_withFullWidth_fillsParentAndStartsAtLeftEdge() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Box(Modifier.width(300.dp)) { DisplayPatientButton(text = "Go", buttonWidth = 1f) }
+      }
+    }
+
+    composeTestRule
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+      .assertWidthIsEqualTo(300.dp)
+      .assertLeftPositionInRootIsEqualTo(0.dp)
+  }
+
+  @Test
+  fun buttonWithIcon_withFullWidth_fillsParentAndStartsAtLeftEdge() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Box(Modifier.width(300.dp)) {
+          DisplayPatientButtonWithIcon(text = "Add", buttonWidth = 1f)
+        }
+      }
+    }
+
+    composeTestRule
+      .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+      .assertWidthIsEqualTo(300.dp)
+      .assertLeftPositionInRootIsEqualTo(0.dp)
   }
 }
