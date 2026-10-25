@@ -1,6 +1,10 @@
-// This file was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by nehachak1, with assistance from
+ * Claude Code
+ */
 package com.github.se.amber.ui.authentication.signIn
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,18 +29,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.PADDING_REGULAR
 import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_BIG
+import com.github.se.amber.ui.theme.SURFACE_SMALL
 import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
@@ -186,23 +193,35 @@ internal fun AuthenticationTextField(
  * @param text Text displayed inside the button.
  * @param onClick Called when the user presses the button.
  * @param modifier Modifier applied to the button.
+ * @param enabled Whether the button reacts to clicks.
+ * @param leadingIcon Optional icon displayed before [text], such as a provider logo.
  */
 @Composable
 internal fun AuthenticationButton(
-    text: String,
-    onClick: () -> Unit,
+    text: String = "",
+    onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    leadingIcon: Painter? = null,
 ) {
   Button(
       onClick = onClick,
+      enabled = enabled,
       modifier = modifier.fillMaxWidth().height(PADDING_ENORMOUS),
       shape = RoundedCornerShape(SMALL_ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
-              containerColor = lightOrange,
-              contentColor = Color.Black,
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = MaterialTheme.colorScheme.onTertiary,
           ),
   ) {
+    leadingIcon?.let { icon ->
+      Image(
+          painter = icon,
+          contentDescription = null, // Decorative: the button text already describes the action
+          modifier = Modifier.padding(end = CAREGIVER_PADDING_REGULAR).size(SURFACE_SMALL),
+      )
+    }
     AuthenticationText(
         text = text,
         style = MaterialTheme.typography.labelLarge,

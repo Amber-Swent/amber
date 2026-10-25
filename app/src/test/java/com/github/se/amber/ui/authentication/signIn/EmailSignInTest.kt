@@ -1,4 +1,7 @@
-// This file was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by nehachak1, with assistance from
+ * Claude Code
+ */
 package com.github.se.amber.ui.authentication
 
 import androidx.compose.ui.test.assertIsDisplayed
@@ -15,7 +18,7 @@ import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
-import com.github.se.amber.ui.authentication.signIn.EmailSignInUiState
+import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import io.mockk.every
 import io.mockk.mockk
@@ -46,7 +49,7 @@ class EmailSignInScreenTest {
   private var googleSignInCount = 0
 
   /** Creates a ViewModel with a fixed [state] for UI states and interaction checks. */
-  private fun mockViewModel(state: EmailSignInUiState): EmailSignInViewModel =
+  private fun mockViewModel(state: EmailSignInUIState): EmailSignInViewModel =
       mockk<EmailSignInViewModel>(relaxed = true).also {
         every { it.uiState } returns MutableStateFlow(state)
       }
@@ -109,15 +112,17 @@ class EmailSignInScreenTest {
   }
 
   @Test
-  fun signUpPromptIsDisplayed() {
+  fun orDividerIsDisplayed() {
     setScreen()
-    composeTestRule.onNodeWithTag(EmailSignInTestTags.SIGN_UP_PROMPT).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.OR_DIVIDER).assertIsDisplayed()
   }
 
   @Test
-  fun signUpLinkIsDisplayed() {
-    setScreen()
-    composeTestRule.onNodeWithTag(EmailSignInTestTags.SIGN_UP_LINK).assertIsDisplayed()
+  fun googleButtonShowsSigningInTextDuringLoading() {
+    setScreen(mockViewModel(EmailSignInUIState(isLoading = true)))
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON)
+        .assertTextContains("Signing in…", substring = true)
   }
 
   @Test
@@ -157,13 +162,13 @@ class EmailSignInScreenTest {
 
   @Test
   fun googleButtonIsDisabledDuringLoading() {
-    setScreen(mockViewModel(EmailSignInUiState(isLoading = true)))
+    setScreen(mockViewModel(EmailSignInUIState(isLoading = true)))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsNotEnabled()
   }
 
   @Test
   fun continueButtonStaysEnabledDuringLoading() {
-    setScreen(mockViewModel(EmailSignInUiState(isLoading = true)))
+    setScreen(mockViewModel(EmailSignInUIState(isLoading = true)))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
   }
 
@@ -178,7 +183,7 @@ class EmailSignInScreenTest {
 
   @Test
   fun googleButtonClickStartsGoogleSignIn() {
-    val model = mockViewModel(EmailSignInUiState())
+    val model = mockViewModel(EmailSignInUIState())
     setScreen(model)
 
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).performClick()
@@ -188,7 +193,7 @@ class EmailSignInScreenTest {
 
   @Test
   fun displayedErrorIsClearedInViewModel() {
-    val model = mockViewModel(EmailSignInUiState(errorMessage = "Something failed"))
+    val model = mockViewModel(EmailSignInUIState(errorMessage = "Something failed"))
     setScreen(model)
     composeTestRule.waitForIdle()
 

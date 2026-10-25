@@ -1,4 +1,7 @@
-// This file was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by nehachak1, with assistance from
+ * Claude Code
+ */
 package com.github.se.amber.ui.authentication
 
 import android.content.Context
@@ -11,7 +14,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
-import com.github.se.amber.ui.authentication.signIn.EmailSignInUiState
+import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -73,7 +76,7 @@ class EmailSignInViewModelTest {
 
   @Test
   fun initialStateIsIdleAndEmpty() {
-    assertEquals(EmailSignInUiState(), viewModel.uiState.value)
+    assertEquals(EmailSignInUIState(), viewModel.uiState.value)
   }
 
   @Test
