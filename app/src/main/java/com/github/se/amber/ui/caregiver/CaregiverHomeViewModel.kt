@@ -1,4 +1,4 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by Lou-Anne Maier and + , with assistance from
  * Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver
