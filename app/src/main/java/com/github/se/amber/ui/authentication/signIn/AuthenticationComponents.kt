@@ -22,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,25 +31,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
-import com.github.se.amber.ui.theme.PADDING_BIG
-import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MINI
-import com.github.se.amber.ui.theme.PADDING_REGULAR
-import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
+import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.SURFACE_SMALL
-import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.lightGray
-import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.TEXT_FIELD_SMALL
 
+/** Test tags of the components shared by the authentication screens. */
 internal object AuthenticationComponentTestTags {
-  const val HEADER = "authenticationHeader"
-  const val TERMS_FOOTER = "authenticationTermsFooter"
+  const val HEADER = "authentication_header"
+  const val TERMS_FOOTER = "authentication_terms_footer"
 }
 
 /**
@@ -66,8 +64,8 @@ internal object AuthenticationComponentTestTags {
 @Composable
 internal fun AuthenticationLayout(
     modifier: Modifier = Modifier,
-    spacing: Dp,
-    content: @Composable () -> Unit,
+    spacing: Dp = CAREGIVER_PADDING_MEDIUM,
+    content: @Composable () -> Unit = {},
 ) {
   // Surface will be the background/container for the screen
   Surface(
@@ -81,10 +79,10 @@ internal fun AuthenticationLayout(
             Modifier.fillMaxSize()
                 .statusBarsPadding() // Avoids drawing underneath Android's top system bar
                 .navigationBarsPadding() // Avoid drawing underneath navigation area at the bottom
-                .padding(horizontal = PADDING_BIG),
+                .padding(horizontal = CAREGIVER_PADDING_BIG),
     ) {
       AuthenticationHeader(
-          modifier = Modifier.align(Alignment.TopCenter).padding(top = PADDING_ENORMOUS),
+          modifier = Modifier.align(Alignment.TopCenter).padding(top = CAREGIVER_PADDING_ENORMOUS),
       )
 
       Column(
@@ -115,19 +113,19 @@ internal fun AuthenticationHeader(
   Column(
       modifier = modifier.testTag(AuthenticationComponentTestTags.HEADER),
       horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(PADDING_REGULAR),
+      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_REGULAR),
   ) {
     Surface(
         modifier = Modifier.size(SURFACE_BIG),
         // TODO to modify when we will have our app logo
         shape = CircleShape,
-        color = lightOrange,
+        color = MaterialTheme.colorScheme.tertiary,
+        contentColor = MaterialTheme.colorScheme.onTertiary,
     ) {
       Box(contentAlignment = Alignment.Center) {
         AuthenticationText(
             text = "logo",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleMedium,
         )
       }
     }
@@ -135,7 +133,6 @@ internal fun AuthenticationHeader(
     AuthenticationText(
         text = "Amber",
         style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.Bold,
     )
   }
 }
@@ -144,7 +141,7 @@ internal fun AuthenticationHeader(
  * Displays a text input field styled consistently across authentication screens.
  *
  * The field supports different keyboard configurations and visual transformations so that it can be
- * reused for both email and password input.
+ * reused for both email and password input. Its colors come from the theme.
  *
  * @param value Current value displayed in the input field.
  * @param onValueChange Called whenever the field value changes.
@@ -156,34 +153,27 @@ internal fun AuthenticationHeader(
  */
 @Composable
 internal fun AuthenticationTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    keyboardOptions: KeyboardOptions,
+    value: String = "",
+    onValueChange: (String) -> Unit = {},
+    placeholder: String = "",
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     modifier: Modifier = Modifier,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      modifier = modifier.fillMaxWidth().height(PADDING_ENORMOUS),
+      modifier = modifier.fillMaxWidth().height(TEXT_FIELD_SMALL),
       singleLine = true,
       placeholder = {
         AuthenticationText(
             text = placeholder,
             style = MaterialTheme.typography.bodySmall,
-            color = darkGray,
         )
       },
       keyboardOptions = keyboardOptions,
       visualTransformation = visualTransformation,
-      shape = RoundedCornerShape(SMALL_ROUND_CORNER),
-      colors =
-          OutlinedTextFieldDefaults.colors(
-              unfocusedBorderColor = lightGray,
-              focusedBorderColor = darkGray,
-              cursorColor = darkGray,
-          ),
+      shape = RoundedCornerShape(ROUND_CORNER),
   )
 }
 
@@ -207,8 +197,8 @@ internal fun AuthenticationButton(
   Button(
       onClick = onClick,
       enabled = enabled,
-      modifier = modifier.fillMaxWidth().height(PADDING_ENORMOUS),
-      shape = RoundedCornerShape(SMALL_ROUND_CORNER),
+      modifier = modifier.fillMaxWidth().height(CAREGIVER_BUTTON_HEIGHT_MEDIUM),
+      shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
               containerColor = MaterialTheme.colorScheme.tertiary,
@@ -238,16 +228,14 @@ internal fun AuthenticationButton(
  * @param text Content to display.
  * @param textAlign Alignment of lines within the text when it wraps.
  * @param style Typography style applied to the text.
- * @param fontWeight Optional weight overriding the style's weight.
- * @param color Optional text color; defaults to [Color.Unspecified].
+ * @param color Optional theme color; defaults to [Color.Unspecified].
  */
 @Composable
 internal fun AuthenticationText(
     modifier: Modifier = Modifier,
-    text: String,
+    text: String = "",
     textAlign: TextAlign? = null,
-    style: TextStyle,
-    fontWeight: FontWeight? = null,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
     color: Color = Color.Unspecified,
 ) {
   Text(
@@ -255,7 +243,6 @@ internal fun AuthenticationText(
       textAlign = textAlign,
       modifier = modifier,
       style = style,
-      fontWeight = fontWeight,
       color = color,
   )
 }
@@ -263,22 +250,16 @@ internal fun AuthenticationText(
 /**
  * Displays the terms-of-service and privacy-policy notice shared by authentication screens.
  *
- * @param modifier Modifier applied to the footer container.
+ * @param modifier Modifier applied to the footer text.
  */
 @Composable
 internal fun TermsFooter(
     modifier: Modifier = Modifier,
 ) {
-  Column(
-      modifier = modifier.testTag(AuthenticationComponentTestTags.TERMS_FOOTER),
-      horizontalAlignment = Alignment.CenterHorizontally,
-  ) {
-    AuthenticationText(
-        text = "By clicking continue, you agree to our Terms of Service and Privacy Policy",
-        textAlign = TextAlign.Center,
-        modifier = modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.bodySmall,
-        color = darkGray,
-    )
-  }
+  AuthenticationText(
+      text = "By clicking continue, you agree to our Terms of Service and Privacy Policy",
+      textAlign = TextAlign.Center,
+      modifier = modifier.fillMaxWidth().testTag(AuthenticationComponentTestTags.TERMS_FOOTER),
+      style = MaterialTheme.typography.bodySmall,
+  )
 }
