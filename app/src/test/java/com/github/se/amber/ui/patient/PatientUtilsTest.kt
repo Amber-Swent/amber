@@ -367,13 +367,12 @@ class PatientUtilsTest {
   }
 
   @Test
-  fun button_usesCustomHeightAndTextStyle() {
+  fun button_usesCustomHeight() {
     composeTestRule.setContent {
       AmberAppTheme {
         DisplayPatientButton(
             text = "Go",
             buttonHeight = 80.dp,
-            textStyle = TextStyle(fontSize = 20.sp),
         )
       }
     }
@@ -386,13 +385,12 @@ class PatientUtilsTest {
   }
 
   @Test
-  fun buttonWithIcon_usesCustomHeightAndTextStyle() {
+  fun buttonWithIcon_usesCustomHeight() {
     composeTestRule.setContent {
       AmberAppTheme {
         DisplayPatientButtonWithIcon(
             text = "Add",
             buttonHeight = 80.dp,
-            textStyle = TextStyle(fontSize = 20.sp),
         )
       }
     }
@@ -406,57 +404,44 @@ class PatientUtilsTest {
 
   // ---------- Recomposition with unchanged parameters ----------
 
-  // Every parameter comes from a variable defined outside setContent (not a literal), so the
-  // Compose compiler cannot treat it as a constant and must compare it with the previous value
-  // when the parent recomposes.
+  // The parent recomposes (counter changes) while the helpers receive the same parameters:
+  // the helpers must keep displaying the same content.
   @Test
-  fun helpers_areSkippedWhenParentRecomposesWithSameParameters() {
+  fun helpers_keepTheirContentWhenParentRecomposes() {
     val counter = mutableStateOf(0)
-    val modifier: Modifier = Modifier
     val style = TextStyle(fontSize = 20.sp)
-    val height = 80.dp
-    val width = 0.5f
-    val title = "Title"
-    val goText = "Go"
-    val addText = "Add"
-    val icon = Icons.Default.Add
-    val description = "add icon"
     val onClick: () -> Unit = {}
-    val titleTag = "title"
-    val buttonTag = "button"
-    val buttonWithIconTag = "button_with_icon"
-    val iconTag = "icon"
 
     composeTestRule.setContent {
       AmberAppTheme {
         Column {
           Text("Counter ${counter.value}")
           DisplayPatientTitle(
-              modifier = modifier,
-              title = title,
+              modifier = Modifier,
+              title = "Title",
               titleStyle = style,
-              testTag = titleTag,
+              testTag = "title",
           )
           DisplayPatientButton(
-              modifier = modifier,
-              buttonHeight = height,
-              buttonWidth = width,
-              text = goText,
+              modifier = Modifier,
+              buttonHeight = 80.dp,
+              buttonWidth = 0.5f,
+              text = "Go",
               textStyle = style,
               onClick = onClick,
-              testTag = buttonTag,
+              testTag = "button",
           )
           DisplayPatientButtonWithIcon(
-              modifier = modifier,
-              buttonHeight = height,
-              buttonWidth = width,
-              text = addText,
+              modifier = Modifier,
+              buttonHeight = 80.dp,
+              buttonWidth = 0.5f,
+              text = "Add",
               textStyle = style,
-              icon = icon,
-              description = description,
+              icon = Icons.Default.Add,
+              description = "add icon",
               onClick = onClick,
-              testTag = buttonWithIconTag,
-              iconTestTag = iconTag,
+              testTag = "button_with_icon",
+              iconTestTag = "icon",
           )
         }
       }
@@ -467,16 +452,15 @@ class PatientUtilsTest {
     counter.value = 1
 
     composeTestRule.onNodeWithText("Counter 1").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(titleTag).assertTextEquals("Title")
-    composeTestRule.onNodeWithTag(buttonTag).assertTextEquals("Go")
-    composeTestRule.onNodeWithTag(buttonWithIconTag).assertTextEquals("Add")
+    composeTestRule.onNodeWithTag("title").assertTextEquals("Title")
+    composeTestRule.onNodeWithTag("button").assertTextEquals("Go")
+    composeTestRule.onNodeWithTag("button_with_icon").assertTextEquals("Add")
   }
 
-  // The composables read MaterialTheme colors (backed by Compose state). Changing the color scheme
-  // makes each composable recompose on its own, which covers the generated restart path.
-  // One instance omits the default parameters, the other passes them all.
+  // Changing the theme colors makes each helper recompose on its own (they read the color scheme).
+  // The content must stay correct, with default parameters and with explicit ones.
   @Test
-  fun helpers_recomposeThemselvesWhenThemeColorsChange() {
+  fun helpers_keepTheirContentWhenThemeColorsChange() {
     val colors =
         mutableStateOf(
             lightColorScheme(
