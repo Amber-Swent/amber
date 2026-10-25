@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -467,5 +470,74 @@ class PatientUtilsTest {
     composeTestRule.onNodeWithTag(titleTag).assertTextEquals("Title")
     composeTestRule.onNodeWithTag(buttonTag).assertTextEquals("Go")
     composeTestRule.onNodeWithTag(buttonWithIconTag).assertTextEquals("Add")
+  }
+
+  // The composables read MaterialTheme colors (backed by Compose state). Changing the color scheme
+  // makes each composable recompose on its own, which covers the generated restart path.
+  // One instance omits the default parameters, the other passes them all.
+  @Test
+  fun helpers_recomposeThemselvesWhenThemeColorsChange() {
+    val colors =
+        mutableStateOf(
+            lightColorScheme(
+                primary = Color.Red,
+                tertiary = Color.Green,
+                onTertiary = Color.White,
+            )
+        )
+    val style = TextStyle(fontSize = 20.sp)
+    val onClick: () -> Unit = {}
+
+    composeTestRule.setContent {
+      MaterialTheme(colorScheme = colors.value) {
+        Column {
+          DisplayPatientTitle(title = "Title default", testTag = "title_default")
+          DisplayPatientTitle(
+              modifier = Modifier,
+              title = "Title explicit",
+              titleStyle = style,
+              testTag = "title_explicit",
+          )
+          DisplayPatientButton(text = "Button default", testTag = "button_default")
+          DisplayPatientButton(
+              modifier = Modifier,
+              buttonHeight = 80.dp,
+              buttonWidth = 0.5f,
+              text = "Button explicit",
+              textStyle = style,
+              onClick = onClick,
+              testTag = "button_explicit",
+          )
+          DisplayPatientButtonWithIcon(text = "Icon default", testTag = "icon_default")
+          DisplayPatientButtonWithIcon(
+              modifier = Modifier,
+              buttonHeight = 80.dp,
+              buttonWidth = 0.5f,
+              text = "Icon explicit",
+              textStyle = style,
+              icon = Icons.Default.Add,
+              description = "add icon",
+              onClick = onClick,
+              testTag = "icon_explicit",
+              iconTestTag = "icon_explicit_icon",
+          )
+        }
+      }
+    }
+
+    colors.value =
+        lightColorScheme(
+            primary = Color.Blue,
+            tertiary = Color.Yellow,
+            onTertiary = Color.Black,
+        )
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag("title_default").assertTextEquals("Title default")
+    composeTestRule.onNodeWithTag("title_explicit").assertTextEquals("Title explicit")
+    composeTestRule.onNodeWithTag("button_default").assertTextEquals("Button default")
+    composeTestRule.onNodeWithTag("button_explicit").assertTextEquals("Button explicit")
+    composeTestRule.onNodeWithTag("icon_default").assertTextEquals("Icon default")
+    composeTestRule.onNodeWithTag("icon_explicit").assertTextEquals("Icon explicit")
   }
 }
