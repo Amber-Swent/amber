@@ -79,11 +79,11 @@ object CreateInvitationTestTags {
   const val HINT_BOX = "create_invitation_hint_box"
   const val USAGE_TEXT = "create_invitation_usage_text"
   const val CODE_LIST = "create_invitation_code_list"
-  // one per invitation, its text starting with the code
   const val CIRCLE_CHOICES = "create_invitation_circle_choices"
   const val ERROR_MESSAGE = "create_invitation_error_message"
 
-  fun codeRow(code: String) = "CreateInvitation.codeRow.$code"
+  // one per invitation, its text starting with the code
+  fun codeRow(code: String) = "create_invitation_code_row_$code"
 
   fun circleChoice(circleId: String) = "create_invitation_circle_$circleId"
 }

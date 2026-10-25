@@ -1,9 +1,9 @@
-package com.github.se.amber.e2e
-
 /**
  * Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code. Modified by
  * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
  */
+package com.github.se.amber.e2e
+
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -86,8 +86,7 @@ class InvitationEndToEndTest {
     // Warms up the Functions emulator (worker cold start + failing Installations lookup) so the
     // journey's first call isn't slow. The call is expected to fail; only the round trip matters.
     // runBlocking makes the test wait for it (safe: @Before is off the main thread), and the
-    // timeout
-    // stops a stuck emulator from hanging the suite.
+    // timeout stops a stuck emulator from hanging the suite.
     runBlocking {
       withTimeoutOrNull(WARM_UP_MILLIS.milliseconds) {
         try {
@@ -125,9 +124,9 @@ class InvitationEndToEndTest {
     click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
     waitFor(CaregiverHomeTestTags.TITLE)
 
-    // FIXME: this will fails once the refractor of Home has been done
+    // FIXME: this will fail once the refactor of Home has been done
     //  The back button won't exist anymore, the Sign Out will be in the Parameter screen
-    //  This is the responsibility of the one doing the Parameters Refractor and implementation
+    //  This is the responsibility of the one doing the Parameters Refactor and implementation
     click(TopNavigationMenuTestTags.BACK_BUTTON) // signs out
     waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
 
@@ -135,12 +134,12 @@ class InvitationEndToEndTest {
     createCaregiverProfile(firstName = "Bob", lastName = "Martin")
 
     // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the CaregiverChoice Refractor.
+    //  Fixing this is the responsibility of the one doing the CaregiverChoice Refactor.
     click(CaregiverChoiceTestTags.JOIN_BUTTON.name)
     typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
 
     // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the InvitationRedemptionScreen Refractor.
+    //  Fixing this is the responsibility of the one doing the InvitationRedemptionScreen Refactor.
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
         .assert(hasEditableText(adasCode))
@@ -168,9 +167,9 @@ class InvitationEndToEndTest {
    * @param firstName the caregiver's first name
    * @param lastName the caregiver's last name
    */
-  // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-  //  Fixing this is the responsibility of the one doing the CreateProfile Refractor.
   private fun createCaregiverProfile(firstName: String, lastName: String) {
+    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
+    //  Fixing this is the responsibility of the one doing the CreateProfile Refactor.
     typeInto(CreateProfileTestTags.NAME_INPUT.name, firstName)
     typeInto(CreateProfileTestTags.SURNAME_INPUT.name, lastName)
     click(CreateProfileTestTags.CAREGIVER_BUTTON.name)
@@ -269,8 +268,8 @@ class InvitationEndToEndTest {
 
   private companion object {
     const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
-    // the first callable call starts the Functions emulator's worker, which takes a few seconds
-    const val TIMEOUT_MILLIS = 30_000L
+    // Each step waits for real navigation and emulator calls
+    const val TIMEOUT_MILLIS = 10_000L
     const val WARM_UP_MILLIS = 60_000L
   }
 }
