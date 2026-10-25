@@ -9,7 +9,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
 import androidx.compose.ui.test.assertTextEquals
@@ -18,7 +20,11 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.theme.AmberAppTheme
 import org.junit.Assert.assertEquals
@@ -334,5 +340,63 @@ class PatientUtilsTest {
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
         .assertWidthIsEqualTo(300.dp)
         .assertLeftPositionInRootIsEqualTo(0.dp)
+  }
+
+  // ---------- Custom styles and heights ----------
+
+  @Test
+  fun title_usesCustomStyle() {
+    val results = mutableListOf<TextLayoutResult>()
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientTitle(title = "Style", titleStyle = TextStyle(fontSize = 40.sp))
+      }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).performSemanticsAction(
+        SemanticsActions.GetTextLayoutResult
+    ) {
+      it(results)
+    }
+
+    assertEquals(40.sp, results.first().layoutInput.style.fontSize)
+  }
+
+  @Test
+  fun button_usesCustomHeightAndTextStyle() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientButton(
+            text = "Go",
+            buttonHeight = 80.dp,
+            textStyle = TextStyle(fontSize = 20.sp),
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+        .assertIsDisplayed()
+        .assertTextEquals("Go")
+        .assertHeightIsEqualTo(80.dp)
+  }
+
+  @Test
+  fun buttonWithIcon_usesCustomHeightAndTextStyle() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientButtonWithIcon(
+            text = "Add",
+            buttonHeight = 80.dp,
+            textStyle = TextStyle(fontSize = 20.sp),
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertIsDisplayed()
+        .assertTextEquals("Add")
+        .assertHeightIsEqualTo(80.dp)
   }
 }
