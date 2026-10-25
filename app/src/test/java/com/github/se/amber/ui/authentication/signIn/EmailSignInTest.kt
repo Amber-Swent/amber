@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.CredentialManager
 import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
@@ -22,6 +23,8 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -206,5 +209,24 @@ class EmailSignInScreenTest {
     composeTestRule.waitForIdle()
 
     assertEquals(0, googleSignInCount)
+  }
+
+  @Test
+  fun screenWithDefaultArgumentsUsesProviderRepository() {
+    every { repository.currentUser } returns AuthUser("existing-user")
+    mockkObject(AuthRepositoryProvider)
+    every { AuthRepositoryProvider.repository } returns repository
+    try {
+      composeTestRule.setContent { EmailSignInScreen() }
+      composeTestRule
+          .onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD)
+          .performTextInput("person@example.com")
+      composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).performClick()
+
+      composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertIsDisplayed()
+      verify { repository.currentUser }
+    } finally {
+      unmockkObject(AuthRepositoryProvider)
+    }
   }
 }

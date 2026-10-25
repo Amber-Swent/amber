@@ -13,6 +13,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.NoCredentialException
 import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
@@ -20,6 +21,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -85,6 +88,19 @@ class EmailSignInViewModelTest {
     every { repository.currentUser } returns user
 
     assertEquals(user, EmailSignInViewModel(repository).uiState.value.user)
+  }
+
+  @Test
+  fun defaultConstructorUsesProviderRepository() {
+    val user = AuthUser("provider-user")
+    every { repository.currentUser } returns user
+    mockkObject(AuthRepositoryProvider)
+    every { AuthRepositoryProvider.repository } returns repository
+    try {
+      assertEquals(user, EmailSignInViewModel().uiState.value.user)
+    } finally {
+      unmockkObject(AuthRepositoryProvider)
+    }
   }
 
   @Test

@@ -143,21 +143,21 @@ internal fun AuthenticationHeader(
  * The field supports different keyboard configurations and visual transformations so that it can be
  * reused for both email and password input. Its colors come from the theme.
  *
+ * @param modifier Modifier applied to the text field.
  * @param value Current value displayed in the input field.
  * @param onValueChange Called whenever the field value changes.
  * @param placeholder Text displayed while the field is empty.
  * @param keyboardOptions Keyboard configuration appropriate for the expected input.
- * @param modifier Modifier applied to the text field.
  * @param visualTransformation Transformation applied when displaying the text, such as hiding
  *   password characters.
  */
 @Composable
 internal fun AuthenticationTextField(
+    modifier: Modifier = Modifier,
     value: String = "",
     onValueChange: (String) -> Unit = {},
     placeholder: String = "",
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    modifier: Modifier = Modifier,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
   OutlinedTextField(
@@ -180,17 +180,17 @@ internal fun AuthenticationTextField(
 /**
  * Displays the common primary button used throughout the authentication flow.
  *
+ * @param modifier Modifier applied to the button.
  * @param text Text displayed inside the button.
  * @param onClick Called when the user presses the button.
- * @param modifier Modifier applied to the button.
  * @param enabled Whether the button reacts to clicks.
  * @param leadingIcon Optional icon displayed before [text], such as a provider logo.
  */
 @Composable
 internal fun AuthenticationButton(
+    modifier: Modifier = Modifier,
     text: String = "",
     onClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
     enabled: Boolean = true,
     leadingIcon: Painter? = null,
 ) {
