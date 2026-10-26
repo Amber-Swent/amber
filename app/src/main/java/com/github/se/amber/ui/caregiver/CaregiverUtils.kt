@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,10 +31,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags.BUTTON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
@@ -75,6 +78,7 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
 object DisplayCaregiverButtonTestTags {
   const val TEXT = "caregiver_button_text"
   const val ICON = "caregiver_button_icon"
+  const val BUTTON = "caregiver_button"
 }
 
 /**
@@ -90,6 +94,7 @@ object DisplayCaregiverButtonTestTags {
  * @param icon optional icon displayed on the button.
  * @param description content description for [icon], required when an icon is provided.
  * @param text text displayed on the button.
+ * @param style style displayed by the text.
  * @param height height of the button.
  * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
@@ -104,6 +109,7 @@ fun DisplayCaregiverButton(
     icon: ImageVector? = null,
     description: String = "",
     text: String = "Text",
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
     height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
     widthPercentage: Float = CAREGIVER_BUTTON_WIDTH,
     paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
@@ -114,8 +120,10 @@ fun DisplayCaregiverButton(
   Button(
       onClick = onClick,
       enabled = enabled,
-      modifier = modifier.fillMaxWidth(widthPercentage).height(height),
+      // The use of heightIn(min = ...) avoids cutting the text
+      modifier = modifier.fillMaxWidth(widthPercentage).heightIn(min = height).testTag(BUTTON),
       colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+      shape = RoundedCornerShape(ROUND_CORNER),
   ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
@@ -126,6 +134,8 @@ fun DisplayCaregiverButton(
           text = text,
           modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.TEXT),
           color = MaterialTheme.colorScheme.onTertiary,
+          textAlign = TextAlign.Center,
+          style = style,
       )
       if (icon != null) {
         Icon(
