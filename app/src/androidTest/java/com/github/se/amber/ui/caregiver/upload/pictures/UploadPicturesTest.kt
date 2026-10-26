@@ -289,7 +289,10 @@ class UploadPicturesTest {
               )
         }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+        .performScrollTo()
+        .performClick()
     composeTestRule
         .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
         .assertIsSelected()
@@ -300,7 +303,7 @@ class UploadPicturesTest {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
     val chip = composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
-    chip.performClick()
+    chip.performScrollTo().performClick()
     chip.performClick()
     chip.assertIsNotSelected()
   }
@@ -309,7 +312,10 @@ class UploadPicturesTest {
   fun clickingAChipDoesNotSelectTheOthers() {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
-    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+        .performScrollTo()
+        .performClick()
     composeTestRule
         .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[1]
         .assertIsNotSelected()
@@ -331,7 +337,10 @@ class UploadPicturesTest {
               )
         }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+        .performScrollTo()
+        .performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }
 
