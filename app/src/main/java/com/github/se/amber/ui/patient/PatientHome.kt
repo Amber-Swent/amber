@@ -47,7 +47,6 @@ object PatientHomeScreenTestTags {
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
-    onSignedOut: () -> Unit,
     onTabSelected: (Tab) -> Unit,
 ) {
   val context = LocalContext.current
@@ -61,34 +60,7 @@ fun PatientHomeScreen(
     }
   }
 
-  // when sign-out
-  LaunchedEffect(uiState.signedOut) {
-    if (uiState.signedOut) {
-      onSignedOut()
-      Toast.makeText(context, "Logout successful", Toast.LENGTH_SHORT).show()
-    }
-  }
-
   Scaffold(
-      topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
-          TopNavigationMenu(
-              modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
-              action = TopNavigationAction.CHECKOUT,
-              onBackClick = { homeViewModel.signOut() },
-          )
-          Spacer(modifier = Modifier.height(PADDING_SMALL))
-          Text(
-              modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.TITLE),
-              text = "Home",
-              textAlign = TextAlign.Center,
-              color = orange,
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.Bold,
-          )
-          Spacer(modifier = Modifier.height(PADDING_BIG))
-        }
-      },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = PatientTab.Home,
@@ -106,6 +78,7 @@ fun PatientHomeScreen(
                     .padding(top = PADDING_MEDIUM),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+          DisplayPatientTitle(title = "Home")
           Text(
               modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.GREETINGS),
               text = "Hello " + uiState.patientProfile.person.firstName + " !",
@@ -123,7 +96,6 @@ fun PatientHomeScreen(
 fun PatientHomeScreenPreview() {
   AmberAppTheme(dynamicColor = false) {
     PatientHomeScreen(
-        onSignedOut = {},
         onTabSelected = {},
     )
   }

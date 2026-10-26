@@ -27,7 +27,6 @@ data class PatientHomeUIState(
             circleIds = emptyList(),
         ),
     val errorMsg: String? = null,
-    val signedOut: Boolean = false,
 )
 
 /**
@@ -36,11 +35,9 @@ data class PatientHomeUIState(
  * Responsible for managing the UI state
  *
  * @property profileRepository The repository used to fetch the Profile.
- * @property authRepository The repository used to sign the user out.
  */
 class PatientHomeViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
-    private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
 ) : ViewModel() {
 
   // Home UI state
@@ -77,20 +74,6 @@ class PatientHomeViewModel(
               onFailure = { e ->
                 Log.e("PatientHomeViewModel", "Error fetching profile", e)
                 setErrorMsg("Failed to load the profile: ${e.message}")
-              },
-          )
-    }
-  }
-
-  /** Initiates sign-out and update the UI state on success or failure */
-  fun signOut() {
-    viewModelScope.launch {
-      authRepository
-          .signOut()
-          .fold(
-              onSuccess = { _uiState.update { it.copy(signedOut = true) } },
-              onFailure = { throwable ->
-                setErrorMsg(throwable.localizedMessage ?: "Sign out failed")
               },
           )
     }

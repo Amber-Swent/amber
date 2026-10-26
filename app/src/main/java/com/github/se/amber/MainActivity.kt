@@ -210,7 +210,6 @@ fun AmberApp(
     ) {
       composable(route = PatientScreen.Home.route) {
         PatientHomeScreen(
-            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }

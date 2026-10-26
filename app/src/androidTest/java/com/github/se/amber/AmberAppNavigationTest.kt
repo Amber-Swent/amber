@@ -376,19 +376,6 @@ class AmberAppNavigationTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun patientHome_signOut_navigatesToAuth() {
-    launch(NavGraphs.PATIENT)
-
-    click(Tags.PATIENT_HOME_SIGN_OUT)
-
-    composeRule.waitUntil(timeoutMillis = 5_000) {
-      navController.currentDestination?.route == AuthScreen.Auth.route
-    }
-
-    assertRoute(AuthScreen.Auth.route)
-  }
-
-  @Test
   fun patientHome_seePicturesTab_navigatesToSeePictures() {
     launch(NavGraphs.PATIENT)
 
