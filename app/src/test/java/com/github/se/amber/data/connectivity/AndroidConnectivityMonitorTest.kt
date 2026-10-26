@@ -7,6 +7,8 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import androidx.test.core.app.ApplicationProvider
+import io.mockk.every
+import io.mockk.mockk
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -81,17 +83,73 @@ class AndroidConnectivityMonitorTest {
    * does on registering and Robolectric doesn't: reporting the current network, if any, to it.
    */
   private fun TestScope.monitor(job: Job = backgroundScope.coroutineContext[Job]!!) =
+      monitorOf(manager, job).also {
+        runCurrent()
+        val current = manager.activeNetwork ?: return@also
+        val currentCapabilities = manager.getNetworkCapabilities(current) ?: return@also
+        callback().onCapabilitiesChanged(current, currentCapabilities)
+        runCurrent()
+      }
+
+  /**
+   * A monitor of [connectivityManager] watching in a child of [job], on the test's virtual time.
+   * Lets its callback register before returning; plays nothing else.
+   */
+  private fun TestScope.monitorOf(
+      connectivityManager: ConnectivityManager,
+      job: Job = backgroundScope.coroutineContext[Job]!!,
+  ) =
       AndroidConnectivityMonitor(
-              manager,
+              connectivityManager,
               CoroutineScope(StandardTestDispatcher(testScheduler) + Job(job)),
           )
-          .also {
-            runCurrent()
-            val current = manager.activeNetwork ?: return@also
-            val currentCapabilities = manager.getNetworkCapabilities(current) ?: return@also
-            callback().onCapabilitiesChanged(current, currentCapabilities)
-            runCurrent()
+          .also { runCurrent() }
+
+  /**
+   * A connectivity manager whose current network is [network] with [capabilities] until it
+   * registers a callback, then whatever [onRegister] sets. [onRegister] plays what happens while
+   * registering; it gets the callback.
+   */
+  private fun managerChangingOnRegister(
+      network: Network,
+      capabilities: NetworkCapabilities,
+      onRegister: (ConnectivityManager.NetworkCallback) -> NetworkCapabilities?,
+  ): ConnectivityManager {
+    var current: NetworkCapabilities? = capabilities
+    return mockk(relaxed = true) {
+      every { activeNetwork } answers { if (current == null) null else network }
+      every { getNetworkCapabilities(any()) } answers { current }
+      every { registerDefaultNetworkCallback(any<ConnectivityManager.NetworkCallback>()) } answers
+          {
+            current = onRegister(firstArg())
           }
+    }
+  }
+
+  @Test
+  fun noticesANetworkLostWhileRegistering() = runTest {
+    // online when the monitor is built, lost before Android has the callback: Android then has no
+    // default network to report, so only reading the state after registering notices it
+    val connectivityManager = managerChangingOnRegister(wifi, validated) { null }
+
+    assertFalse(monitorOf(connectivityManager).isOnline.value)
+  }
+
+  @Test
+  fun aReportOnRegisteringIsNotReplacedByTheReading() = runTest {
+    // Android reports the network as not reaching the internet while registering, but a reading
+    // would still say it does: the report is the newer state
+    val connectivityManager =
+        managerChangingOnRegister(wifi, validated) { callback ->
+          callback.onCapabilitiesChanged(
+              wifi,
+              capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+          )
+          validated
+        }
+
+    assertFalse(monitorOf(connectivityManager).isOnline.value)
+  }
 
   @Test
   fun startsOfflineWithNoNetwork() = runTest {

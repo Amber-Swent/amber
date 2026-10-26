@@ -46,8 +46,22 @@ class AndroidConnectivityMonitor(
    * [ConnectivityManager.NetworkCallback.onCapabilitiesChanged], so it needs no case of its own;
    * only the loss of the current default network counts. Values may repeat; the [StateFlow] it
    * feeds drops the repeats.
+   *
+   * The current state is read after registering, and sent only if the callback hasn't reported
+   * anything yet: read before, a network lost in between would never be reported (there is then no
+   * default network to report); sent after a report, it could replace that newer state.
    */
   private fun defaultNetworkOnline(): Flow<Boolean> = callbackFlow {
+    // Makes "has the callback reported yet?" and sending one step, so the reading can't come
+    // between a report and its send.
+    val lock = Any()
+    var reported = false
+    fun report(online: Boolean) =
+        synchronized(lock) {
+          reported = true
+          trySend(online)
+        }
+
     val callback =
         object : ConnectivityManager.NetworkCallback() {
           /**
@@ -63,7 +77,7 @@ class AndroidConnectivityMonitor(
               networkCapabilities: NetworkCapabilities,
           ) {
             defaultNetwork = network
-            trySend(networkCapabilities.reachesInternet())
+            report(networkCapabilities.reachesInternet())
           }
 
           // Android may report that the previous default network lost that status after the new
@@ -72,13 +86,13 @@ class AndroidConnectivityMonitor(
           override fun onLost(network: Network) {
             if (network == defaultNetwork) {
               defaultNetwork = null
-              trySend(false)
+              report(false)
             }
           }
         }
-    // With no default network, Android calls nothing on registering: start from the current state.
-    trySend(currentlyOnline())
     connectivityManager.registerDefaultNetworkCallback(callback)
+    // With no default network, Android calls nothing on registering: start from the current state.
+    synchronized(lock) { if (!reported) trySend(currentlyOnline()) }
     awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
   }
 
