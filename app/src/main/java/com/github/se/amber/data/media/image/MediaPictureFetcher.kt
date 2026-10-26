@@ -14,8 +14,13 @@ import com.github.se.amber.model.circle.hasStorageBucket
 import com.github.se.amber.model.media.MediaPicture
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.isMediaOf
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.storage.StorageException
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -32,13 +37,15 @@ import okio.source
  * If the file is gone between getFile and opening it (a send moved it, or an eviction deleted it,
  * at that moment), getFile is called once more and finds it where it is now.
  *
- * Any failure reaches Coil as a [MediaPictureUnavailableException], so `MediaImage` shows its
- * `failed` slot: also a [CancellationException] thrown by getFile itself (e.g. a timeout) while
- * this load wasn't cancelled, which Coil would otherwise take for a cancellation and leave the
- * image loading forever. Each failure is logged under [MEDIA_PICTURE_FETCHER_TAG], with the media
- * id only, never the media: as an error for a bug (a picture shown with the wrong circle, whether
- * or not the circle has a bucket yet), as a warning otherwise (offline, no bucket yet). A load that
- * was cancelled just stops, without failing or logging, whatever getFile threw.
+ * Any failure reaches Coil as a [MediaPictureUnavailableException], so `MediaImage` shows its retry
+ * button: also a [CancellationException] thrown by getFile itself (e.g. a timeout) while this load
+ * wasn't cancelled, which Coil would otherwise take for a cancellation and leave the image loading
+ * forever. The exception says whether the connection caused it, so `MediaImage` knows to load the
+ * picture again once the phone is back online. Each failure is logged under
+ * [MEDIA_PICTURE_FETCHER_TAG], with the media id only, never the media: as an error for a bug (a
+ * picture shown with the wrong circle, whether or not the circle has a bucket yet), as a warning
+ * otherwise (offline, no bucket yet). A load that was cancelled just stops, without failing or
+ * logging, whatever getFile threw.
  */
 class MediaPictureFetcher(
     private val data: MediaPicture,
@@ -113,4 +120,28 @@ internal const val MEDIA_PICTURE_FETCHER_TAG = "MediaPictureFetcher"
  * [MediaPictureFetcher].
  */
 class MediaPictureUnavailableException(mediaId: String, cause: Throwable) :
-    IOException("Couldn't load media $mediaId", cause)
+    IOException("Couldn't load media $mediaId", cause) {
+  /**
+   * Whether the connection made it fail (typically: offline, and the file isn't on the phone), so
+   * it may load once the phone is back online. Lets the UI tell this apart without knowing
+   * Firebase.
+   */
+  val isConnectionFailure: Boolean = cause.causedByConnection()
+}
+
+/**
+ * Whether this error, or one of its causes, comes from the connection. Counts as one: a Firebase
+ * Storage download that gave up retrying ([StorageException.getIsRecoverableException], what a
+ * download ends with when offline), a [FirebaseNetworkException], and a network error of the
+ * platform (unknown host, refused or reset connection, timeout). Anything else, such as a denied
+ * access, a missing file or a full disk, isn't.
+ */
+private fun Throwable.causedByConnection(): Boolean =
+    generateSequence(this) { it.cause }
+        .any {
+          (it is StorageException && it.isRecoverableException) ||
+              it is FirebaseNetworkException ||
+              it is UnknownHostException ||
+              it is SocketException ||
+              it is SocketTimeoutException
+        }
