@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -12,6 +13,8 @@ import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.circle.displayNameOf
+import com.github.se.amber.model.circle.taggableIds
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
@@ -20,13 +23,16 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -49,6 +55,9 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
 }
+
+/** Label of a member whose profile could not be read, instead of showing their uid. */
+const val UNKNOWN_MEMBER_LABEL = "Unknown member"
 
 /**
  * Represents the state displayed by the picture upload screen.
@@ -98,6 +107,8 @@ class UploadPictureViewModel(
   // it should happen once and then be gone. A Channel is built for that.
   private val _careCircle = MutableStateFlow<CareCircle?>(null)
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
+  // uid -> Person of each circle member, read from their profiles
+  private val _members = MutableStateFlow<Map<String, Person>>(emptyMap())
   private val _events = Channel<UploadPictureEvent>(Channel.BUFFERED)
   val events: Flow<UploadPictureEvent> = _events.receiveAsFlow()
 
@@ -111,25 +122,16 @@ class UploadPictureViewModel(
   // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
   /** People available for tagging, keyed by person ID and displayed by name. */
   val involvedOptions: StateFlow<Map<String, String>> =
-      careCircle
-          .map { circle ->
+      combine(careCircle, _members) { circle, members ->
             if (circle == null) emptyMap()
             else {
-              val idsAsFallback = circle.memberIds.associateWith { it }
-              val names = circle.people.mapValues { it.value.displayName() }
-              idsAsFallback + names // names override IDs - the order matter in Kotlin
+              val viewerUid = authRepo.currentUser?.uid
+              circle.taggableIds().associateWith { id ->
+                circle.displayNameOf(id, viewerUid, members) ?: UNKNOWN_MEMBER_LABEL
+              }
             }
           }
           .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
-
-  /**
-   * Builds the display name used for a person in the tagging choices.
-   *
-   * @return The person's nickname, or their non-empty first and last names.
-   */
-  private fun Person.displayName(): String =
-      nickname?.takeIf { it.isNotBlank() }
-          ?: listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
 
   /** Loads the care circle associated with the authenticated user. */
   private fun loadCircle() {
@@ -153,12 +155,33 @@ class UploadPictureViewModel(
       }
       circleRepo
           .getCircle(circleId)
-          .onSuccess { _careCircle.value = it }
+          .onSuccess {
+            _careCircle.value = it
+            loadMembers(it)
+          }
           .onFailure {
             setErrorMsg(
                 UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "${it.message}"
             )
           }
+    }
+  }
+
+  /**
+   * Reads every member's profile so their name can be shown instead of their uid. A member whose
+   * profile can't be read is left out and labelled [UNKNOWN_MEMBER_LABEL].
+   *
+   * @param circle The loaded care circle.
+   */
+  private suspend fun loadMembers(circle: CareCircle) {
+    _members.value = coroutineScope {
+      circle.memberIds
+          .map { uid ->
+            async { profileRepo.getProfile(uid).getOrNull()?.person?.let { uid to it } }
+          }
+          .awaitAll()
+          .filterNotNull()
+          .toMap()
     }
   }
 
@@ -193,6 +216,10 @@ class UploadPictureViewModel(
       return
     }
 
+    // only people still in the circle can be tagged
+    val taggableIds = circle.taggableIds()
+    val shownIds = state.shownIds.filter { it in taggableIds }
+
     _uiState.value = state.copy(isUploading = true)
     viewModelScope.launch {
       try {
@@ -207,7 +234,7 @@ class UploadPictureViewModel(
                 description = state.description,
                 date = state.date,
                 location = null,
-                shownIds = state.shownIds.toList(),
+                shownIds = shownIds,
                 authorizedIds = emptyList(), // empty = whole circle can see it, for the moment
                 status = MediaStatus.APPROVED,
                 width = state.pictureWidth,
@@ -295,6 +322,19 @@ class UploadPictureViewModel(
    */
   fun setDate(date: MemoryDate) {
     _uiState.value = _uiState.value.copy(date = date)
+  }
+
+  /**
+   * Shows a person who was just added to the care circle and tags them in the picture, since they
+   * were added while uploading it. Call it once the repository has saved [person] with its id.
+   *
+   * @param person The saved person, with the id the repository generated.
+   */
+  fun onPersonAdded(person: Person) {
+    if (person.id.isBlank()) return
+    _careCircle.update { circle -> circle?.copy(people = circle.people + (person.id to person)) }
+    if (_careCircle.value == null) return
+    _uiState.update { it.copy(shownIds = it.shownIds + person.id) }
   }
 
   /**

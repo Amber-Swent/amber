@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload
 
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -27,6 +29,7 @@ import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.io.File
 import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -213,9 +216,8 @@ class UploadPicturesTest {
   private fun setCircleWithOptions(circle: CareCircle) {
     composeTestRule.runOnIdle {
       careCircleFlow.value = circle
-      // The mocked ViewModel doesn't derive this itself. It mirrors the real mapping
-      // for a circle with no people: memberIds.associateWith { it }.
-      involvedOptionsFlow.value = circle.memberIds.associateWith { it }
+      // The mocked ViewModel doesn't derive this itself: label each member by a fake name.
+      involvedOptionsFlow.value = circle.memberIds.associateWith { "Name of $it" }
     }
   }
 
@@ -325,5 +327,27 @@ class UploadPicturesTest {
 
     composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
+  }
+
+  @Test
+  fun chipsShowNamesNotIds() {
+    launchScreen()
+    composeTestRule.runOnIdle {
+      involvedOptionsFlow.value = mapOf("uid123" to "Marie Curie", "p1" to "Anne Dupont")
+    }
+    composeTestRule.onNodeWithText("Marie Curie").performScrollTo().assertIsDisplayed()
+    composeTestRule.onNodeWithText("Anne Dupont").performScrollTo().assertIsDisplayed()
+    composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
+  }
+
+  @Test
+  fun clickingAChipTogglesThatPersonId() {
+    launchScreen()
+    composeTestRule.runOnIdle {
+      involvedOptionsFlow.value = mapOf("uid123" to "Marie Curie", "p1" to "Anne Dupont")
+    }
+    composeTestRule.onNodeWithText("Anne Dupont").performScrollTo().performClick()
+    verify(exactly = 1) { viewModel.toggleShownId("p1") }
+    verify(exactly = 0) { viewModel.toggleShownId("uid123") }
   }
 }
