@@ -86,7 +86,12 @@ fun CaregiverHomeScreen(
         ) {
           DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
           Text(
-              text = "Welcome ! You are with " + uiState.patient.person.firstName,
+              text =
+                  if (uiState.patient.uid.isNotBlank()) {
+                    "Welcome ! You are with " + uiState.patient.person.firstName
+                  } else {
+                    "Welcome! There are not patient related to this carecircle yet."
+                  },
               modifier = Modifier.fillMaxWidth().testTag(CaregiverHomeTestTags.WELCOME_TEXT),
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.bodyLarge,

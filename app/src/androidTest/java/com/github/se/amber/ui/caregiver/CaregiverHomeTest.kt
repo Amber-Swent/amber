@@ -67,6 +67,15 @@ class CaregiverHomeScreenTest {
   }
 
   @Test
+  fun welcomeText_showsNoPatientMessage_whenPatientUidIsBlank() {
+    uiStateFlow.value = uiStateFlow.value.copy(patient = UserProfile())
+    setScreen()
+    composeTestRule
+        .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
+        .assertTextEquals("Welcome! There are not patient related to this carecircle yet.")
+  }
+
+  @Test
   fun welcomeText_showsPatientFirstName() {
     setScreen()
     composeTestRule
