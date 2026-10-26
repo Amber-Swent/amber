@@ -46,6 +46,7 @@ import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.SURFACE_SMALL
+import com.github.se.amber.ui.theme.TEXT_FIELD_SMALL
 
 /** Test tags of the components shared by the authentication screens. */
 internal object AuthenticationComponentTestTags {
@@ -156,7 +157,7 @@ internal fun AuthenticationTextField(
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      modifier = modifier.fillMaxWidth(), // Material min height (56dp) keeps glyphs unclipped
+      modifier = modifier.fillMaxWidth().height(TEXT_FIELD_SMALL),
       singleLine = true,
       placeholder = {
         AuthenticationText(

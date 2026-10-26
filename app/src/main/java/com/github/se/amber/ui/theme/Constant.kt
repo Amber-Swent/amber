@@ -1,4 +1,4 @@
-/** Written by Lou-Anne Maier */
+/** Written by Lou-Anne Maier. Modified by nehachak1, with assistance from Claude Code. */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -76,7 +76,8 @@ val SURFACE_MEDIUM = 48.dp
 val SURFACE_BIG = 84.dp
 
 // ------- TEXT_FIELD -------
-val TEXT_FIELD_SMALL = 50.dp
+// 56.dp is the minimum height required for the letters to be displayed in full
+val TEXT_FIELD_SMALL = 56.dp
 val TEXT_FIELD_DEFAULT = 70.dp
 val TEXT_FIELD_BIG = 200.dp
 
