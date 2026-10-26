@@ -3,6 +3,7 @@
  */
 package com.github.se.amber.ui.onboarding.choice
 
+import android.bluetooth.BluetoothClass.Service.INFORMATION
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,8 +40,10 @@ import com.github.se.amber.ui.theme.WEIGHT_ONE
 object CaregiverChoiceTestTags {
   const val BACK_BUTTON = "caregiver_choice_back_button"
   const val WELCOME_HEADER = "caregiver_choice_welcom_header"
+  const val QUESTION = "caregiver_choice_question"
   const val CREATE_BUTTON = "caregiver_choice_create_button"
   const val JOIN_BUTTON = "caregiver_choice_join_button"
+  const val INFORMATION = "caregiver_choice_information_text"
 }
 
 internal const val CREATE_CIRCLE_LABEL = "Create a new care circle"
@@ -92,14 +95,15 @@ fun CaregiverChoiceScreen(
           horizontalAlignment = Alignment.CenterHorizontally,
       ) {
         Text(
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
             text =
                 if (uiState.displayName.isEmpty()) "Welcome" else "Welcome, ${uiState.displayName}",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
-            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
         )
         Text(
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.QUESTION),
             text = INSTRUCTION_LABEL,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
@@ -128,7 +132,10 @@ fun CaregiverChoiceScreen(
         )
       }
 
-      Row(horizontalArrangement = Arrangement.spacedBy(PADDING_MINI)) {
+      Row(
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.INFORMATION),
+          horizontalArrangement = Arrangement.spacedBy(PADDING_MINI),
+      ) {
         Icon(
             imageVector = Icons.Default.Info,
             contentDescription = "Info",
