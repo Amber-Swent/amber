@@ -94,7 +94,7 @@ object DisplayCaregiverButtonTestTags {
  * @param icon optional icon displayed on the button.
  * @param description content description for [icon], required when an icon is provided.
  * @param text text displayed on the button.
- * @param style style display by the text.
+ * @param style style displayed by the text.
  * @param height height of the button.
  * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
