@@ -1,17 +1,25 @@
 /* Written by LaMaier, with the assistance of Claude Code*/
 package com.github.se.amber.ui.caregiver
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -25,6 +33,7 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAG
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -244,6 +253,52 @@ class DisplayCaregiverButtonTest {
     val customHeight = 77.dp
     setButton(height = customHeight)
     composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertHeightIsEqualTo(customHeight)
+  }
+
+  @Test
+  fun widthPercentageIsTakenIntoAccount() {
+    composeTestRule.setContent {
+      Box(modifier = Modifier.requiredWidth(BOX_HEIGHT)) {
+        DisplayCaregiverButton(
+            text = "Test Button",
+            widthPercentage = WIDTH,
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON)
+        .assertWidthIsEqualTo(BOX_HEIGHT * WIDTH)
+  }
+
+  private companion object {
+    val BOX_HEIGHT = 500.dp
+    const val WIDTH = 0.55f
+  }
+
+  @Test
+  fun allTextIsVisible_multilineText() {
+    composeTestRule.setContent {
+      Column(
+          modifier = Modifier.fillMaxSize().padding(CAREGIVER_PADDING_MEDIUM),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        DisplayCaregiverButton(
+            text =
+                "This is a very long text that should wrap to multiple lines and remain fully visible",
+            height = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
+            widthPercentage = 0.8f,
+        )
+      }
+    }
+
+    // Verify the text node exists and contains the full content
+    composeTestRule
+        .onNodeWithTag(DisplayCaregiverButtonTestTags.TEXT, useUnmergedTree = true)
+        .assertExists()
+        .assertTextEquals(
+            "This is a very long text that should wrap to multiple lines and remain fully visible"
+        )
   }
 
   @Test
