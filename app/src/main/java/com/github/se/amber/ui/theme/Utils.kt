@@ -13,31 +13,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 
-// TODO: add docs
+/**
+ * Displays two horizontal dividers separated by a centered "or" label.
+ *
+ * @param modifier modifier applied to the divider row.
+ * @param style text style used for the "or" label.
+ */
 @Composable
-fun OrDivider(modifier : Modifier,
-              style : TextStyle = MaterialTheme.typography.titleMedium) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        HorizontalDivider(
-            modifier = Modifier.weight(WEIGHT_ONE),
-            color = lightGray,
-        )
+fun OrDivider(
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.titleMedium,
+) {
+  Row(
+      modifier = modifier.fillMaxWidth(),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.Center,
+  ) {
+    HorizontalDivider(
+        modifier = Modifier.weight(WEIGHT_ONE),
+        color = lightGray,
+    )
 
-        Text(
-            text = "or",
-            color = darkGray,
-            style = style,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = CAREGIVER_PADDING_SMALL),
-        )
+    Text(
+        text = "or",
+        color = darkGray,
+        style = style,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(horizontal = CAREGIVER_PADDING_SMALL),
+    )
 
-        HorizontalDivider(
-            modifier = Modifier.weight(WEIGHT_ONE),
-            color = lightGray,
-        )
-    }
+    HorizontalDivider(
+        modifier = Modifier.weight(WEIGHT_ONE),
+        color = lightGray,
+    )
+  }
 }
