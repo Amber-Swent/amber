@@ -10,6 +10,7 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaStatus
@@ -148,10 +149,12 @@ class UploadPictureViewModelTest {
       circleId: String = "circle1",
       people: Map<String, Person> = emptyMap(),
       members: List<String> = emptyList(),
+      places: Map<String, Place> = emptyMap(),
   ): CareCircle = mockk {
     every { id } returns circleId
     every { this@mockk.people } returns people
     every { memberIds } returns members
+    every { this@mockk.places } returns places
   }
 
   private fun fakePerson(nick: String?, first: String, last: String): Person = mockk {
@@ -840,6 +843,115 @@ class UploadPictureViewModelTest {
 
     assertEquals(UploadPictureViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
+  }
+
+  // ---------- saved places ----------
+
+  private val home = Place(id = "home", name = "Home", location = GeoLocation(46.5, 6.6))
+  private val doctor = Place(id = "doctor", name = "Dr. Martin", location = GeoLocation(46.2, 6.1))
+  private val unmapped = Place(id = "old", name = "Old house") // no coordinates
+
+  private fun circleWithPlaces(vararg places: Place) {
+    circle = fakeCircle(places = places.associateBy { it.id })
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
+  }
+
+  @Test
+  fun placeOptionsAreEmptyWithoutCircle() {
+    coEvery { circleRepo.getCircle("circle1") } returns Result.failure(IOException("offline"))
+    assertTrue(createViewModel().placeOptions.value.isEmpty())
+  }
+
+  @Test
+  fun placeOptionsListSavedPlacesByName() {
+    circleWithPlaces(home, doctor)
+    assertEquals(
+        mapOf("home" to "Home", "doctor" to "Dr. Martin"),
+        createViewModel().placeOptions.value,
+    )
+  }
+
+  @Test
+  fun placeOptionsLeaveOutPlacesWithoutCoordinates() {
+    circleWithPlaces(home, unmapped)
+    assertEquals(mapOf("home" to "Home"), createViewModel().placeOptions.value)
+  }
+
+  @Test
+  fun selectingASavedPlaceSetsItsLocationAndName() {
+    circleWithPlaces(home)
+    val vm = createViewModel()
+    vm.selectPlace("home")
+
+    val state = vm.uiState.value
+    assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), state.location)
+    assertEquals("home", state.selectedPlaceId)
+    assertEquals("Home", state.placeQuery)
+    assertTrue(state.hasValidPlace)
+  }
+
+  @Test
+  fun selectingTheSelectedSavedPlaceAgainDropsIt() {
+    circleWithPlaces(home)
+    val vm = createViewModel()
+    vm.selectPlace("home")
+    vm.selectPlace("home")
+
+    val state = vm.uiState.value
+    assertNull(state.location)
+    assertNull(state.selectedPlaceId)
+    assertEquals("", state.placeQuery)
+  }
+
+  @Test
+  fun selectingAnotherSavedPlaceReplacesTheFirst() {
+    circleWithPlaces(home, doctor)
+    val vm = createViewModel()
+    vm.selectPlace("home")
+    vm.selectPlace("doctor")
+
+    assertEquals("doctor", vm.uiState.value.selectedPlaceId)
+    assertEquals("Dr. Martin", vm.uiState.value.location?.placeName)
+  }
+
+  @Test
+  fun selectingAnUnknownOrUnmappedSavedPlaceDoesNothing() {
+    circleWithPlaces(unmapped)
+    val vm = createViewModel()
+    vm.selectPlace("missing")
+    vm.selectPlace("old")
+    assertEquals(UploadPictureUIState(), vm.uiState.value)
+  }
+
+  @Test
+  fun typingAfterPickingASavedPlaceDropsIt() {
+    circleWithPlaces(home)
+    val vm = createViewModel()
+    vm.selectPlace("home")
+    vm.setPlaceQuery("Lau")
+
+    assertNull(vm.uiState.value.location)
+    assertNull(vm.uiState.value.selectedPlaceId)
+  }
+
+  @Test
+  fun pickingASuggestionAfterASavedPlaceUnselectsTheChip() {
+    circleWithPlaces(home)
+    val vm = createViewModel()
+    vm.selectPlace("home")
+    vm.selectPlace(lausanne)
+
+    assertNull(vm.uiState.value.selectedPlaceId)
+    assertEquals(lausanne, vm.uiState.value.location)
+  }
+
+  @Test
+  fun uploadedItemHasThePickedSavedPlace() {
+    circleWithPlaces(home)
+    val vm = readyViewModel()
+    vm.selectPlace("home")
+    vm.uploadPicture()
+    assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), captureUploadedItem().location)
   }
 
   // ---------- canUpload ----------
