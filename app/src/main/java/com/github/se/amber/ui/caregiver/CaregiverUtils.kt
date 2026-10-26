@@ -1,6 +1,4 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+/* Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code. */
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.foundation.border
@@ -8,9 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -31,12 +32,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DEFAULT
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import com.github.se.amber.ui.theme.PADDING_BIG
@@ -63,6 +70,73 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
       style = MaterialTheme.typography.headlineSmall,
       fontWeight = FontWeight.Bold,
   )
+}
+
+object DisplayCaregiverButtonTestTags {
+  const val TEXT = "caregiver_button_text"
+  const val ICON = "caregiver_button_icon"
+}
+
+/**
+ * Displays a caregiver button with optional icon content.
+ *
+ * An icon and its content description must either both be provided or both be omitted. If there is
+ * no icon, the text is center. If there is an icon, the text is on the left and the icon on the
+ * right
+ *
+ * @param modifier modifier applied to the button.
+ * @param onClick callback invoked when the button is clicked.
+ * @param enabled whether the button is enabled and can be clicked.
+ * @param icon optional icon displayed on the button.
+ * @param description content description for [icon], required when an icon is provided.
+ * @param text text displayed on the button.
+ * @param height height of the button.
+ * @param widthPercentage fraction of the available width occupied by the button.
+ * @param paddingTextAndIcon padding applied between the button content and its edges.
+ */
+@Composable
+fun DisplayCaregiverButton(
+    // If needed, pass the testTag of the button through here
+    // this buttonTag allow another function want to ensure a specific button is display
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    enabled: Boolean = true,
+    icon: ImageVector? = null,
+    description: String = "",
+    text: String = "Text",
+    height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
+    widthPercentage: Float = CAREGIVER_BUTTON_WIDTH,
+    paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
+) {
+  require((icon == null && description.isEmpty()) || (icon != null && description.isNotEmpty())) {
+    "An icon requires a description, and a description requires an icon"
+  }
+  Button(
+      onClick = onClick,
+      enabled = enabled,
+      modifier = modifier.fillMaxWidth(widthPercentage).height(height),
+      colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+  ) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
+        horizontalArrangement = if (icon == null) Arrangement.Center else Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(
+          text = text,
+          modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.TEXT),
+          color = MaterialTheme.colorScheme.onTertiary,
+      )
+      if (icon != null) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.ICON),
+            tint = MaterialTheme.colorScheme.onTertiary,
+        )
+      }
+    }
+  }
 }
 
 /** Test tags used by the caregiver text field components. */
@@ -199,4 +273,11 @@ fun DisplayBoxWithIconText(
 
     Text(text = label, color = Color.Black)
   }
+}
+
+/** Preview of [DisplayCaregiverButton] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun UploadScreenPreview() {
+  AmberAppTheme { DisplayCaregiverButton() }
 }
