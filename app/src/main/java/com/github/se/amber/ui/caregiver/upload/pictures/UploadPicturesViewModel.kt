@@ -177,7 +177,7 @@ class UploadPictureViewModel(
     _members.value = coroutineScope {
       circle.memberIds
           .map { uid ->
-            async { profileRepo.getProfile(uid).getOrNull()?.person?.let { uid to it } }
+            async { profileRepo.getProfile(uid).getOrNull()?.let { uid to it.person } }
           }
           .awaitAll()
           .filterNotNull()
