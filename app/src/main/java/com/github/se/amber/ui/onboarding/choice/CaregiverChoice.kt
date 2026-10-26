@@ -19,9 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -71,13 +69,13 @@ fun CaregiverChoiceScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
   Column(
-      modifier = Modifier
-          .fillMaxSize()
-          .background(MaterialTheme.colorScheme.background)
-          .padding(
-              horizontal = CAREGIVER_PADDING_MEDIUM,
-              vertical = CAREGIVER_PADDING_MEDIUM,
-          ),
+      modifier =
+          Modifier.fillMaxSize()
+              .background(MaterialTheme.colorScheme.background)
+              .padding(
+                  horizontal = CAREGIVER_PADDING_MEDIUM,
+                  vertical = CAREGIVER_PADDING_MEDIUM,
+              ),
       horizontalAlignment = Alignment.CenterHorizontally,
       // space between the Header and the "Welcome"-Button part
       verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_ENORMOUS),
@@ -97,51 +95,55 @@ fun CaregiverChoiceScreen(
             text =
                 if (uiState.displayName.isEmpty()) "Welcome" else "Welcome, ${uiState.displayName}",
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
         )
         Text(
             text = INSTRUCTION_LABEL,
             style = MaterialTheme.typography.titleMedium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
       }
 
-      DisplayCaregiverButton(
-          onClick = onCreateCircle,
-          text = CREATE_CIRCLE_LABEL,
-          style = MaterialTheme.typography.labelLarge,
-          modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
-      )
+      Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(PADDING_MINI),
+      ) {
+        DisplayCaregiverButton(
+            onClick = onCreateCircle,
+            text = CREATE_CIRCLE_LABEL,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
+        )
 
-      OrDivider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
+        OrDivider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
 
-      DisplayCaregiverButton(
-          onClick = onJoinCircle,
-          text = JOIN_CIRCLE_LABEL,
-          style = MaterialTheme.typography.labelLarge,
-          modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
-      )
+        DisplayCaregiverButton(
+            onClick = onJoinCircle,
+            text = JOIN_CIRCLE_LABEL,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
+        )
+      }
 
       Row(horizontalArrangement = Arrangement.spacedBy(PADDING_MINI)) {
         Icon(
             imageVector = Icons.Default.Info,
             contentDescription = "Info",
-            tint = Color.DarkGray,
+            tint = MaterialTheme.colorScheme.outline,
         )
         Column {
           Text(
               text = INVITE_LINK_HINT_LABEL_CONDITION,
               style = MaterialTheme.typography.bodyMedium,
-              color = Color.DarkGray,
+              color = MaterialTheme.colorScheme.outline,
           )
           Text(
               text = INVITE_LINK_HINT_LABEL_SOLUTION,
               style = MaterialTheme.typography.bodyMedium,
-              color = Color.DarkGray,
+              color = MaterialTheme.colorScheme.outline,
           )
         }
       }
@@ -159,5 +161,5 @@ fun CaregiverChoiceScreen(
 @Preview(showBackground = true)
 @Composable
 fun CaregiverChoicePreview() {
-  AmberAppTheme { CaregiverChoiceScreen() }
+  AmberAppTheme(darkTheme = false) { CaregiverChoiceScreen() }
 }

@@ -36,7 +36,7 @@ fun OrDivider(
 
     Text(
         text = "or",
-        color = darkGray,
+        color = MaterialTheme.colorScheme.outline,
         style = style,
         textAlign = TextAlign.Center,
         modifier = Modifier.padding(horizontal = CAREGIVER_PADDING_SMALL),
