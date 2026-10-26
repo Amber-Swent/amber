@@ -147,4 +147,23 @@ class SignOutViewModelTest {
 
     assertNull(viewModel.uiState.value.errorMsg)
   }
+
+  @Test
+  fun setSignedOut_true_updatesUiState() {
+    val viewModel = SignOutViewModel(authRepo)
+
+    viewModel.setSignedOut(true)
+
+    assertTrue(viewModel.uiState.value.signedOut)
+  }
+
+  @Test
+  fun setSignedOut_false_clearsSignedOutFlag() {
+    val viewModel = SignOutViewModel(authRepo)
+    viewModel.setSignedOut(true)
+
+    viewModel.setSignedOut(false)
+
+    assertFalse(viewModel.uiState.value.signedOut)
+  }
 }

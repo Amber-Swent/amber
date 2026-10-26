@@ -1,3 +1,4 @@
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.navigation
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -89,6 +90,7 @@ fun TopNavigationMenu(
 /** Preview of [TopNavigationMenu] using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
-private fun TopNavigationMenuPreview() {
-  AmberAppTheme(dynamicColor = false) { TopNavigationMenu(action = TopNavigationAction.CANCEL) }
+internal fun TopNavigationMenuPreview() {
+  // Omit [action] so the default CANCEL branch is exercised by preview/tests.
+  AmberAppTheme(dynamicColor = false) { TopNavigationMenu() }
 }

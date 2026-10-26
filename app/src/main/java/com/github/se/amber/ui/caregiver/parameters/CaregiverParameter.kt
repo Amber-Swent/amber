@@ -173,7 +173,7 @@ fun CaregiverParameterScreen(
  * @param onClick Callback invoked when the button is pressed.
  */
 @Composable
-private fun CaregiverParameterActionButton(
+internal fun CaregiverParameterActionButton(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Outlined.PersonAdd,
     text: String = "",
@@ -203,14 +203,14 @@ private fun CaregiverParameterActionButton(
 /** Preview of [CaregiverParameterScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun CaregiverParameterScreenPreview() {
+internal fun CaregiverParameterScreenPreview() {
   AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen() }
 }
 
 /** Preview of [CaregiverParameterActionButton] using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
-private fun CaregiverParameterActionButtonPreview() {
+internal fun CaregiverParameterActionButtonPreview() {
   AmberAppTheme(dynamicColor = false) {
     CaregiverParameterActionButton(
         icon = Icons.Outlined.PersonAdd,

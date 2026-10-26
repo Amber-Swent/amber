@@ -23,6 +23,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
@@ -30,6 +34,16 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
+
+/** No-op [ProfileRepository] used by Compose previews (and preview-driven tests). */
+private object PreviewPatientHomeProfileRepository : ProfileRepository {
+  override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
+
+  override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
+}
 
 object PatientHomeScreenTestTags {
   const val TITLE = "home_title"
@@ -101,9 +115,13 @@ fun PatientHomeScreen(
   )
 }
 
+private val previewPatientHomeViewModel = PatientHomeViewModel(PreviewPatientHomeProfileRepository)
+
 /** Preview of [PatientHomeScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun PatientHomeScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { PatientHomeScreen() }
+internal fun PatientHomeScreenPreview() {
+  AmberAppTheme(dynamicColor = false) {
+    PatientHomeScreen(homeViewModel = previewPatientHomeViewModel)
+  }
 }

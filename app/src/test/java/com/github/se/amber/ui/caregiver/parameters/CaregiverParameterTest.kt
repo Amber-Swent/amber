@@ -6,6 +6,8 @@
  */
 package com.github.se.amber.ui.caregiver.parameters
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -148,5 +150,57 @@ class CaregiverParameterScreenTest {
     composeTestRule.waitForIdle()
 
     assertEquals(0, ShadowToast.shownToastCount())
+  }
+
+  @Test
+  fun screenUsesDefaultCallbacksWhenOmitted() {
+    val viewModel = CaregiverParameterViewModel()
+    composeTestRule.setContent { AmberAppTheme { CaregiverParameterScreen(viewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    // Default onSignOutClick is a no-op; screen remains displayed.
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun actionButtonUsesDefaultOnClickWhenOmitted() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        CaregiverParameterActionButton(
+            modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
+            text = "Create Invitation",
+            description = "Create Invitation",
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
+        .assertIsDisplayed()
+        .performClick()
+  }
+
+  @Test
+  fun actionButtonUsesAllDefaults() {
+    composeTestRule.setContent { AmberAppTheme { CaregiverParameterActionButton() } }
+
+    composeTestRule.waitForIdle()
+  }
+
+  @Test
+  fun screenPreviewRendersWithoutCrashing() {
+    composeTestRule.setContent { CaregiverParameterScreenPreview() }
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun actionButtonPreviewRendersWithoutCrashing() {
+    composeTestRule.setContent { CaregiverParameterActionButtonPreview() }
+
+    composeTestRule.waitForIdle()
   }
 }

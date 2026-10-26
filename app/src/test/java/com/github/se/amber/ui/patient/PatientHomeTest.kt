@@ -128,4 +128,21 @@ class PatientHomeScreenTest {
 
     assertEquals(0, ShadowToast.shownToastCount())
   }
+
+  @Test
+  fun screenUsesDefaultOnTabSelectedWhenOmitted() {
+    composeTestRule.setContent { AmberAppTheme { PatientHomeScreen(homeViewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun previewRendersWithoutCrashing() {
+    composeTestRule.setContent { PatientHomeScreenPreview() }
+
+    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
+  }
 }

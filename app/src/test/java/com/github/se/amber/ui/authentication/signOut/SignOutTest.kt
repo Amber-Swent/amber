@@ -122,4 +122,25 @@ class SignOutScreenTest {
 
     assertEquals(0, ShadowToast.shownToastCount())
   }
+
+  @Test
+  fun screenUsesDefaultCallbacksWhenOmitted() {
+    composeTestRule.setContent { AmberAppTheme { SignOutScreen(viewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    // Default onBack is a no-op; screen remains displayed.
+    composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
+    assertEquals(0, backCount)
+  }
+
+  @Test
+  fun previewRendersWithoutCrashing() {
+    composeTestRule.setContent { SignOutScreenPreview() }
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsDisplayed()
+  }
 }

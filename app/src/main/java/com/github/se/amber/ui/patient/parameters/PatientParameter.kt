@@ -99,6 +99,6 @@ fun PatientParameterScreen(
 /** Preview of [PatientParameterScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun PatientParameterScreenPreview() {
+internal fun PatientParameterScreenPreview() {
   AmberAppTheme(dynamicColor = false) { PatientParameterScreen() }
 }

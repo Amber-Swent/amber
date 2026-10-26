@@ -88,4 +88,24 @@ class PatientParameterScreenTest {
 
     assertEquals(0, ShadowToast.shownToastCount())
   }
+
+  @Test
+  fun screenUsesDefaultCallbacksWhenOmitted() {
+    val viewModel = PatientParameterViewModel()
+    composeTestRule.setContent { AmberAppTheme { PatientParameterScreen(viewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.SIGN_OUT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    // Default onSignOutClick is a no-op; screen remains displayed.
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewRendersWithoutCrashing() {
+    composeTestRule.setContent { PatientParameterScreenPreview() }
+
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertIsDisplayed()
+  }
 }

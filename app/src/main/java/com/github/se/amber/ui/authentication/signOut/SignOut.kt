@@ -115,6 +115,10 @@ fun SignOutScreen(
 /** Preview of [SignOutScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun SignOutScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { SignOutScreen() }
+internal fun SignOutScreenPreview() {
+  AmberAppTheme(dynamicColor = false) {
+    // Omit onSignedOut/onBack so their default branches are exercised by preview/tests.
+    // Reuses the preview ViewModel from SignOutUtils (constructed outside a composable).
+    SignOutScreen(viewModel = previewSignOutViewModel)
+  }
 }
