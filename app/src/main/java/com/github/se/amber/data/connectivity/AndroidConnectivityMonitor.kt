@@ -43,23 +43,37 @@ class AndroidConnectivityMonitor(
    * Whether the default network reaches the internet: the current state, then each change Android
    * reports. Registers a network callback when collected, and unregisters it when the collection
    * stops. A new default network (e.g. Wi-Fi replacing mobile data) is reported through
-   * [ConnectivityManager.NetworkCallback.onCapabilitiesChanged], so it needs no case of its own.
-   * Values may repeat; the [StateFlow] it feeds drops the repeats.
+   * [ConnectivityManager.NetworkCallback.onCapabilitiesChanged], so it needs no case of its own;
+   * only the loss of the current default network counts. Values may repeat; the [StateFlow] it
+   * feeds drops the repeats.
    */
   private fun defaultNetworkOnline(): Flow<Boolean> = callbackFlow {
     val callback =
         object : ConnectivityManager.NetworkCallback() {
+          /**
+           * The default network Android last reported, null once lost. Only used on Android's
+           * connectivity thread, which calls this callback's methods one at a time.
+           */
+          private var defaultNetwork: Network? = null
+
           // Android calls it right after a network becomes the default, then each time what it
           // can do changes (for example once it is checked to reach the internet).
           override fun onCapabilitiesChanged(
               network: Network,
               networkCapabilities: NetworkCapabilities,
           ) {
+            defaultNetwork = network
             trySend(networkCapabilities.reachesInternet())
           }
 
+          // Android may report that the previous default network lost that status after the new
+          // one was reported (the order isn't documented, e.g. when Wi-Fi gives way to mobile
+          // data): going offline then would last until the next change.
           override fun onLost(network: Network) {
-            trySend(false)
+            if (network == defaultNetwork) {
+              defaultNetwork = null
+              trySend(false)
+            }
           }
         }
     // With no default network, Android calls nothing on registering: start from the current state.

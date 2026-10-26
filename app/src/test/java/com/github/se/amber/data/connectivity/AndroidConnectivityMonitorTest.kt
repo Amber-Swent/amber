@@ -25,6 +25,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.shadows.ShadowConnectivityManager
+import org.robolectric.shadows.ShadowNetwork
 import org.robolectric.shadows.ShadowNetworkCapabilities
 
 /**
@@ -43,9 +44,12 @@ class AndroidConnectivityMonitorTest {
   private val shadow: ShadowConnectivityManager
     get() = shadowOf(manager)
 
-  /** Robolectric's current network, there from the start. */
+  /** Robolectric's current network, there from the start. Plays the Wi-Fi in the tests. */
   private val wifi: Network
     get() = manager.activeNetwork!!
+
+  /** Another network, e.g. mobile data taking over from [wifi]; only known to the callback. */
+  private val mobile: Network = ShadowNetwork.newInstance(2)
 
   /** Leaves the phone with no current network. */
   private fun noNetwork() = shadow.setActiveNetworkInfo(null)
@@ -73,14 +77,21 @@ class AndroidConnectivityMonitorTest {
 
   /**
    * A monitor watching in a child of [job] (by default, the test's background work, cancelled when
-   * the test ends), on the test's virtual time. Lets its callback register before returning.
+   * the test ends), on the test's virtual time. Lets its callback register, then plays what Android
+   * does on registering and Robolectric doesn't: reporting the current network, if any, to it.
    */
   private fun TestScope.monitor(job: Job = backgroundScope.coroutineContext[Job]!!) =
       AndroidConnectivityMonitor(
               manager,
               CoroutineScope(StandardTestDispatcher(testScheduler) + Job(job)),
           )
-          .also { runCurrent() }
+          .also {
+            runCurrent()
+            val current = manager.activeNetwork ?: return@also
+            val currentCapabilities = manager.getNetworkCapabilities(current) ?: return@also
+            callback().onCapabilitiesChanged(current, currentCapabilities)
+            runCurrent()
+          }
 
   @Test
   fun startsOfflineWithNoNetwork() = runTest {
@@ -129,6 +140,19 @@ class AndroidConnectivityMonitorTest {
     runCurrent()
 
     assertFalse(monitor.isOnline.value)
+  }
+
+  @Test
+  fun ignoresTheLossOfANetworkNoLongerTheDefault() = runTest {
+    // Wi-Fi gives way to mobile data, and Android reports Wi-Fi lost only afterwards
+    currentNetwork(validated)
+    val monitor = monitor()
+
+    callback().onCapabilitiesChanged(mobile, validated)
+    callback().onLost(wifi)
+    runCurrent()
+
+    assertTrue(monitor.isOnline.value)
   }
 
   @Test
