@@ -1,21 +1,19 @@
 // this code was written with the aid of AI
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
-import androidx.credentials.CredentialManager
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.Tab
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -33,10 +31,6 @@ class PatientHomeScreenTest {
   private lateinit var viewModel: PatientHomeViewModel
   private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
 
-  private val credentialManager = mockk<CredentialManager>(relaxed = true)
-
-  // Spies: permettent de vérifier les appels aux callbacks
-  private var signedOutCount = 0
   private val selectedTabs = mutableListOf<Tab>()
 
   private fun profileOf(firstName: String) =
@@ -49,7 +43,6 @@ class PatientHomeScreenTest {
 
   @Before
   fun setUp() {
-    signedOutCount = 0
     selectedTabs.clear()
     stateFlow = MutableStateFlow(PatientHomeUIState(patientProfile = profileOf("Alice")))
     viewModel = mockk(relaxed = true)
@@ -58,11 +51,12 @@ class PatientHomeScreenTest {
 
   private fun setScreen() {
     composeTestRule.setContent {
-      PatientHomeScreen(
-          homeViewModel = viewModel,
-          onSignedOut = { signedOutCount++ },
-          onTabSelected = { selectedTabs.add(it) },
-      )
+      AmberAppTheme {
+        PatientHomeScreen(
+            homeViewModel = viewModel,
+            onTabSelected = { selectedTabs.add(it) },
+        )
+      }
     }
   }
 
@@ -103,7 +97,6 @@ class PatientHomeScreenTest {
   fun navigationBarsAreDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
@@ -114,37 +107,25 @@ class PatientHomeScreenTest {
     setScreen()
     composeTestRule.waitForIdle()
 
-    assertEquals(0, signedOutCount)
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
 
   @Test
-  fun clickingTopBarButtonCallsSignOut() {
+  fun errorToastClearsErrorMsg() {
+    stateFlow.value = stateFlow.value.copy(errorMsg = "oops")
     setScreen()
 
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
 
-    verify { viewModel.signOut() }
+    io.mockk.verify { viewModel.clearErrorMsg() }
   }
 
   @Test
-  fun onSignedOutIsCalledWhenStateIsSignedOut() {
+  fun noToastIsShownWhenThereIsNoError() {
     setScreen()
 
-    stateFlow.value = stateFlow.value.copy(signedOut = true)
     composeTestRule.waitForIdle()
 
-    assertEquals(1, signedOutCount)
-  }
-
-  @Test
-  fun errorMessageIsClearedAfterBeingShown() {
-    setScreen()
-
-    stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
-    composeTestRule.waitForIdle()
-
-    assertEquals("Oops", ShadowToast.getTextOfLatestToast())
-    verify { viewModel.clearErrorMsg() }
+    assertEquals(0, ShadowToast.shownToastCount())
   }
 }

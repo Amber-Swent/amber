@@ -53,6 +53,11 @@ class TabsTest {
   }
 
   @Test
+  fun patientSettingNameIsSetting() {
+    assertEquals("Setting", PatientTab.Setting.name)
+  }
+
+  @Test
   fun patientHomeDestinationIsPatientHomeScreen() {
     assertEquals(PatientScreen.Home, PatientTab.Home.destination)
   }
@@ -60,5 +65,10 @@ class TabsTest {
   @Test
   fun patientSeePicturesDestinationIsPatientSeePicturesScreen() {
     assertEquals(PatientScreen.SeePictures, PatientTab.SeePictures.destination)
+  }
+
+  @Test
+  fun patientSettingDestinationIsPatientParametersScreen() {
+    assertEquals(PatientScreen.Parameters, PatientTab.Setting.destination)
   }
 }

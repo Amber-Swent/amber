@@ -17,6 +17,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.orange
@@ -47,8 +49,8 @@ enum class TopNavigationAction(val label: String) {
 @Composable
 fun TopNavigationMenu(
     modifier: Modifier = Modifier,
-    action: TopNavigationAction,
-    onBackClick: () -> Unit,
+    action: TopNavigationAction = TopNavigationAction.CANCEL,
+    onBackClick: () -> Unit = {},
 ) {
   Column(
       modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
@@ -82,4 +84,11 @@ fun TopNavigationMenu(
         color = lightGray,
     )
   }
+}
+
+/** Preview of [TopNavigationMenu] using the Amber application theme. */
+@Preview(showBackground = true)
+@Composable
+private fun TopNavigationMenuPreview() {
+  AmberAppTheme(dynamicColor = false) { TopNavigationMenu(action = TopNavigationAction.CANCEL) }
 }

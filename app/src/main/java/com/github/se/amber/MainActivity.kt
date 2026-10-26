@@ -26,6 +26,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
+import com.github.se.amber.ui.authentication.signOut.SignOutScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
@@ -45,6 +46,7 @@ import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
+import com.github.se.amber.ui.patient.parameters.PatientParameterScreen
 import com.github.se.amber.ui.patient.seePictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -153,7 +155,6 @@ fun AmberApp(
       composable(route = CaregiverScreen.Home.route) {
         CaregiverHomeScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
         )
       }
       composable(route = CaregiverScreen.Upload.route) {
@@ -183,9 +184,6 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
-            // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen if we were on a top level destination
-            onCheckout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             onCreateInvitationClick = {
               navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
@@ -193,6 +191,13 @@ fun AmberApp(
             onEnterInvitationClick = {
               navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
             },
+            onSignOutClick = { navigationActions.navigateTo(CaregiverScreen.SignOut) },
+        )
+      }
+      composable(route = CaregiverScreen.SignOut.route) {
+        SignOutScreen(
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onBack = { navigationActions.goBack() },
         )
       }
       composable(route = CaregiverScreen.CreateInvitationCode.route) {
@@ -210,7 +215,6 @@ fun AmberApp(
     ) {
       composable(route = PatientScreen.Home.route) {
         PatientHomeScreen(
-            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
@@ -221,6 +225,18 @@ fun AmberApp(
             // if we were on a top level destination
             onBackClick = { navigationActions.navigateToGraph(NavGraphs.PATIENT) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
+      }
+      composable(route = PatientScreen.Parameters.route) {
+        PatientParameterScreen(
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onSignOutClick = { navigationActions.navigateTo(PatientScreen.SignOut) },
+        )
+      }
+      composable(route = PatientScreen.SignOut.route) {
+        SignOutScreen(
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onBack = { navigationActions.goBack() },
         )
       }
     }
