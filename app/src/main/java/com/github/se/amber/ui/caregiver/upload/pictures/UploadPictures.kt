@@ -62,6 +62,7 @@ import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
@@ -313,7 +314,7 @@ private fun DisplayLocation(
 ) {
   Column(
       modifier = Modifier.fillMaxWidth().testTag(UploadPictureLocationTestTags.SECTION),
-      verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
   ) {
     Text(
         "Location - optional",
@@ -321,7 +322,7 @@ private fun DisplayLocation(
         style = MaterialTheme.typography.bodyLarge,
     )
     if (placeOptions.isNotEmpty()) {
-      FlowRow(horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL)) {
+      FlowRow(horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
         placeOptions.forEach { (id, name) ->
           FilterChip(
               selected = id == uiState.selectedPlaceId,
@@ -338,7 +339,6 @@ private fun DisplayLocation(
           onValueChange = onQueryChange,
           label = "Another place",
           placeholder = "Search a city, an address...",
-          maxLines = 1,
           maxChar = MAX_CHAR_DESCRIPTION,
       )
     }
@@ -358,7 +358,7 @@ private fun DisplayLocation(
                   modifier =
                       Modifier.fillMaxWidth()
                           .clickable { onSuggestionClick(place) }
-                          .padding(PADDING_SMALL)
+                          .padding(CAREGIVER_PADDING_SMALL)
                           .testTag(UploadPictureLocationTestTags.SUGGESTION),
               )
             }
@@ -379,7 +379,7 @@ private fun DisplayLocationHint(text: String = "", tag: String = "") {
       text = text,
       color = MaterialTheme.colorScheme.onBackground,
       style = MaterialTheme.typography.bodySmall,
-      modifier = Modifier.padding(PADDING_SMALL).testTag(tag),
+      modifier = Modifier.padding(CAREGIVER_PADDING_SMALL).testTag(tag),
   )
 }
 
