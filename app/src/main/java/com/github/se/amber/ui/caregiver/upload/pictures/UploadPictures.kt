@@ -313,7 +313,7 @@ private fun DisplayWhoIsInvolved(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DisplayLocation(
+internal fun DisplayLocation(
     placeOptions: Map<String, String> = emptyMap(), // id -> name
     uiState: UploadPictureUIState = UploadPictureUIState(),
     onSavedPlaceClick: (String) -> Unit = {},
@@ -377,7 +377,7 @@ private fun DisplayLocation(
  * @param onClick The callback used to pick this place.
  */
 @Composable
-private fun DisplayPlaceSuggestion(place: GeoLocation = GeoLocation(), onClick: () -> Unit = {}) {
+internal fun DisplayPlaceSuggestion(place: GeoLocation = GeoLocation(), onClick: () -> Unit = {}) {
   Row(
       modifier =
           Modifier.fillMaxWidth()
@@ -415,7 +415,7 @@ private fun selectableChipColors(): SelectableChipColors =
  * @param tag The test tag of this status.
  */
 @Composable
-private fun DisplayLocationHint(text: String = "", tag: String = "") {
+internal fun DisplayLocationHint(text: String = "", tag: String = "") {
   Text(
       text = text,
       color = MaterialTheme.colorScheme.onBackground,
