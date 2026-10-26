@@ -68,92 +68,92 @@ fun CaregiverChoiceScreen(
     onCreateCircle: () -> Unit = {},
     onJoinCircle: () -> Unit = {},
 ) {
-//  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-//
-//  Column(
-//      modifier = Modifier
-//          .fillMaxSize()
-//          .background(MaterialTheme.colorScheme.background)
-//          .padding(
-//              horizontal = CAREGIVER_PADDING_MEDIUM,
-//              vertical = CAREGIVER_PADDING_MEDIUM,
-//          ),
-//      horizontalAlignment = Alignment.CenterHorizontally,
-//      // space between the Header and the "Welcome"-Button part
-//      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_ENORMOUS),
-//  ) {
-//    AmberHeader()
-//
-//    Column(
-//        // the weight ensure the Back button is at the bottom
-//        modifier = Modifier.fillMaxWidth().weight(WEIGHT_ONE),
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
-//    ) {
-//      Column(
-//          horizontalAlignment = Alignment.CenterHorizontally,
-//      ) {
-//        Text(
-//            text =
-//                if (uiState.displayName.isEmpty()) "Welcome" else "Welcome, ${uiState.displayName}",
-//            style = MaterialTheme.typography.headlineSmall,
-//            fontWeight = FontWeight.Bold,
-//            color = Color.Black,
-//            textAlign = TextAlign.Center,
-//            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
-//        )
-//        Text(
-//            text = INSTRUCTION_LABEL,
-//            style = MaterialTheme.typography.titleMedium,
-//            color = Color.Black,
-//            textAlign = TextAlign.Center,
-//        )
-//      }
-//
-//      DisplayCaregiverButton(
-//          onClick = onCreateCircle,
-//          text = CREATE_CIRCLE_LABEL,
-//          style = MaterialTheme.typography.labelLarge,
-//          modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
-//      )
-//
-//      OrDivider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
-//
-//      DisplayCaregiverButton(
-//          onClick = onJoinCircle,
-//          text = JOIN_CIRCLE_LABEL,
-//          style = MaterialTheme.typography.labelLarge,
-//          modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
-//      )
-//
-//      Row(horizontalArrangement = Arrangement.spacedBy(PADDING_MINI)) {
-//        Icon(
-//            imageVector = Icons.Default.Info,
-//            contentDescription = "Info",
-//            tint = Color.DarkGray,
-//        )
-//        Column {
-//          Text(
-//              text = INVITE_LINK_HINT_LABEL_CONDITION,
-//              style = MaterialTheme.typography.bodyMedium,
-//              color = Color.DarkGray,
-//          )
-//          Text(
-//              text = INVITE_LINK_HINT_LABEL_SOLUTION,
-//              style = MaterialTheme.typography.bodyMedium,
-//              color = Color.DarkGray,
-//          )
-//        }
-//      }
-//    }
-//
-//    DisplayCaregiverButton(
-//        onClick = onBack,
-//        text = BACK_LABEL,
-//        style = MaterialTheme.typography.labelLarge,
-//        modifier = Modifier.testTag(CaregiverChoiceTestTags.BACK_BUTTON),
-//    )
-//  }
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+  Column(
+      modifier = Modifier
+          .fillMaxSize()
+          .background(MaterialTheme.colorScheme.background)
+          .padding(
+              horizontal = CAREGIVER_PADDING_MEDIUM,
+              vertical = CAREGIVER_PADDING_MEDIUM,
+          ),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      // space between the Header and the "Welcome"-Button part
+      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_ENORMOUS),
+  ) {
+    AmberHeader()
+
+    Column(
+        // the weight ensure the Back button is at the bottom
+        modifier = Modifier.fillMaxWidth().weight(WEIGHT_ONE),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
+    ) {
+      Column(
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        Text(
+            text =
+                if (uiState.displayName.isEmpty()) "Welcome" else "Welcome, ${uiState.displayName}",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
+        )
+        Text(
+            text = INSTRUCTION_LABEL,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+        )
+      }
+
+      DisplayCaregiverButton(
+          onClick = onCreateCircle,
+          text = CREATE_CIRCLE_LABEL,
+          style = MaterialTheme.typography.labelLarge,
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
+      )
+
+      OrDivider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
+
+      DisplayCaregiverButton(
+          onClick = onJoinCircle,
+          text = JOIN_CIRCLE_LABEL,
+          style = MaterialTheme.typography.labelLarge,
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
+      )
+
+      Row(horizontalArrangement = Arrangement.spacedBy(PADDING_MINI)) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = "Info",
+            tint = Color.DarkGray,
+        )
+        Column {
+          Text(
+              text = INVITE_LINK_HINT_LABEL_CONDITION,
+              style = MaterialTheme.typography.bodyMedium,
+              color = Color.DarkGray,
+          )
+          Text(
+              text = INVITE_LINK_HINT_LABEL_SOLUTION,
+              style = MaterialTheme.typography.bodyMedium,
+              color = Color.DarkGray,
+          )
+        }
+      }
+    }
+
+    DisplayCaregiverButton(
+        onClick = onBack,
+        text = BACK_LABEL,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.testTag(CaregiverChoiceTestTags.BACK_BUTTON),
+    )
+  }
 }
 
 @Preview(showBackground = true)
