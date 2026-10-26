@@ -1,3 +1,4 @@
+/* Written by LaMaier, with the assistance of Claude Code*/
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.material.icons.Icons

@@ -91,7 +91,7 @@ object DisplayCaregiverButtonTestTags {
  * @param description content description for [icon], required when an icon is provided.
  * @param text text displayed on the button.
  * @param height height of the button.
- * @param width fraction of the available width occupied by the button.
+ * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
  */
 @Composable
@@ -105,7 +105,7 @@ fun DisplayCaregiverButton(
     description: String = "",
     text: String = "Text",
     height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
-    width: Float = CAREGIVER_BUTTON_WIDTH,
+    widthPercentage: Float = CAREGIVER_BUTTON_WIDTH,
     paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
 ) {
   require((icon == null && description.isEmpty()) || (icon != null && description.isNotEmpty())) {
@@ -114,7 +114,7 @@ fun DisplayCaregiverButton(
   Button(
       onClick = onClick,
       enabled = enabled,
-      modifier = modifier.fillMaxWidth(width).height(height),
+      modifier = modifier.fillMaxWidth(widthPercentage).height(height),
       colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
   ) {
     Row(
