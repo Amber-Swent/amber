@@ -1,4 +1,7 @@
-// This file was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by nehachak1, with assistance from
+ * Claude Code
+ */
 package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
@@ -27,13 +30,9 @@ import kotlinx.coroutines.launch
  * @param user Authenticated user after a successful Google sign-in, or null otherwise.
  * @param errorMessage Message describing the latest sign-in error, or null when there is no error.
  */
-data class EmailSignInUiState(
+data class EmailSignInUIState(
     val email: String = "",
-
-    // Whether sign-in is running, becomes false when we replace the state with a new AuthUIState
     val isLoading: Boolean = false,
-
-    // UI's AuthUser or null
     val user: AuthUser? = null,
     val errorMessage: String? = null,
 )
@@ -53,7 +52,7 @@ class EmailSignInViewModel(
 
   private val _uiState =
       MutableStateFlow(
-          EmailSignInUiState(
+          EmailSignInUIState(
               user = repository.currentUser,
           )
       )
@@ -70,7 +69,13 @@ class EmailSignInViewModel(
     }
   }
 
-  /** Returns whether an email was entered and reports an error if it was blank. */
+  /**
+   * Checks that an email address was entered before continuing with email sign-in.
+   *
+   * A blank email sets [EmailSignInUIState.errorMessage] so the screen can report it.
+   *
+   * @return true if the email is nonblank, false otherwise.
+   */
   fun validateEmail(): Boolean {
     if (_uiState.value.email.isBlank()) {
       _uiState.update { it.copy(errorMessage = "Please enter your email address.") }

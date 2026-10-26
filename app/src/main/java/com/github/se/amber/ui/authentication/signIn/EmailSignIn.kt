@@ -1,58 +1,49 @@
-// This file was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by nehachak1, with assistance from
+ * Claude Code
+ */
 package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.PADDING_BIG
-import com.github.se.amber.ui.theme.PADDING_ENORMOUS
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_REGULAR
-import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
-import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.lightGray
-import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
+/** Test tags of [EmailSignInScreen] and of its private helpers. */
 internal object EmailSignInTestTags {
-  const val HEADING = "emailSignInHeading"
-  const val EMAIL_FIELD = "emailSignInEmailField"
-  const val CONTINUE_BUTTON = "emailSignInContinueButton"
-  const val GOOGLE_BUTTON = "emailSignInGoogleButton"
-  const val SIGN_UP_PROMPT = "emailSignInSignUpPrompt"
-  const val SIGN_UP_LINK = "emailSignInSignUpLink"
+  const val HEADING = "email_sign_in_heading"
+  const val EMAIL_FIELD = "email_sign_in_email_field"
+  const val CONTINUE_BUTTON = "email_sign_in_continue_button"
+  const val GOOGLE_BUTTON = "email_sign_in_google_button"
+  const val OR_DIVIDER = "email_sign_in_or_divider"
 }
 
 /**
@@ -63,26 +54,31 @@ internal object EmailSignInTestTags {
  * composable through callbacks.
  *
  * @param modifier Modifier applied to the root authentication layout.
- * @param context Android context used for Google authentication.
+ * @param context Android context used for Google authentication and to display error toasts.
  * @param credentialManager Credential Manager used for Google authentication.
+ * @param onContinue Called when the user presses Continue; it is only enabled for a nonblank email.
+ * @param onGoogleSignIn Called once a user is authenticated, either after a successful Google
+ *   sign-in or because a user was already signed in when the screen opened.
  * @param emailSignInViewModel ViewModel holding the state of the screen.
- * @param onContinue Called when the user presses Continue with a nonblank email address.
- * @param onGoogleSignIn Called after Google authentication succeeds.
  */
 @Composable
 fun EmailSignInScreen(
     modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
-    credentialManager: CredentialManager = CredentialManager.create(context),
+    credentialManager: CredentialManager = remember(context) { CredentialManager.create(context) },
     onContinue: () -> Unit = {},
     onGoogleSignIn: () -> Unit = {},
     emailSignInViewModel: EmailSignInViewModel = viewModel(),
 ) {
-  val uiState by emailSignInViewModel.uiState.collectAsState()
+  val uiState by emailSignInViewModel.uiState.collectAsStateWithLifecycle()
 
+  // Always call the latest callback, even if the caller recomposes with a new lambda
+  val currentOnGoogleSignIn by rememberUpdatedState(onGoogleSignIn)
+
+  // Navigate away as soon as a user is authenticated
   LaunchedEffect(uiState.user) {
     if (uiState.user != null) {
-      onGoogleSignIn()
+      currentOnGoogleSignIn()
     }
   }
 
@@ -95,42 +91,41 @@ fun EmailSignInScreen(
   }
 
   EmailSignInContent(
+      modifier = modifier,
       uiState = uiState,
       onEmailChange = emailSignInViewModel::onEmailChange,
+      // The ViewModel check stays as a guard behind the disabled button
       onContinue = { if (emailSignInViewModel.validateEmail()) onContinue() },
-      onGoogleClick = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
-      modifier = modifier,
+      onGoogleSignIn = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
   )
 }
 
 /**
- * Renders the email entry and Google sign-in options without owning authentication state.
+ * Stateless content of [EmailSignInScreen], rendered from [uiState] only.
  *
- * The caller supplies the current state and handles each user action through callbacks.
+ * Continue stays disabled while the email is blank, so the user can see why it does nothing.
  *
- * @param uiState Email value and Google sign-in loading state to display.
- * @param onEmailChange Called when the email field changes.
+ * @param modifier Modifier applied to the root authentication layout.
+ * @param uiState State to display.
+ * @param onEmailChange Called whenever the email field value changes.
  * @param onContinue Called when the user presses Continue.
- * @param onGoogleClick Called when the user presses the Google sign-in button.
- * @param modifier Modifier applied to the authentication layout.
+ * @param onGoogleSignIn Called when the user presses the Google sign-in button.
  */
 @Composable
-private fun EmailSignInContent(
-    uiState: EmailSignInUiState,
-    onEmailChange: (String) -> Unit,
-    onContinue: () -> Unit,
-    onGoogleClick: () -> Unit,
+internal fun EmailSignInContent(
     modifier: Modifier = Modifier,
+    uiState: EmailSignInUIState = EmailSignInUIState(),
+    onEmailChange: (String) -> Unit = {},
+    onContinue: () -> Unit = {},
+    onGoogleSignIn: () -> Unit = {},
 ) {
-
   // Parameter spacing spaces the layout content (heading, email field, action group)
-  AuthenticationLayout(modifier = modifier, spacing = PADDING_REGULAR) {
+  AuthenticationLayout(modifier = modifier, spacing = CAREGIVER_PADDING_REGULAR) {
     AuthenticationText(
         modifier = Modifier.testTag(EmailSignInTestTags.HEADING),
         text = "Enter your email to sign in with Amber",
         textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.bodyLarge,
-        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.titleMedium,
     )
     AuthenticationTextField(
         value = uiState.email,
@@ -147,65 +142,23 @@ private fun EmailSignInContent(
     // Action group
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
+        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
     ) {
-      // This button redirects the user to the Amber sign in page
-      // This is an alternative to Google sign in
+      // Email sign-in, the alternative to Google sign-in
       AuthenticationButton(
           text = "Continue",
           onClick = onContinue,
           modifier = Modifier.testTag(EmailSignInTestTags.CONTINUE_BUTTON),
+          enabled = uiState.email.isNotBlank(),
       )
       OrDivider()
-
-      // Google section
-      Column(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(PADDING_ENORMOUS),
-      ) {
-        Button(
-            onClick = onGoogleClick,
-            enabled = !uiState.isLoading,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .height(PADDING_ENORMOUS)
-                    .testTag(EmailSignInTestTags.GOOGLE_BUTTON),
-            shape = RoundedCornerShape(SMALL_ROUND_CORNER),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = lightOrange,
-                    contentColor = Color.Black,
-                ),
-        ) {
-          Image(
-              painter = painterResource(R.drawable.google_logo),
-              contentDescription = null, // no need to put a description for the logo
-              modifier = Modifier.size(PADDING_BIG),
-          )
-          Spacer(modifier = Modifier.size(PADDING_REGULAR))
-          AuthenticationText(
-              text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
-              style = MaterialTheme.typography.labelLarge,
-          )
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          AuthenticationText(
-              modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_PROMPT),
-              text = "Don't have an Amber account?",
-              // TextAlign is added in case the text has to wrap around in a narrow screen
-              textAlign = TextAlign.Center,
-              style = MaterialTheme.typography.labelLarge,
-          )
-          AuthenticationText(
-              modifier = Modifier.testTag(EmailSignInTestTags.SIGN_UP_LINK),
-              text = "Click here to sign up.",
-              textAlign = TextAlign.Center,
-              style = MaterialTheme.typography.labelLarge,
-          )
-        }
-      }
+      AuthenticationButton(
+          text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
+          onClick = onGoogleSignIn,
+          modifier = Modifier.testTag(EmailSignInTestTags.GOOGLE_BUTTON),
+          enabled = !uiState.isLoading,
+          leadingIcon = painterResource(R.drawable.google_logo),
+      )
     }
   }
 }
@@ -214,43 +167,31 @@ private fun EmailSignInContent(
  * Displays a horizontal separator with the word "or" between two divider lines.
  *
  * Used to visually separate email authentication from Google authentication.
+ *
+ * @param modifier Modifier applied to the divider row.
  */
 @Composable
-private fun OrDivider() {
+private fun OrDivider(
+    modifier: Modifier = Modifier,
+) {
   Row(
-      modifier = Modifier.fillMaxWidth(),
+      modifier = modifier.fillMaxWidth().testTag(EmailSignInTestTags.OR_DIVIDER),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.Center,
   ) {
-    HorizontalDivider(
-        modifier = Modifier.weight(1f),
-        color = lightGray,
-    )
-
+    HorizontalDivider(modifier = Modifier.weight(WEIGHT_ONE))
     AuthenticationText(
-        modifier = Modifier.padding(horizontal = PADDING_MEDIUM),
+        modifier = Modifier.padding(horizontal = CAREGIVER_PADDING_MEDIUM),
         text = "or",
         style = MaterialTheme.typography.bodySmall,
-        color = darkGray,
     )
-
-    HorizontalDivider(
-        modifier = Modifier.weight(1f),
-        color = lightGray,
-    )
+    HorizontalDivider(modifier = Modifier.weight(WEIGHT_ONE))
   }
 }
 
-/** Preview of [EmailSignInScreen] using the Amber application theme. */
+/** Preview of [EmailSignInContent] with an entered email, using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
-private fun EmailSignInScreenPreview() {
-  AmberAppTheme(darkTheme = false, dynamicColor = false) {
-    EmailSignInContent(
-        uiState = EmailSignInUiState(),
-        onEmailChange = {},
-        onContinue = {},
-        onGoogleClick = {},
-    )
-  }
+internal fun EmailSignInContentPreview() {
+  AmberAppTheme { EmailSignInContent(uiState = EmailSignInUIState(email = "person@example.com")) }
 }
