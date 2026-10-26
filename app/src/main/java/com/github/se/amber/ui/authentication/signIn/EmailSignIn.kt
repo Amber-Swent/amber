@@ -192,6 +192,6 @@ private fun OrDivider(
 /** Preview of [EmailSignInContent] with an entered email, using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
-private fun EmailSignInContentPreview() {
+internal fun EmailSignInContentPreview() {
   AmberAppTheme { EmailSignInContent(uiState = EmailSignInUIState(email = "person@example.com")) }
 }

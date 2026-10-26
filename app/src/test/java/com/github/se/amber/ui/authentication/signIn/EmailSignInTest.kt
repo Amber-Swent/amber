@@ -17,6 +17,8 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
+import com.github.se.amber.ui.authentication.signIn.EmailSignInContent
+import com.github.se.amber.ui.authentication.signIn.EmailSignInContentPreview
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
@@ -244,5 +246,25 @@ class EmailSignInScreenTest {
     } finally {
       unmockkObject(AuthRepositoryProvider)
     }
+  }
+
+  @Test
+  fun contentWithDefaultArgumentsShowsEmptyIdleForm() {
+    composeTestRule.setContent { EmailSignInContent() }
+
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsEnabled()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).performClick()
+  }
+
+  @Test
+  fun previewShowsEnteredEmail() {
+    composeTestRule.setContent { EmailSignInContentPreview() }
+
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD)
+        .assertTextContains("person@example.com")
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
   }
 }

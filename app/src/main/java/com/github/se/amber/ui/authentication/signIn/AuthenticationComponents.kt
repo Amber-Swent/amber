@@ -260,7 +260,7 @@ internal fun TermsFooter(
 /** Preview of [AuthenticationLayout] with every shared component, using the Amber theme. */
 @Preview(showBackground = true)
 @Composable
-private fun AuthenticationComponentsPreview() {
+internal fun AuthenticationComponentsPreview() {
   AmberAppTheme {
     AuthenticationLayout {
       AuthenticationText(text = "Screen heading", style = MaterialTheme.typography.titleMedium)

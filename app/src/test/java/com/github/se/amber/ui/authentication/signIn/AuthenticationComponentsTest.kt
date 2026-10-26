@@ -20,6 +20,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.input.KeyboardType
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.github.se.amber.R
 import com.github.se.amber.ui.authentication.signIn.AuthenticationButton
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
+import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentsPreview
 import com.github.se.amber.ui.authentication.signIn.AuthenticationHeader
 import com.github.se.amber.ui.authentication.signIn.AuthenticationLayout
 import com.github.se.amber.ui.authentication.signIn.AuthenticationText
@@ -199,6 +201,15 @@ class AuthenticationComponentsTest {
     }
 
     composeTestRule.onNodeWithTag(TEXT).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewShowsEveryComponent() {
+    composeTestRule.setContent { AuthenticationComponentsPreview() }
+
+    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithText("Screen heading").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Disabled").assertIsNotEnabled()
   }
 
   private companion object {
