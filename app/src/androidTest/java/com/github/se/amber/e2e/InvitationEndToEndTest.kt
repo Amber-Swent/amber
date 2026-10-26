@@ -8,7 +8,6 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -29,11 +28,9 @@ import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
-import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.Firebase
 import com.google.firebase.functions.functions
@@ -43,7 +40,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -127,27 +123,27 @@ class InvitationEndToEndTest {
     // FIXME: this will fail once the refactor of Home has been done
     //  The back button won't exist anymore, the Sign Out will be in the Parameter screen
     //  This is the responsibility of the one doing the Parameters Refactor and implementation
-//    click(TopNavigationMenuTestTags.BACK_BUTTON) // signs out
-//    waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
-//
-//    signInWithGoogle("bob-$runId@amber.test", "Bob")
-//    createCaregiverProfile(firstName = "Bob", lastName = "Martin")
+    //    click(TopNavigationMenuTestTags.BACK_BUTTON) // signs out
+    //    waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
+    //
+    //    signInWithGoogle("bob-$runId@amber.test", "Bob")
+    //    createCaregiverProfile(firstName = "Bob", lastName = "Martin")
 
     // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
     //  Fixing this is the responsibility of the one doing the CaregiverChoice Refactor.
-//    click(CaregiverChoiceTestTags.JOIN_BUTTON.name)
-//    typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
+    //    click(CaregiverChoiceTestTags.JOIN_BUTTON.name)
+    //    typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
 
     // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
     //  Fixing this is the responsibility of the one doing the InvitationRedemptionScreen Refactor.
-//    composeTestRule
-//        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
-//        .assert(hasEditableText(adasCode))
-//    click(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
-//    waitFor(CaregiverHomeTestTags.TITLE)
-//
-//    val bobsCode = createInvitationCode()
-//    assertNotEquals(adasCode, bobsCode)
+    //    composeTestRule
+    //        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+    //        .assert(hasEditableText(adasCode))
+    //    click(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
+    //    waitFor(CaregiverHomeTestTags.TITLE)
+    //
+    //    val bobsCode = createInvitationCode()
+    //    assertNotEquals(adasCode, bobsCode)
   }
 
   /**
