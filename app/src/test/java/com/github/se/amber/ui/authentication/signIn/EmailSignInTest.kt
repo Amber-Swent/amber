@@ -38,8 +38,8 @@ import org.robolectric.RobolectricTestRunner
  * Tests the email sign-in screen's rendering, input, loading state, and callbacks with Compose.
  *
  * A real [com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel] covers email entry,
- * Continue validation, and existing-user navigation. Mocked ViewModels isolate Google button clicks
- * and error-clearing behavior.
+ * the Continue button state, and existing-user navigation. Mocked ViewModels isolate Google button
+ * clicks and error-clearing behavior.
  */
 @RunWith(RobolectricTestRunner::class)
 class EmailSignInScreenTest {
@@ -103,9 +103,25 @@ class EmailSignInScreenTest {
   }
 
   @Test
-  fun continueButtonIsEnabledByDefault() {
+  fun continueButtonIsDisabledWhileEmailIsBlank() {
     setScreen()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun continueButtonIsEnabledOnceEmailIsTyped() {
+    setScreen()
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD)
+        .performTextInput("person@example.com")
+
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
+  }
+
+  @Test
+  fun continueButtonIsDisabledForWhitespaceEmail() {
+    setScreen(mockViewModel(EmailSignInUIState(email = "  ")))
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsNotEnabled()
   }
 
   @Test
@@ -171,7 +187,7 @@ class EmailSignInScreenTest {
 
   @Test
   fun continueButtonStaysEnabledDuringLoading() {
-    setScreen(mockViewModel(EmailSignInUIState(isLoading = true)))
+    setScreen(mockViewModel(EmailSignInUIState(email = "person@example.com", isLoading = true)))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
   }
 

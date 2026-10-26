@@ -27,10 +27,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
 import com.github.se.amber.ui.theme.WEIGHT_ONE
@@ -54,7 +56,7 @@ internal object EmailSignInTestTags {
  * @param modifier Modifier applied to the root authentication layout.
  * @param context Android context used for Google authentication and to display error toasts.
  * @param credentialManager Credential Manager used for Google authentication.
- * @param onContinue Called when the user presses Continue with a nonblank email address.
+ * @param onContinue Called when the user presses Continue; it is only enabled for a nonblank email.
  * @param onGoogleSignIn Called once a user is authenticated, either after a successful Google
  *   sign-in or because a user was already signed in when the screen opened.
  * @param emailSignInViewModel ViewModel holding the state of the screen.
@@ -88,6 +90,35 @@ fun EmailSignInScreen(
     }
   }
 
+  EmailSignInContent(
+      modifier = modifier,
+      uiState = uiState,
+      onEmailChange = emailSignInViewModel::onEmailChange,
+      // The ViewModel check stays as a guard behind the disabled button
+      onContinue = { if (emailSignInViewModel.validateEmail()) onContinue() },
+      onGoogleSignIn = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
+  )
+}
+
+/**
+ * Stateless content of [EmailSignInScreen], rendered from [uiState] only.
+ *
+ * Continue stays disabled while the email is blank, so the user can see why it does nothing.
+ *
+ * @param modifier Modifier applied to the root authentication layout.
+ * @param uiState State to display.
+ * @param onEmailChange Called whenever the email field value changes.
+ * @param onContinue Called when the user presses Continue.
+ * @param onGoogleSignIn Called when the user presses the Google sign-in button.
+ */
+@Composable
+internal fun EmailSignInContent(
+    modifier: Modifier = Modifier,
+    uiState: EmailSignInUIState = EmailSignInUIState(),
+    onEmailChange: (String) -> Unit = {},
+    onContinue: () -> Unit = {},
+    onGoogleSignIn: () -> Unit = {},
+) {
   // Parameter spacing spaces the layout content (heading, email field, action group)
   AuthenticationLayout(modifier = modifier, spacing = CAREGIVER_PADDING_REGULAR) {
     AuthenticationText(
@@ -98,7 +129,7 @@ fun EmailSignInScreen(
     )
     AuthenticationTextField(
         value = uiState.email,
-        onValueChange = emailSignInViewModel::onEmailChange,
+        onValueChange = onEmailChange,
         placeholder = "email@domain.com",
         modifier = Modifier.testTag(EmailSignInTestTags.EMAIL_FIELD),
         keyboardOptions =
@@ -116,13 +147,14 @@ fun EmailSignInScreen(
       // Email sign-in, the alternative to Google sign-in
       AuthenticationButton(
           text = "Continue",
-          onClick = { if (emailSignInViewModel.validateEmail()) onContinue() },
+          onClick = onContinue,
           modifier = Modifier.testTag(EmailSignInTestTags.CONTINUE_BUTTON),
+          enabled = uiState.email.isNotBlank(),
       )
       OrDivider()
       AuthenticationButton(
           text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
-          onClick = { emailSignInViewModel.signInWithGoogle(context, credentialManager) },
+          onClick = onGoogleSignIn,
           modifier = Modifier.testTag(EmailSignInTestTags.GOOGLE_BUTTON),
           enabled = !uiState.isLoading,
           leadingIcon = painterResource(R.drawable.google_logo),
@@ -155,4 +187,11 @@ private fun OrDivider(
     )
     HorizontalDivider(modifier = Modifier.weight(WEIGHT_ONE))
   }
+}
+
+/** Preview of [EmailSignInContent] with an entered email, using the Amber application theme. */
+@Preview(showBackground = true)
+@Composable
+private fun EmailSignInContentPreview() {
+  AmberAppTheme { EmailSignInContent(uiState = EmailSignInUIState(email = "person@example.com")) }
 }

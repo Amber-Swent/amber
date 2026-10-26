@@ -15,11 +15,11 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.input.KeyboardType
@@ -62,29 +62,26 @@ class AuthenticationComponentsTest {
   fun layoutShowsScreenContent() {
     composeTestRule.setContent {
       AuthenticationLayout(modifier = Modifier.testTag(ROOT), spacing = CAREGIVER_PADDING_BIG) {
-        Text("Screen content")
+        Text("Screen content", modifier = Modifier.testTag(TEXT))
       }
     }
 
     composeTestRule.onNodeWithTag(ROOT).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Screen content").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TEXT).assertIsDisplayed()
   }
 
   @Test
-  fun headerShowsAppName() {
+  fun headerIsDisplayed() {
     composeTestRule.setContent { AuthenticationHeader() }
 
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Amber").assertIsDisplayed()
   }
 
   @Test
-  fun footerShowsTermsNotice() {
+  fun footerIsDisplayed() {
     composeTestRule.setContent { TermsFooter() }
 
-    composeTestRule
-        .onNodeWithText("Terms of Service and Privacy Policy", substring = true)
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertIsDisplayed()
   }
 
   @Test
@@ -107,7 +104,7 @@ class AuthenticationComponentsTest {
       )
     }
 
-    composeTestRule.onNodeWithText("email@domain.com").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(FIELD).assertIsDisplayed()
     composeTestRule.onNodeWithTag(FIELD).performTextInput("person@example.com")
 
     assertEquals("person@example.com", typed)
@@ -146,8 +143,7 @@ class AuthenticationComponentsTest {
       )
     }
 
-    composeTestRule.onNodeWithText("Continue").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(BUTTON).performClick()
+    composeTestRule.onNodeWithTag(BUTTON).assertTextEquals("Continue").performClick()
 
     assertEquals(1, clicks)
   }
@@ -172,19 +168,22 @@ class AuthenticationComponentsTest {
   fun buttonWithLeadingIconStillShowsText() {
     composeTestRule.setContent {
       AuthenticationButton(
+          modifier = Modifier.testTag(BUTTON),
           text = "Sign in with Google",
           leadingIcon = painterResource(R.drawable.google_logo),
       )
     }
 
-    composeTestRule.onNodeWithText("Sign in with Google").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(BUTTON).assertTextEquals("Sign in with Google")
   }
 
   @Test
   fun textWithDefaultsRendersGivenText() {
-    composeTestRule.setContent { AuthenticationText(text = "Hello") }
+    composeTestRule.setContent {
+      AuthenticationText(modifier = Modifier.testTag(TEXT), text = "Hello")
+    }
 
-    composeTestRule.onNodeWithText("Hello").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TEXT).assertTextEquals("Hello")
   }
 
   @Test

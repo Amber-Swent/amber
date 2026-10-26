@@ -33,8 +33,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.github.se.amber.R
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
@@ -44,7 +46,6 @@ import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.SURFACE_SMALL
-import com.github.se.amber.ui.theme.TEXT_FIELD_SMALL
 
 /** Test tags of the components shared by the authentication screens. */
 internal object AuthenticationComponentTestTags {
@@ -117,7 +118,7 @@ internal fun AuthenticationHeader(
       verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_REGULAR),
   ) {
     Image(
-        painter = painterResource(R.drawable.amber_logomark),
+        painter = painterResource(R.drawable.amber_icon),
         contentDescription = "Amber logo",
         modifier = Modifier.size(SURFACE_BIG),
     )
@@ -155,7 +156,7 @@ internal fun AuthenticationTextField(
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      modifier = modifier.fillMaxWidth().height(TEXT_FIELD_SMALL),
+      modifier = modifier.fillMaxWidth(), // Material min height (56dp) keeps glyphs unclipped
       singleLine = true,
       placeholder = {
         AuthenticationText(
@@ -254,4 +255,18 @@ internal fun TermsFooter(
       modifier = modifier.fillMaxWidth().testTag(AuthenticationComponentTestTags.TERMS_FOOTER),
       style = MaterialTheme.typography.bodySmall,
   )
+}
+
+/** Preview of [AuthenticationLayout] with every shared component, using the Amber theme. */
+@Preview(showBackground = true)
+@Composable
+private fun AuthenticationComponentsPreview() {
+  AmberAppTheme {
+    AuthenticationLayout {
+      AuthenticationText(text = "Screen heading", style = MaterialTheme.typography.titleMedium)
+      AuthenticationTextField(placeholder = "email@domain.com")
+      AuthenticationButton(text = "Continue")
+      AuthenticationButton(text = "Disabled", enabled = false)
+    }
+  }
 }
