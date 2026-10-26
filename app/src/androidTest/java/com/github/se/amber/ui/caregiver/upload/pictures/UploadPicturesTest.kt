@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload
 
@@ -9,24 +10,31 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.io.File
 import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,12 +61,14 @@ class UploadPicturesTest {
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
   private lateinit var careCircleFlow: MutableStateFlow<CareCircle?>
   private lateinit var involvedOptionsFlow: MutableStateFlow<Map<String, String>>
+  private lateinit var placeOptionsFlow: MutableStateFlow<Map<String, String>>
 
   @Before
   fun setUp() {
     uiStateFlow = MutableStateFlow(UploadPictureUIState())
     careCircleFlow = MutableStateFlow(null)
     involvedOptionsFlow = MutableStateFlow(emptyMap())
+    placeOptionsFlow = MutableStateFlow(emptyMap())
 
     mediaRepo = mockk(relaxed = true)
     authRepo = mockk(relaxed = true)
@@ -70,6 +80,7 @@ class UploadPicturesTest {
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.careCircle } returns careCircleFlow
     every { viewModel.involvedOptions } returns involvedOptionsFlow
+    every { viewModel.placeOptions } returns placeOptionsFlow
 
     uploadCallbackCount = 0
     goBackCallbackCount = 0
@@ -325,5 +336,116 @@ class UploadPicturesTest {
 
     composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
+  }
+
+  // ---------- location ----------
+
+  private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
+
+  private fun setState(state: UploadPictureUIState) {
+    composeTestRule.runOnIdle { uiStateFlow.value = state }
+  }
+
+  @Test
+  fun locationSectionIsDisplayed() {
+    launchScreen()
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
+        .performScrollTo()
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun noSavedPlaceChipWithoutSavedPlaces() {
+    launchScreen()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+        .assertCountEquals(0)
+  }
+
+  @Test
+  fun aChipIsDisplayedForEachSavedPlace() {
+    launchScreen()
+    composeTestRule.runOnIdle {
+      placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")
+    }
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+        .assertCountEquals(2)
+  }
+
+  @Test
+  fun clickingASavedPlaceChipPicksItAndShowsItSelected() {
+    launchScreen()
+    composeTestRule.runOnIdle { placeOptionsFlow.value = mapOf("home" to "Home") }
+    every { viewModel.selectPlace(any<String>()) } answers
+        {
+          uiStateFlow.value = uiStateFlow.value.copy(selectedPlaceId = firstArg())
+        }
+
+    val chip = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)[0]
+    chip.performScrollTo().assertIsNotSelected()
+    chip.performClick()
+
+    verify { viewModel.selectPlace("home") }
+    chip.assertIsSelected()
+  }
+
+  @Test
+  fun typingInTheSearchFieldSendsTheQuery() {
+    launchScreen()
+    composeTestRule
+        .onNode(
+            hasSetTextAction() and
+                hasAnyAncestor(hasTestTag(UploadPictureLocationTestTags.SEARCH_FIELD))
+        )
+        .performScrollTo()
+        .performTextInput("Lausanne")
+    verify { viewModel.setPlaceQuery("Lausanne") }
+  }
+
+  @Test
+  fun searchingIsShownWhileTheSearchRuns() {
+    launchScreen()
+    setState(UploadPictureUIState(placeQuery = "Lau", isSearchingPlaces = true))
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
+        .performScrollTo()
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun noResultIsShownWhenTheSearchFindsNothing() {
+    launchScreen()
+    setState(UploadPictureUIState(placeQuery = "Grandma's house"))
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
+        .performScrollTo()
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun clickingASuggestionPicksIt() {
+    launchScreen()
+    setState(UploadPictureUIState(placeQuery = "Lau", placeSuggestions = listOf(lausanne)))
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
+        .performScrollTo()
+        .performClick()
+    verify { viewModel.selectPlace(lausanne) }
+  }
+
+  @Test
+  fun suggestionsAreHiddenOnceAPlaceIsPicked() {
+    launchScreen()
+    setState(
+        UploadPictureUIState(
+            placeQuery = lausanne.placeName!!,
+            placeSuggestions = listOf(lausanne),
+            location = lausanne,
+        )
+    )
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 }

@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -8,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +31,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
@@ -81,6 +85,16 @@ object UploadPictureScreenTestTags {
   const val UPLOAD_BUTTON = "upload_picture_button"
 }
 
+/** Test tags used by the "Location - optional" section of the Upload Picture screen. */
+object UploadPictureLocationTestTags {
+  const val SECTION = "UploadPictureLocation_test_tag_section"
+  const val SAVED_PLACE = "UploadPictureLocation_test_tag_saved_place"
+  const val SEARCH_FIELD = "UploadPictureLocation_test_tag_search_field"
+  const val SUGGESTION = "UploadPictureLocation_test_tag_suggestion"
+  const val SEARCHING = "UploadPictureLocation_test_tag_searching"
+  const val NO_RESULT = "UploadPictureLocation_test_tag_no_result"
+}
+
 /**
  * Displays the picture upload screen.
  *
@@ -97,6 +111,7 @@ fun UploadPictureScreen(
 ) {
   val uiState by viewModel.uiState.collectAsState()
   val options by viewModel.involvedOptions.collectAsState()
+  val placeOptions by viewModel.placeOptions.collectAsState()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
 
@@ -191,6 +206,14 @@ fun UploadPictureScreen(
               toggleShownId = viewModel::toggleShownId,
           )
 
+          DisplayLocation(
+              placeOptions = placeOptions,
+              uiState = uiState,
+              onSavedPlaceClick = viewModel::selectPlace,
+              onQueryChange = viewModel::setPlaceQuery,
+              onSuggestionClick = viewModel::selectPlace,
+          )
+
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
               onDateSelected = { year, month, day ->
@@ -267,6 +290,97 @@ private fun DisplayWhoIsInvolved(
       // TODO: add a button to add other person in the care circle - M2
     }
   }
+}
+
+/**
+ * Displays where the picture was taken: chips for the circle's saved places, and a field to search
+ * any other real place, with the matching suggestions to pick from.
+ *
+ * @param placeOptions The saved place IDs and names.
+ * @param uiState The screen state holding the search, its suggestions and the picked place.
+ * @param onSavedPlaceClick The callback used to pick or drop a saved place.
+ * @param onQueryChange The callback invoked when the searched text changes.
+ * @param onSuggestionClick The callback used to pick a suggested place.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DisplayLocation(
+    placeOptions: Map<String, String> = emptyMap(), // id -> name
+    uiState: UploadPictureUIState = UploadPictureUIState(),
+    onSavedPlaceClick: (String) -> Unit = {},
+    onQueryChange: (String) -> Unit = {},
+    onSuggestionClick: (GeoLocation) -> Unit = {},
+) {
+  Column(
+      modifier = Modifier.fillMaxWidth().testTag(UploadPictureLocationTestTags.SECTION),
+      verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+  ) {
+    Text(
+        "Location - optional",
+        color = MaterialTheme.colorScheme.onBackground,
+        style = MaterialTheme.typography.bodyLarge,
+    )
+    if (placeOptions.isNotEmpty()) {
+      FlowRow(horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL)) {
+        placeOptions.forEach { (id, name) ->
+          FilterChip(
+              selected = id == uiState.selectedPlaceId,
+              onClick = { onSavedPlaceClick(id) },
+              label = { Text(name) },
+              modifier = Modifier.testTag(UploadPictureLocationTestTags.SAVED_PLACE),
+          )
+        }
+      }
+    }
+    Box(modifier = Modifier.testTag(UploadPictureLocationTestTags.SEARCH_FIELD)) {
+      DisplayTextField(
+          value = uiState.placeQuery,
+          onValueChange = onQueryChange,
+          label = "Another place",
+          placeholder = "Search a city, an address...",
+          maxLines = 1,
+          maxChar = MAX_CHAR_DESCRIPTION,
+      )
+    }
+    // Only shown while a typed place is still to be picked
+    if (uiState.location == null && uiState.placeQuery.isNotBlank()) {
+      when {
+        uiState.isSearchingPlaces ->
+            DisplayLocationHint("Searching…", UploadPictureLocationTestTags.SEARCHING)
+        uiState.placeSuggestions.isEmpty() ->
+            DisplayLocationHint("No places found", UploadPictureLocationTestTags.NO_RESULT)
+        else ->
+            uiState.placeSuggestions.forEach { place ->
+              Text(
+                  text = place.placeName.orEmpty(),
+                  color = MaterialTheme.colorScheme.onSurface,
+                  style = MaterialTheme.typography.bodyMedium,
+                  modifier =
+                      Modifier.fillMaxWidth()
+                          .clickable { onSuggestionClick(place) }
+                          .padding(PADDING_SMALL)
+                          .testTag(UploadPictureLocationTestTags.SUGGESTION),
+              )
+            }
+      }
+    }
+  }
+}
+
+/**
+ * Displays a short status line under the place search.
+ *
+ * @param text The status shown to the user.
+ * @param tag The test tag of this status.
+ */
+@Composable
+private fun DisplayLocationHint(text: String = "", tag: String = "") {
+  Text(
+      text = text,
+      color = MaterialTheme.colorScheme.onBackground,
+      style = MaterialTheme.typography.bodySmall,
+      modifier = Modifier.padding(PADDING_SMALL).testTag(tag),
+  )
 }
 
 /** Preview of [UploadPictureScreen] using the Amber application theme. */

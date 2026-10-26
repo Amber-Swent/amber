@@ -16,6 +16,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
@@ -67,7 +68,10 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
  * @param placeSuggestions Real places matching [placeQuery], to pick from.
  * @param isSearchingPlaces Whether a search for [placeQuery] is waiting or running, so the screen
  *   can tell "searching" from "no places found".
- * @param location The real place picked from [placeSuggestions]; null if none was picked.
+ * @param location The real place picked from [placeSuggestions] or the circle's saved places; null
+ *   if none was picked.
+ * @param selectedPlaceId The id of the saved place picked as [location]; null if [location] wasn't
+ *   one of the circle's saved places.
  * @param shownIds The IDs of the people tagged in the picture.
  * @param pictureFile The local picture file selected for upload.
  * @param pictureWidth The width of the selected picture in pixels.
@@ -82,6 +86,7 @@ data class UploadPictureUIState(
     val placeSuggestions: List<GeoLocation> = emptyList(),
     val isSearchingPlaces: Boolean = false,
     val location: GeoLocation? = null,
+    val selectedPlaceId: String? = null,
     val shownIds: Set<String> = emptySet(),
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
@@ -150,6 +155,20 @@ class UploadPictureViewModel(
             }
           }
           .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+  /**
+   * The circle's saved places that can be picked as where the picture was taken, keyed by place ID
+   * and displayed by name. A place without coordinates is left out: only real places are saved.
+   */
+  val placeOptions: StateFlow<Map<String, String>> =
+      careCircle
+          .map { circle -> circle?.pickablePlaces().orEmpty().mapValues { it.value.name } }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+  /** This circle's saved places that are real points on the map. */
+  private fun CareCircle.pickablePlaces(): Map<String, Place> = places.filterValues {
+    it.location.lat != null && it.location.lng != null
+  }
 
   /**
    * Builds the display name used for a person in the tagging choices.
@@ -344,7 +363,12 @@ class UploadPictureViewModel(
     placeSearch?.cancel()
     val isSearching = query.isNotBlank()
     _uiState.update {
-      it.copy(placeQuery = query, location = null, isSearchingPlaces = isSearching)
+      it.copy(
+          placeQuery = query,
+          location = null,
+          selectedPlaceId = null,
+          isSearchingPlaces = isSearching,
+      )
     }
     if (!isSearching) {
       _uiState.update { it.copy(placeSuggestions = emptyList()) }
@@ -380,8 +404,25 @@ class UploadPictureViewModel(
           placeSuggestions = emptyList(),
           isSearchingPlaces = false,
           location = place,
+          selectedPlaceId = null,
       )
     }
+  }
+
+  /**
+   * Picks one of the circle's saved places as where the picture was taken, or drops it if it was
+   * already picked.
+   *
+   * @param placeId One of the keys of [placeOptions].
+   */
+  fun selectPlace(placeId: String) {
+    if (_uiState.value.selectedPlaceId == placeId) {
+      setPlaceQuery("")
+      return
+    }
+    val place = _careCircle.value?.pickablePlaces()?.get(placeId) ?: return
+    selectPlace(place.location.copy(placeName = place.name))
+    _uiState.update { it.copy(selectedPlaceId = placeId) }
   }
 
   /**
