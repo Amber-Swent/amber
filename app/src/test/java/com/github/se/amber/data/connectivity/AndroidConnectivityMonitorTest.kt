@@ -201,6 +201,19 @@ class AndroidConnectivityMonitorTest {
   }
 
   @Test
+  fun goesOfflineWhenTheNetworkStopsReachingTheInternet() = runTest {
+    // still on the same Wi-Fi, but the internet behind it is gone: the reason to check VALIDATED
+    currentNetwork(validated)
+    val monitor = monitor()
+
+    callback()
+        .onCapabilitiesChanged(wifi, capabilities(NetworkCapabilities.NET_CAPABILITY_INTERNET))
+    runCurrent()
+
+    assertFalse(monitor.isOnline.value)
+  }
+
+  @Test
   fun ignoresTheLossOfANetworkNoLongerTheDefault() = runTest {
     // Wi-Fi gives way to mobile data, and Android reports Wi-Fi lost only afterwards
     currentNetwork(validated)

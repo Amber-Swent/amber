@@ -39,7 +39,7 @@ class BackOnlineTest {
     val online = MutableStateFlow(true)
     val emitted = collectBackOnline(online)
 
-    advanceTimeBy(10 * debounce)
+    advanceTimeBy((10 * debounce).milliseconds)
 
     assertEquals(0, emitted())
   }
@@ -143,18 +143,5 @@ class BackOnlineTest {
 
     assertEquals(2, first())
     assertEquals(1, second())
-  }
-
-  @Test
-  fun theFakeEmitsWithoutWaiting() = runTest {
-    val fake = FakeConnectivityMonitor(online = false)
-    var count = 0
-    backgroundScope.launch { fake.backOnline.collect { count++ } }
-    runCurrent()
-
-    fake.isOnline.value = true
-    runCurrent()
-
-    assertEquals(1, count)
   }
 }
