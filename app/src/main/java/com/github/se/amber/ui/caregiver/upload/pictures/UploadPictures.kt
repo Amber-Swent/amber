@@ -16,11 +16,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -228,19 +228,23 @@ fun UploadPictureScreen(
                 viewModel.setDate(MemoryDate(year, month, day))
               },
           )
-
-          Spacer(modifier = Modifier.height(PADDING_MEDIUM))
-
-          Button(
-              onClick = { viewModel.uploadPicture() },
-              modifier = Modifier.fillMaxWidth().testTag(UPLOAD_BUTTON),
-              colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-              enabled = uiState.canUpload,
-          ) {
-            Text(
-                text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
-            )
-          }
+        }
+      },
+      // Pinned below the form so it stays reachable however long the form grows
+      bottomBar = {
+        Button(
+            onClick = { viewModel.uploadPicture() },
+            modifier =
+                Modifier.fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(PADDING_MEDIUM)
+                    .testTag(UPLOAD_BUTTON),
+            colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+            enabled = uiState.canUpload,
+        ) {
+          Text(
+              text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
+          )
         }
       },
   )

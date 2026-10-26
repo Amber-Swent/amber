@@ -144,10 +144,7 @@ class UploadPicturesTest {
   @Test
   fun uploadButtonIsDisplayed() {
     launchScreen()
-    composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
-        .performScrollTo()
-        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsDisplayed()
   }
 
   @Test
