@@ -7,9 +7,11 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,7 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.Options
 import coil3.size.Size
+import com.github.se.amber.data.connectivity.FakeConnectivityMonitor
 import com.github.se.amber.data.media.image.FakePictureRepository
 import com.github.se.amber.data.media.image.MEDIA_PICTURE_FETCHER_TAG
 import com.github.se.amber.data.media.image.MediaPictureFetcher
@@ -52,10 +55,11 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import java.io.File
 import java.io.IOException
+import java.net.UnknownHostException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
@@ -146,29 +150,55 @@ class MediaImageTest {
           description = description,
       )
 
-  private fun setImage(picture: MediaItem.Picture = m1) {
+  /** The phone's connection as the images of [setImages] see it. Starts offline. */
+  private val connection = FakeConnectivityMonitor(online = false)
+
+  /**
+   * Shows [pictures] one under the other, with [connection]'s comebacks as their retry signal, as
+   * `MainActivity` provides it in the app. Each shows [LOADING] while loading and, if it fails, a
+   * [RETRY] text calling its retry action when tapped.
+   */
+  private fun setImages(vararg pictures: MediaItem.Picture) {
     composeTestRule.setContent {
-      MediaImage(
-          circle = circle,
-          picture = picture,
-          modifier = Modifier.size(100.dp),
-          loading = { Text(LOADING) },
-          failed = { Text(FAILED) },
-      )
+      CompositionLocalProvider(LocalMediaRetrySignal provides connection.backOnline) {
+        Column {
+          pictures.forEach {
+            MediaImage(
+                circle = circle,
+                picture = it,
+                modifier = Modifier.size(100.dp),
+                loading = { Text(LOADING) },
+                retryButton = { retry -> Text(RETRY, Modifier.clickable(onClick = retry)) },
+            )
+          }
+        }
+      }
     }
   }
 
-  private fun waitForText(text: String) {
-    composeTestRule.waitUntil(TIMEOUT_MS) {
-      composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
-    }
+  /** Brings [connection] back online, after dropping it if it was online. */
+  private fun comeBackOnline() {
+    connection.isOnline.value = false
+    // A StateFlow keeps only its latest value: set to true right away, the images would never see
+    // it false, and nothing would come back.
+    composeTestRule.waitForIdle()
+    connection.isOnline.value = true
+    composeTestRule.waitForIdle()
+  }
+
+  /** Waits until [condition] holds, failing the test after [TIMEOUT]. */
+  private fun waitUntil(condition: () -> Boolean) =
+      composeTestRule.waitUntil(TIMEOUT.inWholeMilliseconds, condition)
+
+  private fun waitForText(text: String = RETRY) {
+    waitUntil { composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
   }
 
   /** Waits until Coil has decoded [count] files and the UI shows the last one. */
   private fun waitForImage(count: Int = 1) {
-    composeTestRule.waitUntil(TIMEOUT_MS) { decoder.decoded.size >= count }
+    waitUntil { decoder.decoded.size >= count }
     // The decoder answers before Coil hands the result to Compose: wait for the picture too.
-    composeTestRule.waitUntil(TIMEOUT_MS) {
+    waitUntil {
       composeTestRule
           .onAllNodesWithTag(MediaImageTestTags.IMAGE, useUnmergedTree = true)
           .fetchSemanticsNodes()
@@ -181,34 +211,34 @@ class MediaImageTest {
     // A deferred that is never completed keeps getFile suspended, like a slow download.
     val never = CompletableDeferred<File>()
     repository.onGetFile = { never.await() }
-    setImage()
+    setImages(m1)
 
-    composeTestRule.waitUntil(TIMEOUT_MS) { repository.requests.isNotEmpty() }
+    waitUntil { repository.requests.isNotEmpty() }
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
-    composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithText(RETRY).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
   }
 
   @Test
-  fun showsFailedWhenGetFileThrows() {
+  fun showsTheRetryButtonWhenGetFileThrows() {
     repository.onGetFile = { throw IOException("offline and not cached") }
-    setImage()
+    setImages(m1)
 
-    waitForText(FAILED)
-    composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
+    waitForText()
+    composeTestRule.onNodeWithText(RETRY).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
   }
 
   @Test
-  fun showsFailedWhenGetFileGivesUpWithACancellation() {
+  fun showsTheRetryButtonWhenGetFileGivesUpWithACancellation() {
     // withTimeout throws a TimeoutCancellationException, which is a CancellationException, but the
-    // image itself was not cancelled: it must show the failed slot, not stay loading forever.
-    repository.onGetFile = { withTimeout(1) { awaitCancellation() } }
-    setImage()
+    // image itself was not cancelled: it must show the retry button, not stay loading forever.
+    repository.onGetFile = { withTimeout(1.milliseconds) { awaitCancellation() } }
+    setImages(m1)
 
-    waitForText(FAILED)
-    composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
+    waitForText()
+    composeTestRule.onNodeWithText(RETRY).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
   }
 
@@ -229,30 +259,30 @@ class MediaImageTest {
     }
     composeTestRule.setContent { if (shown) MediaImage(circle = circle, picture = m1) }
     // Remove the image only once its load is running, otherwise there is nothing to cancel.
-    composeTestRule.waitUntil(TIMEOUT_MS) { started.isCompleted }
+    waitUntil { started.isCompleted }
 
     shown = false
     // waitForIdle recomposes without the image (waitUntil alone doesn't).
     composeTestRule.waitForIdle()
-    composeTestRule.waitUntil(TIMEOUT_MS) { cancelled.get() }
+    waitUntil { cancelled.get() }
     // That it isn't logged as a failure is checked by MediaPictureFetcherTest, without threads.
   }
 
   @Test
   fun showsTheDecodedFileWithThePicturesDescription() {
-    setImage()
+    setImages(m1)
 
     waitForImage()
     assertEquals(listOf(PHOTO), decoder.decoded)
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
-    composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithText(RETRY).assertDoesNotExist()
   }
 
   @Test
   fun aBlankDescriptionIsReadAsTheFallback() {
     // MediaItem.description defaults to "", which TalkBack would read as nothing.
-    setImage(picture("m1", description = " "))
+    setImages(picture("m1", description = " "))
 
     waitForImage()
     composeTestRule
@@ -282,9 +312,9 @@ class MediaImageTest {
   fun showsLoadingWhileCoilDecodes() {
     // The gate holds the fake decoder: the file is got, but Coil hasn't finished decoding it.
     decoder.gate = CompletableDeferred()
-    setImage()
+    setImages(m1)
 
-    composeTestRule.waitUntil(TIMEOUT_MS) { decoder.requested.isNotEmpty() }
+    waitUntil { decoder.requested.isNotEmpty() }
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
     // TalkBack must not describe a picture that isn't shown yet.
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertDoesNotExist()
@@ -322,7 +352,7 @@ class MediaImageTest {
 
     // The file is got, and Coil is held while decoding it.
     file.complete(photo)
-    composeTestRule.waitUntil(TIMEOUT_MS) { decoder.requested.isNotEmpty() }
+    waitUntil { decoder.requested.isNotEmpty() }
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
 
     decoder.gate!!.complete(Unit)
@@ -333,12 +363,12 @@ class MediaImageTest {
   }
 
   @Test
-  fun showsFailedAndHidesTheImageWhenTheFileCannotBeDecoded() {
+  fun showsTheRetryButtonAndHidesTheImageWhenTheFileCannotBeDecoded() {
     decoder.broken += PHOTO
-    setImage()
+    setImages(m1)
 
-    waitForText(FAILED)
-    composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
+    waitForText()
+    composeTestRule.onNodeWithText(RETRY).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaImageTestTags.IMAGE).assertDoesNotExist()
@@ -378,10 +408,10 @@ class MediaImageTest {
           circle = shownCircle,
           picture = m1,
           modifier = Modifier.size(100.dp),
-          failed = { Text(FAILED) },
+          retryButton = { Text(RETRY) },
       )
     }
-    waitForText(FAILED)
+    waitForText()
 
     shownCircle = circle // its bucket is assigned
     composeTestRule.waitForIdle()
@@ -402,13 +432,13 @@ class MediaImageTest {
     shownPicture = m1.copy(storagePath = "careCircles/c1/media/m1-v2.jpg")
     composeTestRule.waitForIdle()
 
-    composeTestRule.waitUntil(TIMEOUT_MS) { repository.requests.size == 2 }
+    waitUntil { repository.requests.size == 2 }
     waitForImage(count = 2)
   }
 
   @Test
   fun aBiggerRequestDrawsThePictureInMemoryMeanwhile() {
-    setImage()
+    setImages(m1)
     waitForImage()
 
     // Coil draws the entry under this key while it decodes the picture at a bigger size.
@@ -468,9 +498,9 @@ class MediaImageTest {
   }
 
   @Test
-  fun aCancelledLoadThatFailsLateDoesNotShowFailedForTheNewPicture() {
+  fun aCancelledLoadThatFailsLateDoesNotShowTheRetryButtonForTheNewPicture() {
     // Changing the picture cancels the m1 load. Here getFile turns that cancellation into an
-    // IOException, thrown only once the m2 load has started; it must not mark m2 as failed.
+    // IOException, thrown only once the m2 load has started; it must not show m2 as failed.
     var shownPicture by mutableStateOf(m1)
     val firstStarted = CompletableDeferred<Unit>()
     val secondStarted = CompletableDeferred<Unit>()
@@ -500,20 +530,20 @@ class MediaImageTest {
           picture = shownPicture,
           modifier = Modifier.size(100.dp),
           loading = { Text(LOADING) },
-          failed = { Text(FAILED) },
+          retryButton = { Text(RETRY) },
       )
     }
-    composeTestRule.waitUntil(TIMEOUT_MS) { firstStarted.isCompleted }
+    waitUntil { firstStarted.isCompleted }
 
     shownPicture = m2
     // waitForIdle recomposes with m2 (waitUntil alone didn't). Then wait until the late
     // IOException was really thrown, and let its result reach the UI.
     composeTestRule.waitForIdle()
-    composeTestRule.waitUntil(TIMEOUT_MS) { firstFailed.get() }
+    waitUntil { firstFailed.get() }
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
-    composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithText(RETRY).assertDoesNotExist()
   }
 
   @Test
@@ -535,26 +565,13 @@ class MediaImageTest {
     assertEquals(listOf(PHOTO), decoder.decoded)
   }
 
-  /** Shows m1 with a failed slot that is a [RETRY] button. */
-  private fun setRetryableImage() {
-    composeTestRule.setContent {
-      MediaImage(
-          circle = circle,
-          picture = m1,
-          modifier = Modifier.size(100.dp),
-          loading = { Text(LOADING) },
-          failed = { retry -> Text(RETRY, Modifier.clickable(onClick = retry)) },
-      )
-    }
-  }
-
   @Test
   fun retryingAfterALoadFailureShowsTheImage() {
     repository.onGetFile = {
-      if (repository.requests.size == 1) throw IOException("offline and not cached") else photo
+      if (repository.requests.size == 1) throw IOException("download failed") else photo
     }
-    setRetryableImage()
-    waitForText(RETRY)
+    setImages(m1)
+    waitForText()
 
     composeTestRule.onNodeWithText(RETRY).performClick()
 
@@ -567,8 +584,8 @@ class MediaImageTest {
   @Test
   fun retryingAfterADecodeFailureDecodesTheFileAgain() {
     decoder.broken += PHOTO
-    setRetryableImage()
-    waitForText(RETRY)
+    setImages(m1)
+    waitForText()
 
     // The file is fine now, for example it was downloaded again.
     decoder.broken -= PHOTO
@@ -578,18 +595,49 @@ class MediaImageTest {
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
   }
 
-  /** Shows m1 and gives the `retry` of its failed slot to [onRetry] each time it is shown. */
+  @Test
+  fun theDefaultRetryButtonIsReadByTalkBackAndLoadsThePictureAgain() {
+    repository.onGetFile = {
+      if (repository.requests.size == 1) throw IOException("download failed") else photo
+    }
+    // no retryButton: the one every screen gets
+    composeTestRule.setContent {
+      MediaImage(circle = circle, picture = m1, modifier = Modifier.size(100.dp))
+    }
+    waitUntil {
+      composeTestRule
+          .onAllNodesWithTag(MediaImageTestTags.RETRY_BUTTON)
+          .fetchSemanticsNodes()
+          .isNotEmpty()
+    }
+
+    composeTestRule
+        .onNodeWithContentDescription(MEDIA_IMAGE_RETRY_TALKBACK)
+        .assertIsDisplayed()
+        .performClick()
+
+    waitForImage()
+    assertEquals(listOf("m1", "m1"), repository.requests)
+    composeTestRule.onNodeWithTag(MediaImageTestTags.RETRY_BUTTON).assertDoesNotExist()
+  }
+
+  /**
+   * Shows m1 with the same retry signal and [LOADING] slot as [setImages], and a retry slot that
+   * gives its `retry` to [onRetry] each time it is shown, so the test can call it when it wants.
+   */
   private fun setImageKeepingRetry(onRetry: (() -> Unit) -> Unit) {
     composeTestRule.setContent {
-      MediaImage(
-          circle = circle,
-          picture = m1,
-          loading = { Text(LOADING) },
-          failed = {
-            onRetry(it)
-            Text(FAILED)
-          },
-      )
+      CompositionLocalProvider(LocalMediaRetrySignal provides connection.backOnline) {
+        MediaImage(
+            circle = circle,
+            picture = m1,
+            loading = { Text(LOADING) },
+            retryButton = {
+              onRetry(it)
+              Text(RETRY)
+            },
+        )
+      }
     }
   }
 
@@ -597,24 +645,24 @@ class MediaImageTest {
   fun aRetryCalledTwiceStartsASingleNewLoad() {
     val retriedLoadRunning = CompletableDeferred<Unit>()
     repository.onGetFile = {
-      if (repository.requests.size == 1) throw IOException("offline")
+      if (repository.requests.size == 1) throw IOException("download failed")
       retriedLoadRunning.complete(Unit)
       awaitCancellation()
     }
     lateinit var retry: () -> Unit
     setImageKeepingRetry { retry = it }
-    waitForText(FAILED)
+    waitForText()
 
-    // A double tap: both calls before the retried load starts, then a third once it is running.
+    // A double tap, then a third call once the new load is running.
     composeTestRule.runOnIdle {
       retry()
       retry()
     }
-    composeTestRule.waitUntil(TIMEOUT_MS) { retriedLoadRunning.isCompleted }
+    waitUntil { retriedLoadRunning.isCompleted }
     composeTestRule.runOnIdle { retry() }
     composeTestRule.waitForIdle()
 
-    // A second load would have cancelled the running one and asked for the file again.
+    // A restart would have cancelled the running load and asked for the file again.
     assertEquals(listOf("m1", "m1"), repository.requests)
     composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
   }
@@ -622,20 +670,111 @@ class MediaImageTest {
   @Test
   fun aRetryAfterASecondFailureLoadsAgain() {
     repository.onGetFile = {
-      if (repository.requests.size <= 2) throw IOException("offline") else photo
+      if (repository.requests.size <= 2) throw IOException("download failed") else photo
     }
-    // Written by the composition, read by the test: always the retry of the failure shown.
-    val retry = AtomicReference<() -> Unit>()
-    setImageKeepingRetry { retry.set(it) }
+    lateinit var retry: () -> Unit
+    setImageKeepingRetry { retry = it }
 
     for (attempt in 2..3) {
-      waitForText(FAILED)
-      composeTestRule.runOnIdle { retry.get()() }
-      composeTestRule.waitUntil(TIMEOUT_MS) { repository.requests.size == attempt }
+      waitForText()
+      composeTestRule.runOnIdle { retry() }
+      waitUntil { repository.requests.size == attempt }
     }
 
     waitForImage()
     assertEquals(listOf("m1", "m1", "m1"), repository.requests)
+  }
+
+  @Test
+  fun aPictureThatFailedOfflineLoadsAgainWhenTheConnectionComesBack() {
+    repository.onGetFile = {
+      if (repository.requests.size == 1) throw UnknownHostException("offline") else photo
+    }
+    setImages(m1)
+    waitForText()
+
+    comeBackOnline()
+
+    waitForImage()
+    assertEquals(listOf("m1", "m1"), repository.requests)
+    composeTestRule.onNodeWithText(RETRY).assertDoesNotExist()
+  }
+
+  @Test
+  fun aPictureFailingOfflineAgainLoadsAgainAtTheNextComeback() {
+    // The connection comes back, but drops again before the file is downloaded.
+    repository.onGetFile = {
+      if (repository.requests.size <= 2) throw UnknownHostException("offline") else photo
+    }
+    setImages(m1)
+
+    for (attempt in 2..3) {
+      waitForText()
+      comeBackOnline()
+      waitUntil { repository.requests.size == attempt }
+    }
+
+    waitForImage()
+    assertEquals(listOf("m1", "m1", "m1"), repository.requests)
+  }
+
+  @Test
+  fun onlyThePicturesThatFailedOfflineLoadAgainWhenTheConnectionComesBack() {
+    val shown = picture("shown")
+    val offline = picture("offline")
+    val diskFull = picture("diskFull")
+    val undecodable = picture("undecodable")
+    val broken = tempFolder.newFile("broken.jpg").apply { writeText(BROKEN) }
+    decoder.broken += BROKEN
+    repository.onGetFile = {
+      when (it.id) {
+        "shown" -> photo
+        "offline" ->
+            if (repository.requests.count { id -> id == "offline" } == 1) {
+              throw UnknownHostException("offline")
+            } else {
+              otherPhoto
+            }
+        "diskFull" -> throw IOException("no space left on device")
+        else -> broken
+      }
+    }
+    setImages(shown, offline, diskFull, undecodable)
+    waitUntil { composeTestRule.onAllNodesWithText(RETRY).fetchSemanticsNodes().size == 3 }
+
+    comeBackOnline()
+
+    // The offline one loading again proves the signal reached the images.
+    waitUntil { OTHER_PHOTO in decoder.decoded }
+    composeTestRule.waitForIdle()
+    assertEquals(1, repository.requests.count { it == "shown" })
+    assertEquals(2, repository.requests.count { it == "offline" })
+    assertEquals(1, repository.requests.count { it == "diskFull" })
+    assertEquals(1, repository.requests.count { it == "undecodable" })
+    assertEquals(2, composeTestRule.onAllNodesWithText(RETRY).fetchSemanticsNodes().size)
+  }
+
+  @Test
+  fun aTapWhileTheConnectionComebackLoadsStartsNoSecondLoad() {
+    val retriedLoadRunning = CompletableDeferred<Unit>()
+    repository.onGetFile = {
+      if (repository.requests.size == 1) throw UnknownHostException("offline")
+      retriedLoadRunning.complete(Unit)
+      awaitCancellation()
+    }
+    lateinit var retry: () -> Unit
+    setImageKeepingRetry { retry = it }
+    waitForText()
+
+    comeBackOnline()
+    waitUntil { retriedLoadRunning.isCompleted }
+    composeTestRule.onNodeWithText(LOADING).assertIsDisplayed()
+    // The user taps the retry button still shown a moment ago.
+    composeTestRule.runOnIdle { retry() }
+    composeTestRule.waitForIdle()
+
+    // A restart would have cancelled the running load and asked for the file again.
+    assertEquals(listOf("m1", "m1"), repository.requests)
   }
 
   /**
@@ -643,7 +782,7 @@ class MediaImageTest {
    * the single log of the media pictures, by MediaImage or by its fetcher: never both.
    */
   private fun waitForLog(): ShadowLog.LogItem {
-    waitForText(FAILED)
+    waitForText()
     composeTestRule.waitForIdle()
     return (ShadowLog.getLogsForTag(MEDIA_IMAGE_TAG) +
             ShadowLog.getLogsForTag(MEDIA_PICTURE_FETCHER_TAG))
@@ -654,7 +793,7 @@ class MediaImageTest {
   fun aLoadFailureIsLoggedOnceAsAWarningWithItsCause() {
     val offline = IOException("offline and not cached")
     repository.onGetFile = { throw offline }
-    setImage()
+    setImages(m1)
 
     val log = waitForLog()
     assertEquals(MEDIA_PICTURE_FETCHER_TAG, log.tag)
@@ -668,7 +807,7 @@ class MediaImageTest {
     // What getFile throws when the screen passed the wrong circle: a bug, not being offline.
     val wrongCircle = IllegalArgumentException("media m1 is not in circle c1")
     repository.onGetFile = { throw wrongCircle }
-    setImage()
+    setImages(m1)
 
     val log = waitForLog()
     assertEquals(MEDIA_PICTURE_FETCHER_TAG, log.tag)
@@ -679,7 +818,7 @@ class MediaImageTest {
   @Test
   fun aDecodeFailureIsLoggedWithCoilsCause() {
     decoder.broken += PHOTO
-    setImage()
+    setImages(m1)
 
     val log = waitForLog()
     assertEquals(MEDIA_IMAGE_TAG, log.tag)
@@ -690,7 +829,7 @@ class MediaImageTest {
 
   @Test
   fun decodesThePictureAtItsLaidOutSizeNotItsFullResolution() {
-    setImage()
+    setImages(m1)
 
     waitForImage()
     val size = decoder.sizes.single()
@@ -741,13 +880,13 @@ class MediaImageTest {
   }
 
   private companion object {
+    val TIMEOUT = 5_000.milliseconds
     const val DESCRIPTION = "A photo of the garden"
     const val PHOTO = "photo"
     const val OTHER_PHOTO = "other photo"
     const val LOADING = "Loading"
-    const val FAILED = "Not available offline"
     const val RETRY = "Try again"
-    const val TIMEOUT_MS = 5_000L
+    const val BROKEN = "not an image"
 
     fun smallBitmap(): Bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
   }

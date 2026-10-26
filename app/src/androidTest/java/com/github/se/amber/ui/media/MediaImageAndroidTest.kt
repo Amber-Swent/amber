@@ -7,10 +7,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,10 +25,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -44,8 +48,11 @@ import com.github.se.amber.model.media.MediaPicture
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.OutboxEntry
 import java.io.File
+import java.net.UnknownHostException
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -70,7 +77,11 @@ class MediaImageInstrumentedTest {
 
   /** The file [repository] gives for every picture. */
   private lateinit var file: File
-  private val repository = FileRepository { file }
+  /** Whether getting a file fails as it does offline, when it isn't on the phone. */
+  @Volatile private var offline = false
+  private val repository = FileRepository {
+    if (offline) throw UnknownHostException("firebasestorage.googleapis.com") else file
+  }
 
   private val circle = CareCircle(id = "c1", storageBucket = "bucket-c1")
   private val picture =
@@ -100,15 +111,24 @@ class MediaImageInstrumentedTest {
     SingletonImageLoader.reset()
   }
 
+  /** Stands in for `ConnectivityMonitor.backOnline`: the test emits when the connection is back. */
+  private val backOnline = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+  /**
+   * Shows [picture] with [backOnline] as its retry signal, as `MainActivity` provides it in the
+   * app, and a [RETRY] text calling its retry action when tapped.
+   */
   private fun show() {
     composeTestRule.setContent {
-      MediaImage(
-          circle = circle,
-          picture = picture,
-          modifier = Modifier.size(100.dp),
-          loading = { Text(LOADING) },
-          failed = { Text(FAILED) },
-      )
+      CompositionLocalProvider(LocalMediaRetrySignal provides backOnline) {
+        MediaImage(
+            circle = circle,
+            picture = picture,
+            modifier = Modifier.size(100.dp),
+            loading = { Text(LOADING) },
+            retryButton = { retry -> Text(RETRY, Modifier.clickable(onClick = retry)) },
+        )
+      }
     }
   }
 
@@ -119,10 +139,14 @@ class MediaImageInstrumentedTest {
     return png
   }
 
+  /** Waits until [condition] holds, failing the test after [TIMEOUT]. */
+  private fun waitUntil(condition: () -> Boolean) =
+      composeTestRule.waitUntil(TIMEOUT.inWholeMilliseconds, condition)
+
   // Waits for the final state itself: the absence of the loading slot alone doesn't prove the
   // picture is shown.
   private fun waitUntilShown() {
-    composeTestRule.waitUntil(TIMEOUT_MS) {
+    waitUntil {
       composeTestRule
           .onAllNodesWithContentDescription(DESCRIPTION)
           .fetchSemanticsNodes()
@@ -138,19 +162,55 @@ class MediaImageInstrumentedTest {
     waitUntilShown()
     composeTestRule.onNodeWithContentDescription(DESCRIPTION).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
-    composeTestRule.onNodeWithText(FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithText(RETRY).assertDoesNotExist()
   }
 
   @Test
-  fun showsFailedForAFileThatIsNotAnImage() {
+  fun showsTheRetryButtonForAFileThatIsNotAnImage() {
     file = File(dir, "photo.jpg").apply { writeText("not an image") }
     show()
 
-    composeTestRule.waitUntil(TIMEOUT_MS) {
-      composeTestRule.onAllNodesWithText(FAILED).fetchSemanticsNodes().isNotEmpty()
-    }
-    composeTestRule.onNodeWithText(FAILED).assertIsDisplayed()
+    waitUntil { composeTestRule.onAllNodesWithText(RETRY).fetchSemanticsNodes().isNotEmpty() }
+    composeTestRule.onNodeWithText(RETRY).assertIsDisplayed()
     composeTestRule.onNodeWithText(LOADING).assertDoesNotExist()
+  }
+
+  @Test
+  fun aPictureThatFailedOfflineIsShownWhenTheConnectionComesBack() {
+    file = writePng("photo.png")
+    offline = true
+    show()
+    waitUntil { composeTestRule.onAllNodesWithText(RETRY).fetchSemanticsNodes().isNotEmpty() }
+
+    offline = false
+    // tryEmit drops the value if nobody listens yet: wait for the image's collector first
+    waitUntil { backOnline.subscriptionCount.value > 0 }
+    backOnline.tryEmit(Unit)
+
+    waitUntilShown()
+    assertEquals(2, repository.calls.get())
+  }
+
+  @Test
+  fun theDefaultRetryButtonShowsAFileFixedSinceTheFailure() {
+    file = File(dir, "photo.jpg").apply { writeText("not an image") }
+    // no retryButton: the one every screen gets
+    composeTestRule.setContent {
+      MediaImage(circle = circle, picture = picture, modifier = Modifier.size(100.dp))
+    }
+    waitUntil {
+      composeTestRule
+          .onAllNodesWithTag(MediaImageTestTags.RETRY_BUTTON)
+          .fetchSemanticsNodes()
+          .isNotEmpty()
+    }
+
+    // e.g. downloaded again in full
+    file = writePng("photo.png")
+    composeTestRule.onNodeWithTag(MediaImageTestTags.RETRY_BUTTON).performClick()
+
+    waitUntilShown()
+    composeTestRule.onNodeWithTag(MediaImageTestTags.RETRY_BUTTON).assertDoesNotExist()
   }
 
   @Test
@@ -245,10 +305,10 @@ class MediaImageInstrumentedTest {
   }
 
   private companion object {
+    val TIMEOUT = 10_000.milliseconds
     const val DESCRIPTION = "A red square"
     const val LOADING = "Loading"
-    const val FAILED = "Not available offline"
-    const val TIMEOUT_MS = 10_000L
+    const val RETRY = "Try again"
     const val CONTAINER = "mediaImageContainer"
   }
 }
