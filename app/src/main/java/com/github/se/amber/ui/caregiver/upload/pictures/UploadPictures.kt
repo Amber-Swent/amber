@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,12 +28,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -63,6 +69,7 @@ import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
@@ -284,6 +291,7 @@ private fun DisplayWhoIsInvolved(
               selected = id in shownIds,
               onClick = { toggleShownId(id) },
               label = { Text(label) },
+              colors = selectableChipColors(),
               modifier = Modifier.testTag(PERSON_INVOLVED),
           )
         }
@@ -328,6 +336,7 @@ private fun DisplayLocation(
               selected = id == uiState.selectedPlaceId,
               onClick = { onSavedPlaceClick(id) },
               label = { Text(name) },
+              colors = selectableChipColors(),
               modifier = Modifier.testTag(UploadPictureLocationTestTags.SAVED_PLACE),
           )
         }
@@ -350,22 +359,54 @@ private fun DisplayLocation(
         uiState.placeSuggestions.isEmpty() ->
             DisplayLocationHint("No places found", UploadPictureLocationTestTags.NO_RESULT)
         else ->
-            uiState.placeSuggestions.forEach { place ->
-              Text(
-                  text = place.placeName.orEmpty(),
-                  color = MaterialTheme.colorScheme.onSurface,
-                  style = MaterialTheme.typography.bodyMedium,
-                  modifier =
-                      Modifier.fillMaxWidth()
-                          .clickable { onSuggestionClick(place) }
-                          .padding(CAREGIVER_PADDING_SMALL)
-                          .testTag(UploadPictureLocationTestTags.SUGGESTION),
-              )
+            Column {
+              uiState.placeSuggestions.forEachIndexed { index, place ->
+                if (index > 0) HorizontalDivider(thickness = DIVIDER_THICKNESS)
+                DisplayPlaceSuggestion(place = place, onClick = { onSuggestionClick(place) })
+              }
             }
       }
     }
   }
 }
+
+/**
+ * Displays one place suggested by the search, to tap to pick it.
+ *
+ * @param place The suggested place.
+ * @param onClick The callback used to pick this place.
+ */
+@Composable
+private fun DisplayPlaceSuggestion(place: GeoLocation = GeoLocation(), onClick: () -> Unit = {}) {
+  Row(
+      modifier =
+          Modifier.fillMaxWidth()
+              .clickable(onClick = onClick)
+              .padding(CAREGIVER_PADDING_SMALL)
+              .testTag(UploadPictureLocationTestTags.SUGGESTION),
+      horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
+      verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Icon(
+        imageVector = Icons.Outlined.Place,
+        contentDescription = null, // the place name next to it says it all
+        tint = MaterialTheme.colorScheme.onSurface,
+    )
+    Text(
+        text = place.placeName.orEmpty(),
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyMedium,
+    )
+  }
+}
+
+/** Colors of the selectable chips: the theme's secondary color once selected. */
+@Composable
+private fun selectableChipColors(): SelectableChipColors =
+    FilterChipDefaults.filterChipColors(
+        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+    )
 
 /**
  * Displays a short status line under the place search.
