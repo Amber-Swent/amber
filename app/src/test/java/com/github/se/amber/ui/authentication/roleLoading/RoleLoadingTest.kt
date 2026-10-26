@@ -1,6 +1,10 @@
-// this code was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by Alaabrine, with assistance from Cursor.
+ */
 package com.github.se.amber.ui.roleloading
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -8,6 +12,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingContent
+import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingContentErrorPreview
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingTestTags
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingUIState
@@ -316,5 +322,67 @@ class RoleLoadingScreenTest {
     composeTestRule.waitForIdle()
 
     assertEquals(1, noProfileCount)
+  }
+
+  // ---------- Default arguments (Sonar branch coverage) ----------
+
+  @Test
+  fun screen_withDefaultCallbacks_stillLoadsRole() {
+    stateFlow.value = RoleLoadingUIState(roleState = RoleState.Loading)
+    composeTestRule.setContent {
+      RoleLoadingScreen(
+          modifier = Modifier.testTag(SCREEN_ROOT),
+          viewModel = viewModel,
+      )
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(SCREEN_ROOT).assertExists()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertIsDisplayed()
+    verify(exactly = 1) { viewModel.loadRole() }
+  }
+
+  @Test
+  fun content_withDefaults_showsLoadingIndicator() {
+    composeTestRule.setContent { RoleLoadingContent() }
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertIsDisplayed()
+  }
+
+  @Test
+  fun content_withExplicitArguments_showsErrorAndForwardsActions() {
+    var retryCount = 0
+    var signOutCount = 0
+
+    composeTestRule.setContent {
+      RoleLoadingContent(
+          modifier = Modifier.testTag(CONTENT_ROOT),
+          state = RoleLoadingUIState(roleState = RoleState.Error),
+          onRetry = { retryCount++ },
+          onSignOut = { signOutCount++ },
+      )
+    }
+
+    composeTestRule.onNodeWithTag(CONTENT_ROOT).assertExists()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).performClick()
+
+    assertEquals(1, retryCount)
+    assertEquals(1, signOutCount)
+  }
+
+  @Test
+  fun preview_showsErrorState() {
+    composeTestRule.setContent { RoleLoadingContentErrorPreview() }
+
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertIsDisplayed()
+  }
+
+  private companion object {
+    const val SCREEN_ROOT = "roleLoading_screenRoot"
+    const val CONTENT_ROOT = "roleLoading_contentRoot"
   }
 }

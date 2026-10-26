@@ -151,7 +151,7 @@ internal fun RoleLoadingContent(
 /** Preview of [RoleLoadingContent] in the error state, using the Amber application theme. */
 @Preview(showBackground = true, name = "Error")
 @Composable
-private fun RoleLoadingContentErrorPreview() {
+internal fun RoleLoadingContentErrorPreview() {
   AmberAppTheme(dynamicColor = false) {
     RoleLoadingContent(
         state = RoleLoadingUIState(roleState = RoleState.Error),
