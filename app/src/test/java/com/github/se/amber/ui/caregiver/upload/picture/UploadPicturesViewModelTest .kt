@@ -34,6 +34,7 @@ import java.io.IOException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -58,6 +59,8 @@ import org.junit.Test
 class UploadPictureViewModelTest {
   private val testDispatcher = UnconfinedTestDispatcher()
   private val ERROR_MESSAGE = "Boom"
+  private val SLOW_SEARCH = 1_000.milliseconds
+  private val AFTER_DEBOUNCE = 400L // ms: past the 300 ms pause, before SLOW_SEARCH ends
 
   private lateinit var mediaRepo: MediaRepository
   private lateinit var authRepo: AuthRepository
@@ -674,9 +677,9 @@ class UploadPictureViewModelTest {
   @Test
   fun initialStateHasNoPlace() {
     val state = createViewModel().uiState.value
-    assertEquals("", state.placeQuery)
-    assertTrue(state.placeSuggestions.isEmpty())
-    assertNull(state.location)
+    assertEquals("", state.location.query)
+    assertTrue(state.location.suggestions.isEmpty())
+    assertNull(state.location.pickedPlace)
   }
 
   @Test
@@ -688,7 +691,7 @@ class UploadPictureViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 1) { placeRepo.search("Lausanne") }
-    assertEquals(listOf(lausanne), vm.uiState.value.placeSuggestions)
+    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
   }
 
   @Test
@@ -708,7 +711,7 @@ class UploadPictureViewModelTest {
     vm.searchPlace("Lausanne")
     vm.searchPlace("  ")
 
-    assertTrue(vm.uiState.value.placeSuggestions.isEmpty())
+    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
     coVerify(exactly = 1) { placeRepo.search(any()) }
   }
 
@@ -722,7 +725,7 @@ class UploadPictureViewModelTest {
         UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess + "offline",
         vm.uiState.value.errorMsg,
     )
-    assertTrue(vm.uiState.value.placeSuggestions.isEmpty())
+    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
   }
 
   @Test
@@ -732,23 +735,23 @@ class UploadPictureViewModelTest {
     vm.selectPlace(lausanne)
 
     val state = vm.uiState.value
-    assertEquals(lausanne, state.location)
-    assertEquals("Lausanne, Switzerland", state.placeQuery)
-    assertTrue(state.placeSuggestions.isEmpty())
+    assertEquals(lausanne, state.location.pickedPlace)
+    assertEquals("Lausanne, Switzerland", state.location.query)
+    assertTrue(state.location.suggestions.isEmpty())
   }
 
   @Test
   fun selectPlaceIgnoresAPlaceWithoutCoordinates() {
     val vm = createViewModel()
     vm.selectPlace(GeoLocation(placeName = "Grandma's house"))
-    assertNull(vm.uiState.value.location)
+    assertNull(vm.uiState.value.location.pickedPlace)
   }
 
   @Test
   fun selectPlaceIgnoresAPlaceWithOnlyALatitude() {
     val vm = createViewModel()
     vm.selectPlace(GeoLocation(lat = 46.52, placeName = "Lausanne"))
-    assertNull(vm.uiState.value.location)
+    assertNull(vm.uiState.value.location.pickedPlace)
   }
 
   @Test
@@ -757,8 +760,8 @@ class UploadPictureViewModelTest {
     vm.searchPlace("46.52, 6.63")
     vm.selectPlace(GeoLocation(lat = 46.52, lng = 6.63))
 
-    assertEquals("", vm.uiState.value.placeQuery)
-    assertTrue(vm.uiState.value.hasValidPlace)
+    assertEquals("", vm.uiState.value.location.query)
+    assertTrue(vm.uiState.value.location.hasValidPlace)
   }
 
   @Test
@@ -778,18 +781,18 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.selectPlace(lausanne)
     vm.setPlaceQuery("Grandma's house")
-    assertNull(vm.uiState.value.location)
+    assertNull(vm.uiState.value.location.pickedPlace)
   }
 
   @Test
   fun placeSearchIsInProgressUntilItsResultsArrive() {
     val vm = createViewModel()
     vm.setPlaceQuery("Lausanne")
-    assertTrue(vm.uiState.value.isSearchingPlaces)
+    assertTrue(vm.uiState.value.location.isSearching)
 
     testDispatcher.scheduler.advanceUntilIdle()
 
-    assertFalse(vm.uiState.value.isSearchingPlaces)
+    assertFalse(vm.uiState.value.location.isSearching)
   }
 
   @Test
@@ -798,8 +801,8 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Grandma's house")
 
-    assertFalse(vm.uiState.value.isSearchingPlaces)
-    assertTrue(vm.uiState.value.placeSuggestions.isEmpty())
+    assertFalse(vm.uiState.value.location.isSearching)
+    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
   }
 
   @Test
@@ -807,15 +810,15 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.setPlaceQuery("Lausanne")
     vm.setPlaceQuery("")
-    assertFalse(vm.uiState.value.isSearchingPlaces)
+    assertFalse(vm.uiState.value.location.isSearching)
 
     vm.setPlaceQuery("Lausanne")
     vm.selectPlace(lausanne)
-    assertFalse(vm.uiState.value.isSearchingPlaces)
+    assertFalse(vm.uiState.value.location.isSearching)
 
     coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
     vm.searchPlace("Geneva")
-    assertFalse(vm.uiState.value.isSearchingPlaces)
+    assertFalse(vm.uiState.value.location.isSearching)
   }
 
   @Test
@@ -843,6 +846,122 @@ class UploadPictureViewModelTest {
 
     assertEquals(UploadPictureViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
+  }
+
+  private val geneva = GeoLocation(lat = 46.2, lng = 6.14, placeName = "Geneva, Switzerland")
+
+  @Test
+  fun aQueryTooShortIsNotSearched() {
+    val vm = createViewModel()
+    vm.searchPlace("La")
+
+    coVerify(exactly = 0) { placeRepo.search(any()) }
+    assertFalse(vm.uiState.value.location.isSearching)
+    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+  }
+
+  @Test
+  fun shorteningAQueryBelowTheMinimumClearsItsSuggestions() {
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.searchPlace("La")
+
+    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    coVerify(exactly = 1) { placeRepo.search(any()) }
+  }
+
+  @Test
+  fun aNewerQueryReplacesTheSearchStillRunning() {
+    coEvery { placeRepo.search("Lausanne") } coAnswers
+        {
+          delay(SLOW_SEARCH)
+          Result.success(listOf(lausanne))
+        }
+    coEvery { placeRepo.search("Geneva") } returns Result.success(listOf(geneva))
+    val vm = createViewModel()
+    vm.setPlaceQuery("Lausanne")
+    testDispatcher.scheduler.advanceTimeBy(AFTER_DEBOUNCE) // Lausanne's search is running
+
+    vm.searchPlace("Geneva")
+
+    assertEquals(listOf(geneva), vm.uiState.value.location.suggestions)
+  }
+
+  @Test
+  fun aResultArrivingAfterAPlaceIsPickedIsIgnored() {
+    coEvery { placeRepo.search(any()) } coAnswers
+        {
+          delay(SLOW_SEARCH)
+          Result.success(listOf(lausanne))
+        }
+    val vm = createViewModel()
+    vm.setPlaceQuery("Lausanne")
+    testDispatcher.scheduler.advanceTimeBy(AFTER_DEBOUNCE) // the search is running
+    vm.selectPlace(geneva)
+
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    assertEquals(geneva, vm.uiState.value.location.pickedPlace)
+    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+  }
+
+  @Test
+  fun typingTheSameTextAgainAfterPickingSearchesAgain() {
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.selectPlace(lausanne)
+    vm.searchPlace("Lausanne")
+
+    coVerify(exactly = 2) { placeRepo.search("Lausanne") }
+    assertFalse(vm.uiState.value.location.isSearching)
+    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
+  }
+
+  @Test
+  fun anUnchangedQueryDoesNotLookLikeASearch() {
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.setPlaceQuery("Lausanne")
+
+    assertFalse(vm.uiState.value.location.isSearching)
+  }
+
+  @Test
+  fun failedPlaceSearchIsFlaggedSoTheScreenCanTellItFromNoResults() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+
+    assertTrue(vm.uiState.value.location.searchFailed)
+  }
+
+  @Test
+  fun aNewQueryClearsThePreviousSearchFailure() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+
+    coEvery { placeRepo.search(any()) } returns Result.success(emptyList())
+    vm.searchPlace("Grandma's house")
+
+    assertFalse(vm.uiState.value.location.searchFailed)
+  }
+
+  @Test
+  fun pickingAPlaceClearsThePreviousSearchFailure() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.selectPlace(lausanne)
+
+    assertFalse(vm.uiState.value.location.searchFailed)
+  }
+
+  @Test
+  fun uploadReportsTheFirstMissingThing() {
+    val vm = createViewModel() // no picture, no description, no date
+    vm.uploadPicture()
+    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.errorMsg)
   }
 
   // ---------- saved places ----------
@@ -884,10 +1003,10 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
 
     val state = vm.uiState.value
-    assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), state.location)
-    assertEquals("home", state.selectedPlaceId)
-    assertEquals("Home", state.placeQuery)
-    assertTrue(state.hasValidPlace)
+    assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), state.location.pickedPlace)
+    assertEquals("home", state.location.selectedPlaceId)
+    assertEquals("Home", state.location.query)
+    assertTrue(state.location.hasValidPlace)
   }
 
   @Test
@@ -898,9 +1017,9 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
 
     val state = vm.uiState.value
-    assertNull(state.location)
-    assertNull(state.selectedPlaceId)
-    assertEquals("", state.placeQuery)
+    assertNull(state.location.pickedPlace)
+    assertNull(state.location.selectedPlaceId)
+    assertEquals("", state.location.query)
   }
 
   @Test
@@ -910,8 +1029,8 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace("doctor")
 
-    assertEquals("doctor", vm.uiState.value.selectedPlaceId)
-    assertEquals("Dr. Martin", vm.uiState.value.location?.placeName)
+    assertEquals("doctor", vm.uiState.value.location.selectedPlaceId)
+    assertEquals("Dr. Martin", vm.uiState.value.location.pickedPlace?.placeName)
   }
 
   @Test
@@ -930,8 +1049,8 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
     vm.setPlaceQuery("Lau")
 
-    assertNull(vm.uiState.value.location)
-    assertNull(vm.uiState.value.selectedPlaceId)
+    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.location.selectedPlaceId)
   }
 
   @Test
@@ -941,8 +1060,8 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace(lausanne)
 
-    assertNull(vm.uiState.value.selectedPlaceId)
-    assertEquals(lausanne, vm.uiState.value.location)
+    assertNull(vm.uiState.value.location.selectedPlaceId)
+    assertEquals(lausanne, vm.uiState.value.location.pickedPlace)
   }
 
   @Test
