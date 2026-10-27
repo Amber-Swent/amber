@@ -14,6 +14,9 @@ on:
       - synchronize
       - reopened
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     name: CI
@@ -173,3 +176,27 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew sonar --parallel --build-cache
+
+  release:
+    name: Release
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # Download the APK from the artifacts
+      - name: Download APK
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: app-debug
+
+      # This step publish the APK into the releases. For now we use the APK debug.
+      - name: publish the APK into the releases
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 #v2.6.2
+        with:
+          tag_name: latest-debug
+          name: Latest debug build
+          body: "Built from ${{ github.sha }}"
+          prerelease: true
+          files: app-debug.apk

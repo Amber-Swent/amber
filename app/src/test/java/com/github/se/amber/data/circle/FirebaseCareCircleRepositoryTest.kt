@@ -1,21 +1,27 @@
 // This file was written by Neha Chakraborty and Claude Code
+// Modified with assistance from OpenAI Codex
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.user.Person
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import io.mockk.CapturingSlot
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -214,6 +220,176 @@ class FirebaseCareCircleRepositoryTest {
     assertUnknownFailure(result, source)
   }
 
+  @Test
+  fun addPerson_writesOneEntryUnderPeopleAndReturnsSavedPerson() = runTest {
+    val personDocument = mockk<DocumentReference> { every { id } returns "person-789" }
+    val writtenField = slot<FieldPath>()
+    val writtenPerson = slot<Person>()
+    every { circles.document() } returns personDocument
+    every { circleDocument.update(capture(writtenField), capture(writtenPerson)) } returns
+        Tasks.forResult(null)
+
+    val result = repository.addPerson(circleId, Person(firstName = "Anne"))
+
+    val savedPerson = result.getOrThrow()
+    // Check that the targeted update happened
+    assertEquals(FieldPath.of("people", "person-789"), writtenField.captured)
+    assertEquals(savedPerson, writtenPerson.captured)
+    assertEquals("person-789", savedPerson.id)
+
+    // Check that circleDocument.set(...) was never called
+    // It's indeed the case that would wipe the whole map if called
+    verify(exactly = 0) { circleDocument.set(any()) }
+    verify(exactly = 0) { circleDocument.set(any(), any()) }
+  }
+
+  @Test
+  fun addPerson_trimsNamesAndClearsBlankNickname() = runTest {
+    val writtenPerson = slot<Person>()
+    stubPersonWrite(writtenPerson)
+
+    val result =
+        repository.addPerson(
+            circleId,
+            Person(firstName = "  Anne  ", lastName = "  Dupont  ", nickname = "  "),
+        )
+
+    assertEquals("Anne", result.getOrThrow().firstName)
+    assertEquals("Dupont", writtenPerson.captured.lastName)
+    assertNull(writtenPerson.captured.nickname)
+  }
+
+  @Test
+  fun addPerson_trimsNonBlankNickname() = runTest {
+    val writtenPerson = slot<Person>()
+    stubPersonWrite(writtenPerson)
+
+    val saved =
+        repository
+            .addPerson(
+                circleId,
+                Person(firstName = "Anne", nickname = " Nana "),
+            )
+            .getOrThrow()
+
+    assertEquals("Nana", saved.nickname)
+    assertEquals("Nana", writtenPerson.captured.nickname)
+  }
+
+  @Test
+  fun addPerson_replacesCallerProvidedIdWithGeneratedId() = runTest {
+    val writtenPerson = slot<Person>()
+    stubPersonWrite(writtenPerson)
+
+    val result = repository.addPerson(circleId, Person(id = "caller-id", firstName = "Anne"))
+
+    assertEquals("person-789", result.getOrThrow().id)
+    assertEquals("person-789", writtenPerson.captured.id)
+  }
+
+  @Test
+  fun addPerson_rejectsBlankCircleIdBeforeAccessingFirestore() = runTest {
+    assertFailure<CareCircleError.InvalidCircleId>(
+        repository.addPerson("  ", Person(firstName = "Anne"))
+    )
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun addPerson_rejectsUntrimmedCircleIdBeforeAccessingFirestore() = runTest {
+    assertFailure<CareCircleError.InvalidCircleId>(
+        repository.addPerson(" $circleId ", Person(firstName = "Anne"))
+    )
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun addPerson_rejectsCircleIdWithSlashBeforeAccessingFirestore() = runTest {
+    assertFailure<CareCircleError.InvalidCircleId>(
+        repository.addPerson("$circleId/other", Person(firstName = "Anne"))
+    )
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun addPerson_rejectsBlankFirstNameBeforeAccessingFirestore() = runTest {
+    assertFailure<CareCircleError.InvalidPersonName>(
+        repository.addPerson(circleId, Person(firstName = "  "))
+    )
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun addPerson_mapsPermissionDeniedFailure() = runTest {
+    stubPersonWriteFailure(
+        FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+    )
+
+    assertFailure<CareCircleError.PermissionDenied>(
+        repository.addPerson(circleId, Person(firstName = "Anne"))
+    )
+  }
+
+  @Test
+  fun addPerson_mapsUnavailableFailureToNetwork() = runTest {
+    // Mocks .update to return an already failed task containing [...].UNAVAILABLE
+    // addPerson receives the exception and maps it to a Network error
+    // This test does not simulate offline behavior
+    stubPersonWriteFailure(
+        FirebaseFirestoreException("offline", FirebaseFirestoreException.Code.UNAVAILABLE)
+    )
+
+    assertFailure<CareCircleError.Network>(
+        repository.addPerson(circleId, Person(firstName = "Anne"))
+    )
+  }
+
+  @Test
+  fun addPerson_wrapsUnexpectedFailure() = runTest {
+    val source = IllegalStateException("write failed")
+    stubPersonWriteFailure(source)
+
+    val result = repository.addPerson(circleId, Person(firstName = "Anne"))
+
+    assertFalse(result.isSuccess)
+    val error = result.exceptionOrNull()
+    assertTrue(error is CareCircleError.Unknown)
+    assertSame(source, (error as CareCircleError.Unknown).source)
+  }
+
+  @Test
+  fun addPerson_rethrowsCancellationFromCancelledWrite() = runTest {
+    val cancelled =
+        mockk<Task<Void>> {
+          every { isComplete } returns true
+          every { isCanceled } returns true
+          every { exception } returns null
+        }
+    every { circles.document() } returns mockk { every { id } returns "person-789" }
+    every { circleDocument.update(any<FieldPath>(), any()) } returns cancelled
+
+    try {
+      repository.addPerson(circleId, Person(firstName = "Anne"))
+      fail("Cancellation should be rethrown")
+    } catch (_: CancellationException) {}
+  }
+
+  private fun stubPersonWrite(writtenPerson: CapturingSlot<Person>) {
+    every { circles.document() } returns mockk { every { id } returns "person-789" }
+    every { circleDocument.update(any<FieldPath>(), capture(writtenPerson)) } returns
+        Tasks.forResult(null)
+  }
+
+  private fun stubPersonWriteFailure(error: Exception) {
+    every { circles.document() } returns mockk { every { id } returns "person-789" }
+    every { circleDocument.update(any<FieldPath>(), any()) } returns Tasks.forException(error)
+  }
+
+  private inline fun <reified T : Throwable> assertFailure(result: Result<*>) {
+    assertFalse(result.isSuccess)
+    assertTrue(result.exceptionOrNull() is T)
+  }
+
   private fun stubSnapshot(snapshot: DocumentSnapshot) {
     every { circleDocument.get() } returns Tasks.forResult(snapshot)
   }
@@ -228,11 +404,6 @@ class FirebaseCareCircleRepositoryTest {
         every { id } returns circleId
         every { toObject(CareCircle::class.java) } returns circle
       }
-
-  private inline fun <reified T : Throwable> assertFailure(result: Result<CareCircle>) {
-    assertFalse(result.isSuccess)
-    assertTrue(result.exceptionOrNull() is T)
-  }
 
   private fun assertUnknownFailure(result: Result<CareCircle>, source: Throwable) {
     assertFalse(result.isSuccess)
