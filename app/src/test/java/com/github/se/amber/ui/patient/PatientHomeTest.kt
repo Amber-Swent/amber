@@ -5,14 +5,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.credentials.CredentialManager
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.Tab
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -60,7 +58,6 @@ class PatientHomeScreenTest {
     composeTestRule.setContent {
       PatientHomeScreen(
           homeViewModel = viewModel,
-          onSignedOut = { signedOutCount++ },
           onTabSelected = { selectedTabs.add(it) },
       )
     }
@@ -70,17 +67,17 @@ class PatientHomeScreenTest {
   fun displaysTitle() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertTextEquals("Home")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.TITLE).assertTextEquals("Home")
   }
 
   @Test
   fun displaysGreetingWithFirstName() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.GREETINGS).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
         .assertTextEquals("Hello Alice !")
   }
 
@@ -88,22 +85,21 @@ class PatientHomeScreenTest {
   fun greetingUpdatesWhenStateChanges() {
     setScreen()
     composeTestRule
-        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
         .assertTextEquals("Hello Alice !")
 
     stateFlow.value = PatientHomeUIState(patientProfile = profileOf("Bob"))
     composeTestRule.waitForIdle()
 
     composeTestRule
-        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
         .assertTextEquals("Hello Bob !")
   }
 
   @Test
-  fun navigationBarsAreDisplayed() {
+  fun bottomNavigationBarIsDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
@@ -116,25 +112,6 @@ class PatientHomeScreenTest {
 
     assertEquals(0, signedOutCount)
     assertEquals(emptyList<Tab>(), selectedTabs)
-  }
-
-  @Test
-  fun clickingTopBarButtonCallsSignOut() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-
-    verify { viewModel.signOut() }
-  }
-
-  @Test
-  fun onSignedOutIsCalledWhenStateIsSignedOut() {
-    setScreen()
-
-    stateFlow.value = stateFlow.value.copy(signedOut = true)
-    composeTestRule.waitForIdle()
-
-    assertEquals(1, signedOutCount)
   }
 
   @Test
