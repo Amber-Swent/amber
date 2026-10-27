@@ -13,7 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -22,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
 import coil3.compose.ConstraintsSizeResolver
 import coil3.compose.LocalPlatformContext
@@ -43,9 +43,9 @@ internal const val MEDIA_IMAGE_TAG = "MediaImage"
 /** Test tags of [MediaImage]. */
 object MediaImageTestTags {
   /** The picture, only once it is decoded and shown. */
-  const val IMAGE = "mediaImage"
+  const val IMAGE = "media_image"
   /** [MediaImageRetryButton], shown by default when the picture can't be shown. */
-  const val RETRY_BUTTON = "mediaImageRetryButton"
+  const val RETRY_BUTTON = "media_image_retry_button"
 }
 
 /** What TalkBack reads for a [MediaImage] whose description is blank, so it is never silent. */
@@ -74,6 +74,8 @@ const val MEDIA_IMAGE_RETRY_TALKBACK = "Load the photo again"
  * loaded again when its circle gets a storage bucket, when it gets a new storage path, and when it
  * is composed again (scrolled back into a list, or its screen reopened).
  *
+ * @param circle the circle [picture] belongs to.
+ * @param picture the picture to show.
  * @param contentDescription what TalkBack reads once the picture is shown: for some users, it is
  *   the content of the screen. The picture's description by default, and
  *   [MEDIA_IMAGE_FALLBACK_TALKBACK] if blank. Pass `null` only for a decorative image whose content
@@ -105,7 +107,7 @@ fun MediaImage(
   key(circle.id, circle.storageBucket, picture.id, picture.storagePath) {
     val sizeResolver = rememberConstraintsSizeResolver()
     val painter = rememberMediaPainter(circle, picture, sizeResolver, contentScale)
-    val state by painter.state.collectAsState()
+    val state by painter.state.collectAsStateWithLifecycle()
     val retry = remember(painter) { Retry(painter) }
 
     val retrySignal = LocalMediaRetrySignal.current
@@ -137,7 +139,7 @@ fun MediaImage(
 
 /** The default retry button of [MediaImage]: a refresh icon calling [onClick]. */
 @Composable
-fun MediaImageRetryButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun MediaImageRetryButton(modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
   IconButton(onClick = onClick, modifier = modifier.testTag(MediaImageTestTags.RETRY_BUTTON)) {
     Icon(Icons.Outlined.Refresh, contentDescription = MEDIA_IMAGE_RETRY_TALKBACK)
   }

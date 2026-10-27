@@ -309,6 +309,6 @@ class MediaImageInstrumentedTest {
     const val DESCRIPTION = "A red square"
     const val LOADING = "Loading"
     const val RETRY = "Try again"
-    const val CONTAINER = "mediaImageContainer"
+    const val CONTAINER = "media_image_container"
   }
 }
