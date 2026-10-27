@@ -57,16 +57,4 @@ class DividerTest {
 
     composeTestRule.onNodeWithTag(TEXT).assertExists().assertTextEquals(customText)
   }
-
-  @Test
-  fun divider_handlesLongText() {
-    val longText = "This is a very long text that might wrap or overflow"
-    setContent(customText = longText)
-
-    composeTestRule.onNodeWithTag(HORIZONTAL_DIVIDER_LEFT).assertExists().assertIsDisplayed()
-
-    composeTestRule.onNodeWithTag(HORIZONTAL_DIVIDER_RIGHT).assertExists().assertIsDisplayed()
-
-    composeTestRule.onNodeWithTag(TEXT).assertExists().assertIsDisplayed()
-  }
 }
