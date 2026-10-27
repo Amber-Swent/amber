@@ -1,3 +1,4 @@
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.material.icons.Icons
@@ -82,6 +83,15 @@ class DisplayTextFieldTest {
     setField(value = "a\nb", maxLines = 2)
     focusField()
     composeTestRule.onNodeWithTag(MAX_LINES_MESSAGE).assertIsDisplayed()
+  }
+
+  @Test
+  fun maxLinesMessage_isNeverDisplayed_forASingleLineField() {
+    composeTestRule.setContent {
+      DisplayTextField(value = "a", onValueChange = {}, label = "Label", singleLine = true)
+    }
+    focusField()
+    composeTestRule.onNodeWithTag(MAX_LINES_MESSAGE).assertDoesNotExist()
   }
 
   @Test

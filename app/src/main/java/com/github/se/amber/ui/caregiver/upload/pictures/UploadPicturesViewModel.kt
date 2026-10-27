@@ -68,6 +68,8 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
  * @param placeSuggestions Real places matching [placeQuery], to pick from.
  * @param isSearchingPlaces Whether a search for [placeQuery] is waiting or running, so the screen
  *   can tell "searching" from "no places found".
+ * @param placeSearchFailed Whether the last search for [placeQuery] failed, so the screen can tell
+ *   "the search failed" from "no places found".
  * @param location The real place picked from [placeSuggestions] or the circle's saved places; null
  *   if none was picked.
  * @param selectedPlaceId The id of the saved place picked as [location]; null if [location] wasn't
@@ -85,6 +87,7 @@ data class UploadPictureUIState(
     val placeQuery: String = "",
     val placeSuggestions: List<GeoLocation> = emptyList(),
     val isSearchingPlaces: Boolean = false,
+    val placeSearchFailed: Boolean = false,
     val location: GeoLocation? = null,
     val selectedPlaceId: String? = null,
     val shownIds: Set<String> = emptySet(),
@@ -105,7 +108,38 @@ data class UploadPictureUIState(
             date != null &&
             hasValidPlace &&
             !isUploading
+
+  /** The part of this state shown by the "Location - optional" section. */
+  val locationState: PictureLocationUIState
+    get() =
+        PictureLocationUIState(
+            query = placeQuery,
+            suggestions = placeSuggestions,
+            isSearching = isSearchingPlaces,
+            searchFailed = placeSearchFailed,
+            location = location,
+            selectedPlaceId = selectedPlaceId,
+        )
 }
+
+/**
+ * Represents what the "Location - optional" section of the picture upload screen displays.
+ *
+ * @param query What the user typed to search for where the picture was taken.
+ * @param suggestions Real places matching [query], to pick from.
+ * @param isSearching Whether a search for [query] is waiting or running.
+ * @param searchFailed Whether the last search for [query] failed.
+ * @param location The real place picked; null if none was picked.
+ * @param selectedPlaceId The id of the saved place picked as [location], if it is one.
+ */
+data class PictureLocationUIState(
+    val query: String = "",
+    val suggestions: List<GeoLocation> = emptyList(),
+    val isSearching: Boolean = false,
+    val searchFailed: Boolean = false,
+    val location: GeoLocation? = null,
+    val selectedPlaceId: String? = null,
+)
 
 /**
  * Manages the state and user actions for the picture upload screen.
@@ -368,6 +402,7 @@ class UploadPictureViewModel(
           location = null,
           selectedPlaceId = null,
           isSearchingPlaces = isSearching,
+          placeSearchFailed = false,
       )
     }
     if (!isSearching) {
@@ -382,7 +417,13 @@ class UploadPictureViewModel(
             _uiState.update { it.copy(placeSuggestions = places, isSearchingPlaces = false) }
           }
           .onFailure {
-            _uiState.update { it.copy(placeSuggestions = emptyList(), isSearchingPlaces = false) }
+            _uiState.update {
+              it.copy(
+                  placeSuggestions = emptyList(),
+                  isSearchingPlaces = false,
+                  placeSearchFailed = true,
+              )
+            }
             setErrorMsg(
                 UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess + (it.message ?: "")
             )
@@ -403,6 +444,7 @@ class UploadPictureViewModel(
           placeQuery = place.placeName.orEmpty(),
           placeSuggestions = emptyList(),
           isSearchingPlaces = false,
+          placeSearchFailed = false,
           location = place,
           selectedPlaceId = null,
       )

@@ -18,6 +18,7 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
+import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
@@ -770,6 +771,64 @@ class UploadPictureViewModelTest {
     assertEquals(
         UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess,
         vm.uiState.value.errorMsg,
+    )
+  }
+
+  @Test
+  fun failedPlaceSearchIsFlaggedSoTheScreenCanTellItFromNoResults() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+
+    assertTrue(vm.uiState.value.placeSearchFailed)
+    assertTrue(vm.uiState.value.locationState.searchFailed)
+  }
+
+  @Test
+  fun aNewQueryClearsThePreviousSearchFailure() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+
+    coEvery { placeRepo.search(any()) } returns Result.success(emptyList())
+    vm.searchPlace("Grandma's house")
+
+    assertFalse(vm.uiState.value.placeSearchFailed)
+  }
+
+  @Test
+  fun pickingAPlaceClearsThePreviousSearchFailure() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.selectPlace(lausanne)
+
+    assertFalse(vm.uiState.value.placeSearchFailed)
+  }
+
+  @Test
+  fun locationStateMirrorsThePlaceFieldsOfTheScreenState() {
+    val state =
+        UploadPictureUIState(
+            description = "unrelated",
+            placeQuery = "Lau",
+            placeSuggestions = listOf(lausanne),
+            isSearchingPlaces = true,
+            placeSearchFailed = true,
+            location = lausanne,
+            selectedPlaceId = "home",
+        )
+
+    assertEquals(
+        PictureLocationUIState(
+            query = "Lau",
+            suggestions = listOf(lausanne),
+            isSearching = true,
+            searchFailed = true,
+            location = lausanne,
+            selectedPlaceId = "home",
+        ),
+        state.locationState,
     )
   }
 

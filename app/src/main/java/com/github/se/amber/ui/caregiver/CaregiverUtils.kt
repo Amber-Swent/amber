@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver
 
@@ -86,6 +87,8 @@ object DisplayTextFieldTestTags {
  * @param minLines The minimum number of lines displayed by the text field.
  * @param maxLines The maximum number of lines displayed by the text field.
  * @param maxChar The maximum number of character displayed by the text field.
+ * @param singleLine Whether the text stays on one line, Enter not adding a new one; [maxLines] is
+ *   then ignored.
  */
 @Composable
 fun DisplayTextField(
@@ -98,6 +101,7 @@ fun DisplayTextField(
     minLines: Int = 1,
     maxLines: Int = MAX_LINE_DEFAULT,
     maxChar: Int = MAX_CHAR_DEFAULT,
+    singleLine: Boolean = false,
 ) {
   assert(maxChar > 0)
   assert(minLines > 0)
@@ -120,8 +124,9 @@ fun DisplayTextField(
               focusedBorderColor = orange,
               unfocusedBorderColor = lightGray,
           ),
+      singleLine = singleLine,
       minLines = minLines,
-      maxLines = maxLines,
+      maxLines = if (singleLine) 1 else maxLines,
   )
 
   Column {
@@ -133,7 +138,7 @@ fun DisplayTextField(
           style = MaterialTheme.typography.bodySmall,
       )
     }
-    if (value.lines().size >= maxLines && hasBeenFocused) {
+    if (!singleLine && value.lines().size >= maxLines && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_LINES_MESSAGE),
           text = "Maximum $maxLines lines reached",

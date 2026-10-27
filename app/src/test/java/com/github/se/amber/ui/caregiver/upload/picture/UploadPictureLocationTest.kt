@@ -1,17 +1,16 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.picture
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -20,7 +19,10 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -30,8 +32,8 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Robolectric tests for the "Location - optional" helpers of the Upload Picture screen, rendered on
- * their own: the screen tests cover them through the ViewModel, these cover what the helpers do
- * with their default values and with any list of suggestions.
+ * their own: the screen tests cover them through the ViewModel, these cover what the helpers show
+ * for each search state and with any list of suggestions.
  */
 @RunWith(RobolectricTestRunner::class)
 class UploadPictureLocationTest {
@@ -43,6 +45,12 @@ class UploadPictureLocationTest {
 
   private val searchField =
       hasSetTextAction() and hasAnyAncestor(hasTestTag(UploadPictureLocationTestTags.SEARCH_FIELD))
+
+  private fun hasEditableText(text: String) =
+      SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString(text))
+
+  private fun hasOnlyText(text: String) =
+      SemanticsMatcher.expectValue(SemanticsProperties.Text, listOf(AnnotatedString(text)))
 
   @Test
   fun withDefaultsOnlyTheTitleAndTheSearchFieldAreShown() {
@@ -57,11 +65,11 @@ class UploadPictureLocationTest {
   }
 
   @Test
-  fun withDefaultCallbacksTappingAndTypingDoNothing() {
+  fun withDefaultCallbacksTappingAndTypingChangeNothing() {
     composeTestRule.setContent {
       DisplayLocation(
-          placeOptions = mapOf("home" to "Home"),
-          uiState = UploadPictureUIState(placeQuery = "Lau", placeSuggestions = listOf(lausanne)),
+          savedPlaceNamesById = mapOf("home" to "Home"),
+          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
       )
     }
 
@@ -69,7 +77,10 @@ class UploadPictureLocationTest {
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).performClick()
     composeTestRule.onNode(searchField).performTextInput("x")
 
-    composeTestRule.onNodeWithText("Home").assertIsDisplayed()
+    // the state is hoisted: without callbacks, nothing gets picked or typed
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SAVED_PLACE).assertIsNotSelected()
+    composeTestRule.onNode(searchField).assert(hasEditableText("Lau"))
+    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
   }
 
   @Test
@@ -77,8 +88,7 @@ class UploadPictureLocationTest {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
       DisplayLocation(
-          uiState =
-              UploadPictureUIState(placeQuery = "La", placeSuggestions = listOf(lausanne, unnamed)),
+          state = PictureLocationUIState(query = "La", suggestions = listOf(lausanne, unnamed)),
           onSuggestionClick = { picked += it },
       )
     }
@@ -92,64 +102,96 @@ class UploadPictureLocationTest {
   }
 
   @Test
+  fun aPlaceTypedButNotFoundSaysHowToUnblockTheUpload() {
+    composeTestRule.setContent {
+      DisplayLocation(state = PictureLocationUIState(query = "Grandma's house"))
+    }
+
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
+        .assertIsDisplayed()
+        .assert(hasOnlyText(NO_PLACE_FOUND_HINT))
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
+  }
+
+  @Test
+  fun aFailedSearchIsNotShownAsNoPlacesFound() {
+    composeTestRule.setContent {
+      DisplayLocation(state = PictureLocationUIState(query = "Lausanne", searchFailed = true))
+    }
+
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED)
+        .assertIsDisplayed()
+        .assert(hasOnlyText(PLACE_SEARCH_FAILED_HINT))
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+  }
+
+  @Test
+  fun aSearchStillRunningOnlyShowsSearching() {
+    composeTestRule.setContent {
+      DisplayLocation(
+          state = PictureLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
+      )
+    }
+
+    composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+  }
+
+  @Test
+  fun pressingEnterInTheSearchFieldDoesNotAddANewLine() {
+    var query by mutableStateOf("Lausanne")
+    composeTestRule.setContent {
+      DisplayLocation(state = PictureLocationUIState(query = query), onQueryChange = { query = it })
+    }
+
+    composeTestRule.onNode(searchField).performClick().performKeyInput { pressKey(Key.Enter) }
+
+    composeTestRule.runOnIdle { assertEquals("Lausanne", query) }
+  }
+
+  @Test
   fun aPlaceWithoutANameIsShownWithEmptyText() {
-    composeTestRule.setContent { DisplayPlaceSuggestion(place = unnamed) }
+    composeTestRule.setContent { DisplayPlaceSuggestion() } // default place: no name
 
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
         .assertIsDisplayed()
+        .assert(hasOnlyText(""))
         .performClick() // the default callback does nothing
-  }
-
-  @Test
-  fun aSuggestionWithDefaultsIsStillShown() {
-    composeTestRule.setContent { DisplayPlaceSuggestion() }
-
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertIsDisplayed()
-  }
-
-  @Test
-  fun aHintWithDefaultsShowsNothingVisible() {
-    composeTestRule.setContent { Box(Modifier.testTag(HINT_HOLDER)) { DisplayLocationHint() } }
-
-    composeTestRule.onNodeWithTag(HINT_HOLDER).assertExists()
+        .assert(hasOnlyText(""))
   }
 
   @Test
   fun aHintShowsItsTextUnderItsTag() {
-    composeTestRule.setContent { DisplayLocationHint(text = "Searching…", tag = HINT_HOLDER) }
+    composeTestRule.setContent { DisplayLocationHint(text = "Searching…", tag = HINT_TAG) }
 
-    composeTestRule.onNodeWithTag(HINT_HOLDER).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(HINT_TAG).assertIsDisplayed().assert(hasOnlyText("Searching…"))
   }
 
   @Test
-  fun redrawingTheScreenKeepsTheSectionAndFollowsANewState() {
-    var unrelated by mutableIntStateOf(0)
+  fun aHintWithDefaultsShowsAnEmptyText() {
+    composeTestRule.setContent { DisplayLocationHint() }
+
+    composeTestRule.onNodeWithTag("").assert(hasOnlyText(""))
+  }
+
+  @Test
+  fun suggestionsGoAwayOnceAPlaceIsPicked() {
     var state by
-        mutableStateOf(UploadPictureUIState(placeQuery = "La", placeSuggestions = listOf(lausanne)))
-    composeTestRule.setContent {
-      Column {
-        Text("redrawn $unrelated times")
-        DisplayLocation(placeOptions = mapOf("home" to "Home"), uiState = state)
-        DisplayPlaceSuggestion(place = lausanne)
-        DisplayLocationHint(text = "hint", tag = HINT_HOLDER)
-      }
-    }
+        mutableStateOf(PictureLocationUIState(query = "La", suggestions = listOf(lausanne)))
+    composeTestRule.setContent { DisplayLocation(state = state) }
+    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
 
-    // something else on the screen changes: the location section is left as it is
-    composeTestRule.runOnIdle { unrelated++ }
-    composeTestRule.onNodeWithText("redrawn 1 times").assertIsDisplayed()
-    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(2)
-
-    // the place is picked: its suggestions go away
     composeTestRule.runOnIdle { state = state.copy(location = lausanne) }
-    composeTestRule
-        .onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION)
-        .assertCountEquals(1) // only the standalone suggestion is left
+
+    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(0)
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 
   private companion object {
-    const val HINT_HOLDER = "UploadPictureLocationTest_hint_holder"
+    const val HINT_TAG = "UploadPictureLocationTest_hint"
   }
 }
