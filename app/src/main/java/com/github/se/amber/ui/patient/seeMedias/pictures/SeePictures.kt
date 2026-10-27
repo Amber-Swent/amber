@@ -1,6 +1,7 @@
 // this code was written with the aid of AI
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
+package com.github.se.amber.ui.patient.seePictures
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement

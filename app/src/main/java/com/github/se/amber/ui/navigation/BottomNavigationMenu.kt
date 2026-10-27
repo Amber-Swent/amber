@@ -109,7 +109,7 @@ fun BottomNavigationMenu(
     )
 
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.primary,
+        containerColor = MaterialTheme.colorScheme.background,
         content = {
           tabs.forEach { tab ->
             NavigationBarItem(
