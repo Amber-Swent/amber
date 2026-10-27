@@ -31,7 +31,6 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
 object PatientHomeTestTags {
-  const val TITLE = "home_title"
   const val GREETINGS = "home_greetings"
 }
 
