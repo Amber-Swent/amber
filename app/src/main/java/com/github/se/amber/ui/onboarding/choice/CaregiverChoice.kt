@@ -3,7 +3,6 @@
  */
 package com.github.se.amber.ui.onboarding.choice
 
-import android.bluetooth.BluetoothClass.Service.INFORMATION
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,7 +31,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.OrDivider
+import com.github.se.amber.ui.theme.Divider
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
@@ -122,7 +121,7 @@ fun CaregiverChoiceScreen(
             modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
         )
 
-        OrDivider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
+        Divider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
 
         DisplayCaregiverButton(
             onClick = onJoinCircle,
