@@ -69,9 +69,10 @@ fun PatientHomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           DisplayPatientTitle(title = "Home")
+          val firstName = uiState.patientProfile.person.firstName
           Text(
               modifier = Modifier.fillMaxWidth().testTag(PatientHomeTestTags.GREETINGS),
-              text = "Hello ${uiState.patientProfile.person.firstName} !",
+              text = if (firstName.isBlank()) "Hello!" else "Hello $firstName!",
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.bodyLarge,

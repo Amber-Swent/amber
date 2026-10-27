@@ -4,10 +4,8 @@ package com.github.se.amber.ui.patient
 
 import android.util.Log
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import io.mockk.verify
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,20 +13,18 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -173,7 +169,7 @@ class PatientHomeViewModelTest {
 
     val vm = PatientHomeViewModel(profileRepo)
 
-    assertEquals("Failed to load the profile: null", vm.uiState.value.errorMsg)
+    assertEquals("Failed to load the profile: unknown error", vm.uiState.value.errorMsg)
   }
 
   @Test

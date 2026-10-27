@@ -7,8 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
-import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -73,7 +71,7 @@ class PatientHomeViewModel(
               },
               onFailure = { e ->
                 Log.e("PatientHomeViewModel", "Error fetching profile", e)
-                setErrorMsg("Failed to load the profile: ${e.message}")
+                setErrorMsg("Failed to load the profile: ${e.message ?: "unknown error"}")
               },
           )
     }
