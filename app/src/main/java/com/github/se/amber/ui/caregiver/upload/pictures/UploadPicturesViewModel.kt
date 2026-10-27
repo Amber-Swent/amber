@@ -21,6 +21,7 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.UserProfile
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.async
@@ -141,7 +142,8 @@ class UploadPictureViewModel(
       return
     }
     viewModelScope.launch {
-      val profile =
+      // null when the user has no profile yet
+      val profile: UserProfile? =
           profileRepo.getProfile(uid).getOrElse {
             setErrorMsg(
                 UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "${it.message}"
