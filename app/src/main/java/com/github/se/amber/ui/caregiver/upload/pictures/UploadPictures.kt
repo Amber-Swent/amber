@@ -198,7 +198,7 @@ fun UploadPictureScreen(
 
           DisplayLocation(
               savedPlaceNamesById = placeOptions,
-              state = uiState.locationState,
+              state = uiState.location,
               onSavedPlaceClick = viewModel::selectPlace,
               onQueryChange = viewModel::setPlaceQuery,
               onSuggestionClick = viewModel::selectPlace,

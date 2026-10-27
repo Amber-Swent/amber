@@ -34,12 +34,17 @@ object UploadPictureLocationTestTags {
   const val SUGGESTION = "UploadPictureLocation_test_tag_suggestion"
   const val SEARCHING = "UploadPictureLocation_test_tag_searching"
   const val NO_RESULT = "UploadPictureLocation_test_tag_no_result"
+  const val TOO_SHORT = "UploadPictureLocation_test_tag_too_short"
   const val SEARCH_FAILED = "UploadPictureLocation_test_tag_search_failed"
 }
 
 /** Shown when a typed place matches nothing: the upload stays blocked until the user acts. */
 internal const val NO_PLACE_FOUND_HINT =
     "No places found. Try another search, or clear the field to upload without a location."
+
+/** Shown while the typed place is too short to be searched: the upload is blocked until then. */
+internal const val PLACE_QUERY_TOO_SHORT_HINT =
+    "Type at least $MIN_PLACE_QUERY_LENGTH letters to search, or clear the field."
 
 /** Shown when the search itself failed, e.g. offline: the toast with the error is gone by then. */
 internal const val PLACE_SEARCH_FAILED_HINT =
@@ -98,10 +103,12 @@ internal fun DisplayLocation(
       )
     }
     // Only shown while a typed place is still to be picked
-    if (state.location == null && state.query.isNotBlank()) {
+    if (state.pickedPlace == null && state.query.isNotBlank()) {
       when {
         state.isSearching ->
             DisplayLocationHint("Searching…", UploadPictureLocationTestTags.SEARCHING)
+        !state.isLongEnoughToSearch ->
+            DisplayLocationHint(PLACE_QUERY_TOO_SHORT_HINT, UploadPictureLocationTestTags.TOO_SHORT)
         state.searchFailed ->
             DisplayLocationHint(
                 PLACE_SEARCH_FAILED_HINT,

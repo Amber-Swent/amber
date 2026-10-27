@@ -88,7 +88,7 @@ class UploadPictureLocationTest {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
       DisplayLocation(
-          state = PictureLocationUIState(query = "La", suggestions = listOf(lausanne, unnamed)),
+          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
           onSuggestionClick = { picked += it },
       )
     }
@@ -124,6 +124,17 @@ class UploadPictureLocationTest {
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED)
         .assertIsDisplayed()
         .assert(hasOnlyText(PLACE_SEARCH_FAILED_HINT))
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+  }
+
+  @Test
+  fun aPlaceTooShortToSearchSaysHowManyLettersAreNeeded() {
+    composeTestRule.setContent { DisplayLocation(state = PictureLocationUIState(query = "La")) }
+
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.TOO_SHORT)
+        .assertIsDisplayed()
+        .assert(hasOnlyText(PLACE_QUERY_TOO_SHORT_HINT))
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 
@@ -181,11 +192,11 @@ class UploadPictureLocationTest {
   @Test
   fun suggestionsGoAwayOnceAPlaceIsPicked() {
     var state by
-        mutableStateOf(PictureLocationUIState(query = "La", suggestions = listOf(lausanne)))
+        mutableStateOf(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule.setContent { DisplayLocation(state = state) }
     composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
 
-    composeTestRule.runOnIdle { state = state.copy(location = lausanne) }
+    composeTestRule.runOnIdle { state = state.copy(pickedPlace = lausanne) }
 
     composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(0)
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()

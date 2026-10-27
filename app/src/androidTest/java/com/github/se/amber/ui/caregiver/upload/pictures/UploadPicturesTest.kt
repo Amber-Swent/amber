@@ -26,6 +26,7 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
@@ -386,7 +387,10 @@ class UploadPicturesTest {
     composeTestRule.runOnIdle { placeOptionsFlow.value = mapOf("home" to "Home") }
     every { viewModel.selectPlace(any<String>()) } answers
         {
-          uiStateFlow.value = uiStateFlow.value.copy(selectedPlaceId = firstArg())
+          uiStateFlow.value =
+              uiStateFlow.value.copy(
+                  location = uiStateFlow.value.location.copy(selectedPlaceId = firstArg())
+              )
         }
 
     val chip = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)[0]
@@ -413,7 +417,9 @@ class UploadPicturesTest {
   @Test
   fun searchingIsShownWhileTheSearchRuns() {
     launchScreen()
-    setState(UploadPictureUIState(placeQuery = "Lau", isSearchingPlaces = true))
+    setState(
+        UploadPictureUIState(location = PictureLocationUIState(query = "Lau", isSearching = true))
+    )
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
         .performScrollTo()
@@ -423,7 +429,7 @@ class UploadPicturesTest {
   @Test
   fun noResultIsShownWhenTheSearchFindsNothing() {
     launchScreen()
-    setState(UploadPictureUIState(placeQuery = "Grandma's house"))
+    setState(UploadPictureUIState(location = PictureLocationUIState(query = "Grandma's house")))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
         .performScrollTo()
@@ -433,7 +439,11 @@ class UploadPicturesTest {
   @Test
   fun clickingASuggestionPicksIt() {
     launchScreen()
-    setState(UploadPictureUIState(placeQuery = "Lau", placeSuggestions = listOf(lausanne)))
+    setState(
+        UploadPictureUIState(
+            location = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne))
+        )
+    )
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
         .performScrollTo()
@@ -446,9 +456,12 @@ class UploadPicturesTest {
     launchScreen()
     setState(
         UploadPictureUIState(
-            placeQuery = lausanne.placeName!!,
-            placeSuggestions = listOf(lausanne),
-            location = lausanne,
+            location =
+                PictureLocationUIState(
+                    query = lausanne.placeName!!,
+                    suggestions = listOf(lausanne),
+                    pickedPlace = lausanne,
+                )
         )
     )
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertDoesNotExist()
