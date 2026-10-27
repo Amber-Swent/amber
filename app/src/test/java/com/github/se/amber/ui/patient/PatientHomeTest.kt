@@ -84,18 +84,18 @@ class PatientHomeScreenTest {
     setScreen()
 
     composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice!")
   }
 
   @Test
   fun greetingUpdatesWhenStateChanges() {
     setScreen()
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice!")
 
     stateFlow.value = PatientHomeUIState(patientProfile = profileOf("Bob"))
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Bob !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Bob!")
   }
 
   @Test
@@ -104,7 +104,7 @@ class PatientHomeScreenTest {
     setScreen()
 
     composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello  !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello !")
   }
 
   @Test

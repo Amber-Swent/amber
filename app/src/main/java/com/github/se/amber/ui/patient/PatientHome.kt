@@ -72,7 +72,7 @@ fun PatientHomeScreen(
           val firstName = uiState.patientProfile.person.firstName
           Text(
               modifier = Modifier.fillMaxWidth().testTag(PatientHomeTestTags.GREETINGS),
-              text = if (firstName.isBlank()) "Hello!" else "Hello $firstName!",
+              text = "Hello $firstName!",
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.bodyLarge,
