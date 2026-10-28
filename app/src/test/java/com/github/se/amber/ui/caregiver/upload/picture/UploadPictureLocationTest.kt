@@ -1,6 +1,7 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.picture
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -102,50 +103,39 @@ class UploadPictureLocationTest {
   }
 
   @Test
-  fun aPlaceTypedButNotFoundSaysHowToUnblockTheUpload() {
-    composeTestRule.setContent {
-      DisplayLocation(state = PictureLocationUIState(query = "Grandma's house"))
-    }
+  fun eachSearchStateShowsOnlyItsOwnHint() {
+    var state by mutableStateOf(PictureLocationUIState(query = "Grandma's house"))
+    composeTestRule.setContent { DisplayLocation(state = state) }
 
+    // a place typed but not found says how to unblock the upload
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
         .assertIsDisplayed()
         .assert(hasOnlyText(NO_PLACE_FOUND_HINT))
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
-  }
 
-  @Test
-  fun aFailedSearchIsNotShownAsNoPlacesFound() {
-    composeTestRule.setContent {
-      DisplayLocation(state = PictureLocationUIState(query = "Lausanne", searchFailed = true))
+    // a failed search is not shown as no places found
+    composeTestRule.runOnIdle {
+      state = PictureLocationUIState(query = "Lausanne", searchFailed = true)
     }
-
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED)
         .assertIsDisplayed()
         .assert(hasOnlyText(PLACE_SEARCH_FAILED_HINT))
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
-  }
 
-  @Test
-  fun aPlaceTooShortToSearchSaysHowManyLettersAreNeeded() {
-    composeTestRule.setContent { DisplayLocation(state = PictureLocationUIState(query = "La")) }
-
+    // a place too short to search says how many letters are needed
+    composeTestRule.runOnIdle { state = PictureLocationUIState(query = "La") }
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.TOO_SHORT)
         .assertIsDisplayed()
         .assert(hasOnlyText(PLACE_QUERY_TOO_SHORT_HINT))
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
-  }
 
-  @Test
-  fun aSearchStillRunningOnlyShowsSearching() {
-    composeTestRule.setContent {
-      DisplayLocation(
-          state = PictureLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
-      )
+    // a search still running only shows searching
+    composeTestRule.runOnIdle {
+      state = PictureLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
     }
-
     composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
@@ -164,8 +154,14 @@ class UploadPictureLocationTest {
   }
 
   @Test
-  fun aPlaceWithoutANameIsShownWithEmptyText() {
-    composeTestRule.setContent { DisplayPlaceSuggestion() } // default place: no name
+  fun standaloneHelpersShowTheirTextOrAnEmptyOneByDefault() {
+    composeTestRule.setContent {
+      Column {
+        DisplayPlaceSuggestion() // default place: no name
+        DisplayLocationHint(text = "Searching…", tag = HINT_TAG)
+        DisplayLocationHint()
+      }
+    }
 
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
@@ -173,19 +169,7 @@ class UploadPictureLocationTest {
         .assert(hasOnlyText(""))
         .performClick() // the default callback does nothing
         .assert(hasOnlyText(""))
-  }
-
-  @Test
-  fun aHintShowsItsTextUnderItsTag() {
-    composeTestRule.setContent { DisplayLocationHint(text = "Searching…", tag = HINT_TAG) }
-
     composeTestRule.onNodeWithTag(HINT_TAG).assertIsDisplayed().assert(hasOnlyText("Searching…"))
-  }
-
-  @Test
-  fun aHintWithDefaultsShowsAnEmptyText() {
-    composeTestRule.setContent { DisplayLocationHint() }
-
     composeTestRule.onNodeWithTag("").assert(hasOnlyText(""))
   }
 

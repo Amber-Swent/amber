@@ -349,42 +349,21 @@ class UploadPicturesTest {
 
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
 
-  private fun setState(state: UploadPictureUIState) {
-    composeTestRule.runOnIdle { uiStateFlow.value = state }
+  private fun setLocation(location: PictureLocationUIState) {
+    composeTestRule.runOnIdle { uiStateFlow.value = UploadPictureUIState(location = location) }
   }
 
   @Test
-  fun locationSectionIsDisplayed() {
+  fun savedPlacesAreShownAsChipsThatCanBePicked() {
     launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
         .performScrollTo()
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun noSavedPlaceChipWithoutSavedPlaces() {
-    launchScreen()
     composeTestRule
         .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
         .assertCountEquals(0)
-  }
 
-  @Test
-  fun aChipIsDisplayedForEachSavedPlace() {
-    launchScreen()
-    composeTestRule.runOnIdle {
-      placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")
-    }
-    composeTestRule
-        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
-        .assertCountEquals(2)
-  }
-
-  @Test
-  fun clickingASavedPlaceChipPicksItAndShowsItSelected() {
-    launchScreen()
-    composeTestRule.runOnIdle { placeOptionsFlow.value = mapOf("home" to "Home") }
     every { viewModel.selectPlace(any<String>()) } answers
         {
           uiStateFlow.value =
@@ -392,17 +371,21 @@ class UploadPicturesTest {
                   location = uiStateFlow.value.location.copy(selectedPlaceId = firstArg())
               )
         }
+    composeTestRule.runOnIdle {
+      placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")
+    }
+    val chips = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+    chips.assertCountEquals(2)
 
-    val chip = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)[0]
-    chip.performScrollTo().assertIsNotSelected()
-    chip.performClick()
+    chips[0].performScrollTo().assertIsNotSelected().performClick()
 
     verify { viewModel.selectPlace("home") }
-    chip.assertIsSelected()
+    chips[0].assertIsSelected()
+    chips[1].assertIsNotSelected()
   }
 
   @Test
-  fun typingInTheSearchFieldSendsTheQuery() {
+  fun searchingAPlaceShowsItsProgressAndSuggestionsToPick() {
     launchScreen()
     composeTestRule
         .onNode(
@@ -412,56 +395,32 @@ class UploadPicturesTest {
         .performScrollTo()
         .performTextInput("Lausanne")
     verify { viewModel.setPlaceQuery("Lausanne") }
-  }
 
-  @Test
-  fun searchingIsShownWhileTheSearchRuns() {
-    launchScreen()
-    setState(
-        UploadPictureUIState(location = PictureLocationUIState(query = "Lau", isSearching = true))
-    )
+    setLocation(PictureLocationUIState(query = "Lau", isSearching = true))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
         .performScrollTo()
         .assertIsDisplayed()
-  }
 
-  @Test
-  fun noResultIsShownWhenTheSearchFindsNothing() {
-    launchScreen()
-    setState(UploadPictureUIState(location = PictureLocationUIState(query = "Grandma's house")))
+    setLocation(PictureLocationUIState(query = "Grandma's house"))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
         .performScrollTo()
         .assertIsDisplayed()
-  }
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCHING).assertDoesNotExist()
 
-  @Test
-  fun clickingASuggestionPicksIt() {
-    launchScreen()
-    setState(
-        UploadPictureUIState(
-            location = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne))
-        )
-    )
+    setLocation(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
         .performScrollTo()
         .performClick()
     verify { viewModel.selectPlace(lausanne) }
-  }
 
-  @Test
-  fun suggestionsAreHiddenOnceAPlaceIsPicked() {
-    launchScreen()
-    setState(
-        UploadPictureUIState(
-            location =
-                PictureLocationUIState(
-                    query = lausanne.placeName!!,
-                    suggestions = listOf(lausanne),
-                    pickedPlace = lausanne,
-                )
+    setLocation(
+        PictureLocationUIState(
+            query = lausanne.placeName!!,
+            suggestions = listOf(lausanne),
+            pickedPlace = lausanne,
         )
     )
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertDoesNotExist()
