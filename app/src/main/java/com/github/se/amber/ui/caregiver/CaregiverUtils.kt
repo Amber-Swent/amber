@@ -167,7 +167,8 @@ object DisplayTextFieldTestTags {
  * @param emptyErrorMessage The optional error message displayed when the field is empty after
  *   focus.
  * @param minLines The minimum number of lines displayed by the text field.
- * @param maxLines The maximum number of lines displayed by the text field and the warning threshold.
+ * @param maxLines The maximum number of lines displayed by the text field and the warning
+ *   threshold.
  * @param maxChar Character count at which a warning is displayed after focus.
  */
 @Composable

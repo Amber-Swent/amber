@@ -277,7 +277,10 @@ class CaregiverUtilsAndroidTest {
     launch()
     openDialog(DateField.MONTH)
     selectItem(Month.FEBRUARY.value - DateField.MONTH.range(initialDate).first + 1)
-    assertEquals(listOf(initialDate.copy(month = Month.FEBRUARY.value, day = 29)), listener.selections)
+    assertEquals(
+        listOf(initialDate.copy(month = Month.FEBRUARY.value, day = 29)),
+        listener.selections,
+    )
   }
 
   @Test

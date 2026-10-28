@@ -118,7 +118,8 @@ enum class DateField(val label: String) {
   fun applyTo(date: MemoryDate, value: Int?): MemoryDate =
       when (this) {
         YEAR -> date.copy(year = requireNotNull(value)).withValidDay()
-        MONTH -> date.copy(month = value, day = if (value == null) null else date.day).withValidDay()
+        MONTH ->
+            date.copy(month = value, day = if (value == null) null else date.day).withValidDay()
         DAY -> date.copy(day = if (date.month == null) null else value)
       }
 
