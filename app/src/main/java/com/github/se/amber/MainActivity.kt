@@ -48,7 +48,7 @@ import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
-import com.github.se.amber.ui.patient.seePictures.SeePicturesScreen
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
 
