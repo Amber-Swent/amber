@@ -1,5 +1,6 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.upload
 
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.CANCEL_BUTTON
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
@@ -59,6 +61,7 @@ import com.github.se.amber.ui.theme.darkGray
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import java.time.LocalDate
+import java.time.YearMonth
 
 private const val VISIBLE_ITEMS = 5 // number of rows visible at once in the picker
 
@@ -90,11 +93,11 @@ enum class DateField(val label: String) {
    *
    * @param date date used to determine the valid range
    */
-  fun range(date: LocalDate): IntRange =
+  fun range(date: MemoryDate): IntRange =
       when (this) {
         YEAR -> date.year - 100..date.year + 100
         MONTH -> 1..12
-        DAY -> 1..date.lengthOfMonth()
+        DAY -> 1..(date.month?.let { YearMonth.of(date.year, it).lengthOfMonth() } ?: 0)
       }
 
   /**
@@ -102,11 +105,11 @@ enum class DateField(val label: String) {
    *
    * @param date date from which to read the value
    */
-  fun valueIn(date: LocalDate): Int =
+  fun valueIn(date: MemoryDate): Int? =
       when (this) {
         YEAR -> date.year
-        MONTH -> date.monthValue
-        DAY -> date.dayOfMonth
+        MONTH -> date.month
+        DAY -> date.day
       }
 
   /**
@@ -115,11 +118,11 @@ enum class DateField(val label: String) {
    * @param date date to update
    * @param value new value for this field
    */
-  fun applyTo(date: LocalDate, value: Int): LocalDate =
+  fun applyTo(date: MemoryDate, value: Int?): MemoryDate =
       when (this) {
-        YEAR -> date.withYear(value)
-        MONTH -> date.withMonth(value)
-        DAY -> date.withDayOfMonth(value)
+        YEAR -> date.copy(year = requireNotNull(value)).withValidDay()
+        MONTH -> date.copy(month = value, day = if (value == null) null else date.day).withValidDay()
+        DAY -> date.copy(day = if (date.month == null) null else value)
       }
 
   /**
@@ -130,18 +133,25 @@ enum class DateField(val label: String) {
   fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
 }
 
+/** Keeps a known day valid when the selected month or year changes. */
+private fun MemoryDate.withValidDay(): MemoryDate =
+    if (month == null) copy(day = null)
+    else copy(day = day?.coerceAtMost(YearMonth.of(year, month).lengthOfMonth()))
+
 /**
- * Displays a picker for selecting a date. The dates go from ( Today ±100 ).
+ * Displays a picker for a memory date. Month and day may be unknown.
  *
- * @param onDateSelected called with the selected year, month, and day
+ * @param modifier modifier applied to the picker
+ * @param initialDate date shown before a selection is made
+ * @param onDateSelected called with the selected date, including unknown fields
  */
 @Composable
 fun DisplayScrollableDatePicker(
     modifier: Modifier = Modifier,
-    initialDate: LocalDate = LocalDate.now(),
-    onDateSelected: (year: Int, month: Int, day: Int) -> Unit = { _, _, _ -> },
+    initialDate: MemoryDate = MemoryDate(LocalDate.now().year),
+    onDateSelected: (MemoryDate) -> Unit = {},
 ) {
-  var date by remember { mutableStateOf(initialDate) } // The default date is Today
+  var date by remember { mutableStateOf(initialDate) }
   var openField by remember { mutableStateOf<DateField?>(null) }
 
   // Displays the date field (c.f year, month, and day)
@@ -162,7 +172,7 @@ fun DisplayScrollableDatePicker(
     DateField.entries.forEach { field ->
       DateBox(
           field = field,
-          value = field.format(field.valueIn(date)),
+          value = field.valueIn(date)?.let(field::format) ?: "Unknown",
           onClick = { openField = field },
           modifier = Modifier.weight(1f).testTag(DatePickerTestTags.box(field)),
       )
@@ -173,14 +183,21 @@ fun DisplayScrollableDatePicker(
   // This window allows you to select a value for the field in question
   openField?.let { field ->
     val range = field.range(date)
+    val allowsUnknown = field != DateField.YEAR // Month and day can be unknown
     ScrollablePickerDialog(
         field = field,
-        items = range.map(field::format),
-        initialIndex = field.valueIn(date) - range.first,
+        items =
+            if (allowsUnknown) listOf("Unknown") + range.map(field::format)
+            else range.map(field::format),
+        initialIndex =
+            field.valueIn(date)?.let { it - range.first + if (allowsUnknown) 1 else 0 } ?: 0,
         onDismiss = { openField = null },
         onSelected = { index ->
-          date = field.applyTo(date, range.first + index)
-          onDateSelected(date.year, date.monthValue, date.dayOfMonth)
+          val value =
+              if (allowsUnknown && index == 0) null
+              else range.first + index - if (allowsUnknown) 1 else 0
+          date = field.applyTo(date, value)
+          onDateSelected(date)
           openField = null
         },
     )

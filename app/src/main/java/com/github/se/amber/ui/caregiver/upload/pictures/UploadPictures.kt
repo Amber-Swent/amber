@@ -44,7 +44,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
@@ -193,9 +192,7 @@ fun UploadPictureScreen(
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
-              onDateSelected = { year, month, day ->
-                viewModel.setDate(MemoryDate(year, month, day))
-              },
+              onDateSelected = viewModel::setDate,
           )
 
           Spacer(modifier = Modifier.height(PADDING_MEDIUM))
