@@ -66,7 +66,7 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier = Modifier) {
   Text(
       modifier = modifier.padding(top = PADDING_SMALL, bottom = PADDING_MEDIUM),
       text = title,
-      color = MaterialTheme.colorScheme.secondary,
+      color = MaterialTheme.colorScheme.primary,
       style = MaterialTheme.typography.headlineSmall,
   )
 }
@@ -191,8 +191,14 @@ fun DisplayTextField(
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      label = { Text(text = label, color = MaterialTheme.colorScheme.onSurface) },
-      placeholder = placeholder?.let { { Text(it) } },
+      label = {
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+      },
+      placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyMedium) } },
       modifier =
           modifier
               .fillMaxWidth()
@@ -289,7 +295,11 @@ fun DisplayBoxWithIconText(
       )
     }
 
-    Text(text = label, color = MaterialTheme.colorScheme.onSurface)
+    Text(
+        text = label,
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyMedium,
+    )
   }
 }
 
