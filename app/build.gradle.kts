@@ -59,7 +59,7 @@ android {
     }
   }
 
-  testCoverage { jacocoVersion = "0.8.11" }
+  testCoverage { jacocoVersion = "0.8.16" }
 
   buildFeatures { compose = true }
 
