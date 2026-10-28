@@ -17,24 +17,43 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.FirebaseCareCircleRepository
+import com.github.se.amber.data.onboarding.FirebaseOnboardingRepository
+import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.e2e.FirebaseEmulator
 import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.Source
+import com.google.firebase.firestore.firestore
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
+import java.util.UUID
 import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -383,5 +402,55 @@ class UploadPicturesTest {
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
+  }
+
+  @Test
+  fun addPersonPopupSavesToFirestoreAndShowsSelectedChip() {
+    val message = "Firebase emulators are not running on the host"
+    val required =
+        InstrumentationRegistry.getArguments().getString("requireFirebaseEmulators") == "true"
+    if (required) assertTrue(message, FirebaseEmulator.isRunning())
+    else assumeTrue(message, FirebaseEmulator.isRunning())
+    FirebaseEmulator.useForDefaultApp()
+
+    val circle = runBlocking {
+      val email = "upload-person-${UUID.randomUUID()}@amber.test"
+      Firebase.auth.createUserWithEmailAndPassword(email, "Password123!").await()
+      FirebaseProfileRepository()
+          .createProfile(Person(firstName = "Ada"), Role.CAREGIVER)
+          .getOrThrow()
+      FirebaseOnboardingRepository().createInitialCareCircle("Family").getOrThrow()
+    }
+    every { authRepo.currentUser } returns AuthUser(checkNotNull(Firebase.auth.currentUser).uid)
+    viewModel =
+        UploadPictureViewModel(
+            mediaRepo = mediaRepo,
+            authRepo = authRepo,
+            profileRepo = FirebaseProfileRepository(),
+            circleRepo = FirebaseCareCircleRepository(),
+            pictureReader = pictureReader,
+        )
+    launchScreen()
+    composeTestRule.waitUntil(10_000) { viewModel.careCircle.value?.id == circle.id }
+
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON)
+        .performScrollTo()
+        .performClick()
+    composeTestRule.onAllNodesWithTag(DisplayTextFieldTestTags.TEXT)[1].performTextInput("Anne")
+    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+
+    composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
+    val savedId = viewModel.uiState.value.shownIds.single()
+    composeTestRule.onNode(hasText("Anne") and hasClickAction()).assertIsSelected()
+    val stored = runBlocking {
+      Firebase.firestore
+          .collection("careCircles")
+          .document(circle.id)
+          .get(Source.SERVER)
+          .await()
+          .toObject(CareCircle::class.java)
+    }
+    assertEquals("Anne", stored?.people?.get(savedId)?.firstName)
   }
 }
