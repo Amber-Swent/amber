@@ -55,8 +55,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
-import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.ADD_PERSON
@@ -212,7 +212,7 @@ fun UploadPictureScreen(
               options = options,
               shownIds = uiState.shownIds,
               toggleShownId = viewModel::toggleShownId,
-              onAddPerson = viewModel::onAddPerson
+              onAddPerson = viewModel::onAddPerson,
           )
 
           DisplayScrollableDatePicker(
@@ -244,9 +244,7 @@ fun UploadPictureScreen(
       ) {
         Column(
             modifier =
-                Modifier.imePadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(PADDING_MEDIUM),
+                Modifier.imePadding().verticalScroll(rememberScrollState()).padding(PADDING_MEDIUM),
             verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
         ) {
           Box(modifier = Modifier.fillMaxWidth()) {
@@ -254,7 +252,7 @@ fun UploadPictureScreen(
                 text = "Add a person",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.align(Alignment.CenterStart)
+                modifier = Modifier.align(Alignment.CenterStart),
             )
             IconButton(
                 onClick = viewModel::dismissAddPerson,
@@ -296,10 +294,9 @@ fun UploadPictureScreen(
 }
 
 /**
- * Displays selectable chips for people who are involved in a picture.
- * Displays button that allows the caregiver to add a person to be associated to this picture:
- * This person does not have a userId, will be added to the care circle and will be an
- * Instance of `Person`.
+ * Displays selectable chips for people who are involved in a picture. Displays button that allows
+ * the caregiver to add a person to be associated to this picture: This person does not have a
+ * userId, will be added to the care circle and will be an Instance of `Person`.
  *
  * @param options The available person IDs and labels.
  * @param shownIds The IDs of the people currently selected.
@@ -321,82 +318,84 @@ private fun DisplayWhoIsInvolved(
     )
     if (options.isEmpty()) {
       Row(
-          modifier = Modifier.fillMaxWidth()
-              .height(IntrinsicSize.Min) // Takes the height of its tallest child
-              .testTag(SELECT_PERSON_INVOLVED),
+          modifier =
+              Modifier.fillMaxWidth()
+                  .height(IntrinsicSize.Min) // Takes the height of its tallest child
+                  .testTag(SELECT_PERSON_INVOLVED),
           horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-          verticalAlignment = Alignment.CenterVertically
-
+          verticalAlignment = Alignment.CenterVertically,
       ) {
-          Box(
-              modifier =
-                  Modifier.weight(WEIGHT_ONE)
-                      .testTag(NO_PERSON_INVOLVED)
-                      .border(
-                          width = BORDER_THICKNESS,
-                          color = MaterialTheme.colorScheme.tertiary,
-                          shape = RoundedCornerShape(ROUND_CORNER),)
-                      .clip(RoundedCornerShape(ROUND_CORNER))
-                      .padding(PADDING_MEDIUM),
-              contentAlignment = Alignment.Center,) {
-              Text(
-                  text = "No one is part of your care circle",
-                  color = MaterialTheme.colorScheme.onBackground,
-                  style = MaterialTheme.typography.bodyMedium,
-              )
-          }
-          // Display a button to add another person to the care circle
-          AssistChip(
-              onClick = { onAddPerson() },
-              label = { Text("+", style = MaterialTheme.typography.labelMedium) },
-              modifier = Modifier.fillMaxHeight().testTag(ADD_PERSON),
+        Box(
+            modifier =
+                Modifier.weight(WEIGHT_ONE)
+                    .testTag(NO_PERSON_INVOLVED)
+                    .border(
+                        width = BORDER_THICKNESS,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        shape = RoundedCornerShape(ROUND_CORNER),
+                    )
+                    .clip(RoundedCornerShape(ROUND_CORNER))
+                    .padding(PADDING_MEDIUM),
+            contentAlignment = Alignment.Center,
+        ) {
+          Text(
+              text = "No one is part of your care circle",
+              color = MaterialTheme.colorScheme.onBackground,
+              style = MaterialTheme.typography.bodyMedium,
+          )
+        }
+        // Display a button to add another person to the care circle
+        AssistChip(
+            onClick = { onAddPerson() },
+            label = { Text("+", style = MaterialTheme.typography.labelMedium) },
+            modifier = Modifier.fillMaxHeight().testTag(ADD_PERSON),
+            colors =
+                AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    labelColor = MaterialTheme.colorScheme.onTertiary,
+                ),
+        )
+      }
+    } else {
+      FlowRow(
+          horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+          modifier = Modifier.fillMaxWidth().testTag(SELECT_PERSON_INVOLVED),
+      ) {
+        // Display a chip for each person associated to the photo
+        options.forEach { (id, label) ->
+          FilterChip(
+              selected = id in shownIds,
+              onClick = { toggleShownId(id) },
+              label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+              modifier = Modifier.testTag(PERSON_INVOLVED),
               colors =
-                  AssistChipDefaults.assistChipColors(
+                  FilterChipDefaults.filterChipColors(
                       containerColor = MaterialTheme.colorScheme.tertiary,
                       labelColor = MaterialTheme.colorScheme.onTertiary,
+                      selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                      selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
                   ),
           )
-      }
-      } else {
-          FlowRow(
-              horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-              modifier = Modifier.fillMaxWidth().testTag(SELECT_PERSON_INVOLVED),
-          ) {
-              // Display a chip for each person associated to the photo
-              options.forEach { (id, label) ->
-                  FilterChip(
-                      selected = id in shownIds,
-                      onClick = { toggleShownId(id) },
-                      label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-                      modifier = Modifier.testTag(PERSON_INVOLVED),
-                      colors =
-                          FilterChipDefaults.filterChipColors(
-                              containerColor = MaterialTheme.colorScheme.tertiary,
-                              labelColor = MaterialTheme.colorScheme.onTertiary,
-                              selectedContainerColor = MaterialTheme.colorScheme.secondary,
-                              selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
-                          ),
-                  )
-              }
-              AssistChip(
-                  onClick = { onAddPerson() },
-                  label = { Text("+", style = MaterialTheme.typography.labelMedium) },
-                  modifier = Modifier.testTag(ADD_PERSON),
-                  colors =
-                      AssistChipDefaults.assistChipColors(
-                          containerColor = MaterialTheme.colorScheme.tertiary,
-                          labelColor = MaterialTheme.colorScheme.onTertiary,
-                      ),
-              )
-          }
+        }
+        AssistChip(
+            onClick = { onAddPerson() },
+            label = { Text("+", style = MaterialTheme.typography.labelMedium) },
+            modifier = Modifier.testTag(ADD_PERSON),
+            colors =
+                AssistChipDefaults.assistChipColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    labelColor = MaterialTheme.colorScheme.onTertiary,
+                ),
+        )
       }
     }
   }
+}
 
 /** Preview of [UploadPictureScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun UploadPictureScreenPreview() {
 
-    AmberAppTheme(dynamicColor = false) { UploadPictureScreen() }
+  AmberAppTheme(dynamicColor = false) { UploadPictureScreen() }
 }
