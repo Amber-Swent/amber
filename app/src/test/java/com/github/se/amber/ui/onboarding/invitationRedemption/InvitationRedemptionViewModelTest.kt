@@ -1,5 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of an AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.invitationRedemption
 
 import com.github.se.amber.data.invitation.InvitationError
@@ -7,7 +8,7 @@ import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
-import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionUiState
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionUIState
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
 import com.github.se.amber.ui.onboarding.invitationRedemption.toActionableMessage
 import io.mockk.coEvery
@@ -73,7 +74,7 @@ class InvitationRedemptionViewModelTest {
 
   @Test
   fun initialState_hasEmptyCodeAndNoErrors() {
-    assertEquals(InvitationRedemptionUiState(), viewModel.uiState.value)
+    assertEquals(InvitationRedemptionUIState(), viewModel.uiState.value)
     assertNull(viewModel.uiState.value.errorMessage)
   }
 
