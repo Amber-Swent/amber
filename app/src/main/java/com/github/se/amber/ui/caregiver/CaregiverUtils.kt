@@ -1,4 +1,6 @@
-/* Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code. */
+/* Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
+ */
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.foundation.border
@@ -28,11 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -53,28 +53,24 @@ import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
-import com.github.se.amber.ui.theme.darkOrange
-import com.github.se.amber.ui.theme.lightGray
-import com.github.se.amber.ui.theme.lightOrange
-import com.github.se.amber.ui.theme.orange
 
 /**
- * Displays the title for caregiver's Screen
+ * Displays a title shared by caregiver screens.
  *
- * @param title title to display
- * @param modifier modifier to apply to the text (can for e.g. contains the necessary TestTag)
+ * @param title Text to display.
+ * @param modifier Modifier applied to the title, including any caller-provided test tag.
  */
 @Composable
-fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
+fun DisplayCaregiverTitle(title: String, modifier: Modifier = Modifier) {
   Text(
       modifier = modifier.padding(top = PADDING_SMALL, bottom = PADDING_MEDIUM),
       text = title,
-      color = orange,
+      color = MaterialTheme.colorScheme.secondary,
       style = MaterialTheme.typography.headlineSmall,
-      fontWeight = FontWeight.Bold,
   )
 }
 
+/** Test tags owned by [DisplayCaregiverButton]. */
 object DisplayCaregiverButtonTestTags {
   const val TEXT = "caregiver_button_text"
   const val ICON = "caregiver_button_icon"
@@ -85,7 +81,7 @@ object DisplayCaregiverButtonTestTags {
  * Displays a caregiver button with optional icon content.
  *
  * An icon and its content description must either both be provided or both be omitted. If there is
- * no icon, the text is center. If there is an icon, the text is on the left and the icon on the
+ * no icon, the text is centered. If there is an icon, the text is on the left and the icon on the
  * right
  *
  * @param modifier modifier applied to the button.
@@ -95,14 +91,12 @@ object DisplayCaregiverButtonTestTags {
  * @param description content description for [icon], required when an icon is provided.
  * @param text text displayed on the button.
  * @param style style displayed by the text.
- * @param height height of the button.
+ * @param height minimum height of the button; content can make it taller.
  * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
  */
 @Composable
 fun DisplayCaregiverButton(
-    // If needed, pass the testTag of the button through here
-    // this buttonTag allow another function want to ensure a specific button is display
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     enabled: Boolean = true,
@@ -120,7 +114,7 @@ fun DisplayCaregiverButton(
   Button(
       onClick = onClick,
       enabled = enabled,
-      // The use of heightIn(min = ...) avoids cutting the text
+      // A minimum height lets multiline text expand without being clipped.
       modifier = modifier.fillMaxWidth(widthPercentage).heightIn(min = height).testTag(BUTTON),
       colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
       shape = RoundedCornerShape(ROUND_CORNER),
@@ -149,7 +143,7 @@ fun DisplayCaregiverButton(
   }
 }
 
-/** Test tags used by the caregiver text field components. */
+/** Test tags owned by [DisplayTextField]. */
 object DisplayTextFieldTestTags {
   const val TEXT = "display_textField_text"
   const val MAX_LINES_MESSAGE = "display_textField_max_lines"
@@ -168,8 +162,8 @@ object DisplayTextFieldTestTags {
  * @param emptyErrorMessage The optional error message displayed when the field is empty after
  *   focus.
  * @param minLines The minimum number of lines displayed by the text field.
- * @param maxLines The maximum number of lines displayed by the text field.
- * @param maxChar The maximum number of character displayed by the text field.
+ * @param maxLines The maximum number of lines displayed by the text field and the warning threshold.
+ * @param maxChar Character count at which a warning is displayed after focus.
  */
 @Composable
 fun DisplayTextField(
@@ -191,7 +185,7 @@ fun DisplayTextField(
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      label = { Text(text = label, color = Color.Black) },
+      label = { Text(text = label, color = MaterialTheme.colorScheme.onSurface) },
       placeholder = placeholder?.let { { Text(it) } },
       modifier =
           modifier
@@ -201,8 +195,8 @@ fun DisplayTextField(
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = orange,
-              unfocusedBorderColor = lightGray,
+              focusedBorderColor = MaterialTheme.colorScheme.secondary,
+              unfocusedBorderColor = MaterialTheme.colorScheme.tertiary,
           ),
       minLines = minLines,
       maxLines = maxLines,
@@ -213,7 +207,7 @@ fun DisplayTextField(
       Text(
           modifier = Modifier.testTag(MAX_CHAR_MESSAGE),
           text = "Maximum $maxChar characters reached",
-          color = darkOrange,
+          color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
     }
@@ -221,7 +215,7 @@ fun DisplayTextField(
       Text(
           modifier = Modifier.testTag(MAX_LINES_MESSAGE),
           text = "Maximum $maxLines lines reached",
-          color = darkOrange,
+          color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
     }
@@ -229,14 +223,14 @@ fun DisplayTextField(
       Text(
           modifier = Modifier.testTag(ERROR_MESSAGE),
           text = emptyErrorMessage,
-          color = darkOrange,
+          color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
     }
   }
 }
 
-/** Test tags used by the caregiver Box with IconText components. */
+/** Test tags owned by [DisplayBoxWithIconText]. */
 object DisplayBoxWithIconTextTestTags {
   const val ICON_BUTTON = "box_with_icon_text_icon_button"
 }
@@ -252,7 +246,7 @@ object DisplayBoxWithIconTextTestTags {
  */
 @Composable
 fun DisplayBoxWithIconText(
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
     icon: ImageVector,
     contentDescription: String,
     label: String,
@@ -264,7 +258,7 @@ fun DisplayBoxWithIconText(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = lightGray,
+                  color = MaterialTheme.colorScheme.tertiary,
                   shape = RoundedCornerShape(ROUND_CORNER),
               )
               .clip(RoundedCornerShape(ROUND_CORNER))
@@ -276,18 +270,26 @@ fun DisplayBoxWithIconText(
         modifier = Modifier.testTag(ICON_BUTTON),
         onClick = onClick,
         shape = CircleShape,
-        colors = IconButtonDefaults.filledIconButtonColors(containerColor = lightOrange),
+        colors =
+            IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.onTertiary,
+            ),
     ) {
-      Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.Black)
+      Icon(
+          imageVector = icon,
+          contentDescription = contentDescription,
+          tint = MaterialTheme.colorScheme.onTertiary,
+      )
     }
 
-    Text(text = label, color = Color.Black)
+    Text(text = label, color = MaterialTheme.colorScheme.onSurface)
   }
 }
 
 /** Preview of [DisplayCaregiverButton] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun UploadScreenPreview() {
+private fun DisplayCaregiverButtonPreview() {
   AmberAppTheme { DisplayCaregiverButton() }
 }
