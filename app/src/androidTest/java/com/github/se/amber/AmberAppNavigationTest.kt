@@ -205,7 +205,7 @@ class AmberAppNavigationTest {
     goTo(CaregiverScreen.Parameters.route)
     click(Tags.ENTER_INVITATION_BUTTON)
 
-    click(Tags.INVITATION_REDEMPTION_BACK.name)
+    click(Tags.INVITATION_REDEMPTION_BACK)
 
     assertRoute(CaregiverScreen.Parameters.route)
   }

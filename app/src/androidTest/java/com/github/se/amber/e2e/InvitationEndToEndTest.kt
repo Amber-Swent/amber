@@ -134,14 +134,12 @@ class InvitationEndToEndTest {
     createCaregiverProfile(firstName = "Bob", lastName = "Martin")
 
     click(CaregiverChoiceTestTags.JOIN_BUTTON)
-    typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
+    typeInto(InvitationRedemptionTestTags.CODE_INPUT, adasCode)
 
-    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the InvitationRedemptionScreen Refactor.
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .assert(hasEditableText(adasCode))
-    click(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
+    click(InvitationRedemptionTestTags.SUBMIT_BUTTON)
     waitFor(CaregiverHomeTestTags.TITLE)
 
     val bobsCode = createInvitationCode()
