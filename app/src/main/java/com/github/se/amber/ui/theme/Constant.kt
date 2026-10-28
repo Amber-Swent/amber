@@ -83,6 +83,7 @@ val TEXT_FIELD_BIG = 200.dp
 
 // ------- MAX -------
 
+const val MIN_LINE_DEFAULT = 1
 const val MAX_LINE_DEFAULT = 2
 const val MAX_LINE_DESCRIPTION = 5
 

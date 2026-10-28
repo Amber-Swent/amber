@@ -49,6 +49,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DEFAULT
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
+import com.github.se.amber.ui.theme.MIN_LINE_DEFAULT
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -116,7 +117,11 @@ fun DisplayCaregiverButton(
       enabled = enabled,
       // A minimum height lets multiline text expand without being clipped.
       modifier = modifier.fillMaxWidth(widthPercentage).heightIn(min = height).testTag(BUTTON),
-      colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+      colors =
+          ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = MaterialTheme.colorScheme.onTertiary,
+          ),
       shape = RoundedCornerShape(ROUND_CORNER),
   ) {
     Row(
@@ -173,7 +178,7 @@ fun DisplayTextField(
     label: String,
     placeholder: String? = null,
     emptyErrorMessage: String? = null,
-    minLines: Int = 1,
+    minLines: Int = MIN_LINE_DEFAULT,
     maxLines: Int = MAX_LINE_DEFAULT,
     maxChar: Int = MAX_CHAR_DEFAULT,
 ) {
