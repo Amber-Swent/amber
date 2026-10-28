@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -71,6 +72,11 @@ data class UploadPictureUIState(
     val pictureHeight: Int = 0,
     val isUploading: Boolean = false,
     val errorMsg: String? = null,
+    val isAddPersonOpen: Boolean = false,
+    val isAddingPerson: Boolean = false,
+    val personFirstName: String = "",
+    val personLastName: String = "",
+    val personNickname: String = "",
 ) {
   val canUpload: Boolean
     get() = pictureFile != null && description.isNotBlank() && date != null && !isUploading
@@ -309,7 +315,76 @@ class UploadPictureViewModel(
     }
   }
 
-    fun onAddPerson()  {
-        // TODO when backend is implemented
+  fun onAddPerson() {
+    _uiState.update { it.copy(isAddPersonOpen = true) }
+  }
+
+  fun dismissAddPerson() {
+    if (_uiState.value.isAddingPerson) return
+    _uiState.update {
+      it.copy(
+          isAddPersonOpen = false,
+          personFirstName = "",
+          personLastName = "",
+          personNickname = "",
+      )
     }
+  }
+
+  fun setPersonFirstName(firstName: String) {
+    _uiState.update { it.copy(personFirstName = firstName) }
+  }
+
+  fun setPersonLastName(lastName: String) {
+    _uiState.update { it.copy(personLastName = lastName) }
+  }
+
+  fun setPersonNickname(nickname: String) {
+    _uiState.update { it.copy(personNickname = nickname) }
+  }
+
+  /** Saves a person in the care circle and makes them available for picture tagging. */
+  fun addPerson() {
+    val circle = _careCircle.value ?: run {
+      setErrorMsg(UploadPictureViewModelErrorMessage.STILL_LOADING.mess)
+      return
+    }
+    val state = _uiState.value
+    if (state.isAddingPerson) return
+    if (state.personFirstName.isBlank()) {
+      setErrorMsg("A first name is required")
+      return
+    }
+    _uiState.update { it.copy(isAddingPerson = true) }
+    viewModelScope.launch {
+      try {
+        circleRepo.addPerson(
+            circle.id,
+            Person(
+                firstName = state.personFirstName,
+                lastName = state.personLastName,
+                nickname = state.personNickname,
+            ),
+        ).onSuccess { person ->
+          _careCircle.update { it?.copy(people = it.people + (person.id to person)) }
+          _uiState.update {
+            it.copy(
+                isAddPersonOpen = false,
+                isAddingPerson = false,
+                personFirstName = "",
+                personLastName = "",
+                personNickname = "",
+                shownIds = it.shownIds + person.id,
+            )
+          }
+        }.onFailure { setErrorMsg(it.message ?: "Could not add person") }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        setErrorMsg(e.message ?: "Could not add person")
+      } finally {
+        _uiState.update { it.copy(isAddingPerson = false) }
+      }
+    }
+  }
 }
