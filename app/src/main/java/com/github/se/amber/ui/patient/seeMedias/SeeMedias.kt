@@ -43,6 +43,7 @@ import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import com.github.se.amber.ui.theme.lightOrange
 
@@ -79,9 +80,9 @@ fun SeeMediasScreen(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = PADDING_MEDIUM)
+                    .padding(horizontal = PATIENT_PADDING_SMALL)
                     .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
+            verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           DisplayPatientTitle(
