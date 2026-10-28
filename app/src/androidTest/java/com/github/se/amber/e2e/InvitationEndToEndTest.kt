@@ -1,6 +1,7 @@
 /**
  * Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code. Modified by
- * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+ * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code. Modified by Yuhan YANG,
+ * with assistance from Cursor.
  */
 package com.github.se.amber.e2e
 
@@ -23,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.AmberApp
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
+import com.github.se.amber.ui.caregiver.CaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
 import com.github.se.amber.ui.caregiver.parameters.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
@@ -116,7 +118,7 @@ class InvitationEndToEndTest {
     createCaregiverProfile(firstName = "Ada", lastName = "Lovelace")
     click(CaregiverChoiceTestTags.CREATE_BUTTON.name)
     typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
-    click(CreateCareCircleTestTags.SUBMIT_BUTTON)
+    click(CaregiverButtonTestTags.BUTTON)
     waitFor(CaregiverHomeTestTags.TITLE)
 
     val adasCode = createInvitationCode()

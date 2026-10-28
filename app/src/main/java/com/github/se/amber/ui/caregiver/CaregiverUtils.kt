@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Yuhan YANG, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 
@@ -8,9 +9,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -19,6 +24,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,13 +36,18 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.MAX_CHAR_DEFAULT
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import com.github.se.amber.ui.theme.PADDING_BIG
@@ -63,6 +74,63 @@ fun DisplayCaregiverTitle(title: String, modifier: Modifier) {
       style = MaterialTheme.typography.headlineSmall,
       fontWeight = FontWeight.Bold,
   )
+}
+
+/** Test tags used by [CaregiverButton]. */
+object CaregiverButtonTestTags {
+  const val BUTTON = "CaregiverButton_test_tag_button"
+}
+
+/**
+ * Displays a caregiver button with a label and a click action.
+ *
+ * Use this only on screens that scroll, because the button has a fixed height.
+ *
+ * @param modifier modifier applied to the button.
+ * @param buttonHeight height of the button.
+ * @param buttonWidth fraction of the available width taken by the button.
+ * @param text label displayed on the button.
+ * @param textStyle typography style of the button label.
+ * @param enabled whether the button accepts clicks.
+ * @param onClick callback invoked when the button is pressed.
+ * @param testTag test tag of the button.
+ */
+@NonRestartableComposable
+@Composable
+fun CaregiverButton(
+    modifier: Modifier = Modifier,
+    buttonHeight: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
+    buttonWidth: Float = CAREGIVER_BUTTON_WIDTH,
+    text: String = "",
+    textStyle: TextStyle = MaterialTheme.typography.labelLarge,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+    testTag: String = CaregiverButtonTestTags.BUTTON,
+) {
+  Button(
+      onClick = onClick,
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .wrapContentWidth(Alignment.CenterHorizontally)
+              .fillMaxWidth(buttonWidth)
+              .height(buttonHeight)
+              .testTag(testTag),
+      enabled = enabled,
+      shape = RoundedCornerShape(ROUND_CORNER),
+      colors =
+          ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = MaterialTheme.colorScheme.onTertiary,
+          ),
+  ) {
+    Text(
+        text = text,
+        style = textStyle,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+  }
 }
 
 /** Test tags used by the caregiver text field components. */

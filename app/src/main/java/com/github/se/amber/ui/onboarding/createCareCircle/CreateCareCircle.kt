@@ -1,25 +1,19 @@
 // This file was written with the aid of AI.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.createCareCircle
 
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -27,34 +21,31 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.onboarding.OnboardingRepository
+import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.ui.caregiver.CaregiverButton
+import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.PADDING_BIG
-import com.github.se.amber.ui.theme.PADDING_ENORMOUS
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_REGULAR
-import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
-import com.github.se.amber.ui.theme.SURFACE_BIG
-import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.lightGray
-import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Stable tags for locating the form controls and validation message in UI tests. */
 object CreateCareCircleTestTags {
-  const val NAME_FIELD = "createCareCircle_nameField"
-  const val NAME_ERROR = "createCareCircle_nameError"
-  const val SUBMIT_BUTTON = "createCareCircle_submitButton"
+  const val NAME_FIELD = "CreateCareCircle_test_tag_name_field"
+  const val NAME_ERROR = "CreateCareCircle_test_tag_name_error"
 }
 
 /**
@@ -75,7 +66,7 @@ fun CreateCareCircleScreen(
     onCreated: () -> Unit = {},
     viewModel: CreateCareCircleViewModel = viewModel(),
 ) {
-  val uiState by viewModel.uiState.collectAsState()
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
   // Keep one stable reference for the effect, but always update the value inside it to the newest
   // onCreated
@@ -93,139 +84,94 @@ fun CreateCareCircleScreen(
   // launch
   LaunchedEffect(viewModel) { viewModel.successEvents.collect { currentOnCreated() } }
 
-  CreateCareCircleContent(
-      uiState = uiState,
-      onNameChange = viewModel::onNameChange,
-      onSubmit = viewModel::createCareCircle,
-      modifier = modifier,
-  )
-}
-
-/**
- * Renders the care circle name field and Create button without owning submission state.
- *
- * The caller supplies the current state and handles user actions through callbacks.
- *
- * @param modifier Modifier applied to the root form layout.
- * @param uiState Name, validation error, loading state, and creation status to display.
- * @param onNameChange Called when the name field changes.
- * @param onSubmit Called when the user presses Create.
- */
-@Composable
-internal fun CreateCareCircleContent(
-    modifier: Modifier = Modifier,
-    uiState: CreateCareCircleUiState = CreateCareCircleUiState(),
-    onNameChange: (String) -> Unit = {},
-    onSubmit: () -> Unit = {},
-) {
-  Column(
-      modifier =
-          modifier
-              .fillMaxSize()
-              .statusBarsPadding() // Avoids drawing underneath Android's top system bar
-              .navigationBarsPadding() // Avoid drawing underneath navigation area at the bottom
-              .verticalScroll(rememberScrollState())
-              .padding(horizontal = PADDING_BIG, vertical = PADDING_BIG),
-      verticalArrangement = Arrangement.spacedBy(PADDING_BIG),
+  Surface(
+      modifier = modifier.fillMaxSize(),
+      color = MaterialTheme.colorScheme.background,
+      contentColor = MaterialTheme.colorScheme.onBackground,
   ) {
     Column(
+        modifier =
+            Modifier.fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = CAREGIVER_PADDING_BIG, vertical = CAREGIVER_PADDING_BIG),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PADDING_REGULAR),
+        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
     ) {
-      Surface(
-          modifier = Modifier.size(SURFACE_BIG),
-          shape = CircleShape,
-          color = lightOrange,
-      ) {
-        Box(contentAlignment = Alignment.Center) {
-          Text(
-              "logo",
-              style = MaterialTheme.typography.bodyLarge,
-              fontWeight = FontWeight.SemiBold,
-              color = Color.Black,
-          )
-        }
-      }
+      AmberHeader(horizontalAlignment = Alignment.CenterHorizontally)
+
       Text(
-          "Amber",
-          style = MaterialTheme.typography.titleLarge,
-          fontWeight = FontWeight.Bold,
-          color = MaterialTheme.colorScheme.onBackground,
+          text = "New Care Circle",
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
+          style = MaterialTheme.typography.headlineSmall,
+          textAlign = TextAlign.Center,
+          color = MaterialTheme.colorScheme.primary,
       )
-    }
 
-    Spacer(Modifier.height(PADDING_BIG))
-    Text(
-        text = "New Care Circle",
-        modifier = Modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onBackground,
-    )
-
-    Column(verticalArrangement = Arrangement.spacedBy(PADDING_REGULAR)) {
       OutlinedTextField(
           value = uiState.name,
-          onValueChange = onNameChange,
+          onValueChange = viewModel::onNameChange,
           enabled = !uiState.isLoading && !uiState.isCreated,
-          modifier = Modifier.fillMaxWidth().testTag(CreateCareCircleTestTags.NAME_FIELD),
-          label = { Text("Circle name") },
-          placeholder = { Text("Name your care circle") },
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).testTag(CreateCareCircleTestTags.NAME_FIELD),
+          label = { Text("Circle name", style = MaterialTheme.typography.labelMedium) },
+          placeholder = {
+            Text("Name your care circle", style = MaterialTheme.typography.labelMedium)
+          },
           singleLine = true,
           supportingText =
               uiState.nameError?.let { error ->
-                { Text(error, modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_ERROR)) }
+                {
+                  Text(
+                      text = error,
+                      style = MaterialTheme.typography.bodySmall,
+                      color = MaterialTheme.colorScheme.error,
+                      modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_ERROR),
+                  )
+                }
               },
           isError = uiState.nameError != null,
-          shape = RoundedCornerShape(SMALL_ROUND_CORNER),
+          shape = RoundedCornerShape(ROUND_CORNER),
           colors =
               OutlinedTextFieldDefaults.colors(
-                  unfocusedBorderColor = lightGray,
-                  focusedBorderColor = darkGray,
-                  focusedLabelColor = darkGray,
+                  focusedBorderColor = MaterialTheme.colorScheme.outline,
+                  unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                  focusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                  unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                  cursorColor = MaterialTheme.colorScheme.onSurface,
+                  focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
+                  unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
+                  errorBorderColor = MaterialTheme.colorScheme.error,
+                  errorLabelColor = MaterialTheme.colorScheme.error,
+                  errorCursorColor = MaterialTheme.colorScheme.error,
+                  errorSupportingTextColor = MaterialTheme.colorScheme.error,
               ),
       )
-    }
 
-    Column(verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM)) {
-      Button(
-          onClick = onSubmit,
+      CaregiverButton(
+          text = if (uiState.isLoading) "Creation..." else "Create",
           enabled = !uiState.isLoading && !uiState.isCreated,
-          modifier =
-              Modifier.fillMaxWidth()
-                  .height(PADDING_ENORMOUS)
-                  .testTag(CreateCareCircleTestTags.SUBMIT_BUTTON),
-          shape = RoundedCornerShape(SMALL_ROUND_CORNER),
-          colors =
-              ButtonDefaults.buttonColors(containerColor = lightOrange, contentColor = Color.Black),
-      ) {
-        if (uiState.isLoading) {
-          Text("Creation...", style = MaterialTheme.typography.labelLarge)
-        } else {
-          Text("Create", style = MaterialTheme.typography.labelLarge)
-        }
-      }
-    }
+          onClick = viewModel::createCareCircle,
+      )
 
-    Text(
-        text = "You will be able to invite members to the circle after its creation.",
-        modifier = Modifier.fillMaxWidth().padding(top = PADDING_MEDIUM),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center,
-        color = MaterialTheme.colorScheme.onBackground,
-    )
+      Text(
+          text = "You will be able to invite members to the circle after its creation.",
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
+          style = MaterialTheme.typography.bodyMedium,
+          textAlign = TextAlign.Center,
+      )
+    }
   }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun CreateCareCirclePreview() {
-  AmberAppTheme(darkTheme = false, dynamicColor = false) {
-    CreateCareCircleContent(
-        uiState = CreateCareCircleUiState(),
-        onNameChange = {},
-        onSubmit = {},
-    )
-  }
+fun CreateCareCirclePreview() {
+  val fakeRepository =
+      object : OnboardingRepository {
+        override suspend fun createInitialCareCircle(name: String): Result<CareCircle> =
+            Result.success(CareCircle(id = "preview-1", name = name))
+      }
+  val viewModel = remember { CreateCareCircleViewModel(repository = fakeRepository) }
+  AmberAppTheme { CreateCareCircleScreen(viewModel = viewModel) }
 }
