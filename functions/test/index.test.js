@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 const assert = require("node:assert/strict");
 const {createHash} = require("node:crypto");
 const Module = require("node:module");
@@ -25,6 +26,14 @@ const state = {
   circleReadIndex: 0,
   updates: [],
   creates: [],
+  linkRequests: [],
+  linkStatus: 200,
+};
+
+// the only HTTP call the functions make: linking a bucket to Firebase Storage
+globalThis.fetch = async (url, init) => {
+  state.linkRequests.push({url, init});
+  return {ok: state.linkStatus < 300, status: state.linkStatus, text: async () => "link refused"};
 };
 
 function snapshot(value) {
@@ -39,6 +48,8 @@ function resetState() {
   state.documents = new Map();
   state.updates = [];
   state.creates = [];
+  state.linkRequests = [];
+  state.linkStatus = 200;
   state.circleSnapshots = [];
   state.circleReadIndex = 0;
   state.storage = {
@@ -48,7 +59,7 @@ function resetState() {
   };
   state.securityRules = {
     getStorageRuleset: async () => {
-      throw Object.assign(new Error("Missing ruleset"), {code: "not-found"});
+      throw Object.assign(new Error("Missing ruleset"), {code: "security-rules/not-found"});
     },
     createRulesFileFromSource: (name, source) => ({name, source}),
     createRuleset: async (rulesFile) => ({source: [rulesFile]}),
@@ -59,7 +70,13 @@ function resetState() {
 function callableModule() {
   const originalLoad = Module._load;
   Module._load = function mockModuleLoad(request, parent, isMain) {
-    if (request === "firebase-admin/app") return {initializeApp: () => {}};
+    if (request === "firebase-admin/app") {
+      return {
+        initializeApp: () => ({
+          options: {credential: {getAccessToken: async () => ({access_token: "test-token"})}},
+        }),
+      };
+    }
     if (request === "firebase-admin/firestore") {
       return {
         FieldValue: {arrayUnion: (value) => ({arrayUnion: value})},
@@ -368,6 +385,7 @@ test("provisioning does nothing in the emulator, which can't create buckets", as
   }
 
   assert.equal(state.circleReadIndex, 0);
+  assert.deepEqual(state.linkRequests, []);
   assert.deepEqual(state.updates, []);
 });
 
@@ -397,6 +415,13 @@ test("provisions a bucket, creates changed rules, and records its name", async (
   assert.match(createdRules[0].source, /service firebase\.storage/);
   assert.equal(released.length, 1);
   assert.match(released[0].bucketName, /^amber-family-[a-f0-9]{24}$/);
+  assert.equal(state.linkRequests.length, 1);
+  assert.equal(
+    state.linkRequests[0].url,
+    `https://firebasestorage.googleapis.com/v1beta/projects/test-project/buckets/${released[0].bucketName}:addFirebase`,
+  );
+  assert.equal(state.linkRequests[0].init.method, "POST");
+  assert.equal(state.linkRequests[0].init.headers.Authorization, "Bearer test-token");
   assert.deepEqual(state.updates, [{
     reference: "circle",
     data: {storageBucket: released[0].bucketName},
@@ -499,6 +524,40 @@ test("propagates unexpected rules failures and avoids overwriting concurrent pro
     });
     const {provisionCareCircleBucket} = callableModule();
     await provisionCareCircleBucket({params: {circleId: "circle-1"}});
+    assert.deepEqual(state.updates, []);
+  });
+});
+
+test("links a bucket already linked by an earlier run, and stops when linking fails", async (t) => {
+  process.env.GCLOUD_PROJECT = "test-project";
+  await t.test("already linked", async () => {
+    resetState();
+    state.linkStatus = 409;
+    provisionSetup({circle: {storageBucket: ""}, bucket: configuredBucket()});
+    const {provisionCareCircleBucket} = callableModule();
+    await provisionCareCircleBucket({params: {circleId: "circle-1"}});
+    assert.equal(state.updates.length, 1);
+  });
+
+  await t.test("link refused", async () => {
+    resetState();
+    state.linkStatus = 403;
+    const untouchable = () => assert.fail("rules must not be released for an unlinked bucket");
+    provisionSetup({
+      circle: {storageBucket: ""},
+      bucket: configuredBucket(),
+      securityRules: {
+        getStorageRuleset: untouchable,
+        createRulesFileFromSource: untouchable,
+        createRuleset: untouchable,
+        releaseStorageRuleset: untouchable,
+      },
+    });
+    const {provisionCareCircleBucket} = callableModule();
+    await assert.rejects(
+      provisionCareCircleBucket({params: {circleId: "circle-1"}}),
+      /Could not link bucket amber-family-[a-f0-9]{24} to Firebase: 403 link refused/,
+    );
     assert.deepEqual(state.updates, []);
   });
 });
