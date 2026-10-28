@@ -1,4 +1,6 @@
-/** Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. */
+/** Written by LaMaier. Modified by nehachak1, with assistance from Claude Code.
+ * Modified with assistance from OpenAI Codex.
+ */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -91,6 +93,9 @@ const val MAX_CHAR_DEFAULT = 20
 const val MAX_CHAR_DESCRIPTION = 200
 
 const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pickers
+
+const val DATE_PICKER_LIST_HEIGHT_FRACTION = 0.3f
+const val DATE_PICKER_DIALOG_WIDTH_FRACTION = 0.7f
 
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f

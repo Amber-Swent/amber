@@ -51,6 +51,8 @@ import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
+import com.github.se.amber.ui.theme.DATE_PICKER_DIALOG_WIDTH_FRACTION
+import com.github.se.amber.ui.theme.DATE_PICKER_LIST_HEIGHT_FRACTION
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_VISIBLE_ITEM
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
@@ -59,10 +61,6 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import java.time.LocalDate
 import java.time.YearMonth
-
-// TODO should we modify Constants and add these values?
-private const val LIST_HEIGHT_FRACTION = 0.3f
-private const val DIALOG_WIDTH_FRACTION = 0.7f
 
 internal object DatePickerTestTags {
   const val DIVIDER = "date_picker_divider"
@@ -293,12 +291,12 @@ private fun ScrollablePickerDialog(
     // But require conversion from Float to Dp
     val screenHeight =
         with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val listHeight = screenHeight * LIST_HEIGHT_FRACTION
+    val listHeight = screenHeight * DATE_PICKER_LIST_HEIGHT_FRACTION
     val itemHeight = listHeight / MAX_VISIBLE_ITEM
 
     Column(
         modifier =
-            Modifier.fillMaxWidth(fraction = DIALOG_WIDTH_FRACTION)
+            Modifier.fillMaxWidth(fraction = DATE_PICKER_DIALOG_WIDTH_FRACTION)
                 .testTag(DIALOG)
                 .background(
                     color = MaterialTheme.colorScheme.surface,
