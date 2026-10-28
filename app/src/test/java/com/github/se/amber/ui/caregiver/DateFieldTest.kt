@@ -1,10 +1,11 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver
 
+import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.DateField
-import java.time.LocalDate
 import java.time.Month
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -12,10 +13,10 @@ import org.junit.Test
 /** Pure JVM tests for [DateField]: no Android, no network, no UI. */
 class DateFieldTest {
 
-  private val leapDay = LocalDate.of(2024, Month.FEBRUARY, 29)
-  private val nonLeapFebruary = LocalDate.of(2023, Month.FEBRUARY, 15)
-  private val thirtyOneMonth = LocalDate.of(2024, Month.JANUARY, 31)
-  private val thirtyMonth = LocalDate.of(2024, Month.APRIL, 10)
+  private val leapDay = MemoryDate(2024, Month.FEBRUARY.value, 29)
+  private val nonLeapFebruary = MemoryDate(2023, Month.FEBRUARY.value, 15)
+  private val thirtyOneMonth = MemoryDate(2024, Month.JANUARY.value, 31)
+  private val thirtyMonth = MemoryDate(2024, Month.APRIL.value, 10)
 
   // ---------- range ----------
 
@@ -78,7 +79,7 @@ class DateFieldTest {
 
   @Test
   fun valueIn_day_returnsDayOfMonth() {
-    assertEquals(leapDay.dayOfMonth, DateField.DAY.valueIn(leapDay))
+    assertEquals(leapDay.day, DateField.DAY.valueIn(leapDay))
   }
 
   // ---------- applyTo ----------
@@ -86,7 +87,7 @@ class DateFieldTest {
   @Test
   fun applyTo_year_replacesOnlyTheYear() {
     assertEquals(
-        LocalDate.of(2030, Month.APRIL, 10),
+        MemoryDate(2030, Month.APRIL.value, 10),
         DateField.YEAR.applyTo(thirtyMonth, 2030),
     )
   }
@@ -94,7 +95,7 @@ class DateFieldTest {
   @Test
   fun applyTo_month_replacesOnlyTheMonth() {
     assertEquals(
-        LocalDate.of(2024, Month.MARCH, 10),
+        MemoryDate(2024, Month.MARCH.value, 10),
         DateField.MONTH.applyTo(thirtyMonth, Month.MARCH.value),
     )
   }
@@ -102,7 +103,7 @@ class DateFieldTest {
   @Test
   fun applyTo_day_replacesOnlyTheDay() {
     assertEquals(
-        LocalDate.of(2024, Month.APRIL, 1),
+        MemoryDate(2024, Month.APRIL.value, 1),
         DateField.DAY.applyTo(thirtyMonth, 1),
     )
   }
@@ -110,7 +111,7 @@ class DateFieldTest {
   @Test
   fun applyTo_month_clampsDayWhenTargetMonthIsShorter() {
     assertEquals(
-        LocalDate.of(2024, Month.FEBRUARY, 29),
+        MemoryDate(2024, Month.FEBRUARY.value, 29),
         DateField.MONTH.applyTo(thirtyOneMonth, Month.FEBRUARY.value),
     )
   }
@@ -118,7 +119,7 @@ class DateFieldTest {
   @Test
   fun applyTo_year_clampsLeapDayWhenTargetYearIsNotLeap() {
     assertEquals(
-        LocalDate.of(2023, Month.FEBRUARY, 28),
+        MemoryDate(2023, Month.FEBRUARY.value, 28),
         DateField.YEAR.applyTo(leapDay, 2023),
     )
   }
