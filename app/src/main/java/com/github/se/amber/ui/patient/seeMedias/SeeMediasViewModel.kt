@@ -26,21 +26,20 @@ class SeeMediasViewModel() : ViewModel() {
   private val _uiState = MutableStateFlow(SeeMediasUIState())
   val uiState: StateFlow<SeeMediasUIState> = _uiState.asStateFlow()
 
+  /** Clears the error message in the UI state. */
+  fun clearErrorMsg() {
+    _uiState.value = _uiState.value.copy(errorMsg = null)
+  }
 
-    /** Clears the error message in the UI state. */
-    fun clearErrorMsg() {
-        _uiState.value = _uiState.value.copy(errorMsg = null)
-    }
-
-    /**
-     * Sets an error message in the UI state.
-     *
-     * Note: internal instead of private; It stays hidden from other modules but is reachable from
-     * tests in the same module.
-     *
-     * @param errorMsg message describing the error.
-     */
-    internal fun setErrorMsg(errorMsg: String) {
-        _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
-    }
+  /**
+   * Sets an error message in the UI state.
+   *
+   * Note: internal instead of private; It stays hidden from other modules but is reachable from
+   * tests in the same module.
+   *
+   * @param errorMsg message describing the error.
+   */
+  internal fun setErrorMsg(errorMsg: String) {
+    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+  }
 }

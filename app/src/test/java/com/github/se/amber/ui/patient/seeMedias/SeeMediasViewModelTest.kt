@@ -10,80 +10,80 @@ import org.junit.Test
 
 class SeeMediasViewModelTest {
 
-    private lateinit var viewModel: SeeMediasViewModel
+  private lateinit var viewModel: SeeMediasViewModel
 
-    @Before
-    fun setUp() {
-        viewModel = SeeMediasViewModel()
-    }
+  @Before
+  fun setUp() {
+    viewModel = SeeMediasViewModel()
+  }
 
-    @Test
-    fun initialState_hasNoErrorMessage() {
-        assertNull(viewModel.uiState.value.errorMsg)
-        assertEquals(SeeMediasUIState(), viewModel.uiState.value)
-    }
+  @Test
+  fun initialState_hasNoErrorMessage() {
+    assertNull(viewModel.uiState.value.errorMsg)
+    assertEquals(SeeMediasUIState(), viewModel.uiState.value)
+  }
 
-    @Test
-    fun setErrorMsg_updatesUiState() {
-        viewModel.setErrorMsg("Something went wrong")
+  @Test
+  fun setErrorMsg_updatesUiState() {
+    viewModel.setErrorMsg("Something went wrong")
 
-        assertEquals("Something went wrong", viewModel.uiState.value.errorMsg)
-    }
+    assertEquals("Something went wrong", viewModel.uiState.value.errorMsg)
+  }
 
-    @Test
-    fun setErrorMsg_overwritesPreviousError() {
-        viewModel.setErrorMsg("First error")
-        viewModel.setErrorMsg("Second error")
+  @Test
+  fun setErrorMsg_overwritesPreviousError() {
+    viewModel.setErrorMsg("First error")
+    viewModel.setErrorMsg("Second error")
 
-        assertEquals("Second error", viewModel.uiState.value.errorMsg)
-    }
+    assertEquals("Second error", viewModel.uiState.value.errorMsg)
+  }
 
-    @Test
-    fun setErrorMsg_acceptsEmptyString() {
-        viewModel.setErrorMsg("")
+  @Test
+  fun setErrorMsg_acceptsEmptyString() {
+    viewModel.setErrorMsg("")
 
-        assertNotNull(viewModel.uiState.value.errorMsg)
-        assertEquals("", viewModel.uiState.value.errorMsg)
-    }
+    assertNotNull(viewModel.uiState.value.errorMsg)
+    assertEquals("", viewModel.uiState.value.errorMsg)
+  }
 
-    @Test
-    fun clearErrorMsg_resetsErrorToNull() {
-        viewModel.setErrorMsg("Some error")
+  @Test
+  fun clearErrorMsg_resetsErrorToNull() {
+    viewModel.setErrorMsg("Some error")
 
-        viewModel.clearErrorMsg()
+    viewModel.clearErrorMsg()
 
-        assertNull(viewModel.uiState.value.errorMsg)
-    }
+    assertNull(viewModel.uiState.value.errorMsg)
+  }
 
-    @Test
-    fun clearErrorMsg_withoutPriorError_keepsStateUnchanged() {
-        viewModel.clearErrorMsg()
+  @Test
+  fun clearErrorMsg_withoutPriorError_keepsStateUnchanged() {
+    viewModel.clearErrorMsg()
 
-        assertNull(viewModel.uiState.value.errorMsg)
-        assertEquals(SeeMediasUIState(), viewModel.uiState.value)
-    }
+    assertNull(viewModel.uiState.value.errorMsg)
+    assertEquals(SeeMediasUIState(), viewModel.uiState.value)
+  }
 
-    @Test
-    fun setThenClearThenSet_worksAsExpected() {
-        viewModel.setErrorMsg("Error 1")
-        viewModel.clearErrorMsg()
-        assertNull(viewModel.uiState.value.errorMsg)
+  @Test
+  fun setThenClearThenSet_worksAsExpected() {
+    viewModel.setErrorMsg("Error 1")
+    viewModel.clearErrorMsg()
+    assertNull(viewModel.uiState.value.errorMsg)
 
-        viewModel.setErrorMsg("Error 2")
-        assertEquals("Error 2", viewModel.uiState.value.errorMsg)
-    }
+    viewModel.setErrorMsg("Error 2")
+    assertEquals("Error 2", viewModel.uiState.value.errorMsg)
+  }
 
-    @Test
-    fun uiState_exposesSameStateFlowInstance() {
-        assertSame(viewModel.uiState, viewModel.uiState)
-    }
+  @Test
+  fun uiState_exposesSameStateFlowInstance() {
+    assertSame(viewModel.uiState, viewModel.uiState)
+  }
 
-    @Test
-    fun uiStateDataClass_copyAndEquality() {
-        val state = SeeMediasUIState(errorMsg = "err")
+  @Test
+  fun uiStateDataClass_copyAndEquality() {
+    val state = SeeMediasUIState(errorMsg = "err")
 
-        assertEquals(SeeMediasUIState(errorMsg = "err"), state)
-        assertEquals(SeeMediasUIState(errorMsg = null), state.copy(errorMsg = null))
-        assertEquals("err", state.component1())
-    }
+    assertEquals(SeeMediasUIState(errorMsg = "err"), state)
+    assertEquals(SeeMediasUIState(errorMsg = null), state.copy(errorMsg = null))
+    assertEquals("err", state.component1())
+  }
 }

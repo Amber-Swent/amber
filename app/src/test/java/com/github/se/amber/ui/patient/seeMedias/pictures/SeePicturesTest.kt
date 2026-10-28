@@ -83,11 +83,11 @@ class SeePicturesScreenTest {
     val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
     composeTestRule.setContent {
       AmberAppTheme(dynamicColor = false) {
-          SeePicturesScreen(
-              pictureViewModel = viewModel,
-              onBackClick = onBackClick,
-              onTabSelected = {},
-          )
+        SeePicturesScreen(
+            pictureViewModel = viewModel,
+            onBackClick = onBackClick,
+            onTabSelected = {},
+        )
       }
     }
     composeTestRule.waitForIdle()

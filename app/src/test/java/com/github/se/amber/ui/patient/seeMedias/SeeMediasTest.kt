@@ -19,62 +19,62 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class SeeMediasScreenTest {
 
-    @get:Rule val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createComposeRule()
 
-    private lateinit var viewModel: SeeMediasViewModel
+  private lateinit var viewModel: SeeMediasViewModel
 
-    @Before
-    fun setUp() {
-        viewModel = SeeMediasViewModel()
+  @Before
+  fun setUp() {
+    viewModel = SeeMediasViewModel()
+  }
+
+  @Test
+  fun screen_displaysTitleButtonsAndBottomNavigation() {
+    composeTestRule.setContent { SeeMediasScreen(viewModel = viewModel) }
+
+    composeTestRule.onNodeWithText("See Medias").assertIsDisplayed()
+    composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
+    composeTestRule.onNodeWithText("See Texts").assertIsDisplayed()
+    composeTestRule.onNodeWithText("See Audio").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun clickingButtons_triggersTheMatchingCallbackOnly() {
+    var pictureClicks = 0
+    var textClicks = 0
+    var audioClicks = 0
+
+    composeTestRule.setContent {
+      SeeMediasScreen(
+          viewModel = viewModel,
+          onSeePictureClick = { pictureClicks++ },
+          onSeeTextClick = { textClicks++ },
+          onSeeAudioClick = { audioClicks++ },
+      )
     }
 
-    @Test
-    fun screen_displaysTitleButtonsAndBottomNavigation() {
-        composeTestRule.setContent { SeeMediasScreen(viewModel = viewModel) }
+    composeTestRule.onNodeWithText("See Pictures").performScrollTo().performClick()
+    assertEquals(listOf(1, 0, 0), listOf(pictureClicks, textClicks, audioClicks))
 
-        composeTestRule.onNodeWithText("See Medias").assertIsDisplayed()
-        composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
-        composeTestRule.onNodeWithText("See Texts").assertIsDisplayed()
-        composeTestRule.onNodeWithText("See Audio").assertIsDisplayed()
-        composeTestRule
-            .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
-            .assertIsDisplayed()
-    }
+    composeTestRule.onNodeWithText("See Texts").performScrollTo().performClick()
+    assertEquals(listOf(1, 1, 0), listOf(pictureClicks, textClicks, audioClicks))
 
-    @Test
-    fun clickingButtons_triggersTheMatchingCallbackOnly() {
-        var pictureClicks = 0
-        var textClicks = 0
-        var audioClicks = 0
+    composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
+    assertEquals(listOf(1, 1, 1), listOf(pictureClicks, textClicks, audioClicks))
+  }
 
-        composeTestRule.setContent {
-            SeeMediasScreen(
-                viewModel = viewModel,
-                onSeePictureClick = { pictureClicks++ },
-                onSeeTextClick = { textClicks++ },
-                onSeeAudioClick = { audioClicks++ },
-            )
-        }
+  @Test
+  fun screen_withDefaultParameters_doesNotCrashOnClick() {
+    // Default callbacks are no-ops, and the default viewModel() is provided by the activity.
+    composeTestRule.setContent { SeeMediasScreen() }
 
-        composeTestRule.onNodeWithText("See Pictures").performScrollTo().performClick()
-        assertEquals(listOf(1, 0, 0), listOf(pictureClicks, textClicks, audioClicks))
+    composeTestRule.onNodeWithText("See Pictures").performScrollTo().performClick()
+    composeTestRule.onNodeWithText("See Texts").performScrollTo().performClick()
+    composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
 
-        composeTestRule.onNodeWithText("See Texts").performScrollTo().performClick()
-        assertEquals(listOf(1, 1, 0), listOf(pictureClicks, textClicks, audioClicks))
-
-        composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
-        assertEquals(listOf(1, 1, 1), listOf(pictureClicks, textClicks, audioClicks))
-    }
-
-    @Test
-    fun screen_withDefaultParameters_doesNotCrashOnClick() {
-        // Default callbacks are no-ops, and the default viewModel() is provided by the activity.
-        composeTestRule.setContent { SeeMediasScreen() }
-
-        composeTestRule.onNodeWithText("See Pictures").performScrollTo().performClick()
-        composeTestRule.onNodeWithText("See Texts").performScrollTo().performClick()
-        composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
-
-        composeTestRule.onNodeWithText("See Medias").assertIsDisplayed()
-    }
+    composeTestRule.onNodeWithText("See Medias").assertIsDisplayed()
+  }
 }
