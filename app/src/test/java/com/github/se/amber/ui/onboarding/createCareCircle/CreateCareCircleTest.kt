@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.ui.caregiver.CaregiverButtonTestTags
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -74,13 +74,13 @@ class CreateCareCircleScreenTest {
   @Test
   fun createButtonSubmitsTheName() {
     viewModel.onNameChange("Family")
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     assertEquals(listOf("Family"), repository.submittedNames)
   }
 
   @Test
   fun showsValidationErrorAsSupportingText() {
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule
         .onNodeWithTag(CreateCareCircleTestTags.NAME_ERROR, useUnmergedTree = true)
         .assertTextEquals("Circle name cannot be empty")
@@ -90,15 +90,15 @@ class CreateCareCircleScreenTest {
   fun loadingDisablesCreateButton() {
     repository.gate = CompletableDeferred()
     viewModel.onNameChange("Family")
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 
   @Test
   fun loadingDisablesNameField() {
     repository.gate = CompletableDeferred()
     viewModel.onNameChange("Family")
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).assertIsNotEnabled()
   }
 
@@ -106,16 +106,16 @@ class CreateCareCircleScreenTest {
   fun loadingShowsCreationLabel() {
     repository.gate = CompletableDeferred()
     viewModel.onNameChange("Family")
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.onNodeWithText("Creation...").assertExists()
   }
 
   @Test
   fun createdStateKeepsCreateButtonDisabled() {
     viewModel.onNameChange("Family")
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.waitForIdle()
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 
   private class FakeOnboardingRepository : OnboardingRepository {

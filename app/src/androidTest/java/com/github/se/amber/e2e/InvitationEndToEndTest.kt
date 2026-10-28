@@ -24,8 +24,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.AmberApp
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
-import com.github.se.amber.ui.caregiver.CaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
@@ -118,7 +118,7 @@ class InvitationEndToEndTest {
     createCaregiverProfile(firstName = "Ada", lastName = "Lovelace")
     click(CaregiverChoiceTestTags.CREATE_BUTTON.name)
     typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
-    click(CaregiverButtonTestTags.BUTTON)
+    click(DisplayCaregiverButtonTestTags.BUTTON)
     waitFor(CaregiverHomeTestTags.TITLE)
 
     val adasCode = createInvitationCode()

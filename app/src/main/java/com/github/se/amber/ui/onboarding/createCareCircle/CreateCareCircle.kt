@@ -34,7 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.ui.caregiver.CaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
@@ -148,7 +148,7 @@ fun CreateCareCircleScreen(
               ),
       )
 
-      CaregiverButton(
+      DisplayCaregiverButton(
           text = if (uiState.isLoading) "Creation..." else "Create",
           enabled = !uiState.isLoading && !uiState.isCreated,
           onClick = viewModel::createCareCircle,

@@ -13,7 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.ui.caregiver.CaregiverButtonTestTags
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -62,7 +62,7 @@ class CreateCareCircleInstrumentedTest {
   @Test
   fun loadingDisablesCreateButton() {
     submitPendingName()
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 
   @Test
@@ -77,19 +77,19 @@ class CreateCareCircleInstrumentedTest {
   @Test
   fun failureAllowsRetryAndThenEmitsSuccess() {
     submitWithNetworkFailure()
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.waitUntil { viewModel.uiState.value.isCreated }
     composeTestRule.waitForIdle()
     assertEquals(1, createdCount.get())
   }
 
   private fun submitBlankName() {
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
   }
 
   private fun submitName(name: String = "Family") {
     composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput(name)
-    composeTestRule.onNodeWithTag(CaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
   }
 
   private fun submitPendingName(): CompletableDeferred<Unit> {
