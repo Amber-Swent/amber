@@ -210,8 +210,8 @@ class UploadPictureViewModel(
                 // must start with careCircles/<circleId>/ (see MediaRepositoryFirebase.getFile)
                 storagePath = "careCircles/${circle.id}/media/$id.jpg",
                 createdAt = System.currentTimeMillis(),
-                description = state.description,
-                date = state.date,
+                description = description,
+                date = date,
                 location = null,
                 shownIds = state.shownIds.toList(),
                 authorizedIds = emptyList(), // empty = whole circle can see it, for the moment
@@ -220,7 +220,7 @@ class UploadPictureViewModel(
                 height = state.pictureHeight,
             )
         mediaRepo.addMedia(circle, item, file)
-        _uiState.update { it.copy(isUploading = false) } // <-- add this
+        _uiState.update { it.copy(isUploading = false) }
         _events.send(UploadPictureEvent.Uploaded)
       } catch (e: CancellationException) {
         throw e

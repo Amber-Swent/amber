@@ -59,11 +59,11 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.ADD_PERSON
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.NO_PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.ADD_PERSON
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -83,15 +83,23 @@ object UploadPictureScreenTestTags {
   const val TAKE_PICTURE = "upload_picture_take"
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
-  const val SELECT_PERSON_INVOLVED = "upload_picture_selected_person_involved"
-  const val ADD_PERSON = "upload_picture_add_person"
+  const val SELECT_PERSON_INVOLVED = DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED
+  const val ADD_PERSON = DisplayWhoIsInvolvedTestTags.ADD_PERSON
   const val ADD_PERSON_DIALOG = "upload_picture_add_person_dialog"
   const val CLOSE_ADD_PERSON = "upload_picture_close_add_person"
-  const val NO_PERSON_INVOLVED = "upload_picture_no_person_involved"
-  const val PERSON_INVOLVED = "upload_picture_person_involved"
+  const val NO_PERSON_INVOLVED = DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED
+  const val PERSON_INVOLVED = DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED
 
   const val SELECT_DATE = "upload_picture_selected_date"
   const val UPLOAD_BUTTON = "upload_picture_button"
+}
+
+/** Tags owned by the person selector helper. */
+object DisplayWhoIsInvolvedTestTags {
+  const val SELECT_PERSON_INVOLVED = "upload_picture_selected_person_involved"
+  const val ADD_PERSON = "upload_picture_add_person"
+  const val NO_PERSON_INVOLVED = "upload_picture_no_person_involved"
+  const val PERSON_INVOLVED = "upload_picture_person_involved"
 }
 
 /**
