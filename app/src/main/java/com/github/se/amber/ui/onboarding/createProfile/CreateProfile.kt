@@ -20,20 +20,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.patient.DisplayPatientButton
-import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
@@ -60,7 +55,7 @@ object CreateProfileTestTags {
  * @param modifier Modifier applied to the root profile layout.
  * @param onProfileCreated called with the saved [Role] after a successful create.
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
- *   composition; tests can pass a custom instance with a fake [ProfileRepository].
+ *   composition; tests can pass a custom instance with a fake profile repository.
  */
 @Composable
 fun CreateProfileScreen(
@@ -194,6 +189,8 @@ private fun ProfileNameField(
       isError = error != null,
       singleLine = true,
       shape = RoundedCornerShape(ROUND_CORNER),
+      // Move these colors into a shared utils helper later.
+      // Doing that now would conflict with other open changes.
       colors =
           OutlinedTextFieldDefaults.colors(
               focusedBorderColor = MaterialTheme.colorScheme.outline,
@@ -209,19 +206,4 @@ private fun ProfileNameField(
               errorSupportingTextColor = MaterialTheme.colorScheme.error,
           ),
   )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun CreateProfilePreview() {
-  val fakeRepository =
-      object : ProfileRepository {
-        override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
-
-        override suspend fun getCurrentProfile() = Result.success(null)
-
-        override suspend fun getProfile(uid: String) = Result.success(null)
-      }
-  val viewModel = remember { CreateProfileViewModel(profileRepository = fakeRepository) }
-  AmberAppTheme { CreateProfileScreen(viewModel = viewModel) }
 }
