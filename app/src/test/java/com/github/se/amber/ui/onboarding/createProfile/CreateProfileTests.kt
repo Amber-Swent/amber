@@ -1,5 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.createProfile
 
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -18,6 +19,7 @@ import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
 import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
+import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -71,12 +73,12 @@ class CreateProfileUITests {
         }
     setCreateProfile(CreateProfileViewModel(profileRepository = repository))
 
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).performTextInput(" Ada ")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput(" Ada ")
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT)
         .performTextInput(" Lovelace ")
 
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, callCount)
@@ -91,7 +93,7 @@ class CreateProfileUITests {
   fun pressingPatient_withEmptyFields_highlightsInputsInRedAndAsksToFillOut() {
     setCreateProfile()
 
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.PATIENT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEmptyFieldValidationIsShown()
@@ -101,24 +103,22 @@ class CreateProfileUITests {
   fun pressingCaregiver_withEmptyFields_highlightsInputsInRedAndAsksToFillOut() {
     setCreateProfile()
 
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEmptyFieldValidationIsShown()
   }
 
   private fun assertEmptyFieldValidationIsShown() {
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT.name).assert(hasErrorSemantics())
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT.name)
-        .assert(hasErrorSemantics())
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assert(hasErrorSemantics())
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).assert(hasErrorSemantics())
 
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.NAME_ERROR.name, useUnmergedTree = true)
+        .onNodeWithTag(CreateProfileTestTags.NAME_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(FILL_OUT_MESSAGE)
     composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.SURNAME_ERROR.name, useUnmergedTree = true)
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(FILL_OUT_MESSAGE)
   }
