@@ -37,11 +37,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
@@ -54,16 +52,17 @@ import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
+import com.github.se.amber.ui.theme.MAX_VISIBLE_ITEM
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
-import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.lightGray
-import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 import java.time.LocalDate
 import java.time.YearMonth
 
-private const val VISIBLE_ITEMS = 5 // number of rows visible at once in the picker
+// TODO should we modify Constants and add these values?
+private const val LIST_HEIGHT_FRACTION = 0.3f
+private const val DIALOG_WIDTH_FRACTION = 0.7f
 
 internal object DatePickerTestTags {
   const val DIVIDER = "date_picker_divider"
@@ -161,7 +160,7 @@ fun DisplayScrollableDatePicker(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = lightGray,
+                  color = MaterialTheme.colorScheme.tertiary,
                   shape = RoundedCornerShape(size = ROUND_CORNER),
               )
               .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
@@ -174,7 +173,7 @@ fun DisplayScrollableDatePicker(
           field = field,
           value = field.valueIn(date)?.let(field::format) ?: "Unknown",
           onClick = { openField = field },
-          modifier = Modifier.weight(1f).testTag(DatePickerTestTags.box(field)),
+          modifier = Modifier.weight(WEIGHT_ONE).testTag(DatePickerTestTags.box(field)),
       )
     }
   }
@@ -227,7 +226,10 @@ private fun DateBox(
           modifier
               .fillMaxWidth()
               .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-              .background(if (isPressed) lightGray else Color.Transparent)
+              .then(
+                  if (isPressed) Modifier.background(MaterialTheme.colorScheme.tertiary)
+                  else Modifier
+              )
               .clickable(
                   interactionSource = interactionSource,
                   indication = null,
@@ -236,17 +238,22 @@ private fun DateBox(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
   ) {
-    Text(text = field.label, color = Color.Black)
+    Text(
+        text = field.label,
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyMedium,
+    )
 
     HorizontalDivider(
         modifier = Modifier.testTag(DatePickerTestTags.DIVIDER),
         thickness = DIVIDER_THICKNESS,
-        color = lightGray,
+        color = MaterialTheme.colorScheme.tertiary,
     )
     Text(
         modifier = Modifier.testTag(DatePickerTestTags.boxValue(field)),
         text = value,
-        color = Color.Black,
+        color = MaterialTheme.colorScheme.onSurface,
+        style = MaterialTheme.typography.bodyMedium,
     )
   }
 }
@@ -286,15 +293,15 @@ private fun ScrollablePickerDialog(
     // But require conversion from Float to Dp
     val screenHeight =
         with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val listHeight = screenHeight * 0.3f
-    val itemHeight = listHeight / VISIBLE_ITEMS
+    val listHeight = screenHeight * LIST_HEIGHT_FRACTION
+    val itemHeight = listHeight / MAX_VISIBLE_ITEM
 
     Column(
         modifier =
-            Modifier.fillMaxWidth(fraction = 0.7f)
+            Modifier.fillMaxWidth(fraction = DIALOG_WIDTH_FRACTION)
                 .testTag(DIALOG)
                 .background(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(size = ROUND_CORNER),
                 )
                 .padding(PADDING_MEDIUM),
@@ -306,7 +313,7 @@ private fun ScrollablePickerDialog(
           modifier = Modifier.testTag(DatePickerTestTags.dialogTitle(field)),
           text = "Select ${field.label}",
           style = MaterialTheme.typography.titleLarge,
-          color = Color.Black,
+          color = MaterialTheme.colorScheme.onSurface,
       )
 
       Box(
@@ -314,7 +321,7 @@ private fun ScrollablePickerDialog(
               Modifier.height(listHeight)
                   .border(
                       width = BORDER_THICKNESS,
-                      color = Color.LightGray,
+                      color = MaterialTheme.colorScheme.tertiary,
                       shape = RoundedCornerShape(ROUND_CORNER),
                   )
       ) {
@@ -338,8 +345,9 @@ private fun ScrollablePickerDialog(
                 style =
                     if (isSelected) MaterialTheme.typography.bodyLarge
                     else MaterialTheme.typography.bodyMedium,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) Color.Black else darkGray,
+                color =
+                    if (isSelected) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
           }
@@ -352,25 +360,35 @@ private fun ScrollablePickerDialog(
       ) {
         // Done Button
         Button(
-            modifier = Modifier.weight(1f).testTag(DONE_BUTTON),
+            modifier = Modifier.weight(WEIGHT_ONE).testTag(DONE_BUTTON),
             onClick = { onSelected(selectedIndex) },
-            colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+            shape = RoundedCornerShape(ROUND_CORNER),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                ),
         ) {
           Text(
               text = "Done",
-              color = Color.Black,
+              color = MaterialTheme.colorScheme.onTertiary,
               style = MaterialTheme.typography.labelLarge,
           )
         }
         // Cancel Button
         Button(
-            modifier = Modifier.weight(1f).testTag(CANCEL_BUTTON),
+            modifier = Modifier.weight(WEIGHT_ONE).testTag(CANCEL_BUTTON),
             onClick = onDismiss,
-            colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+            shape = RoundedCornerShape(ROUND_CORNER),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary,
+                    contentColor = MaterialTheme.colorScheme.onTertiary,
+                ),
         ) {
           Text(
               text = "Cancel",
-              color = Color.Black,
+              color = MaterialTheme.colorScheme.onTertiary,
               style = MaterialTheme.typography.labelLarge,
           )
         }

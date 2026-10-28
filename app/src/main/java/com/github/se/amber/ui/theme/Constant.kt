@@ -1,4 +1,4 @@
-/** Written by Lou-Anne Maier. Modified by nehachak1, with assistance from Claude Code. */
+/** Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -89,6 +89,8 @@ const val MAX_LINE_DESCRIPTION = 5
 
 const val MAX_CHAR_DEFAULT = 20
 const val MAX_CHAR_DESCRIPTION = 200
+
+const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pickers
 
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f
