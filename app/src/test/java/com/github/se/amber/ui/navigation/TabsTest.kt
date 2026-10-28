@@ -48,8 +48,8 @@ class TabsTest {
   }
 
   @Test
-  fun patientSeePicturesNameIsPictures() {
-    assertEquals("Pictures", PatientTab.SeeMedias.name)
+  fun patientSeeMediasNameIsPictures() {
+    assertEquals("Medias", PatientTab.SeeMedias.name)
   }
 
   @Test
@@ -58,7 +58,7 @@ class TabsTest {
   }
 
   @Test
-  fun patientSeePicturesDestinationIsPatientSeePicturesScreen() {
-    assertEquals(PatientScreen.SeePictures, PatientTab.SeeMedias.destination)
+  fun patientSeeMediasDestinationIsPatientSeeMediasScreen() {
+    assertEquals(PatientScreen.SeeMedias, PatientTab.SeeMedias.destination)
   }
 }
