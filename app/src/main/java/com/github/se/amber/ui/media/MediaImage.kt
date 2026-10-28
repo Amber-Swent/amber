@@ -100,11 +100,10 @@ fun MediaImage(
     loading: @Composable () -> Unit = {},
     retryButton: @Composable (retry: () -> Unit) -> Unit = { MediaImageRetryButton(onClick = it) },
 ) {
-  // A new painter whenever the circle's id or bucket, or the picture's id or storage path, changes:
-  // the file to get then changes, and the first frame of a new media shows loading, never the
-  // previous one. An edit of the circle's people or of the
-  // picture's description doesn't load it again.
-  key(circle.id, circle.storageBucket, picture.id, picture.storagePath) {
+  // Everything is built again when the file to show changes, so the first frame of a new media
+  // shows loading, never the previous one. An edit of the circle's people or of the picture's
+  // description doesn't load it again.
+  key(PictureFile.of(circle, picture)) {
     val sizeResolver = rememberConstraintsSizeResolver()
     val painter = rememberMediaPainter(circle, picture, sizeResolver, contentScale)
     val state by painter.state.collectAsStateWithLifecycle()
@@ -164,9 +163,25 @@ fun Modifier.aspectRatioOf(picture: MediaItem.Picture): Modifier =
     )
 
 /**
+ * What decides which file a [MediaImage] shows: the picture is loaded again when any of it changes,
+ * and only then.
+ */
+private data class PictureFile(
+    val circleId: String,
+    val storageBucket: String,
+    val pictureId: String,
+    val storagePath: String,
+) {
+  companion object {
+    fun of(circle: CareCircle, picture: MediaItem.Picture) =
+        PictureFile(circle.id, circle.storageBucket, picture.id, picture.storagePath)
+  }
+}
+
+/**
  * The painter loading [picture], decoded at the size [sizeResolver] measures: at full resolution, a
- * camera photo would take tens of MB in every grid cell. It is built once; [MediaImage] builds a
- * new one when the file to get changes.
+ * camera photo would take tens of MB in every grid cell. Its request is built again only when the
+ * [PictureFile] changes.
  */
 @Composable
 private fun rememberMediaPainter(
@@ -177,7 +192,7 @@ private fun rememberMediaPainter(
 ): AsyncImagePainter {
   val context = LocalPlatformContext.current
   val request =
-      remember(context, sizeResolver) {
+      remember(context, sizeResolver, PictureFile.of(circle, picture)) {
         ImageRequest.Builder(context)
             .data(MediaPicture(circle, picture))
             .size(sizeResolver)
