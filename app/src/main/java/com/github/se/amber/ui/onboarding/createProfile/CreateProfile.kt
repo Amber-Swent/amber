@@ -31,7 +31,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -133,10 +132,10 @@ fun CreateProfileScreen(
           enabled = !uiState.isSaving,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
-      DisplayCaregiverButton(
-          modifier = Modifier.testTag(CreateProfileTestTags.CAREGIVER_BUTTON),
+      DisplayPatientButton(
           text = "Caregiver",
           enabled = !uiState.isSaving,
+          testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
 

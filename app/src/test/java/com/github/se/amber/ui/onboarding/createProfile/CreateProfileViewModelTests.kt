@@ -232,6 +232,23 @@ class CreateProfileViewModelTests {
   // ---------- Repository failures ----------
 
   @Test
+  fun onRoleSelected_invalidPersonDetails_setsMappedSubmitError() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.InvalidPersonDetails)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(
+        "Enter your first and last name and try again.",
+        viewModel.uiState.value.submitError,
+    )
+    assertEquals(0, successCount)
+    assertFalse(viewModel.uiState.value.isSaving)
+  }
+
+  @Test
   fun onRoleSelected_profileAlreadyExists_setsMappedSubmitError() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(ProfileCreationError.ProfileAlreadyExists)
