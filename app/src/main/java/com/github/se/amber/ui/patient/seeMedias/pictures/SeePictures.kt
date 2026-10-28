@@ -40,6 +40,7 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_SMALL
@@ -91,16 +92,9 @@ fun SeePicturesScreen(
               action = TopNavigationAction.CANCEL,
               onBackClick = onBackClick,
           )
-          Spacer(modifier = Modifier.height(PADDING_SMALL))
-          Text(
-              modifier = Modifier.fillMaxWidth().testTag(SeePicturesScreenTestTags.TITLE),
-              text = "See Pictures",
-              textAlign = TextAlign.Center,
-              color = orange,
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.Bold,
+          DisplayPatientTitle(
+              title = "See Pictures"
           )
-          Spacer(modifier = Modifier.height(PADDING_BIG))
         }
       },
       bottomBar = {
