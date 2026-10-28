@@ -55,10 +55,20 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
+  PERSON_WITHOUT_ID(mess = "This person wasn't saved, try again"),
+  CANNOT_TAG_PERSON(
+      mess = "This person was saved but can't be tagged: your care circle isn't loaded"
+  ),
 }
 
-/** Label of a member whose profile could not be read, instead of showing their uid. */
+/** Start of the label of a member whose profile could not be read, instead of showing their uid. */
 const val UNKNOWN_MEMBER_LABEL = "Unknown member"
+
+/**
+ * Label of the [number]-th member (from 1) whose profile could not be read, so that several of them
+ * can be told apart.
+ */
+fun unknownMemberLabel(number: Int): String = "$UNKNOWN_MEMBER_LABEL $number"
 
 /**
  * Represents the state displayed by the picture upload screen.
@@ -108,8 +118,12 @@ class UploadPictureViewModel(
   // it should happen once and then be gone. A Channel is built for that.
   private val _careCircle = MutableStateFlow<CareCircle?>(null)
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
-  // uid -> Person of each circle member, read from their profiles
-  private val _members = MutableStateFlow<Map<String, Person>>(emptyMap())
+  // uid -> Person of each circle member whose profile was read; null while the profiles load
+  private val _members = MutableStateFlow<Map<String, Person>?>(null)
+  // people saved by the add-person dialog before the circle arrived, keyed by id
+  private val pendingPeople = mutableMapOf<String, Person>()
+  // true once loading the circle has failed for good: nothing will apply pendingPeople
+  private var circleLoadFailed = false
   private val _events = Channel<UploadPictureEvent>(Channel.BUFFERED)
   val events: Flow<UploadPictureEvent> = _events.receiveAsFlow()
 
@@ -121,14 +135,18 @@ class UploadPictureViewModel(
   // All the names in the care circle are clickable, using chips.
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
   // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
-  /** People available for tagging, keyed by person ID and displayed by name. */
+  /**
+   * People available for tagging, keyed by person ID and displayed by name. Empty until both the
+   * circle and its members' profiles are loaded, so no chip shows a placeholder while loading.
+   */
   val involvedOptions: StateFlow<Map<String, String>> =
       combine(careCircle, _members) { circle, members ->
-            if (circle == null) emptyMap()
+            if (circle == null || members == null) emptyMap()
             else {
               val viewerUid = authRepo.currentUser?.uid
+              var unknownCount = 0
               circle.taggableIds().associateWith { id ->
-                circle.displayNameOf(id, viewerUid, members) ?: UNKNOWN_MEMBER_LABEL
+                circle.displayNameOf(id, viewerUid, members) ?: unknownMemberLabel(++unknownCount)
               }
             }
           }
@@ -138,31 +156,36 @@ class UploadPictureViewModel(
   private fun loadCircle() {
     val uid = authRepo.currentUser?.uid
     if (uid == null) {
-      setErrorMsg(UploadPictureViewModelErrorMessage.UNVERIFIED.mess)
+      failCircleLoad(UploadPictureViewModelErrorMessage.UNVERIFIED.mess)
       return
     }
     viewModelScope.launch {
       // null when the user has no profile yet
       val profile: UserProfile? =
           profileRepo.getProfile(uid).getOrElse {
-            setErrorMsg(
+            failCircleLoad(
                 UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "${it.message}"
             )
             return@launch
           }
       val circleId = profile?.circleIds?.firstOrNull()
       if (circleId == null) {
-        setErrorMsg(UploadPictureViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess)
+        failCircleLoad(UploadPictureViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess)
         return@launch
       }
       circleRepo
           .getCircle(circleId)
-          .onSuccess {
-            _careCircle.value = it
-            loadMembers(it)
+          .onSuccess { loaded ->
+            // keep the people added while the circle was loading
+            val circle =
+                if (pendingPeople.isEmpty()) loaded
+                else loaded.copy(people = loaded.people + pendingPeople)
+            pendingPeople.clear()
+            _careCircle.value = circle
+            loadMembers(circle)
           }
           .onFailure {
-            setErrorMsg(
+            failCircleLoad(
                 UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "${it.message}"
             )
           }
@@ -170,8 +193,18 @@ class UploadPictureViewModel(
   }
 
   /**
+   * Records that the circle will not load, so people added later are refused, and shows [errorMsg].
+   */
+  private fun failCircleLoad(errorMsg: String) {
+    circleLoadFailed = true
+    pendingPeople.clear()
+    setErrorMsg(errorMsg)
+  }
+
+  /**
    * Reads every member's profile so their name can be shown instead of their uid. A member whose
-   * profile can't be read is left out and labelled [UNKNOWN_MEMBER_LABEL].
+   * profile can't be read is left out and labelled with [unknownMemberLabel], unless the viewer
+   * gave them a nickname.
    *
    * @param circle The loaded care circle.
    */
@@ -328,15 +361,33 @@ class UploadPictureViewModel(
 
   /**
    * Shows a person who was just added to the care circle and tags them in the picture, since they
-   * were added while uploading it. Call it once the repository has saved [person] with its id.
+   * were added while uploading it. Call it once the repository has saved [person] with its id. This
+   * only updates the screen: the repository's addPerson is what writes them to Firestore.
+   *
+   * If the circle is still loading, [person] is kept and added to it once it arrives.
    *
    * @param person The saved person, with the id the repository generated.
+   * @return A failure, with a message the dialog can show, if [person] has no id or the circle
+   *   could not be loaded.
    */
-  fun onPersonAdded(person: Person) {
-    if (person.id.isBlank()) return
-    _careCircle.update { circle -> circle?.copy(people = circle.people + (person.id to person)) }
-    if (_careCircle.value == null) return
+  fun onPersonAdded(person: Person): Result<Unit> {
+    if (person.id.isBlank()) {
+      return Result.failure(
+          IllegalArgumentException(UploadPictureViewModelErrorMessage.PERSON_WITHOUT_ID.mess)
+      )
+    }
+    if (circleLoadFailed) {
+      return Result.failure(
+          IllegalStateException(UploadPictureViewModelErrorMessage.CANNOT_TAG_PERSON.mess)
+      )
+    }
+    if (_careCircle.value == null) pendingPeople[person.id] = person
+    else
+        _careCircle.update { circle ->
+          circle?.copy(people = circle.people + (person.id to person))
+        }
     _uiState.update { it.copy(shownIds = it.shownIds + person.id) }
+    return Result.success(Unit)
   }
 
   /**

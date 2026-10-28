@@ -20,16 +20,6 @@ class CircleNamesTest {
       )
 
   @Test
-  fun fullNameJoinsFirstAndLastName() {
-    assertEquals("Anne Dupont", anne.fullName())
-  }
-
-  @Test
-  fun fullNameSkipsBlankLastName() {
-    assertEquals("Anne", anne.copy(lastName = " ").fullName())
-  }
-
-  @Test
   fun taggableIdsContainsMembersAndPeople() {
     assertEquals(setOf("u1", "u2", "p1"), circle.taggableIds())
   }
@@ -42,7 +32,7 @@ class CircleNamesTest {
   @Test
   fun displayNameIgnoresBlankViewerNickname() {
     val blank = circle.copy(nicknames = mapOf("u2" to mapOf("p1" to " ")))
-    assertEquals("Anne Dupont", blank.displayNameOf("p1", "u2", emptyMap()))
+    assertEquals("Anne", blank.displayNameOf("p1", "u2", emptyMap()))
   }
 
   @Test
@@ -51,8 +41,25 @@ class CircleNamesTest {
   }
 
   @Test
-  fun displayNameFallsBackToFullName() {
-    assertEquals("Anne Dupont", circle.displayNameOf("p1", "u1", emptyMap()))
+  fun displayNameFallsBackToFirstName() {
+    assertEquals("Anne", circle.displayNameOf("p1", "u1", emptyMap()))
+  }
+
+  @Test
+  fun displayNameIsNullWhenFirstNameIsBlank() {
+    val noName = circle.copy(people = mapOf("p1" to anne.copy(firstName = " ")))
+    assertNull(noName.displayNameOf("p1", "u1", emptyMap()))
+  }
+
+  @Test
+  fun displayNameUsesTheViewerNicknameOfAMemberWithoutProfile() {
+    val named = circle.copy(nicknames = mapOf("u1" to mapOf("u2" to "Dad")))
+    assertEquals("Dad", named.displayNameOf("u2", "u1", emptyMap()))
+  }
+
+  @Test
+  fun displayNamePrefersPeopleOverMembersForTheSameId() {
+    assertEquals("Anne", circle.displayNameOf("p1", "u1", mapOf("p1" to marie)))
   }
 
   @Test

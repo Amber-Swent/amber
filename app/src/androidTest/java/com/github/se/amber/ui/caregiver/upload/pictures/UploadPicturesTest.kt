@@ -333,10 +333,10 @@ class UploadPicturesTest {
   fun chipsShowNamesNotIds() {
     launchScreen()
     composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("uid123" to "Marie Curie", "p1" to "Anne Dupont")
+      involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
     }
-    composeTestRule.onNodeWithText("Marie Curie").performScrollTo().assertIsDisplayed()
-    composeTestRule.onNodeWithText("Anne Dupont").performScrollTo().assertIsDisplayed()
+    composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
+    composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
   }
 
@@ -344,9 +344,9 @@ class UploadPicturesTest {
   fun clickingAChipTogglesThatPersonId() {
     launchScreen()
     composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("uid123" to "Marie Curie", "p1" to "Anne Dupont")
+      involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
     }
-    composeTestRule.onNodeWithText("Anne Dupont").performScrollTo().performClick()
+    composeTestRule.onNodeWithText("Anne").performScrollTo().performClick()
     verify(exactly = 1) { viewModel.toggleShownId("p1") }
     verify(exactly = 0) { viewModel.toggleShownId("uid123") }
   }
