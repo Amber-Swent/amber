@@ -116,7 +116,8 @@ fun SeePicturesScreen(
                         .padding(paddingValues)
                         .padding(PATIENT_PADDING_MEDIUM)
                         .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL, Alignment.CenterVertically),
+                verticalArrangement =
+                    Arrangement.spacedBy(PATIENT_PADDING_SMALL, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
