@@ -1,7 +1,8 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -9,6 +10,8 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -27,6 +30,7 @@ import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.io.File
 import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -325,5 +329,59 @@ class UploadPicturesTest {
 
     composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
+  }
+
+  // ---------- add person dialog ----------
+
+  @Test
+  fun addPersonChipOpensDialog() {
+    every { viewModel.onAddPerson() } answers
+        {
+          uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true)
+        }
+    launchScreen()
+
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON)
+        .performScrollTo()
+        .performClick()
+
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON_DIALOG).assertIsDisplayed()
+    verify(exactly = 1) { viewModel.onAddPerson() }
+  }
+
+  @Test
+  fun closeButtonDismissesAddPersonDialog() {
+    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true)
+    every { viewModel.dismissAddPerson() } answers
+        {
+          uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = false)
+        }
+    launchScreen()
+
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.CLOSE_ADD_PERSON).performClick()
+
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON_DIALOG)
+        .assertDoesNotExist()
+    verify(exactly = 1) { viewModel.dismissAddPerson() }
+  }
+
+  @Test
+  fun addPersonSaveButtonCallsViewModelForValidName() {
+    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "Anne")
+    launchScreen()
+
+    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+
+    verify(exactly = 1) { viewModel.addPerson() }
+  }
+
+  @Test
+  fun addPersonSaveButtonIsDisabledForBlankName() {
+    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "  ")
+    launchScreen()
+
+    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
   }
 }

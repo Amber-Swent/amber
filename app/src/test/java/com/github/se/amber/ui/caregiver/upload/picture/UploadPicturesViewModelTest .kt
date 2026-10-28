@@ -1,7 +1,8 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.picture
 
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -13,11 +14,6 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModelErrorMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -45,9 +41,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel]. All
- * repositories are mocked, nothing touches the network. The care circle is loaded in `init`, so
- * each test configures the repositories BEFORE calling [createViewModel].
+ * Unit tests for [UploadPictureViewModel]. All repositories are mocked, nothing touches the
+ * network. The care circle is loaded in `init`, so each test configures the repositories BEFORE
+ * calling [createViewModel].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {
@@ -660,5 +656,82 @@ class UploadPictureViewModelTest {
   @Test
   fun canUploadIsFalseWithoutDate() {
     assertFalse(readyViewModel(date = null).uiState.value.canUpload)
+  }
+
+  // ---------- add person ----------
+
+  @Test
+  fun onAddPersonOpensDialog() {
+    val vm = createViewModel()
+
+    vm.onAddPerson()
+
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+  }
+
+  @Test
+  fun dismissAddPersonClosesDialogAndClearsDraft() {
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonLastName("Dupont")
+    vm.setPersonNickname("Nana")
+
+    vm.dismissAddPerson()
+
+    assertFalse(vm.uiState.value.isAddPersonOpen)
+    assertEquals("", vm.uiState.value.personFirstName)
+    assertEquals("", vm.uiState.value.personLastName)
+    assertEquals("", vm.uiState.value.personNickname)
+  }
+
+  @Test
+  fun addPersonSavesInCircleAndSelectsNewPerson() {
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(CareCircle(id = "circle1"))
+    val saved = Person(id = "person1", firstName = "Anne", lastName = "Dupont")
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.success(saved)
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonLastName("Dupont")
+
+    vm.addPerson()
+
+    coVerify(exactly = 1) {
+      circleRepo.addPerson("circle1", match { it.firstName == "Anne" && it.lastName == "Dupont" })
+    }
+    assertEquals(saved, vm.careCircle.value?.people?.get("person1"))
+    assertEquals("Anne Dupont", vm.involvedOptions.value["person1"])
+    assertTrue("person1" in vm.uiState.value.shownIds)
+    assertFalse(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.isAddingPerson)
+  }
+
+  @Test
+  fun blankPersonNameDoesNotCallRepository() {
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("  ")
+
+    vm.addPerson()
+
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals("A first name is required", vm.uiState.value.errorMsg)
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+  }
+
+  @Test
+  fun failedAddPersonKeepsDraftAndReportsError() {
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals("offline", vm.uiState.value.errorMsg)
+    assertEquals("Anne", vm.uiState.value.personFirstName)
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.isAddingPerson)
   }
 }
