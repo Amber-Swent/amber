@@ -38,16 +38,13 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.PatientTab.Companion.patientTabs
 import com.github.se.amber.ui.navigation.Tab
+import com.github.se.amber.ui.patient.DisplayPatientButtonWithIcon
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 import com.github.se.amber.ui.theme.lightOrange
-
-object SeeMediasTestTags {
-  const val PICTURE_BUTTON = "see_picture_button"
-  const val TEXT_BUTTON = "see_text_button"
-  const val AUDIO_BUTTON = "see_audio_button"
-}
 
 /**
  * Displays the See Medias menu for text, picture, and audio stories.
@@ -84,78 +81,33 @@ fun SeeMediasScreen(
                     .padding(paddingValues)
                     .padding(horizontal = PADDING_MEDIUM)
                     .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM, Alignment.CenterVertically),
+            verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayButton(
-              modifier = Modifier.testTag(SeeMediasTestTags.PICTURE_BUTTON),
-              icon = Icons.Outlined.PhotoCamera,
-              text = "See Picture",
-              description = "Picture",
-              onClick = onSeePictureClick,
+          DisplayPatientTitle(
+              title = "See Medias"
           )
-
-          DisplayButton(
-              modifier = Modifier.testTag(SeeMediasTestTags.TEXT_BUTTON),
+          DisplayPatientButtonWithIcon(
+              text = "See Pictures",
+              icon = Icons.Outlined.PhotoCamera,
+              description = "Picture",
+              onClick = onSeePictureClick
+          )
+          DisplayPatientButtonWithIcon(
+              text = "See Texts",
               icon = Icons.Outlined.Description,
-              text = "See Text",
               description = "Text",
               onClick = onSeeTextClick,
           )
-
-          DisplayButton(
-              modifier = Modifier.testTag(SeeMediasTestTags.AUDIO_BUTTON),
-              icon = Icons.Outlined.Mic,
+          DisplayPatientButtonWithIcon(
               text = "See Audio",
-              description = "Audio",
+              icon = Icons.Outlined.Mic,
+              description = "Audios",
               onClick = onSeeAudioClick,
           )
         }
       },
   )
-}
-
-/**
- * Displays a button with an icon, label, and click action.
- *
- * @param modifier modifier applied to the button
- * @param icon icon displayed on the button.
- * @param text label displayed on the button.
- * @param description content description for the icon.
- * @param onClick callback invoked when the button is selected.
- */
-@Composable
-fun DisplayButton(
-    modifier: Modifier,
-    icon: ImageVector,
-    text: String,
-    description: String,
-    onClick: () -> Unit,
-) {
-  Button(
-      onClick = onClick,
-      modifier = modifier.height(PADDING_ENORMOUS),
-      colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
-  ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(
-          text,
-          color = Color.Black,
-          style = MaterialTheme.typography.bodyLarge,
-          fontWeight = FontWeight.Bold,
-          textAlign = TextAlign.Center,
-          modifier = Modifier.weight(1f),
-      )
-      Icon(
-          icon,
-          contentDescription = description,
-          tint = Color.Black,
-      )
-    }
-  }
 }
 
 /** Preview of [SeeMediasScreen] using the Amber application theme. */
