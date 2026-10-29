@@ -111,103 +111,71 @@ class UploadPicturesTest {
     }
   }
 
-  // ---------- static content ----------
+  // ---------- initial screen ----------
 
   @Test
-  fun titleIsDisplayed() {
+  fun initialScreenShowsEveryOptionWithNothingPicked() {
     launchScreen()
     composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
-  }
-
-  @Test
-  fun takePictureOptionIsDisplayed() {
-    launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE)
         .performScrollTo()
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun selectPictureOptionIsDisplayed() {
-    launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PICTURE)
         .performScrollTo()
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun uploadButtonIsDisplayed() {
-    launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsDisplayed()
-  }
-
-  @Test
-  fun involvedSectionIsDisplayed() {
-    launchScreen()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertDoesNotExist()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .performScrollTo()
+        .assertIsDisplayed()
+    chips.assertCountEquals(0)
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
+        .performScrollTo()
+        .assertIsDisplayed()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+        .assertCountEquals(0)
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
+        .assertIsDisplayed()
+        .assertIsNotEnabled()
   }
 
-  // ---------- picture selected indicator ----------
+  // ---------- picture and upload button ----------
 
   @Test
-  fun pictureSelectedIndicatorIsHiddenInitially() {
+  fun uploadIsEnabledOnlyOnceThePictureAndDescriptionAreSet() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertDoesNotExist()
-  }
+    val uploadButton = composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
 
-  @Test
-  fun pictureSelectedIndicatorIsShownOnceAPictureIsSet() {
-    launchScreen()
+    composeTestRule.runOnIdle {
+      uiStateFlow.value = UploadPictureUIState(description = "Beach day")
+    }
+    uploadButton.assertIsNotEnabled()
 
-    every { viewModel.setPicture(any(), any(), any()) } answers
-        {
-          uiStateFlow.value =
-              uiStateFlow.value.copy(
-                  pictureFile = firstArg(),
-                  pictureWidth = secondArg(),
-                  pictureHeight = thirdArg(),
-              )
-        }
-
-    composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
+    composeTestRule.runOnIdle {
+      uiStateFlow.value =
+          UploadPictureUIState(
+              pictureFile = File("picture.jpg"),
+              pictureWidth = 640,
+              pictureHeight = 480,
+          )
+    }
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED)
         .performScrollTo()
         .assertIsDisplayed()
-  }
+    uploadButton.assertIsNotEnabled()
 
-  // ---------- upload button enabled state ----------
-
-  @Test
-  fun uploadButtonIsDisabledInitially() {
-    launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
-  }
-
-  @Test
-  fun uploadButtonIsDisabledWithoutPicture() {
-    launchScreen()
-    composeTestRule.runOnIdle { viewModel.setDescription("Beach day") }
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
-  }
-
-  @Test
-  fun uploadButtonIsDisabledWithoutDescription() {
-    launchScreen()
-    composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
-  }
-
-  @Test
-  fun uploadButtonIsEnabledWhenFormIsValid() {
-    launchScreen()
     fillValidForm()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsEnabled()
+    uploadButton.assertIsEnabled()
   }
 
   // ---------- who is involved ----------
@@ -230,17 +198,8 @@ class UploadPicturesTest {
   }
 
   @Test
-  fun withoutOptionsShowsTheEmptyMessageAndNoChip() {
-    launchScreen()
-    composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
-        .performScrollTo()
-        .assertIsDisplayed()
-    chips.assertCountEquals(0)
-  }
-
-  @Test
-  fun optionsShowOneUnselectedChipPerPersonByName() {
+  fun chipsShowEachPersonByNameAndToggleOnlyThatPerson() {
+    toggleShownIdsForReal()
     launchScreen()
     composeTestRule.runOnIdle {
       involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
@@ -252,19 +211,9 @@ class UploadPicturesTest {
     chips[0].assertIsNotSelected()
     chips[1].assertIsNotSelected()
     composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
-    composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
-  }
 
-  @Test
-  fun clickingAChipTogglesOnlyThatPerson() {
-    toggleShownIdsForReal()
-    launchScreen()
-    composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
-    }
-
-    composeTestRule.onNodeWithText("Anne").performScrollTo().performClick()
+    composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed().performClick()
     composeTestRule.onNodeWithText("Anne").assertIsSelected()
     composeTestRule.onNodeWithText("Marie").assertIsNotSelected()
     composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.shownIds) }
@@ -286,14 +235,6 @@ class UploadPicturesTest {
   @Test
   fun savedPlacesAreShownAsChipsThatCanBePicked() {
     launchScreen()
-    composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
-        .performScrollTo()
-        .assertIsDisplayed()
-    composeTestRule
-        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
-        .assertCountEquals(0)
-
     every { viewModel.selectPlace(any<String>()) } answers
         {
           uiStateFlow.value =
