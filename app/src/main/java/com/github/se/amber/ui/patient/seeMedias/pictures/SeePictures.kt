@@ -49,6 +49,8 @@ object SeePicturesTestTags {
   const val NO_PICTURES_SEE_PICTURES = "no_pictures_see_pictures"
   const val ERROR_SEE_PICTURES = "pictures_error_see_pictures"
 
+  const val TITLE_SEE_PICTURES = "title_see_pictures"
+
   fun picture(id: String = "") = "picture_$id"
 }
 
@@ -87,7 +89,10 @@ fun SeePicturesScreen(
               action = TopNavigationAction.CANCEL,
               onBackClick = onBackClick,
           )
-          DisplayPatientTitle(title = "See Pictures")
+          DisplayPatientTitle(
+              title = "See Pictures",
+              testTag = SeePicturesTestTags.TITLE_SEE_PICTURES,
+          )
         }
       },
       bottomBar = {

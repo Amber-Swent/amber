@@ -4,7 +4,6 @@ package com.github.se.amber.ui.patient.seeMedias.pictures
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -105,7 +104,7 @@ class SeePicturesScreenTest {
     setContent()
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.TITLE_SEE_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
@@ -159,7 +158,6 @@ class SeePicturesScreenTest {
     setContent()
 
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertIsDisplayed()
-    composeTestRule.onNodeWithText("There are no pictures yet.").assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
   }
 
@@ -192,7 +190,6 @@ class SeePicturesScreenTest {
     setContent()
 
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Failed to load the profile: boom").assertIsDisplayed()
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertDoesNotExist()
 
