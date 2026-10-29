@@ -44,7 +44,6 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
-import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 object SeePicturesTestTags {
   const val NO_PICTURES_SEE_PICTURES = "no_pictures_see_pictures"
