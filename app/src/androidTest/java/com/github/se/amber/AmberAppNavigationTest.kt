@@ -74,7 +74,6 @@ class AmberAppNavigationTest {
     // Patient
     val PATIENT_TAB_HOME = tabTag(PatientTab.Home)
     val PATIENT_TAB_SEE_MEDIAS = tabTag(PatientTab.SeeMedias)
-    val PATIENT_TAB_SEE_PICTURES = tabTag(PatientTab.SeePictures)
     val PATIENT_TAB_PARAMETERS = tabTag(PatientTab.Setting)
     const val PATIENT_PARAMETERS_SIGN_OUT = PatientParameterTestTags.SIGN_OUT_BUTTON
     const val SEE_PICTURES_BACK = TopNavigationMenuTestTags.BACK_BUTTON
@@ -404,10 +403,10 @@ class AmberAppNavigationTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun patientHome_seePicturesTab_navigatesToSeePictures() {
+  fun patientHome_seeMedias_navigatesToSeeMedias() {
     launch(NavGraphs.PATIENT)
 
-    click(Tags.PATIENT_TAB_SEE_PICTURES)
+    click(Tags.PATIENT_TAB_SEE_MEDIAS)
 
     assertRoute(PatientScreen.SeePictures.route)
   }

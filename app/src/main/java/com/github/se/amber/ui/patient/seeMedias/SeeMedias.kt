@@ -53,10 +53,10 @@ fun SeeMediasScreen(
   Scaffold(
       bottomBar = {
         BottomNavigationMenu(
+            Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
             selectedTab = PatientTab.SeeMedias,
             onTabSelected = onTabSelected,
             tabs = patientTabs,
-            Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
         )
       },
       content = { paddingValues ->
