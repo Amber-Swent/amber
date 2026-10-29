@@ -36,10 +36,12 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-/** Compose tests for the add-person flow on [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen]. */
+/**
+ * Compose tests for the add-person flow on
+ * [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen].
+ */
 class AddPersonDialogTest {
-  @get:Rule
-  val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createComposeRule()
 
   private lateinit var viewModel: UploadPictureViewModel
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
@@ -77,7 +79,7 @@ class AddPersonDialogTest {
         .performClick()
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertIsDisplayed()
-      verify(exactly = 1) { viewModel.onAddPerson() }
+    verify(exactly = 1) { viewModel.onAddPerson() }
   }
 
   @Test
@@ -92,7 +94,7 @@ class AddPersonDialogTest {
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.CLOSE).performClick()
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertDoesNotExist()
-      verify(exactly = 1) { viewModel.dismissAddPerson() }
+    verify(exactly = 1) { viewModel.dismissAddPerson() }
   }
 
   @Test
@@ -102,7 +104,7 @@ class AddPersonDialogTest {
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-      verify(exactly = 1) { viewModel.addPerson() }
+    verify(exactly = 1) { viewModel.addPerson() }
   }
 
   @Test
@@ -118,10 +120,10 @@ class AddPersonDialogTest {
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-      verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
-      verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
-      verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
-      verify(exactly = 1) { viewModel.addPerson() }
+    verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
+    verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
+    verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
+    verify(exactly = 1) { viewModel.addPerson() }
   }
 
   @Test
@@ -192,6 +194,6 @@ class AddPersonDialogTest {
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
     val savedId = viewModel.uiState.value.shownIds.single()
     composeTestRule.onNode(hasText("Anne") and hasClickAction()).assertIsSelected()
-      Assert.assertEquals("Anne", fakeCircleRepo.circle.people[savedId]?.firstName)
+    Assert.assertEquals("Anne", fakeCircleRepo.circle.people[savedId]?.firstName)
   }
 }

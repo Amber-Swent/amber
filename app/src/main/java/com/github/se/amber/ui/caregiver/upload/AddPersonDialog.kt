@@ -104,7 +104,11 @@ fun AddPersonDialog(
             onValueChange = onLastNameChange,
             label = "Surname - optional",
         )
-        DisplayTextField(value = nickname, onValueChange = onNicknameChange, label = "Nickname - optional")
+        DisplayTextField(
+            value = nickname,
+            onValueChange = onNicknameChange,
+            label = "Nickname - optional",
+        )
         DisplayCaregiverButton(
             onClick = {
               onFirstNameChange(firstName.trim())
