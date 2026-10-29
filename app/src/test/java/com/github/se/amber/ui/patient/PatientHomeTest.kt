@@ -17,6 +17,7 @@ import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
+import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -121,6 +122,16 @@ class PatientHomeScreenTest {
   fun bottomNavigationBarIsDisplayed() {
     setScreen()
 
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun screenUsesDefaultOnTabSelectedWhenOmitted() {
+    composeTestRule.setContent { AmberAppTheme { PatientHomeScreen(homeViewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
