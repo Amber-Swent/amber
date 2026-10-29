@@ -5,7 +5,6 @@ package com.github.se.amber.ui.patient.seeMedias
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -35,14 +34,23 @@ class SeeMediasScreenTest {
     composeTestRule.setContent { SeeMediasScreen(viewModel = viewModel) }
 
     composeTestRule
-        .onNodeWithText("See Medias")
+        .onNodeWithTag(SeeMediasTestTags.TITLE_SEE_MEDIAS)
         .assertIsDisplayed() // Title is at the top so we don't scroll
 
-    composeTestRule.onNodeWithText("See Pictures").performScrollTo().assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .assertIsDisplayed()
 
-    composeTestRule.onNodeWithText("See Texts").performScrollTo().assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .assertIsDisplayed()
 
-    composeTestRule.onNodeWithText("See Audio").performScrollTo().assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .assertIsDisplayed()
 
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
@@ -64,13 +72,22 @@ class SeeMediasScreenTest {
       )
     }
 
-    composeTestRule.onNodeWithText("See Pictures").performScrollTo().performClick()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .performClick()
     assertEquals(listOf(1, 0, 0), listOf(pictureClicks, textClicks, audioClicks))
 
-    composeTestRule.onNodeWithText("See Texts").performScrollTo().performClick()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .performClick()
     assertEquals(listOf(1, 1, 0), listOf(pictureClicks, textClicks, audioClicks))
 
-    composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .performClick()
     assertEquals(listOf(1, 1, 1), listOf(pictureClicks, textClicks, audioClicks))
   }
 
@@ -97,10 +114,19 @@ class SeeMediasScreenTest {
     // Default callbacks are no-ops, and the default viewModel() is provided by the activity.
     composeTestRule.setContent { SeeMediasScreen() }
 
-    composeTestRule.onNodeWithText("See Pictures").performScrollTo().performClick()
-    composeTestRule.onNodeWithText("See Texts").performScrollTo().performClick()
-    composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .performClick()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .performClick()
+    composeTestRule
+        .onNodeWithTag(SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS)
+        .performScrollTo()
+        .performClick()
 
-    composeTestRule.onNodeWithText("See Medias").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE_SEE_MEDIAS).assertIsDisplayed()
   }
 }

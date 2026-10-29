@@ -30,6 +30,13 @@ import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
+object SeeMediasTestTags {
+  const val TITLE_SEE_MEDIAS = "title_see_medias"
+  const val SEE_PICTURES_BUTTON_SEE_MEDIAS = "see_pictures_button_see_medias"
+  const val SEE_TEXTS_BUTTON_SEE_MEDIAS = "see_medias_see_texts_button_see_medias"
+  const val SEE_AUDIO_BUTTON_SEE_MEDIAS = "see_audio_button_see_medias"
+}
+
 /**
  * Displays the See Medias menu for text, picture, and audio stories.
  *
@@ -67,24 +74,30 @@ fun SeeMediasScreen(
             verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayPatientTitle(title = "See Medias")
+          DisplayPatientTitle(
+              title = "See Medias",
+              testTag = SeeMediasTestTags.TITLE_SEE_MEDIAS,
+          )
           DisplayPatientButtonWithIcon(
               text = "See Pictures",
               icon = Icons.Outlined.PhotoCamera,
               description = "Picture",
               onClick = onSeePictureClick,
+              testTag = SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS,
           )
           DisplayPatientButtonWithIcon(
               text = "See Texts",
               icon = Icons.Outlined.Description,
               description = "Text",
               onClick = onSeeTextClick,
+              testTag = SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS,
           )
           DisplayPatientButtonWithIcon(
               text = "See Audio",
               icon = Icons.Outlined.Mic,
               description = "Audios",
               onClick = onSeeAudioClick,
+              testTag = SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS,
           )
         }
       },
