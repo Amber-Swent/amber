@@ -170,11 +170,9 @@ class InvitationEndToEndTest {
    * @param lastName the caregiver's last name
    */
   private fun createCaregiverProfile(firstName: String, lastName: String) {
-    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the CreateProfile Refactor.
-    typeInto(CreateProfileTestTags.NAME_INPUT.name, firstName)
-    typeInto(CreateProfileTestTags.SURNAME_INPUT.name, lastName)
-    click(CreateProfileTestTags.CAREGIVER_BUTTON.name)
+    typeInto(CreateProfileTestTags.NAME_INPUT, firstName)
+    typeInto(CreateProfileTestTags.SURNAME_INPUT, lastName)
+    click(CreateProfileTestTags.CAREGIVER_BUTTON)
   }
 
   /**
