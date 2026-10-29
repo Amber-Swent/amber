@@ -15,12 +15,6 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModelErrorMessage
-import com.github.se.amber.ui.caregiver.upload.picture.unknownMemberLabel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every

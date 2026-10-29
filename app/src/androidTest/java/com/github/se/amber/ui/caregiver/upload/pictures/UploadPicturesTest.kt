@@ -5,6 +5,10 @@
  */
 package com.github.se.amber.ui.caregiver.upload.pictures
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -98,6 +102,12 @@ class UploadPicturesTest {
           goBack = { goBackCallbackCount++ },
       )
     }
+  }
+
+  private fun fakeCircle(members: List<String>): CareCircle = mockk {
+    every { id } returns "circle1"
+    every { people } returns emptyMap()
+    every { memberIds } returns members
   }
 
   private fun fillValidForm() {
@@ -217,8 +227,26 @@ class UploadPicturesTest {
 
   // ---------- who is involved ----------
 
+  private val twoMembersCircle by lazy { fakeCircle(members = listOf("member1", "member2")) }
+
+  private fun setCircleWithOptions(circle: CareCircle) {
+    composeTestRule.runOnIdle {
+      careCircleFlow.value = circle
+      // The mocked ViewModel doesn't derive this itself. It mirrors the real mapping
+      // for a circle with no people: memberIds.associateWith { it }.
+      involvedOptionsFlow.value = circle.memberIds.associateWith { it }
+    }
+  }
+
   private val chips
-    get() = composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+    get() =
+        composeTestRule.onAllNodes(
+            SemanticsMatcher("person chip") { node ->
+              node.config
+                  .getOrNull(SemanticsProperties.TestTag)
+                  ?.startsWith(DisplayWhoIsInvolvedTestTags.personInvolved("")) == true
+            }
+        )
 
   /** Makes the mocked ViewModel tag or untag a person like the real one does. */
   private fun toggleShownIdsForReal() {
@@ -254,13 +282,17 @@ class UploadPicturesTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .assertDoesNotExist()
     chips.assertCountEquals(2)
-    chips[0].assertIsNotSelected()
-    chips[1].assertIsNotSelected()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("uid123"))
+        .assertIsNotSelected()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("p1"))
+        .assertIsNotSelected()
     composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
   }
-  
+
   @Test
   fun emptyCircleMessageIsHiddenWhenCircleHasMembers() {
     launchScreen()
@@ -271,7 +303,7 @@ class UploadPicturesTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .assertDoesNotExist()
   }
-  
+
   @Test
   fun clickingAChipTogglesOnlyThatPerson() {
     toggleShownIdsForReal()
@@ -291,7 +323,7 @@ class UploadPicturesTest {
     composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
   }
 
-    @Test
+  @Test
   fun chipIsDisplayedForEachCircleMember() {
     launchScreen()
     composeTestRule.runOnIdle {
@@ -379,7 +411,7 @@ class UploadPicturesTest {
         .performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }
-  
+
   // ---------- add person dialog ----------
 
   @Test
