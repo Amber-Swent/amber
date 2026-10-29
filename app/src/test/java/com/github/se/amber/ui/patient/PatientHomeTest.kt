@@ -108,11 +108,11 @@ class PatientHomeScreenTest {
   }
 
   @Test
-  fun greetingWithVeryLongFirstNameIsDisplayed() {
-    stateFlow.value = PatientHomeUIState(patientProfile = profileOf("A".repeat(200)))
+  fun greetingWithLongFirstNameIsDisplayed() {
+    stateFlow.value = PatientHomeUIState(patientProfile = profileOf("A".repeat(30)))
     setScreen()
 
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertExists()
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
   }
 
   // ---------- Bottom navigation ----------

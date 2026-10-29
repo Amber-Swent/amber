@@ -4,6 +4,7 @@ package com.github.se.amber.ui.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.ui.theme.BIG_ROUND_CORNER
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
+import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
 import com.github.se.amber.ui.theme.orange
@@ -112,11 +114,13 @@ fun BottomNavigationMenu(
         containerColor = MaterialTheme.colorScheme.background,
         content = {
           tabs.forEach { tab ->
+            val iconModifier = if (tab is PatientTab) Modifier.size(PATIENT_ICON_SIZE) else Modifier
             NavigationBarItem(
                 icon = {
                   Icon(
-                      tab.icon,
+                      imageVector = tab.icon,
                       contentDescription = tab.name,
+                      modifier = iconModifier,
                       tint = if (tab == selectedTab) orange else lightOrange,
                   )
                 },
