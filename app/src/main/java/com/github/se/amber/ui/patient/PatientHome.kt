@@ -34,6 +34,14 @@ object PatientHomeTestTags {
   const val GREETINGS = "home_greetings"
 }
 
+/**
+ * Displays the patient home screen.
+ *
+ * Sign-out is available from the parameters screen.
+ *
+ * @param homeViewModel ViewModel providing the patient profile displayed on the screen.
+ * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
+ */
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
@@ -82,6 +90,7 @@ fun PatientHomeScreen(
   )
 }
 
+/** Preview of [PatientHomeScreen] using the Amber application theme. */
 @Preview(showBackground = true)
 @Composable
 fun PatientHomeScreenPreview() {
