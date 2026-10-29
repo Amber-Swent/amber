@@ -14,14 +14,22 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
+import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
@@ -50,17 +58,20 @@ class UploadPicturesTest {
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
   private lateinit var careCircleFlow: MutableStateFlow<CareCircle?>
   private lateinit var involvedOptionsFlow: MutableStateFlow<Map<String, String>>
+  private lateinit var placeOptionsFlow: MutableStateFlow<Map<String, String>>
 
   @Before
   fun setUp() {
     uiStateFlow = MutableStateFlow(UploadPictureUIState())
     careCircleFlow = MutableStateFlow(null)
     involvedOptionsFlow = MutableStateFlow(emptyMap())
+    placeOptionsFlow = MutableStateFlow(emptyMap())
 
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.careCircle } returns careCircleFlow
     every { viewModel.involvedOptions } returns involvedOptionsFlow
+    every { viewModel.placeOptions } returns placeOptionsFlow
 
     uploadCallbackCount = 0
     goBackCallbackCount = 0
@@ -76,12 +87,6 @@ class UploadPicturesTest {
     }
   }
 
-  private fun fakeCircle(members: List<String>): CareCircle = mockk {
-    every { id } returns "circle1"
-    every { people } returns emptyMap()
-    every { memberIds } returns members
-  }
-
   private fun fillValidForm() {
     composeTestRule.runOnIdle {
       uiStateFlow.value =
@@ -95,120 +100,74 @@ class UploadPicturesTest {
     }
   }
 
-  // ---------- static content ----------
+  // ---------- initial screen ----------
 
   @Test
-  fun titleIsDisplayed() {
+  fun initialScreenShowsEveryOptionWithNothingPicked() {
     launchScreen()
     composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TITLE).assertIsDisplayed()
-  }
-
-  @Test
-  fun takePictureOptionIsDisplayed() {
-    launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE)
         .performScrollTo()
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun selectPictureOptionIsDisplayed() {
-    launchScreen()
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PICTURE)
         .performScrollTo()
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun uploadButtonIsDisplayed() {
-    launchScreen()
-    composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
-        .performScrollTo()
-        .assertIsDisplayed()
-  }
-
-  @Test
-  fun involvedSectionIsDisplayed() {
-    launchScreen()
+    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertDoesNotExist()
     composeTestRule
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
+        .performScrollTo()
+        .assertIsDisplayed()
+    chips.assertCountEquals(0)
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
+        .performScrollTo()
+        .assertIsDisplayed()
+    composeTestRule
+        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+        .assertCountEquals(0)
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
+        .assertIsDisplayed()
+        .assertIsNotEnabled()
   }
 
-  // ---------- picture selected indicator ----------
+  // ---------- picture and upload button ----------
 
   @Test
-  fun pictureSelectedIndicatorIsHiddenInitially() {
+  fun uploadIsEnabledOnlyOnceThePictureAndDescriptionAreSet() {
     launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertDoesNotExist()
-  }
+    val uploadButton = composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
 
-  @Test
-  fun pictureSelectedIndicatorIsShownOnceAPictureIsSet() {
-    launchScreen()
+    composeTestRule.runOnIdle {
+      uiStateFlow.value = UploadPictureUIState(description = "Beach day")
+    }
+    uploadButton.assertIsNotEnabled()
 
-    every { viewModel.setPicture(any(), any(), any()) } answers
-        {
-          uiStateFlow.value =
-              uiStateFlow.value.copy(
-                  pictureFile = firstArg(),
-                  pictureWidth = secondArg(),
-                  pictureHeight = thirdArg(),
-              )
-        }
-
-    composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
+    composeTestRule.runOnIdle {
+      uiStateFlow.value =
+          UploadPictureUIState(
+              pictureFile = File("picture.jpg"),
+              pictureWidth = 640,
+              pictureHeight = 480,
+          )
+    }
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED)
         .performScrollTo()
         .assertIsDisplayed()
-  }
+    uploadButton.assertIsNotEnabled()
 
-  // ---------- upload button enabled state ----------
-
-  @Test
-  fun uploadButtonIsDisabledInitially() {
-    launchScreen()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
-  }
-
-  @Test
-  fun uploadButtonIsDisabledWithoutPicture() {
-    launchScreen()
-    composeTestRule.runOnIdle { viewModel.setDescription("Beach day") }
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
-  }
-
-  @Test
-  fun uploadButtonIsDisabledWithoutDescription() {
-    launchScreen()
-    composeTestRule.runOnIdle { viewModel.setPicture(File("picture.jpg"), 640, 480) }
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
-  }
-
-  @Test
-  fun uploadButtonIsEnabledWhenFormIsValid() {
-    launchScreen()
     fillValidForm()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON).assertIsEnabled()
+    uploadButton.assertIsEnabled()
   }
 
   // ---------- who is involved ----------
-
-  private val twoMembersCircle by lazy { fakeCircle(members = listOf("member1", "member2")) }
-
-  private fun setCircleWithOptions(circle: CareCircle) {
-    composeTestRule.runOnIdle {
-      careCircleFlow.value = circle
-      // The mocked ViewModel doesn't derive this itself. It mirrors the real mapping
-      // for a circle with no people: memberIds.associateWith { it }.
-      involvedOptionsFlow.value = circle.memberIds.associateWith { it }
-    }
-  }
 
   private val chips
     get() =
@@ -235,17 +194,8 @@ class UploadPicturesTest {
   }
 
   @Test
-  fun withoutOptionsShowsTheEmptyMessageAndNoChip() {
-    launchScreen()
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
-        .performScrollTo()
-        .assertIsDisplayed()
-    chips.assertCountEquals(0)
-  }
-
-  @Test
-  fun optionsShowOneUnselectedChipPerPersonByName() {
+  fun chipsShowEachPersonByNameAndToggleOnlyThatPerson() {
+    toggleShownIdsForReal()
     launchScreen()
     composeTestRule.runOnIdle {
       involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
@@ -261,30 +211,9 @@ class UploadPicturesTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("p1"))
         .assertIsNotSelected()
     composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
-    composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
-  }
 
-  @Test
-  fun emptyCircleMessageIsHiddenWhenCircleHasMembers() {
-    launchScreen()
-    composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
-    }
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
-        .assertDoesNotExist()
-  }
-
-  @Test
-  fun clickingAChipTogglesOnlyThatPerson() {
-    toggleShownIdsForReal()
-    launchScreen()
-    composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
-    }
-
-    composeTestRule.onNodeWithText("Anne").performScrollTo().performClick()
+    composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed().performClick()
     composeTestRule.onNodeWithText("Anne").assertIsSelected()
     composeTestRule.onNodeWithText("Marie").assertIsNotSelected()
     composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.shownIds) }
@@ -295,92 +224,77 @@ class UploadPicturesTest {
     composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
   }
 
-  @Test
-  fun chipIsDisplayedForEachCircleMember() {
-    launchScreen()
-    composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
-    }
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
-        .assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member2"))
-        .assertIsDisplayed()
+  // ---------- location ----------
+
+  private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
+
+  private fun setLocation(location: PictureLocationUIState) {
+    composeTestRule.runOnIdle { uiStateFlow.value = UploadPictureUIState(location = location) }
   }
 
   @Test
-  fun chipIsNotSelectedByDefault() {
+  fun savedPlacesAreShownAsChipsThatCanBePicked() {
     launchScreen()
-    setCircleWithOptions(twoMembersCircle)
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
-        .assertIsNotSelected()
-  }
-
-  @Test
-  fun clickingAChipSelectsIt() {
-    launchScreen()
-    composeTestRule.runOnIdle { involvedOptionsFlow.value = mapOf("member1" to "Member 1") }
-
-    every { viewModel.toggleShownId(any()) } answers
+    every { viewModel.selectPlace(any<String>()) } answers
         {
           uiStateFlow.value =
               uiStateFlow.value.copy(
-                  shownIds =
-                      uiStateFlow.value.shownIds.toMutableSet().apply { add(firstArg<String>()) }
+                  location = uiStateFlow.value.location.copy(selectedPlaceId = firstArg())
               )
         }
-
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
-        .performClick()
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
-        .assertIsSelected()
-  }
-
-  @Test
-  fun clickingASelectedChipDeselectsIt() {
-    launchScreen()
-    setCircleWithOptions(twoMembersCircle)
-    val chip = composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
-    chip.performClick()
-    chip.performClick()
-    chip.assertIsNotSelected()
-  }
-
-  @Test
-  fun clickingAChipDoesNotSelectTheOthers() {
-    launchScreen()
-    setCircleWithOptions(twoMembersCircle)
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
-        .performClick()
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member2"))
-        .assertIsNotSelected()
-  }
-
-  @Test
-  fun clickingAChipTagsThePersonInTheViewModel() {
-    launchScreen()
     composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
+      placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")
     }
+    val chips = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+    chips.assertCountEquals(2)
 
-    every { viewModel.toggleShownId(any()) } answers
-        {
-          uiStateFlow.value =
-              uiStateFlow.value.copy(
-                  shownIds =
-                      uiStateFlow.value.shownIds.toMutableSet().apply { add(firstArg<String>()) }
-              )
-        }
+    chips[0].performScrollTo().assertIsNotSelected().performClick()
 
+    verify { viewModel.selectPlace("home") }
+    chips[0].assertIsSelected()
+    chips[1].assertIsNotSelected()
+  }
+
+  @Test
+  fun searchingAPlaceShowsItsProgressAndSuggestionsToPick() {
+    launchScreen()
     composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .onNode(
+            hasSetTextAction() and
+                hasAnyAncestor(hasTestTag(UploadPictureLocationTestTags.SEARCH_FIELD))
+        )
+        .performScrollTo()
+        .performTextInput("Lausanne")
+    verify { viewModel.setPlaceQuery("Lausanne") }
+
+    setLocation(PictureLocationUIState(query = "Lau", isSearching = true))
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
+        .performScrollTo()
+        .assertIsDisplayed()
+
+    setLocation(PictureLocationUIState(query = "Grandma's house"))
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
+        .performScrollTo()
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCHING).assertDoesNotExist()
+
+    setLocation(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
+    composeTestRule
+        .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
+        .performScrollTo()
         .performClick()
-    composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
+    verify { viewModel.selectPlace(lausanne) }
+
+    setLocation(
+        PictureLocationUIState(
+            query = lausanne.placeName!!,
+            suggestions = listOf(lausanne),
+            pickedPlace = lausanne,
+        )
+    )
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 }
