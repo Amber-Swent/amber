@@ -1,3 +1,4 @@
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.ui.test.assertIsDisplayed
@@ -13,6 +14,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -57,6 +59,7 @@ class AddPersonDialogTest {
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.careCircle } returns MutableStateFlow(null)
     every { viewModel.involvedOptions } returns MutableStateFlow(emptyMap())
+    every { viewModel.placeOptions } returns MutableStateFlow(emptyMap())
   }
 
   private fun launchScreen() {
@@ -179,6 +182,7 @@ class AddPersonDialogTest {
             authRepo = fakeAuthRepo,
             profileRepo = fakeProfileRepo,
             circleRepo = fakeCircleRepo,
+            placeRepo = PlaceSearchRepository { Result.success(emptyList()) },
             pictureReader = pictureReader,
         )
     launchScreen()
