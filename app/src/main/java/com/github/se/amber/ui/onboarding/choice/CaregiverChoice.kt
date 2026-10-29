@@ -31,7 +31,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.Divider
+import com.github.se.amber.ui.onboarding.Divider
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 

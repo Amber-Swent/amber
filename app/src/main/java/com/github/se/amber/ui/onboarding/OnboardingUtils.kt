@@ -1,4 +1,4 @@
-package com.github.se.amber.ui.theme
+package com.github.se.amber.ui.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -14,10 +14,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
-import com.github.se.amber.ui.theme.DividerTestTags.HORIZONTAL_DIVIDER_LEFT
-import com.github.se.amber.ui.theme.DividerTestTags.HORIZONTAL_DIVIDER_RIGHT
-import com.github.se.amber.ui.theme.DividerTestTags.ROW
-import com.github.se.amber.ui.theme.DividerTestTags.TEXT
+import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_LEFT
+import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_RIGHT
+import com.github.se.amber.ui.onboarding.DividerTestTags.ROW
+import com.github.se.amber.ui.onboarding.DividerTestTags.TEXT
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.theme.lightGray
 
 /** Test tags for [CaregiverChoiceScreen]. */
 object DividerTestTags {

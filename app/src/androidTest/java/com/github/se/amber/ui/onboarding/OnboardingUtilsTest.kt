@@ -1,4 +1,4 @@
-package com.github.se.amber.ui.theme
+package com.github.se.amber.ui.onboarding
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -6,9 +6,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import com.github.se.amber.ui.theme.DividerTestTags.HORIZONTAL_DIVIDER_LEFT
-import com.github.se.amber.ui.theme.DividerTestTags.HORIZONTAL_DIVIDER_RIGHT
-import com.github.se.amber.ui.theme.DividerTestTags.TEXT
+import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_LEFT
+import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_RIGHT
+import com.github.se.amber.ui.onboarding.DividerTestTags.TEXT
 import org.junit.Rule
 import org.junit.Test
 
