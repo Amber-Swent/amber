@@ -122,7 +122,10 @@ class CreateProfileUITests {
 
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
     composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON).performClick()
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+        .performScrollTo()
+        .performClick()
     composeTestRule.waitForIdle()
 
     composeTestRule
@@ -148,7 +151,10 @@ class CreateProfileUITests {
   fun pressingCaregiver_withEmptyFields_highlightsInputsInRedAndAsksToFillOut() {
     setCreateProfile()
 
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON).performClick()
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+        .performScrollTo()
+        .performClick()
     composeTestRule.waitForIdle()
 
     assertEmptyFieldValidationIsShown()
