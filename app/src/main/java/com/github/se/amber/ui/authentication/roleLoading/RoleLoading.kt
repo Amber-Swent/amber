@@ -14,12 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.authentication.signIn.AuthenticationButton
 import com.github.se.amber.ui.authentication.signIn.AuthenticationLayout
 import com.github.se.amber.ui.authentication.signIn.AuthenticationText
+import com.github.se.amber.ui.theme.AmberAppTheme
 
 /** Test tags of [RoleLoadingScreen]. */
 object RoleLoadingTestTags {
@@ -120,4 +122,11 @@ fun RoleLoadingScreen(
     // when the role is loaded it displays nothing because being redirected
     is RoleState.Loaded -> Unit
   }
+}
+
+/** Preview of [RoleLoadingScreen] using the Amber application theme. */
+@Preview(showBackground = true)
+@Composable
+private fun RoleLoadingScreenPreview() {
+  AmberAppTheme(dynamicColor = false) { RoleLoadingScreen() }
 }

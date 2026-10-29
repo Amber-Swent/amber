@@ -172,7 +172,7 @@ class AmberAppNavigationTest {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)
 
-    click(Tags.CHOICE_CREATE_CIRCLE_BUTTON.name)
+    click(Tags.CHOICE_CREATE_CIRCLE_BUTTON)
 
     assertRoute(OnboardingScreen.CreateCareCircle.route)
   }
@@ -182,7 +182,7 @@ class AmberAppNavigationTest {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)
 
-    click(Tags.CHOICE_JOIN_CIRCLE_BUTTON.name)
+    click(Tags.CHOICE_JOIN_CIRCLE_BUTTON)
 
     assertRoute(OnboardingScreen.EnterInvitation.route)
   }
@@ -192,7 +192,7 @@ class AmberAppNavigationTest {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)
 
-    click(Tags.CHOICE_BACK.name)
+    click(Tags.CHOICE_BACK)
 
     // goBack() pops once: we come back to CreateProfile
     assertRoute(OnboardingScreen.CreateProfile.route)
