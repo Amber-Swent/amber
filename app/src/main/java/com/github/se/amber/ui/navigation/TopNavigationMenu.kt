@@ -1,5 +1,6 @@
 // Written by Lou-Anne Maier.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.navigation
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -19,6 +20,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 
 internal const val CANCEL_LABEL = "Cancel"
@@ -98,4 +101,12 @@ fun TopNavigationMenu(
         color = MaterialTheme.colorScheme.outline,
     )
   }
+}
+
+/** Preview of [TopNavigationMenu] using the Amber application theme. */
+@Preview(showBackground = true)
+@Composable
+internal fun TopNavigationMenuPreview() {
+  // Omit [action] so the default CANCEL branch is exercised by preview/tests.
+  AmberAppTheme(dynamicColor = false) { TopNavigationMenu() }
 }

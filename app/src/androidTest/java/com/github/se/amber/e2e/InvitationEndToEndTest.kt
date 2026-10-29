@@ -1,6 +1,7 @@
 /**
  * Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code. Modified by
- * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+ * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code. Modified by Yuhan YANG,
+ * with assistance from Cursor.
  */
 package com.github.se.amber.e2e
 
@@ -23,13 +24,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.AmberApp
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
+import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
@@ -116,18 +118,15 @@ class InvitationEndToEndTest {
     createCaregiverProfile(firstName = "Ada", lastName = "Lovelace")
     click(CaregiverChoiceTestTags.CREATE_BUTTON.name)
     typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
-    click(CreateCareCircleTestTags.SUBMIT_BUTTON)
+    click(DisplayCaregiverButtonTestTags.BUTTON)
     waitFor(CaregiverHomeTestTags.TITLE)
 
     val adasCode = createInvitationCode()
 
-    click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
-    waitFor(CaregiverHomeTestTags.TITLE)
-
-    // FIXME: this will fail once the refactor of Home has been done
-    //  The back button won't exist anymore, the Sign Out will be in the Parameter screen
-    //  This is the responsibility of the one doing the Parameters Refactor and implementation
-    click(TopNavigationMenuTestTags.BACK_BUTTON) // signs out
+    click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
+    waitFor(CaregiverParametersTestTags.TITLE)
+    click(CaregiverParametersTestTags.SIGN_OUT_BUTTON)
+    click(SignOutButtonTestTags.BUTTON)
     waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
 
     signInWithGoogle("bob-$runId@amber.test", "Bob")
@@ -168,11 +167,9 @@ class InvitationEndToEndTest {
    * @param lastName the caregiver's last name
    */
   private fun createCaregiverProfile(firstName: String, lastName: String) {
-    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the CreateProfile Refactor.
-    typeInto(CreateProfileTestTags.NAME_INPUT.name, firstName)
-    typeInto(CreateProfileTestTags.SURNAME_INPUT.name, lastName)
-    click(CreateProfileTestTags.CAREGIVER_BUTTON.name)
+    typeInto(CreateProfileTestTags.NAME_INPUT, firstName)
+    typeInto(CreateProfileTestTags.SURNAME_INPUT, lastName)
+    click(CreateProfileTestTags.CAREGIVER_BUTTON)
   }
 
   /**
