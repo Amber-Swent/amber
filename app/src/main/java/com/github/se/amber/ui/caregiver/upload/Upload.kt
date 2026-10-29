@@ -105,8 +105,8 @@ fun UploadScreen(
         BottomNavigationMenu(
             selectedTab = CaregiverTab.Upload,
             onTabSelected = onTabSelected,
-            caregiverTabs,
-            Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
+            tabs = caregiverTabs,
+            modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
         )
       },
       content = { paddingValues ->

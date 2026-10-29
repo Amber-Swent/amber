@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code
+ * Claude (Anthropic) via Claude Code.
+ * Modified by Yuhan YANG, with assistance from Cursor.
  */
 package com.github.se.amber.ui.navigation
 
@@ -27,6 +28,14 @@ class TabsTest {
   }
 
   @Test
+  fun tabTagDefaultsToCaregiverHome() {
+    assertEquals(
+        BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home),
+        BottomNavigationMenuTestTags.tabTag(),
+    )
+  }
+
+  @Test
   fun caregiverUploadNameIsUpload() {
     assertEquals("Upload", CaregiverTab.Upload.name)
   }
@@ -39,6 +48,12 @@ class TabsTest {
   @Test
   fun caregiverUploadDestinationIsCaregiverUploadScreen() {
     assertEquals(CaregiverScreen.Upload, CaregiverTab.Upload.destination)
+  }
+
+  @Test
+  fun caregiverSettingOpensParameters() {
+    assertEquals("Setting", CaregiverTab.Setting.name)
+    assertEquals(CaregiverScreen.Parameters, CaregiverTab.Setting.destination)
   }
 
   // ---------- Patient tabs ----------
