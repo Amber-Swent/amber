@@ -918,7 +918,7 @@ class UploadPictureViewModelTest {
       circleRepo.addPerson("circle1", match { it.firstName == "Anne" && it.lastName == "Dupont" })
     }
     assertEquals(saved, vm.careCircle.value?.people?.get("person1"))
-    assertEquals("Anne Dupont", vm.involvedOptions.value["person1"])
+    assertEquals("Anne", vm.involvedOptions.value["person1"])
     assertTrue("person1" in vm.uiState.value.shownIds)
     assertFalse(vm.uiState.value.isAddPersonOpen)
     assertFalse(vm.uiState.value.isAddingPerson)

@@ -30,8 +30,8 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** Test tags for the dialog container and its close button. */
 object AddPersonDialogTestTags {
-  const val DIALOG = "upload_picture_add_person_dialog"
-  const val CLOSE = "upload_picture_close_add_person"
+  const val DIALOG = "add_person_dialog"
+  const val CLOSE = "add_person_dialog_close"
 }
 
 /**
@@ -98,13 +98,13 @@ fun AddPersonDialog(
             )
           }
         }
-        DisplayTextField(value = firstName, onValueChange = onFirstNameChange, label = "Firstname")
+        DisplayTextField(value = firstName, onValueChange = onFirstNameChange, label = "First Name")
         DisplayTextField(
             value = lastName,
             onValueChange = onLastNameChange,
             label = "Surname - optional",
         )
-        DisplayTextField(value = nickname, onValueChange = onNicknameChange, label = "Nickname")
+        DisplayTextField(value = nickname, onValueChange = onNicknameChange, label = "Nickname - optional")
         DisplayCaregiverButton(
             onClick = {
               onFirstNameChange(firstName.trim())
