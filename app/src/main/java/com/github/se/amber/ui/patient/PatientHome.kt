@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified with assistance from GitHub Copilot.
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
 import android.widget.Toast
@@ -23,6 +24,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
@@ -30,8 +35,19 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
+/** No-op [ProfileRepository] used by Compose previews (and preview-driven tests). */
+private object PreviewPatientHomeProfileRepository : ProfileRepository {
+  override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
+
+  override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
+}
+
 object PatientHomeTestTags {
   const val GREETINGS = "home_greetings"
+  const val TITLE = "home_title"
 }
 
 /**
@@ -90,13 +106,13 @@ fun PatientHomeScreen(
   )
 }
 
+private val previewPatientHomeViewModel = PatientHomeViewModel(PreviewPatientHomeProfileRepository)
+
 /** Preview of [PatientHomeScreen] using the Amber application theme. */
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PatientHomeScreenPreview() {
+internal fun PatientHomeScreenPreview() {
   AmberAppTheme(dynamicColor = false) {
-    PatientHomeScreen(
-        onTabSelected = {},
-    )
+    PatientHomeScreen(homeViewModel = previewPatientHomeViewModel)
   }
 }

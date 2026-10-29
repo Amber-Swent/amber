@@ -246,4 +246,17 @@ class PatientHomeScreenTest {
 
     verify(exactly = 2) { viewModel.clearErrorMsg() }
   }
+
+  // ---------- Preview ----------
+
+  @Test
+  fun previewRendersWithoutCrashing() {
+    composeTestRule.setContent { PatientHomeScreenPreview() }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
 }
