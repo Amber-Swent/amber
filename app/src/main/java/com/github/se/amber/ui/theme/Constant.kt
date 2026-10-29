@@ -1,6 +1,6 @@
 /**
- * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified with
- * assistance from OpenAI Codex.
+ * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified by MeiliV,
+ * with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.theme
 
