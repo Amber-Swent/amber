@@ -25,7 +25,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.ROUND_CORNER
-import com.github.se.amber.ui.theme.WEIGHT_ONE
+
+internal const val HOME_TAB_LABEL = "Home"
+internal const val UPLOAD_TAB_LABEL = "Upload"
+internal const val SETTING_TAB_LABEL = "Setting"
+internal const val PICTURES_TAB_LABEL = "Pictures"
 
 /** Stable tags for the bottom bar, its divider, and one tag per [Tab]. */
 object BottomNavigationMenuTestTags {
@@ -70,16 +74,18 @@ sealed class CaregiverTab(
     override val id: String = "caregiverId_",
 ) : Tab {
   /** Caregiver home. */
-  data object Home : CaregiverTab("Home", Icons.Outlined.Home, CaregiverScreen.Home)
+  data object Home : CaregiverTab(HOME_TAB_LABEL, Icons.Outlined.Home, CaregiverScreen.Home)
 
   /** Caregiver upload. */
-  data object Upload : CaregiverTab("Upload", Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
+  data object Upload :
+      CaregiverTab(UPLOAD_TAB_LABEL, Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
 
   /**
-   * Caregiver parameters. The visible label stays "Setting"; the destination is
+   * Caregiver parameters. The visible label stays [SETTING_TAB_LABEL]; the destination is
    * [CaregiverScreen.Parameters].
    */
-  data object Setting : CaregiverTab("Setting", Icons.Outlined.Settings, CaregiverScreen.Parameters)
+  data object Setting :
+      CaregiverTab(SETTING_TAB_LABEL, Icons.Outlined.Settings, CaregiverScreen.Parameters)
 
   companion object {
     /** Tabs shown on caregiver screens, in bar order. */
@@ -103,10 +109,11 @@ sealed class PatientTab(
     override val id: String = "patientId_",
 ) : Tab {
   /** Patient home. */
-  data object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
+  data object Home : PatientTab(HOME_TAB_LABEL, Icons.Outlined.Home, PatientScreen.Home)
 
   /** Patient picture list. */
-  data object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
+  data object SeePictures :
+      PatientTab(PICTURES_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeePictures)
 
   companion object {
     /** Tabs shown on patient screens, in bar order. */
@@ -121,23 +128,21 @@ sealed class PatientTab(
  * A selected icon uses `secondary`. An unselected icon uses `tertiary`. The selection indicator
  * uses `surface` so it does not fall back to the theme's unset container color.
  *
+ * @param modifier Modifier applied to the column that holds the divider and the bar.
  * @param selectedTab Tab that is currently selected. Ignored when it is not in [tabs].
  * @param onTabSelected Called with the tab the user taps.
  * @param tabs Tabs to show, in order. Defaults to the caregiver tabs.
- * @param modifier Modifier applied to the column that holds the divider and the bar.
  */
 @Composable
 fun BottomNavigationMenu(
+    modifier: Modifier = Modifier,
     selectedTab: Tab = CaregiverTab.Home,
     onTabSelected: (Tab) -> Unit = {},
     tabs: List<Tab> = CaregiverTab.caregiverTabs,
-    modifier: Modifier = Modifier,
 ) {
   Column(
       modifier =
-          modifier
-              .fillMaxWidth(WEIGHT_ONE)
-              .testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+          modifier.fillMaxWidth().testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
   ) {
     HorizontalDivider(
         modifier = Modifier.testTag(BottomNavigationMenuTestTags.DIVIDER),

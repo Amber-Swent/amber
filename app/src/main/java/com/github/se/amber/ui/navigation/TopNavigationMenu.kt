@@ -20,7 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
-import com.github.se.amber.ui.theme.WEIGHT_ONE
+
+internal const val CANCEL_LABEL = "Cancel"
+internal const val CHECKOUT_LABEL = "Checkout"
+internal const val BACK_CONTENT_DESCRIPTION = "Back"
 
 /** Stable tags for the top bar, its action label, the back control, and the divider. */
 object TopNavigationMenuTestTags {
@@ -37,11 +40,9 @@ object TopNavigationMenuTestTags {
  * @property label Text shown in the bar.
  */
 enum class TopNavigationAction(val label: String) {
-  CANCEL("Cancel"),
-  CHECKOUT("Checkout"),
+  CANCEL(CANCEL_LABEL),
+  CHECKOUT(CHECKOUT_LABEL),
 }
-
-private const val BACK_CONTENT_DESCRIPTION = "Back"
 
 /**
  * Top bar with a back arrow, an action label, and a divider.
@@ -61,8 +62,7 @@ fun TopNavigationMenu(
     onBackClick: () -> Unit = {},
 ) {
   Column(
-      modifier =
-          modifier.fillMaxWidth(WEIGHT_ONE).testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
+      modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
   ) {
     TopAppBar(
         title = {
