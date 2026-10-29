@@ -2,6 +2,7 @@
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.media.toMap
@@ -304,6 +305,8 @@ class FirestoreSecurityRulesTest {
     assertFalse(
         db.rulesFor("care").canCreateCircle(created.copy(memberIds = listOf("care", "extra"))),
     )
+    // only the backend assigns the circle's bucket
+    assertFalse(db.rulesFor("care").canCreateCircle(created.copy(storageBucket = "other-bucket")))
 
     db.putCircle(created)
     db.putUser(
@@ -641,7 +644,8 @@ private class FirestoreSecurityRules(
           resource.id.isNotEmpty() &&
           resource.createdBy == authUid &&
           resource.memberIds == listOf(authUid) &&
-          resource.patientId == ""
+          resource.patientId == "" &&
+          resource.storageBucket == ""
 
   fun canUpdateCircle(before: CareCircle, after: CareCircle): Boolean =
       memberCircleFieldEdit(before.id, before, after)

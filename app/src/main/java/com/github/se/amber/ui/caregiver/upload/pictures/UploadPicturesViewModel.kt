@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
@@ -16,6 +18,8 @@ import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.circle.displayNameOf
 import com.github.se.amber.model.circle.taggableIds
+import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
@@ -26,16 +30,27 @@ import com.github.se.amber.model.user.UserProfile
 import java.io.File
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -57,6 +72,7 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
+  PICK_A_PLACE(mess = "Pick the place from the suggestions"),
   FIRST_NAME_REQUIRED(mess = "A first name is required"),
   COULD_NOT_ADD_PERSON(mess = "Could not add person"),
   PERSON_WITHOUT_ID(mess = "This person wasn't saved, try again"),
@@ -79,6 +95,7 @@ fun unknownMemberLabel(number: Int): String = "$UNKNOWN_MEMBER_LABEL $number"
  *
  * @param description The description entered for the picture.
  * @param date The date associated with the picture, if one was selected.
+ * @param location Where the picture was taken: the place search and the picked place.
  * @param shownIds The IDs of the people tagged in the picture.
  * @param pictureFile The local picture file selected for upload.
  * @param pictureWidth The width of the selected picture in pixels.
@@ -89,6 +106,7 @@ fun unknownMemberLabel(number: Int): String = "$UNKNOWN_MEMBER_LABEL $number"
 data class UploadPictureUIState(
     val description: String = "",
     val date: MemoryDate? = null,
+    val location: PictureLocationUIState = PictureLocationUIState(),
     val shownIds: Set<String> = emptySet(),
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
@@ -102,7 +120,60 @@ data class UploadPictureUIState(
     val personNickname: String = "",
 ) {
   val canUpload: Boolean
-    get() = pictureFile != null && description.isNotBlank() && date != null && !isUploading
+    get() =
+        pictureFile != null &&
+            description.isNotBlank() &&
+            date != null &&
+            location.hasValidPlace &&
+            !isUploading
+}
+
+/**
+ * Represents where the picture was taken: the place the user searches for, and the place picked.
+ *
+ * @param query What the user typed to search for where the picture was taken.
+ * @param suggestions Real places matching [query], to pick from.
+ * @param isSearching Whether a search for [query] is waiting or running, so the screen can tell
+ *   "searching" from "no places found".
+ * @param searchFailed Whether the last search for [query] failed, so the screen can tell "the
+ *   search failed" from "no places found" and offer to retry.
+ * @param pickedPlace The real place picked from [suggestions] or the circle's saved places; null if
+ *   none was picked.
+ * @param selectedPlaceId The id of the saved place picked as [pickedPlace]; null if it wasn't one
+ *   of the circle's saved places.
+ */
+data class PictureLocationUIState(
+    val query: String = "",
+    val suggestions: List<GeoLocation> = emptyList(),
+    val isSearching: Boolean = false,
+    val searchFailed: Boolean = false,
+    val pickedPlace: GeoLocation? = null,
+    val selectedPlaceId: String? = null,
+) {
+  /** A typed place must be picked from the suggestions: only real places are saved. */
+  val hasValidPlace: Boolean
+    get() = query.isBlank() || pickedPlace != null
+
+  /** Whether [query] is long enough to be searched; shorter ones match too many places. */
+  val isLongEnoughToSearch: Boolean
+    get() = query.trim().length >= MIN_PLACE_QUERY_LENGTH
+}
+
+/** The fewest characters a place search needs before it is sent. */
+const val MIN_PLACE_QUERY_LENGTH = 3
+
+/** The checks [UploadPictureViewModel.uploadPicture] runs before uploading. */
+private sealed interface UploadCheck {
+  /** Everything needed to upload is there. */
+  data class Ready(
+      val authorId: String,
+      val circle: CareCircle,
+      val file: File,
+      val date: MemoryDate,
+  ) : UploadCheck
+
+  /** The upload can't start: [error] says why. */
+  data class Blocked(val error: UploadPictureViewModelErrorMessage) : UploadCheck
 }
 
 /**
@@ -112,6 +183,7 @@ data class UploadPictureUIState(
  * @param authRepo The repository used to access the currently authenticated user.
  * @param profileRepo The repository used to load the authenticated user's profile.
  * @param circleRepo The repository used to load the user's care circle.
+ * @param placeRepo The repository used to find real places from what the user types.
  * @param pictureReader The reader used to copy selected pictures and read their dimensions.
  */
 class UploadPictureViewModel(
@@ -119,6 +191,7 @@ class UploadPictureViewModel(
     private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
     private val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
 ) : ViewModel() {
   private val _uiState =
@@ -136,9 +209,14 @@ class UploadPictureViewModel(
   private var circleLoadFailed = false
   private val _events = Channel<UploadPictureEvent>(Channel.BUFFERED)
   val events: Flow<UploadPictureEvent> = _events.receiveAsFlow()
+  // What the user types in the place field, searched once they stop typing. Not a StateFlow: a
+  // retry sends the same text again, and a StateFlow would drop it as unchanged.
+  private val placeQueries =
+      MutableSharedFlow<String>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
   init {
     loadCircle()
+    searchPlacesAsTyped()
   }
 
   // id -> label shown on the "who is involved" chips.
@@ -160,6 +238,20 @@ class UploadPictureViewModel(
             }
           }
           .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+  /**
+   * The circle's saved places that can be picked as where the picture was taken, keyed by place ID
+   * and displayed by name. A place without coordinates is left out: only real places are saved.
+   */
+  val placeOptions: StateFlow<Map<String, String>> =
+      careCircle
+          .map { circle -> circle?.pickablePlaces().orEmpty().mapValues { it.value.name } }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+  /** This circle's saved places that are real points on the map. */
+  private fun CareCircle.pickablePlaces(): Map<String, Place> = places.filterValues {
+    it.location.lat != null && it.location.lng != null
+  }
 
   /** Loads the care circle associated with the authenticated user. */
   private fun loadCircle() {
@@ -231,35 +323,46 @@ class UploadPictureViewModel(
 
   /** Uploads the picture currently stored in the UI state. */
   fun uploadPicture() {
-    val authorId = authRepo.currentUser?.uid
-    if (authorId == null) {
-      setErrorMsg(UploadPictureViewModelErrorMessage.UNVERIFIED.mess)
-      return
-    }
-    val circle = _careCircle.value
-    if (circle == null) {
-      setErrorMsg(UploadPictureViewModelErrorMessage.STILL_LOADING.mess)
-      return
-    }
     val state = _uiState.value
-    val file = state.pictureFile
-    if (file == null) {
-      setErrorMsg(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess)
-      return
-    }
     if (state.isUploading) return
-
-    val description = state.description.trim()
-    if (description.isEmpty()) {
-      setErrorMsg(UploadPictureViewModelErrorMessage.DESCRIPTION_EMPTY.mess)
-      return
+    when (val check = checkUpload(state)) {
+      is UploadCheck.Blocked -> setErrorMsg(check.error.mess)
+      is UploadCheck.Ready -> upload(state, check)
     }
+  }
+
+  /**
+   * Checks that everything needed to upload is there, in the order the user should fix it.
+   *
+   * @param state The screen state to upload.
+   * @return [UploadCheck.Ready] with what the upload needs, or the first missing thing.
+   */
+  private fun checkUpload(state: UploadPictureUIState): UploadCheck {
+    val authorId = authRepo.currentUser?.uid
+    val circle = _careCircle.value
+    val file = state.pictureFile
     val date = state.date
-    if (date == null) {
-      setErrorMsg(UploadPictureViewModelErrorMessage.SELECT_DATE.mess)
-      return
+    return when {
+      authorId == null -> UploadCheck.Blocked(UploadPictureViewModelErrorMessage.UNVERIFIED)
+      circle == null -> UploadCheck.Blocked(UploadPictureViewModelErrorMessage.STILL_LOADING)
+      file == null -> UploadCheck.Blocked(UploadPictureViewModelErrorMessage.SELECT_PICTURE)
+      state.description.isBlank() ->
+          UploadCheck.Blocked(UploadPictureViewModelErrorMessage.DESCRIPTION_EMPTY)
+      date == null -> UploadCheck.Blocked(UploadPictureViewModelErrorMessage.SELECT_DATE)
+      !state.location.hasValidPlace ->
+          UploadCheck.Blocked(UploadPictureViewModelErrorMessage.PICK_A_PLACE)
+      else -> UploadCheck.Ready(authorId, circle, file, date)
     }
+  }
 
+  /**
+   * Uploads the picture once [checkUpload] found everything needed.
+   *
+   * @param state The screen state to upload.
+   * @param ready What [checkUpload] found.
+   */
+  private fun upload(state: UploadPictureUIState, ready: UploadCheck.Ready) {
+    val circle = ready.circle
     // only people still in the circle can be tagged
     val taggableIds = circle.taggableIds()
     val shownIds = state.shownIds.filter { it in taggableIds }
@@ -271,20 +374,20 @@ class UploadPictureViewModel(
         val item =
             MediaItem.Picture(
                 id = id,
-                authorId = authorId,
+                authorId = ready.authorId,
                 // must start with careCircles/<circleId>/ (see MediaRepositoryFirebase.getFile)
                 storagePath = "careCircles/${circle.id}/media/$id.jpg",
                 createdAt = System.currentTimeMillis(),
-                description = description,
-                date = date,
-                location = null,
+                description = state.description,
+                date = ready.date,
+                location = state.location.pickedPlace,
                 shownIds = shownIds,
                 authorizedIds = emptyList(), // empty = whole circle can see it, for the moment
                 status = MediaStatus.APPROVED,
                 width = state.pictureWidth,
                 height = state.pictureHeight,
             )
-        mediaRepo.addMedia(circle, item, file)
+        mediaRepo.addMedia(circle, item, ready.file)
         _uiState.update { it.copy(isUploading = false) }
         _events.send(UploadPictureEvent.Uploaded)
       } catch (e: CancellationException) {
@@ -367,6 +470,118 @@ class UploadPictureViewModel(
    */
   fun setDate(date: MemoryDate?) {
     _uiState.update { it.copy(date = date) }
+  }
+
+  /**
+   * Updates the place search typed by the user; [searchPlacesAsTyped] looks it up once they stop
+   * typing. Any place picked before is dropped: the text no longer names it.
+   *
+   * @param query The text typed in the place field.
+   */
+  fun setPlaceQuery(query: String) {
+    // Nothing changed: no new search will come, so it mustn't look like one is running
+    if (query == _uiState.value.location.query) return
+    _uiState.update {
+      val location = PictureLocationUIState(query = query, suggestions = it.location.suggestions)
+      val willSearch = location.isLongEnoughToSearch
+      it.copy(
+          location =
+              location.copy(
+                  isSearching = willSearch,
+                  suggestions = if (willSearch) location.suggestions else emptyList(),
+              )
+      )
+    }
+    placeQueries.tryEmit(query)
+  }
+
+  /**
+   * Searches the place text again after its search failed, e.g. once the network is back: the text
+   * didn't change, so [setPlaceQuery] doesn't search it again.
+   */
+  fun retryPlaceSearch() {
+    val location = _uiState.value.location
+    if (!location.searchFailed) return
+    _uiState.update {
+      it.copy(location = it.location.copy(isSearching = true, searchFailed = false))
+    }
+    placeQueries.tryEmit(location.query)
+  }
+
+  /**
+   * Looks up real places matching what the user types, once they stop typing: Geocoder goes over
+   * the network, so not on every key. A newer query cancels the search still running for an older
+   * one, and a result is only kept if the field still shows the query it was searched for.
+   */
+  @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+  private fun searchPlacesAsTyped() {
+    placeQueries
+        .debounce(PLACE_SEARCH_DEBOUNCE)
+        .filter { PictureLocationUIState(query = it).isLongEnoughToSearch }
+        .mapLatest { query -> query to placeRepo.search(query) }
+        .onEach { (query, result) -> showPlaceSearchResult(query, result) }
+        .launchIn(viewModelScope)
+  }
+
+  /**
+   * Shows the places found for [query], unless the user has typed something else or picked a place
+   * since.
+   *
+   * @param query The text that was searched.
+   * @param result The places found, or why the search failed.
+   */
+  private fun showPlaceSearchResult(query: String, result: Result<List<GeoLocation>>) {
+    val current = _uiState.value.location
+    if (current.query != query || current.pickedPlace != null) return
+    result
+        .onSuccess { places ->
+          _uiState.update {
+            it.copy(location = it.location.copy(suggestions = places, isSearching = false))
+          }
+        }
+        // Shown inline through searchFailed; errorMsg is left to the upload and the circle
+        .onFailure {
+          _uiState.update {
+            it.copy(
+                location =
+                    it.location.copy(
+                        suggestions = emptyList(),
+                        isSearching = false,
+                        searchFailed = true,
+                    )
+            )
+          }
+        }
+  }
+
+  /**
+   * Picks one of the suggested real places as where the picture was taken.
+   *
+   * @param place One of [PictureLocationUIState.suggestions].
+   */
+  fun selectPlace(place: GeoLocation) {
+    if (place.lat == null || place.lng == null) return // not a point on the map
+    _uiState.update {
+      it.copy(
+          location = PictureLocationUIState(query = place.placeName.orEmpty(), pickedPlace = place)
+      )
+    }
+  }
+
+  /**
+   * Picks one of the circle's saved places as where the picture was taken, or drops it if it was
+   * already picked.
+   *
+   * @param placeId One of the keys of [placeOptions].
+   */
+  fun selectPlace(placeId: String) {
+    if (_uiState.value.location.selectedPlaceId == placeId) {
+      setPlaceQuery("")
+      return
+    }
+    val place = _careCircle.value?.pickablePlaces()?.get(placeId) ?: return
+    selectPlace(place.location.copy(placeName = place.name))
+    _uiState.update { it.copy(location = it.location.copy(selectedPlaceId = placeId)) }
   }
 
   /**
@@ -492,5 +707,10 @@ class UploadPictureViewModel(
         _uiState.update { it.copy(isAddingPerson = false) }
       }
     }
+  }
+
+  private companion object {
+    /** How long the user must stop typing before their place search is sent. */
+    val PLACE_SEARCH_DEBOUNCE = 300.milliseconds
   }
 }
