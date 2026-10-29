@@ -1,4 +1,4 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
  * Modified with assistance from OpenAI Codex.
  */

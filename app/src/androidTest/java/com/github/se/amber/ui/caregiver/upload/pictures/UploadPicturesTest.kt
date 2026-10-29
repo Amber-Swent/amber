@@ -1,4 +1,4 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
  * Modified with assistance from OpenAI Codex.
  */
@@ -18,42 +18,32 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.FirebaseCareCircleRepository
-import com.github.se.amber.data.onboarding.FirebaseOnboardingRepository
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.e2e.FirebaseEmulator
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
-import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
+import com.github.se.amber.ui.caregiver.upload.AddPersonDialogTestTags
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.Source
-import com.google.firebase.firestore.firestore
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
-import java.util.UUID
 import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.tasks.await
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -166,7 +156,7 @@ class UploadPicturesTest {
   fun involvedSectionIsDisplayed() {
     launchScreen()
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
   }
@@ -246,7 +236,7 @@ class UploadPicturesTest {
   fun emptyCircleMessageIsDisplayedWithoutCircle() {
     launchScreen()
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
   }
@@ -255,7 +245,7 @@ class UploadPicturesTest {
   fun noChipIsDisplayedWithoutCircle() {
     launchScreen()
     composeTestRule
-        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)
         .assertCountEquals(0)
   }
 
@@ -266,7 +256,7 @@ class UploadPicturesTest {
       involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
     }
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .assertDoesNotExist()
   }
 
@@ -277,7 +267,7 @@ class UploadPicturesTest {
       involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
     }
     composeTestRule
-        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)
         .assertCountEquals(2)
   }
 
@@ -286,7 +276,7 @@ class UploadPicturesTest {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
     composeTestRule
-        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
         .assertIsNotSelected()
   }
 
@@ -304,9 +294,11 @@ class UploadPicturesTest {
               )
         }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule
-        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .performClick()
+    composeTestRule
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
         .assertIsSelected()
   }
 
@@ -314,7 +306,7 @@ class UploadPicturesTest {
   fun clickingASelectedChipDeselectsIt() {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
-    val chip = composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0]
+    val chip = composeTestRule.onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
     chip.performClick()
     chip.performClick()
     chip.assertIsNotSelected()
@@ -324,9 +316,11 @@ class UploadPicturesTest {
   fun clickingAChipDoesNotSelectTheOthers() {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
-    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
     composeTestRule
-        .onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[1]
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .performClick()
+    composeTestRule
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[1]
         .assertIsNotSelected()
   }
 
@@ -346,7 +340,9 @@ class UploadPicturesTest {
               )
         }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)[0].performClick()
+    composeTestRule
+        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }
 
@@ -361,11 +357,11 @@ class UploadPicturesTest {
     launchScreen()
 
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON)
         .performScrollTo()
         .performClick()
 
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON_DIALOG).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertIsDisplayed()
     verify(exactly = 1) { viewModel.onAddPerson() }
   }
 
@@ -378,11 +374,9 @@ class UploadPicturesTest {
         }
     launchScreen()
 
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.CLOSE_ADD_PERSON).performClick()
+    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.CLOSE).performClick()
 
-    composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON_DIALOG)
-        .assertDoesNotExist()
+    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertDoesNotExist()
     verify(exactly = 1) { viewModel.dismissAddPerson() }
   }
 
@@ -397,6 +391,25 @@ class UploadPicturesTest {
   }
 
   @Test
+  fun addPersonSaveTrimsNames() {
+    uiStateFlow.value =
+        uiStateFlow.value.copy(
+            isAddPersonOpen = true,
+            personFirstName = "  Anne  ",
+            personLastName = "  Dupont  ",
+            personNickname = "  Nana  ",
+        )
+    launchScreen()
+
+    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+
+    verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
+    verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
+    verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
+    verify(exactly = 1) { viewModel.addPerson() }
+  }
+
+  @Test
   fun addPersonSaveButtonIsDisabledForBlankName() {
     uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "  ")
     launchScreen()
@@ -405,36 +418,33 @@ class UploadPicturesTest {
   }
 
   @Test
-  fun addPersonPopupSavesToFirestoreAndShowsSelectedChip() {
-    val message = "Firebase emulators are not running on the host"
-    val required =
-        InstrumentationRegistry.getArguments().getString("requireFirebaseEmulators") == "true"
-    if (required) assertTrue(message, FirebaseEmulator.isRunning())
-    else assumeTrue(message, FirebaseEmulator.isRunning())
-    FirebaseEmulator.useForDefaultApp()
-
-    val circle = runBlocking {
-      val email = "upload-person-${UUID.randomUUID()}@amber.test"
-      Firebase.auth.createUserWithEmailAndPassword(email, "Password123!").await()
-      FirebaseProfileRepository()
-          .createProfile(Person(firstName = "Ada"), Role.CAREGIVER)
-          .getOrThrow()
-      FirebaseOnboardingRepository().createInitialCareCircle("Family").getOrThrow()
-    }
-    every { authRepo.currentUser } returns AuthUser(checkNotNull(Firebase.auth.currentUser).uid)
+  fun addPersonPopupSavesWithInMemoryRepositoriesAndShowsSelectedChip() {
+    val userId = "caregiver1"
+    val circleId = "circle1"
+    var storedCircle = CareCircle(id = circleId, memberIds = listOf(userId))
+    every { authRepo.currentUser } returns AuthUser(userId)
+    coEvery { profileRepo.getProfile(userId) } returns
+        Result.success(UserProfile(uid = userId, circleIds = listOf(circleId)))
+    coEvery { circleRepo.getCircle(circleId) } coAnswers { Result.success(storedCircle) }
+    coEvery { circleRepo.addPerson(circleId, any()) } coAnswers
+        {
+          val person = secondArg<Person>().copy(id = "person1")
+          storedCircle = storedCircle.copy(people = storedCircle.people + (person.id to person))
+          Result.success(person)
+        }
     viewModel =
         UploadPictureViewModel(
             mediaRepo = mediaRepo,
             authRepo = authRepo,
-            profileRepo = FirebaseProfileRepository(),
-            circleRepo = FirebaseCareCircleRepository(),
+            profileRepo = profileRepo,
+            circleRepo = circleRepo,
             pictureReader = pictureReader,
         )
     launchScreen()
-    composeTestRule.waitUntil(10_000) { viewModel.careCircle.value?.id == circle.id }
+    composeTestRule.waitUntil(10_000) { viewModel.careCircle.value?.id == circleId }
 
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.ADD_PERSON)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON)
         .performScrollTo()
         .performClick()
     composeTestRule.onAllNodesWithTag(DisplayTextFieldTestTags.TEXT)[1].performTextInput("Anne")
@@ -443,14 +453,6 @@ class UploadPicturesTest {
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
     val savedId = viewModel.uiState.value.shownIds.single()
     composeTestRule.onNode(hasText("Anne") and hasClickAction()).assertIsSelected()
-    val stored = runBlocking {
-      Firebase.firestore
-          .collection("careCircles")
-          .document(circle.id)
-          .get(Source.SERVER)
-          .await()
-          .toObject(CareCircle::class.java)
-    }
-    assertEquals("Anne", stored?.people?.get(savedId)?.firstName)
+    assertEquals("Anne", storedCircle.people[savedId]?.firstName)
   }
 }

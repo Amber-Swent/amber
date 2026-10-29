@@ -49,6 +49,8 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
+  FIRST_NAME_REQUIRED(mess = "A first name is required"),
+  COULD_NOT_ADD_PERSON(mess = "Could not add person"),
 }
 
 /**
@@ -199,7 +201,7 @@ class UploadPictureViewModel(
       return
     }
 
-    _uiState.value = state.copy(isUploading = true)
+    _uiState.update { it.copy(isUploading = true) }
     viewModelScope.launch {
       try {
         val id = mediaRepo.newMediaId(circle.id)
@@ -225,7 +227,7 @@ class UploadPictureViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _uiState.value = _uiState.value.copy(isUploading = false)
+        _uiState.update { it.copy(isUploading = false) }
         setErrorMsg(UploadPictureViewModelErrorMessage.UNKNOW_ERROR.mess + (e.message ?: ""))
       }
     }
@@ -262,18 +264,19 @@ class UploadPictureViewModel(
    * @param width The picture width in pixels.
    * @param height The picture height in pixels.
    */
-  fun setPicture(file: File, width: Int, height: Int) {
-    _uiState.value =
-        _uiState.value.copy(
-            pictureFile = file,
-            pictureWidth = width,
-            pictureHeight = height,
-        )
+  internal fun setPicture(file: File, width: Int, height: Int) {
+    _uiState.update {
+      it.copy(
+          pictureFile = file,
+          pictureWidth = width,
+          pictureHeight = height,
+      )
+    }
   }
 
   /** Clears the current error message from the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
+    _uiState.update { it.copy(errorMsg = null) }
   }
 
   /**
@@ -281,8 +284,8 @@ class UploadPictureViewModel(
    *
    * @param errorMsg The error message to display.
    */
-  fun setErrorMsg(errorMsg: String) {
-    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+  internal fun setErrorMsg(errorMsg: String) {
+    _uiState.update { it.copy(errorMsg = errorMsg) }
   }
 
   /**
@@ -291,7 +294,7 @@ class UploadPictureViewModel(
    * @param description The new picture description.
    */
   fun setDescription(description: String) {
-    _uiState.value = _uiState.value.copy(description = description)
+    _uiState.update { it.copy(description = description) }
   }
 
   /**
@@ -300,7 +303,7 @@ class UploadPictureViewModel(
    * @param date The date associated with the picture.
    */
   fun setDate(date: MemoryDate) {
-    _uiState.value = _uiState.value.copy(date = date)
+    _uiState.update { it.copy(date = date) }
   }
 
   /**
@@ -354,7 +357,7 @@ class UploadPictureViewModel(
     val state = _uiState.value
     if (state.isAddingPerson) return
     if (state.personFirstName.isBlank()) {
-      setErrorMsg("A first name is required")
+      setErrorMsg(UploadPictureViewModelErrorMessage.FIRST_NAME_REQUIRED.mess)
       return
     }
     _uiState.update { it.copy(isAddingPerson = true) }
@@ -382,11 +385,15 @@ class UploadPictureViewModel(
                 )
               }
             }
-            .onFailure { setErrorMsg(it.message ?: "Could not add person") }
+            .onFailure {
+              setErrorMsg(
+                  it.message ?: UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess
+              )
+            }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        setErrorMsg(e.message ?: "Could not add person")
+        setErrorMsg(e.message ?: UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess)
       } finally {
         _uiState.update { it.copy(isAddingPerson = false) }
       }

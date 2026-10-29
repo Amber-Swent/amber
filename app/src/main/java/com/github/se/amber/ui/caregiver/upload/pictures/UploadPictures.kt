@@ -1,4 +1,4 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
  * Modified with assistance from OpenAI Codex.
  */
@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +27,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Photo
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.AssistChip
@@ -34,11 +34,8 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,7 +47,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.media.MemoryDate
@@ -58,21 +54,19 @@ import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.AddPersonDialog
 import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.ADD_PERSON
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.WEIGHT_ONE
@@ -83,12 +77,6 @@ object UploadPictureScreenTestTags {
   const val TAKE_PICTURE = "upload_picture_take"
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
-  const val SELECT_PERSON_INVOLVED = DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED
-  const val ADD_PERSON = DisplayWhoIsInvolvedTestTags.ADD_PERSON
-  const val ADD_PERSON_DIALOG = "upload_picture_add_person_dialog"
-  const val CLOSE_ADD_PERSON = "upload_picture_close_add_person"
-  const val NO_PERSON_INVOLVED = DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED
-  const val PERSON_INVOLVED = DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED
 
   const val SELECT_DATE = "upload_picture_selected_date"
   const val UPLOAD_BUTTON = "upload_picture_button"
@@ -145,7 +133,7 @@ fun UploadPictureScreen(
 
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
           TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
           DisplayCaregiverTitle(
               "Upload Picture",
@@ -157,11 +145,12 @@ fun UploadPictureScreen(
         Column(
             modifier =
                 Modifier.fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues)
-                    .padding(PADDING_MEDIUM)
+                    .padding(CAREGIVER_PADDING_MEDIUM)
                     .verticalScroll(rememberScrollState())
                     .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+            verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
           // Display the "Take a new Picture with the camera"
           DisplayBoxWithIconText(
@@ -224,73 +213,27 @@ fun UploadPictureScreen(
 
           DisplayCaregiverButton(
               onClick = { viewModel.uploadPicture() },
-              modifier = Modifier.padding(top = PADDING_MEDIUM).testTag(UPLOAD_BUTTON),
+              modifier = Modifier.padding(top = CAREGIVER_PADDING_MEDIUM).testTag(UPLOAD_BUTTON),
               enabled = uiState.canUpload,
               text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
-              widthPercentage = WEIGHT_ONE,
+              widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
           )
         }
       },
   )
 
-  // Display a popup when the Add person button (Assist chip) is clicked
-  if (uiState.isAddPersonOpen) {
-    Dialog(onDismissRequest = viewModel::dismissAddPerson) {
-      Surface(
-          modifier = Modifier.fillMaxWidth().testTag(UploadPictureScreenTestTags.ADD_PERSON_DIALOG),
-          shape = RoundedCornerShape(ROUND_CORNER),
-          color = MaterialTheme.colorScheme.surface,
-          contentColor = MaterialTheme.colorScheme.onSurface,
-      ) {
-        Column(
-            modifier =
-                Modifier.imePadding().verticalScroll(rememberScrollState()).padding(PADDING_MEDIUM),
-            verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-        ) {
-          Box(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Add a person",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.align(Alignment.CenterStart),
-            )
-            IconButton(
-                onClick = viewModel::dismissAddPerson,
-                modifier =
-                    Modifier.align(Alignment.TopEnd)
-                        .testTag(UploadPictureScreenTestTags.CLOSE_ADD_PERSON),
-            ) {
-              Icon(
-                  Icons.Default.Close,
-                  contentDescription = "Close",
-                  tint = MaterialTheme.colorScheme.onSurface,
-              )
-            }
-          }
-          DisplayTextField(
-              value = uiState.personFirstName,
-              onValueChange = viewModel::setPersonFirstName,
-              label = "Name",
-          )
-          DisplayTextField(
-              value = uiState.personLastName,
-              onValueChange = viewModel::setPersonLastName,
-              label = "Surname",
-          )
-          DisplayTextField(
-              value = uiState.personNickname,
-              onValueChange = viewModel::setPersonNickname,
-              label = "Nickname",
-          )
-          DisplayCaregiverButton(
-              onClick = viewModel::addPerson,
-              enabled = uiState.personFirstName.isNotBlank() && !uiState.isAddingPerson,
-              text = if (uiState.isAddingPerson) "Adding…" else "Add person",
-          )
-        }
-      }
-    }
-  }
+  AddPersonDialog(
+      isOpen = uiState.isAddPersonOpen,
+      isAddingPerson = uiState.isAddingPerson,
+      firstName = uiState.personFirstName,
+      lastName = uiState.personLastName,
+      nickname = uiState.personNickname,
+      onFirstNameChange = viewModel::setPersonFirstName,
+      onLastNameChange = viewModel::setPersonLastName,
+      onNicknameChange = viewModel::setPersonNickname,
+      onDismiss = viewModel::dismissAddPerson,
+      onSave = viewModel::addPerson,
+  )
 }
 
 /**
@@ -321,21 +264,21 @@ private fun DisplayWhoIsInvolved(
           modifier =
               Modifier.fillMaxWidth()
                   .height(IntrinsicSize.Min) // Takes the height of its tallest child
-                  .testTag(SELECT_PERSON_INVOLVED),
-          horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+                  .testTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED),
+          horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
           verticalAlignment = Alignment.CenterVertically,
       ) {
         Box(
             modifier =
                 Modifier.weight(WEIGHT_ONE)
-                    .testTag(NO_PERSON_INVOLVED)
+                    .testTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
                     .border(
                         width = BORDER_THICKNESS,
                         color = MaterialTheme.colorScheme.tertiary,
                         shape = RoundedCornerShape(ROUND_CORNER),
                     )
                     .clip(RoundedCornerShape(ROUND_CORNER))
-                    .padding(PADDING_MEDIUM),
+                    .padding(CAREGIVER_PADDING_MEDIUM),
             contentAlignment = Alignment.Center,
         ) {
           Text(
@@ -348,7 +291,7 @@ private fun DisplayWhoIsInvolved(
         AssistChip(
             onClick = { onAddPerson() },
             label = { Text("+", style = MaterialTheme.typography.labelMedium) },
-            modifier = Modifier.fillMaxHeight().testTag(ADD_PERSON),
+            modifier = Modifier.fillMaxHeight().testTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON),
             colors =
                 AssistChipDefaults.assistChipColors(
                     containerColor = MaterialTheme.colorScheme.tertiary,
@@ -358,8 +301,9 @@ private fun DisplayWhoIsInvolved(
       }
     } else {
       FlowRow(
-          horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
-          modifier = Modifier.fillMaxWidth().testTag(SELECT_PERSON_INVOLVED),
+          horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
+          modifier =
+              Modifier.fillMaxWidth().testTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED),
       ) {
         // Display a chip for each person associated to the photo
         options.forEach { (id, label) ->
@@ -367,7 +311,7 @@ private fun DisplayWhoIsInvolved(
               selected = id in shownIds,
               onClick = { toggleShownId(id) },
               label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-              modifier = Modifier.testTag(PERSON_INVOLVED),
+              modifier = Modifier.testTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED),
               colors =
                   FilterChipDefaults.filterChipColors(
                       containerColor = MaterialTheme.colorScheme.tertiary,
@@ -380,7 +324,7 @@ private fun DisplayWhoIsInvolved(
         AssistChip(
             onClick = { onAddPerson() },
             label = { Text("+", style = MaterialTheme.typography.labelMedium) },
-            modifier = Modifier.testTag(ADD_PERSON),
+            modifier = Modifier.testTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON),
             colors =
                 AssistChipDefaults.assistChipColors(
                     containerColor = MaterialTheme.colorScheme.tertiary,
