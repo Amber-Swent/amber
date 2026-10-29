@@ -14,16 +14,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.authentication.signIn.AuthenticationButton
 import com.github.se.amber.ui.authentication.signIn.AuthenticationLayout
 import com.github.se.amber.ui.authentication.signIn.AuthenticationText
-import com.github.se.amber.ui.theme.AmberAppTheme
 
-/** Test tags of [RoleLoadingScreen] and of its private helpers. */
+/** Test tags of [RoleLoadingScreen]. */
 object RoleLoadingTestTags {
   const val LOADING_INDICATOR = "roleLoading_loadingIndicator"
   const val ERROR_MESSAGE = "roleLoading_errorMessage"
@@ -58,17 +56,16 @@ fun RoleLoadingScreen(
   }
   // Fires the callbacks as soon as the state is Loaded or NoProfile.
   LaunchedEffect(state.roleState) {
-    val s = state.roleState
-    // Callback fires immediately when the Loaded state is reached, passing the user's role
-    // so that the app navigates to the matching graph (caregiver or patient) without showing
-    // any UI.
-    if (s is RoleState.Loaded) {
-      onRoleLoaded(s.role)
-    }
-    // For NoProfile, the callback fires immediately when the state is reached,
-    // triggering navigation to onboarding without showing any UI.
-    else if (s is RoleState.NoProfile) {
-      noProfile()
+    when (val roleState = state.roleState) {
+      // Callback fires immediately when the Loaded state is reached, passing the user's role
+      // so that the app navigates to the matching graph (caregiver or patient) without showing
+      // any UI.
+      is RoleState.Loaded -> onRoleLoaded(roleState.role)
+      // For NoProfile, the callback fires immediately when the state is reached,
+      // triggering navigation to onboarding without showing any UI.
+      RoleState.NoProfile -> noProfile()
+      RoleState.Loading,
+      RoleState.Error -> Unit
     }
   }
 
@@ -87,29 +84,6 @@ fun RoleLoadingScreen(
     }
   }
 
-  RoleLoadingContent(
-      modifier = modifier,
-      state = state,
-      onRetry = { viewModel.loadRole() },
-      onSignOut = { viewModel.signOut() },
-  )
-}
-
-/**
- * Stateless content of [RoleLoadingScreen], rendered from [state] only.
- *
- * @param modifier Modifier applied to the root layout.
- * @param state State to display.
- * @param onRetry Called when the user presses Retry after a load failure.
- * @param onSignOut Called when the user presses Back to login.
- */
-@Composable
-internal fun RoleLoadingContent(
-    modifier: Modifier = Modifier,
-    state: RoleLoadingUIState = RoleLoadingUIState(),
-    onRetry: () -> Unit = {},
-    onSignOut: () -> Unit = {},
-) {
   when (state.roleState) {
     // what is displayed when looking for the role
     is RoleState.Loading ->
@@ -133,28 +107,17 @@ internal fun RoleLoadingContent(
           )
           AuthenticationButton(
               text = "Retry",
-              onClick = onRetry,
+              onClick = { viewModel.loadRole() },
               modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
           )
           AuthenticationButton(
               text = "Back to login",
-              onClick = onSignOut,
+              onClick = { viewModel.signOut() },
               enabled = (!state.signedOut && !state.isSigningOut),
               modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),
           )
         }
     // when the role is loaded it displays nothing because being redirected
     is RoleState.Loaded -> Unit
-  }
-}
-
-/** Preview of [RoleLoadingContent] in the error state, using the Amber application theme. */
-@Preview(showBackground = true, name = "Error")
-@Composable
-internal fun RoleLoadingContentErrorPreview() {
-  AmberAppTheme(dynamicColor = false) {
-    RoleLoadingContent(
-        state = RoleLoadingUIState(roleState = RoleState.Error),
-    )
   }
 }
