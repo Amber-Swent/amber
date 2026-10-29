@@ -894,7 +894,7 @@ class UploadPictureViewModelTest {
     vm.setDescription("A description")
     assertTrue(vm.uiState.value.canUpload)
   }
-  
+
   // ---------- place search ----------
 
   @Test
