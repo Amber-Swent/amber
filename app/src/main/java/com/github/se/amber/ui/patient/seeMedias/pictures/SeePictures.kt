@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seePictures
 
@@ -169,7 +170,6 @@ fun SeePicturesScreen(
                     picture = picture,
                     modifier = Modifier.fillMaxWidth().aspectRatioOf(picture),
                     loading = { CircularProgressIndicator() },
-                    failed = { retry -> TextButton(onClick = retry) { Text("Retry") } },
                 )
               }
             }

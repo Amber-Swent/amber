@@ -1,5 +1,7 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+/**
+ * Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code. Modified by
+ * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.e2e
 
 import androidx.test.core.app.ApplicationProvider
@@ -62,6 +64,7 @@ object FirebaseEmulator {
 
     // useEmulator throws once an instance has been used, so wire all three before anything else
     Firebase.auth.useEmulator(HOST, AUTH_PORT)
+    Firebase.auth.signOut() // clears a user persisted by an earlier run
     Firebase.firestore.apply {
       // no disk cache, so a run never reads documents left by an earlier one
       firestoreSettings = firestoreSettings { setLocalCacheSettings(memoryCacheSettings {}) }

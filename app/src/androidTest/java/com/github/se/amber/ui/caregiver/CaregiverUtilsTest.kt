@@ -1,23 +1,44 @@
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+/* Written by LaMaier, with the assistance of Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.ui.caregiver
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -129,6 +150,185 @@ class DisplayTextFieldTest {
   fun maxCharMessage_isNotDisplayed_beforeFieldIsFocused() {
     setField(value = "abc", maxChar = 3)
     composeTestRule.onNodeWithTag(MAX_CHAR_MESSAGE).assertDoesNotExist()
+  }
+}
+
+// --------------------- TEST DisplayCaregiverButton -------------------
+
+class DisplayCaregiverButtonTest {
+
+  @get:Rule val composeTestRule = createComposeRule()
+  private val buttonTagFromAnotherFunction = "caregiverButtonTagFromAnotherFunction"
+  private val iconDescription = "icon description"
+  private val icon = Icons.Default.Add
+
+  private fun setButton(
+      onClick: () -> Unit = {},
+      enabled: Boolean = true,
+      withIcon: Boolean = false,
+      height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
+  ) {
+    composeTestRule.setContent {
+      DisplayCaregiverButton(
+          modifier = Modifier.testTag(buttonTagFromAnotherFunction),
+          onClick = onClick,
+          enabled = enabled,
+          icon = if (withIcon) icon else null,
+          description = if (withIcon) iconDescription else "",
+          height = height,
+      )
+    }
+  }
+
+  // The button wraps its content in a merged semantics node, so children are looked up in the
+  // unmerged tree.
+  private fun textNode() =
+      composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.TEXT, useUnmergedTree = true)
+
+  private fun iconNode() =
+      composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.ICON, useUnmergedTree = true)
+
+  @Test
+  fun button_isDisplayed() {
+    setButton()
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertIsDisplayed()
+  }
+
+  @Test
+  fun text_isDisplayed() {
+    setButton()
+    textNode().assertIsDisplayed()
+  }
+
+  @Test
+  fun icon_isDisplayed_whenIconProvided() {
+    setButton(withIcon = true)
+    iconNode().assertIsDisplayed()
+  }
+
+  @Test
+  fun icon_doesNotExist_whenNoIconProvided() {
+    setButton(withIcon = false)
+    iconNode().assertDoesNotExist()
+  }
+
+  @Test
+  fun text_isDisplayed_whenIconProvided() {
+    setButton(withIcon = true)
+    textNode().assertIsDisplayed()
+  }
+
+  @Test
+  fun button_isEnabled_byDefault() {
+    setButton()
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertIsEnabled()
+  }
+
+  @Test
+  fun button_isNotEnabled_whenDisabled() {
+    setButton(enabled = false)
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertIsNotEnabled()
+  }
+
+  @Test
+  fun click_callsOnClickOnce() {
+    var clickCount = 0
+    setButton(onClick = { clickCount++ })
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).performClick()
+    assertEquals(1, clickCount)
+  }
+
+  @Test
+  fun click_doesNotCallOnClick_whenDisabled() {
+    var clickCount = 0
+    setButton(onClick = { clickCount++ }, enabled = false)
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).performClick()
+    assertEquals(0, clickCount)
+  }
+
+  @Test
+  fun button_becomesEnabled_whenConditionTurnsTrue() {
+    var condition by mutableStateOf(false)
+    composeTestRule.setContent {
+      DisplayCaregiverButton(
+          modifier = Modifier.testTag(buttonTagFromAnotherFunction),
+          enabled = condition,
+      )
+    }
+    composeTestRule.runOnIdle { condition = true }
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertIsEnabled()
+  }
+
+  @Test
+  fun button_usesGivenHeight() {
+    val customHeight = 77.dp
+    setButton(height = customHeight)
+    composeTestRule.onNodeWithTag(buttonTagFromAnotherFunction).assertHeightIsEqualTo(customHeight)
+  }
+
+  @Test
+  fun widthPercentageIsTakenIntoAccount() {
+    composeTestRule.setContent {
+      Box(modifier = Modifier.requiredWidth(BOX_HEIGHT)) {
+        DisplayCaregiverButton(
+            text = "Test Button",
+            widthPercentage = WIDTH,
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON)
+        .assertWidthIsEqualTo(BOX_HEIGHT * WIDTH)
+  }
+
+  private companion object {
+    val BOX_HEIGHT = 500.dp
+    const val WIDTH = 0.55f
+  }
+
+  @Test
+  fun allTextIsVisible_multilineText() {
+    composeTestRule.setContent {
+      Column(
+          modifier = Modifier.fillMaxSize().padding(CAREGIVER_PADDING_MEDIUM),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        DisplayCaregiverButton(
+            text =
+                "This is a very long text that should wrap to multiple lines and remain fully visible",
+            height = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
+            widthPercentage = 0.8f,
+        )
+      }
+    }
+
+    // Verify the text node exists and contains the full content
+    composeTestRule
+        .onNodeWithTag(DisplayCaregiverButtonTestTags.TEXT, useUnmergedTree = true)
+        .assertExists()
+        .assertTextEquals(
+            "This is a very long text that should wrap to multiple lines and remain fully visible"
+        )
+  }
+
+  @Test
+  fun iconWithoutDescription_isRejected() {
+    assertThrows(IllegalArgumentException::class.java) {
+      composeTestRule.setContent { DisplayCaregiverButton(icon = icon, description = "") }
+    }
+  }
+
+  @Test
+  fun descriptionWithoutIcon_isRejected() {
+    assertThrows(IllegalArgumentException::class.java) {
+      composeTestRule.setContent {
+        DisplayCaregiverButton(
+            icon = null,
+            description = iconDescription,
+        )
+      }
+    }
   }
 }
 

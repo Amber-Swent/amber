@@ -12,9 +12,16 @@ import coil3.request.Options
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaPicture
+import com.google.firebase.storage.StorageException
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLHandshakeException
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -22,6 +29,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -186,7 +194,7 @@ class MediaPictureFetcherTest {
 
   @Test
   fun aTimeoutInGetFileIsAFailureNotACancellation() = runTest {
-    repository.onGetFile = { withTimeout(1) { awaitCancellation() } }
+    repository.onGetFile = { withTimeout(1.milliseconds) { awaitCancellation() } }
 
     val error = fetchError()
 
@@ -232,6 +240,74 @@ class MediaPictureFetcherTest {
 
     assertTrue(error is CancellationException)
     assertTrue(logs().isEmpty())
+  }
+
+  /** The failure the fetcher gives when getFile throws [error]. */
+  private suspend fun failureOf(error: Exception): MediaPictureUnavailableException {
+    repository.onGetFile = { throw error }
+    return fetchError() as MediaPictureUnavailableException
+  }
+
+  /** The error Firebase Storage gives for a request that failed with [cause] and [httpCode]. */
+  private fun storageError(cause: Exception, httpCode: Int): StorageException =
+      StorageException.fromExceptionAndHttpCode(cause, httpCode)!!
+
+  @Test
+  fun connectionErrorsAreConnectionFailures() = runTest {
+    listOf(
+            // What a Firebase Storage download ends with offline: Firebase builds it this way
+            // when its request fails without an HTTP answer (code -2), once it gives up retrying.
+            storageError(SocketException("Network subsystem is unavailable"), httpCode = -2),
+            // also without an HTTP answer, with a cause that isn't a platform network error
+            storageError(SSLHandshakeException("connection closed by peer"), httpCode = -2),
+            // the connection cut while the file was being read: Firebase keeps the HTTP code
+            storageError(SocketException("Connection reset"), httpCode = 200),
+            UnknownHostException("firebasestorage.googleapis.com"),
+            ConnectException("connection refused"),
+            SocketTimeoutException("read timed out"),
+            // wrapped by whoever downloaded the file
+            IOException("download failed", UnknownHostException("firebasestorage.googleapis.com")),
+        )
+        .forEach { assertTrue("$it", failureOf(it).isConnectionFailure) }
+  }
+
+  @Test
+  fun otherErrorsAreNotConnectionFailures() = runTest {
+    // Coming back online wouldn't change them.
+    listOf(
+            storageError(IOException("object not found"), httpCode = 404),
+            storageError(IOException("permission denied"), httpCode = 403),
+            storageError(IOException("internal error"), httpCode = 500),
+            // Firebase retries these, but gives up with their own code, not as a connection one
+            storageError(IOException("service unavailable"), httpCode = 503),
+            storageError(IOException("too many requests"), httpCode = 429),
+            storageError(IOException("request timeout"), httpCode = 408),
+            // writing the downloaded file failed
+            storageError(IOException("no space left on device"), httpCode = 200),
+            IOException("no space left on device"),
+            IllegalArgumentException("c1 has no bucket yet"),
+        )
+        .forEach { assertFalse("$it", failureOf(it).isConnectionFailure) }
+  }
+
+  @Test
+  fun aConnectionFailureIsLoggedAsAWarningWithItsReason() = runTest {
+    val offline = UnknownHostException("firebasestorage.googleapis.com")
+
+    failureOf(offline)
+
+    val log = logs().single()
+    assertEquals(Log.WARN, log.type)
+    assertSame(offline, log.throwable)
+    assertTrue(log.msg.contains("connection problem"))
+  }
+
+  @Test
+  fun aTimeoutInGetFileIsNotAConnectionFailure() = runTest {
+    // getFile giving up by itself says nothing about the connection
+    repository.onGetFile = { withTimeout(1.milliseconds) { awaitCancellation() } }
+
+    assertFalse((fetchError() as MediaPictureUnavailableException).isConnectionFailure)
   }
 
   @Test
