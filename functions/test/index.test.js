@@ -33,7 +33,8 @@ const state = {
 // the only HTTP call the functions make: linking a bucket to Firebase Storage
 globalThis.fetch = async (url, init) => {
   state.linkRequests.push({url, init});
-  return {ok: state.linkStatus < 300, status: state.linkStatus, text: async () => "link refused"};
+  // same rule as real fetch: ok only for 2xx
+  return {ok: state.linkStatus >= 200 && state.linkStatus < 300, status: state.linkStatus, text: async () => "link refused"};
 };
 
 function snapshot(value) {
