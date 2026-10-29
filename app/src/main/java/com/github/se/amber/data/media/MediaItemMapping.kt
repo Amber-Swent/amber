@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.location.GeoLocation
@@ -23,7 +24,8 @@ private const val TYPE_TEXT = "text"
 
 /**
  * This media's stored fields, as a map of plain values; its [MediaItem.id] isn't included. A null
- * [MediaItem.date] or [MediaItem.location] is stored as null.
+ * [MediaItem.date] or [MediaItem.location] is stored as null, and so are the coordinates of a
+ * location known only by its typed place name.
  */
 fun MediaItem.toMap(): Map<String, Any?> {
   val common =
@@ -143,8 +145,8 @@ private class Fields(private val map: Map<String, Any?>) {
   private fun location(): GeoLocation? {
     val location = nested("location") ?: return null
     return GeoLocation(
-        lat = location.double("lat"),
-        lng = location.double("lng"),
+        lat = location.doubleOrNull("lat"),
+        lng = location.doubleOrNull("lng"),
         placeName = location.stringOrNull("placeName"),
     )
   }
@@ -189,9 +191,9 @@ private class Fields(private val map: Map<String, Any?>) {
     return whole ?: throw BadFieldException(key)
   }
 
-  fun double(key: String): Double =
+  fun doubleOrNull(key: String): Double? =
       when (val value = map[key]) {
-        null -> 0.0
+        null -> null
         is Number -> value.toDouble()
         else -> throw BadFieldException(key)
       }
