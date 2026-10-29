@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 
@@ -41,7 +42,7 @@ object CaregiverHomeTestTags {
  * Displays the caregiver home screen.
  *
  * It will evolve over the coming weeks. This basic structure is here to enable the implementation
- * of navigation.
+ * of navigation. Sign-out is available from the parameters screen.
  *
  * @param viewModel ViewModel providing the patient information displayed on the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
@@ -50,7 +51,7 @@ object CaregiverHomeTestTags {
 @Composable
 fun CaregiverHomeScreen(
     viewModel: CaregiverHomeViewModel = viewModel(),
-    onTabSelected: (Tab) -> Unit = { tab -> },
+    onTabSelected: (Tab) -> Unit = {},
 ) {
   val context = LocalContext.current
 
@@ -103,7 +104,7 @@ fun CaregiverHomeScreen(
 }
 
 /** Preview of [CaregiverHomeScreen] using the Amber application theme. */
-@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun CaregiverHomeScreenPreview() {
   AmberAppTheme(dynamicColor = false) { CaregiverHomeScreen() }

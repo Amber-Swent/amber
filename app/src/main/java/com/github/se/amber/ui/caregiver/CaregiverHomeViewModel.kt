@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier and + , with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 

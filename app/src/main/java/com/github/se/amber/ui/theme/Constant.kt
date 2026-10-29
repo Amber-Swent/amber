@@ -1,4 +1,7 @@
-/** Written by Lou-Anne Maier */
+/**
+ * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified with
+ * assistance from OpenAI Codex.
+ */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -18,6 +21,7 @@ import androidx.compose.ui.unit.dp
 val PADDING_MINI = 4.dp
 
 val CAREGIVER_PADDING_SMALL = 8.dp
+val CAREGIVER_PADDING_REGULAR = 12.dp
 val CAREGIVER_PADDING_MEDIUM = 16.dp
 val CAREGIVER_PADDING_BIG = 24.dp
 val CAREGIVER_PADDING_ENORMOUS = 48.dp
@@ -50,9 +54,9 @@ val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
 val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 
-// It may be necessary to add some Small, Medium, Big Width.
-// If it's the case, do a specific Pr for this and remove this comment
+// FIXME open a PR for renaming all the caregiver button width to small, medium, etc
 const val CAREGIVER_BUTTON_WIDTH = 0.5f
+const val CAREGIVER_BUTTON_WIDTH_BIG = 1f
 
 // ------- PATIENT BUTTON -------
 val PATIENT_BUTTON_HEIGHT_SMALL = 52.dp
@@ -75,7 +79,8 @@ val SURFACE_MEDIUM = 48.dp
 val SURFACE_BIG = 84.dp
 
 // ------- TEXT_FIELD -------
-val TEXT_FIELD_SMALL = 50.dp
+// 56.dp is the minimum height required for the letters to be displayed in full
+val TEXT_FIELD_SMALL = 56.dp
 val TEXT_FIELD_DEFAULT = 70.dp
 val TEXT_FIELD_BIG = 200.dp
 

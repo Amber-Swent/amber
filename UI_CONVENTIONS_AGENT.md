@@ -69,7 +69,9 @@ Replace `Name` with the screen name.
 - Helper functions own their own test tag (do not reuse the screen's).
 - Every screen MUST have a ViewModel with the basic layout (UI state + class), even if empty at first. It simplifies later implementation.
 - Do NOT split a screen into a "Screen" (calls the ViewModel) and a "Content" part. One composable `NameScreen`.
-- Previews: because there is no Content split, previews of screens that need a ViewModel do not work. Do not add broken previews. Preview screens with the emulator. A `@Preview` is fine on helper components and constants that do render.
+
+[//]: # (Remove from convention because it can indeed be made to work)
+[//]: # (- Previews: because there is no Content split, previews of screens that need a ViewModel do not work. Do not add broken previews. Preview screens with the emulator. A `@Preview` is fine on helper components and constants that do render.)
 - Collect ViewModel state with `collectAsStateWithLifecycle()`, NEVER `collectAsState()`.
 - ALL functions (composables and helpers) MUST have default values for every parameter.
 - Apply MVVM principle. The UI is never in charge of the logic. 

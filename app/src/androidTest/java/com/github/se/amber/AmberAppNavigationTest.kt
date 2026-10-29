@@ -1,15 +1,18 @@
 // this code was written with the aid of AI
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
+import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
 import com.github.se.amber.ui.navigation.AuthScreen
@@ -23,6 +26,7 @@ import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
+import com.github.se.amber.ui.patient.parameters.PatientParameterTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -54,22 +58,24 @@ class AmberAppNavigationTest {
     val INVITATION_REDEMPTION_BACK = InvitationRedemptionTestTags.BACK_BUTTON
 
     // Caregiver
-    const val CAREGIVER_HOME_SIGN_OUT = TopNavigationMenuTestTags.BACK_BUTTON
     val CAREGIVER_TAB_HOME = tabTag(CaregiverTab.Home)
     val CAREGIVER_TAB_UPLOAD = tabTag(CaregiverTab.Upload)
     val CAREGIVER_TAB_PARAMETERS = tabTag(CaregiverTab.Setting)
     const val UPLOAD_PICTURE_BUTTON = UploadTestTags.PICTURE_BUTTON
     const val UPLOAD_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
-    const val PARAMETERS_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
+    const val CAREGIVER_PARAMETERS_SIGN_OUT = CaregiverParametersTestTags.SIGN_OUT_BUTTON
     const val CREATE_INVITATION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val SIGN_OUT_CONFIRM = SignOutButtonTestTags.BUTTON
+    const val SIGN_OUT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Patient
-    const val PATIENT_HOME_SIGN_OUT = TopNavigationMenuTestTags.BACK_BUTTON
     val PATIENT_TAB_HOME = tabTag(PatientTab.Home)
     val PATIENT_TAB_SEE_PICTURES = tabTag(PatientTab.SeePictures)
+    val PATIENT_TAB_PARAMETERS = tabTag(PatientTab.Setting)
+    const val PATIENT_PARAMETERS_SIGN_OUT = PatientParameterTestTags.SIGN_OUT_BUTTON
     const val SEE_PICTURES_BACK = TopNavigationMenuTestTags.BACK_BUTTON
   }
 
@@ -106,6 +112,14 @@ class AmberAppNavigationTest {
   }
 
   private fun click(tag: String) {
+    // The screen can still be composing after a navigation, so the click target is not there yet.
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+      try {
+        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+      } catch (_: IllegalStateException) {
+        false
+      }
+    }
     composeRule.onNodeWithTag(tag).performClick()
     composeRule.waitForIdle()
   }
@@ -158,7 +172,7 @@ class AmberAppNavigationTest {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)
 
-    click(Tags.CHOICE_CREATE_CIRCLE_BUTTON.name)
+    click(Tags.CHOICE_CREATE_CIRCLE_BUTTON)
 
     assertRoute(OnboardingScreen.CreateCareCircle.route)
   }
@@ -168,7 +182,7 @@ class AmberAppNavigationTest {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)
 
-    click(Tags.CHOICE_JOIN_CIRCLE_BUTTON.name)
+    click(Tags.CHOICE_JOIN_CIRCLE_BUTTON)
 
     assertRoute(OnboardingScreen.EnterInvitation.route)
   }
@@ -178,7 +192,7 @@ class AmberAppNavigationTest {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)
 
-    click(Tags.CHOICE_BACK.name)
+    click(Tags.CHOICE_BACK)
 
     // goBack() pops once: we come back to CreateProfile
     assertRoute(OnboardingScreen.CreateProfile.route)
@@ -282,13 +296,39 @@ class AmberAppNavigationTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun parameters_back_navigatesToCaregiverHome() {
+  fun parameters_signOut_navigatesToSignOutScreen() {
     launch(NavGraphs.CAREGIVER)
     goTo(CaregiverScreen.Parameters.route)
 
-    click(Tags.PARAMETERS_BACK)
+    click(Tags.CAREGIVER_PARAMETERS_SIGN_OUT)
 
-    assertRoute(CaregiverScreen.Home.route)
+    assertRoute(CaregiverScreen.SignOut.route)
+  }
+
+  @Test
+  fun caregiverSignOut_back_returnsToParameters() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+    goTo(CaregiverScreen.SignOut.route)
+
+    click(Tags.SIGN_OUT_BACK)
+
+    assertRoute(CaregiverScreen.Parameters.route)
+  }
+
+  @Test
+  fun caregiverSignOut_confirm_navigatesToAuth() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+    goTo(CaregiverScreen.SignOut.route)
+
+    click(Tags.SIGN_OUT_CONFIRM)
+
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == AuthScreen.Auth.route
+    }
+
+    assertRoute(AuthScreen.Auth.route)
   }
 
   @Test
@@ -363,25 +403,46 @@ class AmberAppNavigationTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun patientHome_signOut_navigatesToAuth() {
-    launch(NavGraphs.PATIENT)
-
-    click(Tags.PATIENT_HOME_SIGN_OUT)
-
-    composeRule.waitUntil(timeoutMillis = 5_000) {
-      navController.currentDestination?.route == AuthScreen.Auth.route
-    }
-
-    assertRoute(AuthScreen.Auth.route)
-  }
-
-  @Test
   fun patientHome_seePicturesTab_navigatesToSeePictures() {
     launch(NavGraphs.PATIENT)
 
     click(Tags.PATIENT_TAB_SEE_PICTURES)
 
     assertRoute(PatientScreen.SeePictures.route)
+  }
+
+  @Test
+  fun patientHome_parametersTab_navigatesToParameters() {
+    launch(NavGraphs.PATIENT)
+
+    click(Tags.PATIENT_TAB_PARAMETERS)
+
+    assertRoute(PatientScreen.Parameters.route)
+  }
+
+  @Test
+  fun patientParameters_signOut_navigatesToSignOutScreen() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.Parameters.route)
+
+    click(Tags.PATIENT_PARAMETERS_SIGN_OUT)
+
+    assertRoute(PatientScreen.SignOut.route)
+  }
+
+  @Test
+  fun patientSignOut_confirm_navigatesToAuth() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.Parameters.route)
+    goTo(PatientScreen.SignOut.route)
+
+    click(Tags.SIGN_OUT_CONFIRM)
+
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == AuthScreen.Auth.route
+    }
+
+    assertRoute(AuthScreen.Auth.route)
   }
 
   @Test

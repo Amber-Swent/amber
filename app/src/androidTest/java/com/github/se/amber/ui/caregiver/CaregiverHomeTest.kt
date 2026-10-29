@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 
@@ -16,6 +17,7 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -49,7 +51,7 @@ class CaregiverHomeScreenTest {
     every { viewModel.uiState } returns uiStateFlow
   }
 
-  private fun setScreen(signOut: () -> Unit = {}) {
+  private fun setScreen() {
     composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel) }
     composeTestRule.waitForIdle()
   }
@@ -89,5 +91,14 @@ class CaregiverHomeScreenTest {
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
+  }
+
+  @Test
+  fun launchedEffect_whenErrorMsgIsSet_clearErrorMsgIsCalled() {
+    composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel) }
+
+    viewModel.setErrorMsg("Test error")
+    composeTestRule.mainClock.advanceTimeByFrame()
+    assertTrue(viewModel.uiState.value.errorMsg == null)
   }
 }

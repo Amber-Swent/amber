@@ -1,7 +1,9 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.picture
 
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -13,11 +15,6 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModelErrorMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -27,6 +24,7 @@ import io.mockk.unmockkAll
 import java.io.File
 import java.io.IOException
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -45,9 +43,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel]. All
- * repositories are mocked, nothing touches the network. The care circle is loaded in `init`, so
- * each test configures the repositories BEFORE calling [createViewModel].
+ * Unit tests for [UploadPictureViewModel]. All repositories are mocked, nothing touches the
+ * network. The care circle is loaded in `init`, so each test configures the repositories BEFORE
+ * calling [createViewModel].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {
@@ -132,10 +130,21 @@ class UploadPictureViewModelTest {
       circleId: String = "circle1",
       people: Map<String, Person> = emptyMap(),
       members: List<String> = emptyList(),
+      viewerNicknames: Map<String, Map<String, String>> = emptyMap(),
   ): CareCircle = mockk {
     every { id } returns circleId
     every { this@mockk.people } returns people
     every { memberIds } returns members
+    every { nicknames } returns viewerNicknames
+  }
+
+  private fun stubMemberProfile(uid: String, person: Person) {
+    coEvery { profileRepo.getProfile(uid) } returns
+        Result.success(UserProfile(uid = uid, person = person))
+  }
+
+  private fun loadCircle(circle: CareCircle) {
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
   }
 
   private fun fakePerson(nick: String?, first: String, last: String): Person = mockk {
@@ -341,6 +350,93 @@ class UploadPictureViewModelTest {
     assertFalse("new_id" in vm.uiState.value.shownIds)
   }
 
+  // ---------- onPersonAdded ----------
+
+  private val bob = Person(id = "bob", firstName = "Bob", lastName = "Martin")
+
+  @Test
+  fun addedPersonIsInsertedIntoTheCircle() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onPersonAdded(bob)
+    assertEquals(bob, vm.careCircle.value?.people?.get("bob"))
+  }
+
+  @Test
+  fun addedPersonIsTagged() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onPersonAdded(bob)
+    assertTrue("bob" in vm.uiState.value.shownIds)
+  }
+
+  @Test
+  fun addedPersonKeepsTheOtherTags() {
+    loadCircle(CareCircle(id = "circle1", people = mapOf("p1" to Person(id = "p1"))))
+    val vm = createViewModel()
+    vm.toggleShownId("p1")
+    vm.onPersonAdded(bob)
+    assertEquals(setOf("p1", "bob"), vm.uiState.value.shownIds)
+  }
+
+  @Test
+  fun addedPersonAppearsInTheChipsByName() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onPersonAdded(bob)
+    assertEquals("Bob", vm.involvedOptions.value["bob"])
+  }
+
+  @Test
+  fun addedPersonIsSavedWithThePicture() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = readyViewModel()
+    vm.onPersonAdded(bob)
+    vm.uploadPicture()
+    assertEquals(listOf("bob"), captureUploadedItem().shownIds)
+  }
+
+  @Test
+  fun personWithoutIdIsRefused() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    val result = vm.onPersonAdded(bob.copy(id = ""))
+    assertEquals(
+        UploadPictureViewModelErrorMessage.PERSON_WITHOUT_ID.mess,
+        result.exceptionOrNull()?.message,
+    )
+    assertTrue(vm.uiState.value.shownIds.isEmpty())
+    assertTrue(vm.careCircle.value?.people.orEmpty().isEmpty())
+  }
+
+  @Test
+  fun addedPersonIsRefusedWhenTheCircleFailedToLoad() {
+    coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
+    val vm = createViewModel()
+    val result = vm.onPersonAdded(bob)
+    assertEquals(
+        UploadPictureViewModelErrorMessage.CANNOT_TAG_PERSON.mess,
+        result.exceptionOrNull()?.message,
+    )
+    assertTrue(vm.uiState.value.shownIds.isEmpty())
+  }
+
+  @Test
+  fun personAddedWhileTheCircleLoadsIsKeptWhenItArrives() {
+    val circleReply = CompletableDeferred<Result<CareCircle>>()
+    coEvery { circleRepo.getCircle("circle1") } coAnswers { circleReply.await() }
+    val vm = readyViewModel()
+
+    assertTrue(vm.onPersonAdded(bob).isSuccess)
+    // the server's reply was read before bob was saved, so it does not contain him
+    circleReply.complete(Result.success(CareCircle(id = "circle1")))
+
+    assertEquals(bob, vm.careCircle.value?.people?.get("bob"))
+    assertEquals("Bob", vm.involvedOptions.value["bob"])
+    vm.uploadPicture()
+    assertEquals(listOf("bob"), captureUploadedItem().shownIds)
+  }
+
   // ---------- involvedOptions ----------
 
   @Test
@@ -358,34 +454,114 @@ class UploadPictureViewModelTest {
   }
 
   @Test
-  fun involvedOptionsFallsBackToFullNameWhenNicknameBlank() {
+  fun involvedOptionsFallsBackToFirstNameWhenNicknameBlank() {
     val person = fakePerson("  ", "Anne", "Dupont")
-    coEvery { circleRepo.getCircle("circle1") } returns
-        Result.success(fakeCircle(people = mapOf("p1" to person)))
-    assertEquals("Anne Dupont", createViewModel().involvedOptions.value["p1"])
-  }
-
-  @Test
-  fun involvedOptionsFallsBackToFullNameWhenNicknameNull() {
-    val person = fakePerson(null, "Anne", "Dupont")
-    coEvery { circleRepo.getCircle("circle1") } returns
-        Result.success(fakeCircle(people = mapOf("p1" to person)))
-    assertEquals("Anne Dupont", createViewModel().involvedOptions.value["p1"])
-  }
-
-  @Test
-  fun involvedOptionsSkipsBlankLastName() {
-    val person = fakePerson(null, "Anne", "")
     coEvery { circleRepo.getCircle("circle1") } returns
         Result.success(fakeCircle(people = mapOf("p1" to person)))
     assertEquals("Anne", createViewModel().involvedOptions.value["p1"])
   }
 
   @Test
-  fun involvedOptionsLabelsMembersWithTheirOwnId() {
+  fun involvedOptionsFallsBackToFirstNameWhenNicknameNull() {
+    val person = fakePerson(null, "Anne", "Dupont")
     coEvery { circleRepo.getCircle("circle1") } returns
-        Result.success(fakeCircle(members = listOf("member1")))
-    assertEquals("member1", createViewModel().involvedOptions.value["member1"])
+        Result.success(fakeCircle(people = mapOf("p1" to person)))
+    assertEquals("Anne", createViewModel().involvedOptions.value["p1"])
+  }
+
+  @Test
+  fun involvedOptionsLabelsMembersWithTheirProfileName() {
+    stubMemberProfile("member1", Person(id = "member1", firstName = "Marie", lastName = "Curie"))
+    loadCircle(fakeCircle(members = listOf("member1")))
+    assertEquals("Marie", createViewModel().involvedOptions.value["member1"])
+  }
+
+  @Test
+  fun involvedOptionsWaitsForEveryMemberProfile() {
+    val profileReply = CompletableDeferred<Result<UserProfile?>>()
+    stubMemberProfile("member1", Person(firstName = "Marie"))
+    coEvery { profileRepo.getProfile("member2") } coAnswers { profileReply.await() }
+    loadCircle(
+        fakeCircle(
+            members = listOf("member1", "member2"),
+            people = mapOf("p1" to fakePerson(null, "Anne", "Dupont")),
+        )
+    )
+    val vm = createViewModel()
+
+    assertTrue(vm.involvedOptions.value.isEmpty())
+    profileReply.complete(Result.failure(IOException("boom")))
+    assertEquals(
+        mapOf("member1" to "Marie", "member2" to unknownMemberLabel(1), "p1" to "Anne"),
+        vm.involvedOptions.value,
+    )
+  }
+
+  @Test
+  fun involvedOptionsRequestsEachMemberProfile() {
+    stubMemberProfile("member1", Person(firstName = "Marie"))
+    stubMemberProfile("member2", Person(firstName = "Pierre"))
+    loadCircle(fakeCircle(members = listOf("member1", "member2")))
+    createViewModel()
+    coVerify(exactly = 1) { profileRepo.getProfile("member1") }
+    coVerify(exactly = 1) { profileRepo.getProfile("member2") }
+  }
+
+  @Test
+  fun involvedOptionsNumbersUnreadableMembers() {
+    coEvery { profileRepo.getProfile("member1") } returns Result.failure(IOException("boom"))
+    coEvery { profileRepo.getProfile("member2") } returns Result.failure(IOException("boom"))
+    loadCircle(fakeCircle(members = listOf("member1", "member2")))
+    assertEquals(
+        mapOf("member1" to unknownMemberLabel(1), "member2" to unknownMemberLabel(2)),
+        createViewModel().involvedOptions.value,
+    )
+  }
+
+  @Test
+  fun involvedOptionsUsesTheViewerNicknameOfAnUnreadableMember() {
+    coEvery { profileRepo.getProfile("member1") } returns Result.failure(IOException("boom"))
+    loadCircle(
+        fakeCircle(
+            members = listOf("member1"),
+            viewerNicknames = mapOf("user1" to mapOf("member1" to "Dad")),
+        )
+    )
+    assertEquals("Dad", createViewModel().involvedOptions.value["member1"])
+  }
+
+  @Test
+  fun involvedOptionsListsMembersAndPeopleTogether() {
+    stubMemberProfile("member1", Person(firstName = "Marie"))
+    loadCircle(
+        fakeCircle(
+            members = listOf("member1"),
+            people = mapOf("p1" to fakePerson(null, "Anne", "Dupont")),
+        )
+    )
+    assertEquals(setOf("member1", "p1"), createViewModel().involvedOptions.value.keys)
+  }
+
+  @Test
+  fun involvedOptionsPrefersTheViewerOwnNickname() {
+    loadCircle(
+        fakeCircle(
+            people = mapOf("p1" to fakePerson("Nana", "Anne", "Dupont")),
+            viewerNicknames = mapOf("user1" to mapOf("p1" to "Granny")),
+        )
+    )
+    assertEquals("Granny", createViewModel().involvedOptions.value["p1"])
+  }
+
+  @Test
+  fun involvedOptionsIgnoresOtherViewersNicknames() {
+    loadCircle(
+        fakeCircle(
+            people = mapOf("p1" to fakePerson("Nana", "Anne", "Dupont")),
+            viewerNicknames = mapOf("someoneElse" to mapOf("p1" to "Granny")),
+        )
+    )
+    assertEquals("Nana", createViewModel().involvedOptions.value["p1"])
   }
 
   // ---------- uploadPicture: guards ----------
@@ -484,10 +660,47 @@ class UploadPictureViewModelTest {
 
   @Test
   fun uploadedItemHasTaggedPeople() {
+    loadCircle(fakeCircle(people = mapOf("p1" to fakePerson(null, "Anne", "Dupont"))))
     val vm = readyViewModel()
-    vm.toggleShownId("tagged")
+    vm.toggleShownId("p1")
     vm.uploadPicture()
-    assertTrue("tagged" in captureUploadedItem().shownIds)
+    assertEquals(listOf("p1"), captureUploadedItem().shownIds)
+  }
+
+  @Test
+  fun uploadedItemHasTaggedMembersAndPeople() {
+    stubMemberProfile("member1", Person(firstName = "Marie"))
+    loadCircle(
+        fakeCircle(
+            members = listOf("member1"),
+            people = mapOf("p1" to fakePerson(null, "Anne", "Dupont")),
+        )
+    )
+    val vm = readyViewModel()
+    vm.toggleShownId("member1")
+    vm.toggleShownId("p1")
+    vm.uploadPicture()
+    assertEquals(setOf("member1", "p1"), captureUploadedItem().shownIds.toSet())
+  }
+
+  @Test
+  fun uploadedItemDropsIdsNotInTheCircle() {
+    loadCircle(fakeCircle(people = mapOf("p1" to fakePerson(null, "Anne", "Dupont"))))
+    val vm = readyViewModel()
+    vm.toggleShownId("p1")
+    vm.toggleShownId("removed")
+    vm.uploadPicture()
+    assertEquals(listOf("p1"), captureUploadedItem().shownIds)
+  }
+
+  @Test
+  fun deselectedPersonIsNotUploaded() {
+    loadCircle(fakeCircle(people = mapOf("p1" to fakePerson(null, "Anne", "Dupont"))))
+    val vm = readyViewModel()
+    vm.toggleShownId("p1")
+    vm.toggleShownId("p1")
+    vm.uploadPicture()
+    assertTrue(captureUploadedItem().shownIds.isEmpty())
   }
 
   @Test
@@ -660,5 +873,187 @@ class UploadPictureViewModelTest {
   @Test
   fun canUploadIsFalseWithoutDate() {
     assertFalse(readyViewModel(date = null).uiState.value.canUpload)
+  }
+
+  @Test
+  fun uploadInProgressDisablesFormAndIgnoresSecondSubmission() {
+    val uploadReply = CompletableDeferred<Unit>()
+    coEvery { mediaRepo.addMedia(any(), any(), any()) } coAnswers { uploadReply.await() }
+    val vm = readyViewModel()
+
+    vm.uploadPicture()
+    assertTrue(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.canUpload)
+    vm.uploadPicture()
+    coVerify(exactly = 1) { mediaRepo.addMedia(any(), any(), any()) }
+
+    uploadReply.complete(Unit)
+    assertFalse(vm.uiState.value.isUploading)
+  }
+
+  // ---------- add person ----------
+
+  @Test
+  fun onAddPersonOpensDialog() {
+    val vm = createViewModel()
+
+    vm.onAddPerson()
+
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+  }
+
+  @Test
+  fun dismissAddPersonClosesDialogAndClearsDraft() {
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonLastName("Dupont")
+    vm.setPersonNickname("Nana")
+
+    vm.dismissAddPerson()
+
+    assertFalse(vm.uiState.value.isAddPersonOpen)
+    assertEquals("", vm.uiState.value.personFirstName)
+    assertEquals("", vm.uiState.value.personLastName)
+    assertEquals("", vm.uiState.value.personNickname)
+  }
+
+  @Test
+  fun addPersonSavesInCircleAndSelectsNewPerson() {
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(CareCircle(id = "circle1"))
+    val saved = Person(id = "person1", firstName = "Anne", lastName = "Dupont")
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.success(saved)
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonLastName("Dupont")
+
+    vm.addPerson()
+
+    coVerify(exactly = 1) {
+      circleRepo.addPerson("circle1", match { it.firstName == "Anne" && it.lastName == "Dupont" })
+    }
+    assertEquals(saved, vm.careCircle.value?.people?.get("person1"))
+    assertEquals("Anne", vm.involvedOptions.value["person1"])
+    assertTrue("person1" in vm.uiState.value.shownIds)
+    assertFalse(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.isAddingPerson)
+  }
+
+  @Test
+  fun blankPersonNameDoesNotCallRepository() {
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("  ")
+
+    vm.addPerson()
+
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals("A first name is required", vm.uiState.value.errorMsg)
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+  }
+
+  @Test
+  fun failedAddPersonKeepsDraftAndReportsError() {
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals("offline", vm.uiState.value.errorMsg)
+    assertEquals("Anne", vm.uiState.value.personFirstName)
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.isAddingPerson)
+  }
+
+  @Test
+  fun addPersonWithoutLoadedCircleReportsRetryError() {
+    coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals(UploadPictureViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+  }
+
+  @Test
+  fun successfulAddPersonSendsAndClearsAllDraftFields() {
+    loadCircle(CareCircle(id = "circle1"))
+    val saved = Person(id = "person1", firstName = "Anne", lastName = "Dupont", nickname = "Nana")
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.success(saved)
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonLastName("Dupont")
+    vm.setPersonNickname("Nana")
+
+    vm.addPerson()
+
+    coVerify(exactly = 1) {
+      circleRepo.addPerson(
+          "circle1",
+          match { it.firstName == "Anne" && it.lastName == "Dupont" && it.nickname == "Nana" },
+      )
+    }
+    assertEquals("", vm.uiState.value.personFirstName)
+    assertEquals("", vm.uiState.value.personLastName)
+    assertEquals("", vm.uiState.value.personNickname)
+    assertTrue("person1" in vm.uiState.value.shownIds)
+  }
+
+  @Test
+  fun addPersonInProgressKeepsDialogOpenAndIgnoresSecondSubmission() {
+    loadCircle(CareCircle(id = "circle1"))
+    val personReply = CompletableDeferred<Result<Person>>()
+    coEvery { circleRepo.addPerson(any(), any()) } coAnswers { personReply.await() }
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+    assertTrue(vm.uiState.value.isAddingPerson)
+    vm.dismissAddPerson()
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertEquals("Anne", vm.uiState.value.personFirstName)
+    vm.addPerson()
+    coVerify(exactly = 1) { circleRepo.addPerson(any(), any()) }
+
+    personReply.complete(Result.success(Person(id = "person1", firstName = "Anne")))
+    assertFalse(vm.uiState.value.isAddingPerson)
+    assertFalse(vm.uiState.value.isAddPersonOpen)
+  }
+
+  @Test
+  fun addPersonFailureWithoutMessageUsesFallbackError() {
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.failure(IOException())
+    val vm = createViewModel()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
+        vm.uiState.value.errorMsg,
+    )
+    assertFalse(vm.uiState.value.isAddingPerson)
+  }
+
+  @Test
+  fun thrownAddPersonFailureClearsSavingStateAndKeepsDraft() {
+    coEvery { circleRepo.addPerson(any(), any()) } throws IOException("broken")
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals("broken", vm.uiState.value.errorMsg)
+    assertEquals("Anne", vm.uiState.value.personFirstName)
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.isAddingPerson)
   }
 }

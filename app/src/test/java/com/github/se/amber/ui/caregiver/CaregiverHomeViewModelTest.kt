@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier and +, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 
@@ -23,19 +24,10 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TestWatcher
-import org.junit.runner.Description
-
-@OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(private val dispatcher: TestDispatcher = UnconfinedTestDispatcher()) :
-    TestWatcher() {
-  override fun starting(description: Description) = Dispatchers.setMain(dispatcher)
-
-  override fun finished(description: Description) = Dispatchers.resetMain()
-}
 
 class CaregiverHomeViewModelTest {
   @get:Rule val mainRule = MainDispatcherRule()
@@ -102,6 +94,8 @@ class CaregiverHomeViewModelTest {
   }
 
   @Test
+  fun homeUIState_patientRoleIsPatient() {
+    assertEquals(Role.PATIENT, CaregiverHomeViewModel().uiState.value.patient.role)
   fun load_circleFailure_setsError() {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
     coEvery { circleRepo.getCircle("circle1") } returns Result.failure(Exception("nope"))
@@ -110,6 +104,10 @@ class CaregiverHomeViewModelTest {
   }
 
   @Test
+  fun clearErrorMsg_resetsTheError() {
+    val viewModel = CaregiverHomeViewModel().apply { setErrorMsg("boom") }
+
+    assertEquals("boom", viewModel.uiState.value.errorMsg)
   fun load_blankPatientId_setsError() {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle.copy(patientId = ""))
@@ -120,6 +118,7 @@ class CaregiverHomeViewModelTest {
     )
   }
 
+    viewModel.clearErrorMsg()
   @Test
   fun load_patientProfileNull_setsError() {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
@@ -138,6 +137,7 @@ class CaregiverHomeViewModelTest {
     assertEquals("Failed to load the patient profile: down", createVm().uiState.value.errorMsg)
   }
 
+    assertNull(viewModel.uiState.value.errorMsg)
   @Test
   fun clearErrorMsg_resetsError() {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(null)

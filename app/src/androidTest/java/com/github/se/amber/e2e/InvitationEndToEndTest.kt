@@ -1,6 +1,7 @@
-/**
+/*
  * Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code. Modified by
- * Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+ * LaMaier, with assistance from Claude (Anthropic) via Claude Code. Modified by Yuhan YANG,
+ * with assistance from Cursor.
  */
 package com.github.se.amber.e2e
 
@@ -8,6 +9,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -15,6 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.printToLog
 import androidx.test.core.app.ApplicationProvider
@@ -22,7 +25,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.AmberApp
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
+import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
@@ -31,6 +36,7 @@ import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.Firebase
 import com.google.firebase.functions.functions
@@ -40,6 +46,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -110,40 +117,35 @@ class InvitationEndToEndTest {
   fun caregiverSharesCode_secondCaregiverJoinsTheCircle() {
     signInWithGoogle("ada-$runId@amber.test", "Ada")
     createCaregiverProfile(firstName = "Ada", lastName = "Lovelace")
-    click(CaregiverChoiceTestTags.CREATE_BUTTON.name)
+    click(CaregiverChoiceTestTags.CREATE_BUTTON)
     typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
-    click(CreateCareCircleTestTags.SUBMIT_BUTTON)
+    click(DisplayCaregiverButtonTestTags.BUTTON)
     waitFor(CaregiverHomeTestTags.TITLE)
 
     val adasCode = createInvitationCode()
 
-    click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
-    waitFor(CaregiverHomeTestTags.TITLE)
+    click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
+    waitFor(CaregiverParametersTestTags.TITLE)
+    click(CaregiverParametersTestTags.SIGN_OUT_BUTTON)
+    click(SignOutButtonTestTags.BUTTON)
+    waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
 
-    // FIXME: this will fail once the refactor of Home has been done
-    //  The back button won't exist anymore, the Sign Out will be in the Parameter screen
-    //  This is the responsibility of the one doing the Parameters Refactor and implementation
-    //    click(TopNavigationMenuTestTags.BACK_BUTTON) // signs out
-    //    waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
-    //
-    //    signInWithGoogle("bob-$runId@amber.test", "Bob")
-    //    createCaregiverProfile(firstName = "Bob", lastName = "Martin")
+    signInWithGoogle("bob-$runId@amber.test", "Bob")
+    createCaregiverProfile(firstName = "Bob", lastName = "Martin")
 
-    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the CaregiverChoice Refactor.
-    //    click(CaregiverChoiceTestTags.JOIN_BUTTON.name)
-    //    typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
+    click(CaregiverChoiceTestTags.JOIN_BUTTON)
+    typeInto(InvitationRedemptionTestTags.CODE_INPUT.name, adasCode)
 
     // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
     //  Fixing this is the responsibility of the one doing the InvitationRedemptionScreen Refactor.
-    //    composeTestRule
-    //        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
-    //        .assert(hasEditableText(adasCode))
-    //    click(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
-    //    waitFor(CaregiverHomeTestTags.TITLE)
-    //
-    //    val bobsCode = createInvitationCode()
-    //    assertNotEquals(adasCode, bobsCode)
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .assert(hasEditableText(adasCode))
+    click(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
+    waitFor(CaregiverHomeTestTags.TITLE)
+
+    val bobsCode = createInvitationCode()
+    assertNotEquals(adasCode, bobsCode)
   }
 
   /**
@@ -164,11 +166,9 @@ class InvitationEndToEndTest {
    * @param lastName the caregiver's last name
    */
   private fun createCaregiverProfile(firstName: String, lastName: String) {
-    // FIXME : shouldn't use .name. Will be possible once TestTag follow correct UI convention
-    //  Fixing this is the responsibility of the one doing the CreateProfile Refactor.
-    typeInto(CreateProfileTestTags.NAME_INPUT.name, firstName)
-    typeInto(CreateProfileTestTags.SURNAME_INPUT.name, lastName)
-    click(CreateProfileTestTags.CAREGIVER_BUTTON.name)
+    typeInto(CreateProfileTestTags.NAME_INPUT, firstName)
+    typeInto(CreateProfileTestTags.SURNAME_INPUT, lastName)
+    click(CreateProfileTestTags.CAREGIVER_BUTTON)
   }
 
   /**
@@ -197,7 +197,15 @@ class InvitationEndToEndTest {
    */
   private fun click(tag: String) {
     waitForNode(hasTestTag(tag) and isEnabled(), "enabled node '$tag'")
-    composeTestRule.onNodeWithTag(tag).performClick()
+    val node = composeTestRule.onNodeWithTag(tag)
+    // A control can sit below the emulator window on a scrolling screen. Touch input misses it
+    // there, so bring it into view when the screen scrolls.
+    try {
+      node.performScrollTo()
+    } catch (_: AssertionError) {
+      // This screen does not scroll. The control is already in view.
+    }
+    node.performClick()
   }
 
   /**

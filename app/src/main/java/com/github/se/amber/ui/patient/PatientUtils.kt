@@ -1,0 +1,234 @@
+// this code was written with the aid of AI
+
+package com.github.se.amber.ui.patient
+
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.NonRestartableComposable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
+import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.WEIGHT_ONE
+
+object PatientUtilsTestTags {
+  const val TITLE = "PatientUtils_test_tag_title"
+  const val BUTTON = "PatientUtils_test_tag_button"
+  const val BUTTON_WITH_ICON = "PatientUtils_test_tag_button_with_icon"
+  const val BUTTON_ICON = "PatientUtils_test_tag_button_icon"
+}
+
+/**
+ * Displays the title for patient's Screen
+ *
+ * @param modifier modifier to apply to the text
+ * @param title title to display
+ * @param titleStyle typography style of the title
+ * @param testTag test tag of the title
+ */
+@NonRestartableComposable
+@Composable
+fun DisplayPatientTitle(
+    modifier: Modifier = Modifier,
+    title: String = "",
+    titleStyle: TextStyle = MaterialTheme.typography.headlineLarge,
+    testTag: String = PatientUtilsTestTags.TITLE,
+) {
+  Text(
+      text = title,
+      color = MaterialTheme.colorScheme.primary,
+      style = titleStyle,
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .padding(top = PATIENT_PADDING_SMALL, bottom = PATIENT_PADDING_MEDIUM)
+              .testTag(testTag),
+      textAlign = TextAlign.Center,
+  )
+}
+
+/**
+ * Displays a button with an icon, label, and click action.
+ *
+ * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
+ * height)
+ *
+ * @param modifier modifier applied to the button
+ * @param buttonHeight height of the button
+ * @param buttonWidth fraction of the available width taken by the button
+ * @param text label displayed on the button.
+ * @param textStyle typography style of the button label
+ * @param icon icon displayed on the button.
+ * @param description content description for the icon.
+ * @param enabled say if the button is clickable or not
+ * @param onClick callback invoked when the button is selected.
+ * @param testTag test tag of the button
+ * @param iconTestTag test tag of the icon
+ */
+@NonRestartableComposable
+@Composable
+fun DisplayPatientButtonWithIcon(
+    modifier: Modifier = Modifier,
+    buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
+    buttonWidth: Float = PATIENT_BUTTON_WIDTH,
+    text: String = "",
+    textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
+    icon: ImageVector = Icons.Default.Add,
+    description: String = "",
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+    testTag: String = PatientUtilsTestTags.BUTTON_WITH_ICON,
+    iconTestTag: String = PatientUtilsTestTags.BUTTON_ICON,
+) {
+  Button(
+      onClick = onClick,
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .wrapContentWidth(Alignment.CenterHorizontally)
+              .fillMaxWidth(buttonWidth)
+              .height(buttonHeight)
+              .testTag(testTag),
+      enabled = enabled,
+      shape = RoundedCornerShape(ROUND_CORNER),
+      colors =
+          ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = MaterialTheme.colorScheme.onTertiary,
+          ),
+  ) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Text(
+          text,
+          style = textStyle,
+          textAlign = TextAlign.Center,
+          modifier = Modifier.weight(WEIGHT_ONE),
+      )
+      Icon(
+          icon,
+          contentDescription = description,
+          modifier = Modifier.testTag(iconTestTag),
+      )
+    }
+  }
+}
+
+/**
+ * Displays a button, label, and click action.
+ *
+ * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
+ * height)
+ *
+ * @param modifier modifier applied to the button
+ * @param buttonHeight height of the button
+ * @param buttonWidth fraction of the available width taken by the button
+ * @param text label displayed on the button.
+ * @param textStyle typography style of the button label
+ * @param enabled say if the button is clickable or not
+ * @param onClick callback invoked when the button is selected.
+ * @param testTag test tag of the button
+ */
+@NonRestartableComposable
+@Composable
+fun DisplayPatientButton(
+    modifier: Modifier = Modifier,
+    buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
+    buttonWidth: Float = PATIENT_BUTTON_WIDTH,
+    text: String = "",
+    textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
+    testTag: String = PatientUtilsTestTags.BUTTON,
+) {
+  Button(
+      onClick = onClick,
+      modifier =
+          modifier
+              .fillMaxWidth()
+              .wrapContentWidth(Alignment.CenterHorizontally)
+              .fillMaxWidth(buttonWidth)
+              .height(buttonHeight)
+              .testTag(testTag),
+      enabled = enabled,
+      shape = RoundedCornerShape(ROUND_CORNER),
+      colors =
+          ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = MaterialTheme.colorScheme.onTertiary,
+          ),
+  ) {
+    Text(
+        text,
+        style = textStyle,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
+  }
+}
+
+// @Preview(showBackground = true)
+// @Composable
+// private fun DisplayPatientTitlePreview() {
+//  AmberAppTheme(dynamicColor = false) {
+//    DisplayPatientTitle(title = "Title Example", modifier = Modifier)
+//  }
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DisplayButtonWithIconPreview() {
+//    AmberAppTheme(dynamicColor = false) {
+//        Column(
+//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+//            horizontalAlignment = Alignment.CenterHorizontally,
+//        ) {
+//            DisplayPatientButtonWithIcon(
+//                icon = Icons.Default.Add,
+//                text = "Button with icon example",
+//                description = "click on the button",
+//                onClick = {},
+//            )
+//        }
+//    }
+// }
+//
+// @Preview(showBackground = true)
+// @Composable
+// private fun DisplayButtonPreview() {
+//  AmberAppTheme(dynamicColor = false) {
+//    Column(
+//        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+//        horizontalAlignment = Alignment.CenterHorizontally,
+//    ){
+//        DisplayPatientButton(
+//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+//            text = "Button example",
+//            onClick = {},
+//        )
+//    }
+//  }
+// }
