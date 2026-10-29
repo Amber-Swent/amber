@@ -50,12 +50,12 @@ import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DATE_PICKER_DIALOG_WIDTH_FRACTION
 import com.github.se.amber.ui.theme.DATE_PICKER_LIST_HEIGHT_FRACTION
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_VISIBLE_ITEM
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import com.github.se.amber.ui.theme.YEAR_RANGE
@@ -191,7 +191,7 @@ fun DisplayScrollableDatePicker(
                   shape = RoundedCornerShape(size = ROUND_CORNER),
               )
               .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-              .padding(PADDING_SMALL),
+              .padding(CAREGIVER_PADDING_SMALL),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.SpaceBetween,
   ) {
@@ -270,7 +270,7 @@ private fun DateBox(
                   onClick = onClick,
               ),
       horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
   ) {
     Text(
         text = field.label,
@@ -338,9 +338,9 @@ private fun ScrollablePickerDialog(
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(size = ROUND_CORNER),
                 )
-                .padding(PADDING_MEDIUM),
+                .padding(CAREGIVER_PADDING_MEDIUM),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
+        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
     ) {
       // display "Select <dateFieldName>"
       Text(
@@ -390,7 +390,7 @@ private fun ScrollablePickerDialog(
 
       Row(
           modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+          horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
       ) {
         DisplayCaregiverButton(
             modifier = Modifier.weight(WEIGHT_ONE),
