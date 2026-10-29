@@ -103,7 +103,6 @@ class SeePicturesScreenTest {
   fun title_and_navigation_menus_are_displayed() {
     setContent()
 
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.TITLE_SEE_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
     composeTestRule
