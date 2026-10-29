@@ -1,9 +1,13 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.pictures
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -20,15 +24,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
-import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
@@ -50,12 +50,6 @@ class UploadPicturesTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
-  private lateinit var mediaRepo: MediaRepository
-  private lateinit var authRepo: AuthRepository
-  private lateinit var profileRepo: ProfileRepository
-  private lateinit var circleRepo: CareCircleRepository
-  private lateinit var pictureReader: SelectedPictureReader
-
   private lateinit var viewModel: UploadPictureViewModel
   private var uploadCallbackCount = 0
   private var goBackCallbackCount = 0
@@ -71,12 +65,6 @@ class UploadPicturesTest {
     careCircleFlow = MutableStateFlow(null)
     involvedOptionsFlow = MutableStateFlow(emptyMap())
     placeOptionsFlow = MutableStateFlow(emptyMap())
-
-    mediaRepo = mockk(relaxed = true)
-    authRepo = mockk(relaxed = true)
-    profileRepo = mockk(relaxed = true)
-    circleRepo = mockk(relaxed = true)
-    pictureReader = mockk(relaxed = true)
 
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow
@@ -96,6 +84,12 @@ class UploadPicturesTest {
           goBack = { goBackCallbackCount++ },
       )
     }
+  }
+
+  private fun fakeCircle(members: List<String>): CareCircle = mockk {
+    every { id } returns "circle1"
+    every { people } returns emptyMap()
+    every { memberIds } returns members
   }
 
   private fun fillValidForm() {
@@ -127,11 +121,11 @@ class UploadPicturesTest {
         .assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.PICTURE_SELECTED).assertDoesNotExist()
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
     chips.assertCountEquals(0)
@@ -180,8 +174,26 @@ class UploadPicturesTest {
 
   // ---------- who is involved ----------
 
+  private val twoMembersCircle by lazy { fakeCircle(members = listOf("member1", "member2")) }
+
+  private fun setCircleWithOptions(circle: CareCircle) {
+    composeTestRule.runOnIdle {
+      careCircleFlow.value = circle
+      // The mocked ViewModel doesn't derive this itself. It mirrors the real mapping
+      // for a circle with no people: memberIds.associateWith { it }.
+      involvedOptionsFlow.value = circle.memberIds.associateWith { it }
+    }
+  }
+
   private val chips
-    get() = composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+    get() =
+        composeTestRule.onAllNodes(
+            SemanticsMatcher("person chip") { node ->
+              node.config
+                  .getOrNull(SemanticsProperties.TestTag)
+                  ?.startsWith(DisplayWhoIsInvolvedTestTags.personInvolved("")) == true
+            }
+        )
 
   /** Makes the mocked ViewModel tag or untag a person like the real one does. */
   private fun toggleShownIdsForReal() {
@@ -205,11 +217,15 @@ class UploadPicturesTest {
       involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
     }
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .assertDoesNotExist()
     chips.assertCountEquals(2)
-    chips[0].assertIsNotSelected()
-    chips[1].assertIsNotSelected()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("uid123"))
+        .assertIsNotSelected()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("p1"))
+        .assertIsNotSelected()
     composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
 

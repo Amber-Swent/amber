@@ -1,7 +1,8 @@
 /* Written by Yuhan YANG, with assistance from
  * Cursor.
  * Modify by Lou-Anne Maier, with assistance from
- * Claude Code
+ * Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver.parameters
 
@@ -11,7 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.Tab
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.theme.AmberAppTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -31,23 +32,24 @@ class CaregiverParameterScreenTest {
 
   private fun setScreen(
       viewModel: CaregiverParameterViewModel = CaregiverParameterViewModel(),
-      onCheckout: () -> Unit = {},
       onTabSelected: (Tab) -> Unit = {},
       onCreateInvitationClick: () -> Unit = {},
       onEnterInvitationClick: () -> Unit = {},
+      onSignOutClick: () -> Unit = {},
   ) {
     composeTestRule.setContent {
-      CaregiverParameterScreen(
-          viewModel = viewModel,
-          onCheckout = onCheckout,
-          onTabSelected = onTabSelected,
-          onCreateInvitationClick = onCreateInvitationClick,
-          onEnterInvitationClick = onEnterInvitationClick,
-      )
+      AmberAppTheme {
+        CaregiverParameterScreen(
+            viewModel = viewModel,
+            onTabSelected = onTabSelected,
+            onCreateInvitationClick = onCreateInvitationClick,
+            onEnterInvitationClick = onEnterInvitationClick,
+            onSignOutClick = onSignOutClick,
+        )
+      }
     }
   }
 
-  // --------- is Display ------------
   @Test
   fun titleIsDisplayed() {
     setScreen()
@@ -73,17 +75,17 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
+  fun signOutButtonIsDisplayed() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
   fun invitationHintIsDisplayed() {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT).assertIsDisplayed()
-  }
-
-  @Test
-  fun topBarIsDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
   }
 
   @Test
@@ -95,14 +97,6 @@ class CaregiverParameterScreenTest {
         .assertIsDisplayed()
   }
 
-  @Test
-  fun previewShowsTheDefaultParameters() {
-    composeTestRule.setContent { CaregiverParameterScreenPreview() }
-
-    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
-  }
-
-  // ---------- on Click ----------
   @Test
   fun createClickInvokesTheCreateCallback() {
     var createClicks = 0
@@ -128,16 +122,15 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
-  fun checkoutClickInvokesTheCheckoutCallback() {
-    var checkoutClicks = 0
-    setScreen(onCheckout = { checkoutClicks++ })
+  fun signOutClickInvokesTheCallback() {
+    var signOutClicks = 0
+    setScreen(onSignOutClick = { signOutClicks++ })
 
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON).performClick()
 
-    assertEquals(1, checkoutClicks)
+    assertEquals(1, signOutClicks)
   }
 
-  // ---------------- Error message -------------
   @Test
   fun errorMessageIsClearedFromTheStateAfterTheToast() {
     val viewModel = CaregiverParameterViewModel().apply { setErrorMsg(ERROR_MESSAGE) }
@@ -155,5 +148,25 @@ class CaregiverParameterScreenTest {
     composeTestRule.waitForIdle()
 
     assertEquals(0, ShadowToast.shownToastCount())
+  }
+
+  @Test
+  fun screenUsesDefaultCallbacksWhenOmitted() {
+    val viewModel = CaregiverParameterViewModel()
+    composeTestRule.setContent { AmberAppTheme { CaregiverParameterScreen(viewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    // Default onSignOutClick is a no-op; screen remains displayed.
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun screenPreviewRendersWithoutCrashing() {
+    composeTestRule.setContent { CaregiverParameterScreenPreview() }
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
   }
 }
