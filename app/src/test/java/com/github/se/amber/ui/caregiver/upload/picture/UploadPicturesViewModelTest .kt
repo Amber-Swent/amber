@@ -927,16 +927,18 @@ class UploadPictureViewModelTest {
   }
 
   @Test
-  fun failedPlaceSearchReportsErrorAndShowsNoSuggestions() {
+  fun failedPlaceSearchShowsNoSuggestionsAndLeavesTheErrorMessageAlone() {
     coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess + "offline",
-        vm.uiState.value.errorMsg,
-    )
+    assertNull(vm.uiState.value.errorMsg)
     assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+
+    // a pending upload error isn't replaced by a search failure
+    vm.uploadPicture()
+    vm.searchPlace("Geneva")
+    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.errorMsg)
   }
 
   @Test
@@ -976,15 +978,45 @@ class UploadPictureViewModelTest {
   }
 
   @Test
-  fun failedPlaceSearchWithoutMessageReportsTheErrorAlone() {
-    coEvery { placeRepo.search(any()) } returns Result.failure(IOException())
+  fun retryAfterAFailedSearchSearchesTheSameTextAgain() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess,
-        vm.uiState.value.errorMsg,
-    )
+    coEvery { placeRepo.search(any()) } returns Result.success(listOf(lausanne))
+    vm.retryPlaceSearch()
+    assertTrue(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.location.searchFailed)
+
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    coVerify(exactly = 2) { placeRepo.search("Lausanne") }
+    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
+    assertFalse(vm.uiState.value.location.isSearching)
+  }
+
+  @Test
+  fun retryThatFailsAgainIsFlaggedAgain() {
+    coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.retryPlaceSearch()
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    coVerify(exactly = 2) { placeRepo.search("Lausanne") }
+    assertTrue(vm.uiState.value.location.searchFailed)
+    assertFalse(vm.uiState.value.location.isSearching)
+  }
+
+  @Test
+  fun retryWithoutAFailedSearchDoesNothing() {
+    val vm = createViewModel()
+    vm.searchPlace("Lausanne")
+    vm.retryPlaceSearch()
+    testDispatcher.scheduler.advanceUntilIdle()
+
+    coVerify(exactly = 1) { placeRepo.search(any()) }
+    assertFalse(vm.uiState.value.location.isSearching)
   }
 
   @Test

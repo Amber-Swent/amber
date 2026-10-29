@@ -34,9 +34,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -70,7 +72,6 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
   PICK_A_PLACE(mess = "Pick the place from the suggestions"),
-  COULD_NOT_SEARCH_PLACES(mess = "Could not search places: "),
   FIRST_NAME_REQUIRED(mess = "A first name is required"),
   COULD_NOT_ADD_PERSON(mess = "Could not add person"),
   PERSON_WITHOUT_ID(mess = "This person wasn't saved, try again"),
@@ -134,7 +135,7 @@ data class UploadPictureUIState(
  * @param isSearching Whether a search for [query] is waiting or running, so the screen can tell
  *   "searching" from "no places found".
  * @param searchFailed Whether the last search for [query] failed, so the screen can tell "the
- *   search failed" from "no places found".
+ *   search failed" from "no places found" and offer to retry.
  * @param pickedPlace The real place picked from [suggestions] or the circle's saved places; null if
  *   none was picked.
  * @param selectedPlaceId The id of the saved place picked as [pickedPlace]; null if it wasn't one
@@ -206,8 +207,10 @@ class UploadPictureViewModel(
   private var circleLoadFailed = false
   private val _events = Channel<UploadPictureEvent>(Channel.BUFFERED)
   val events: Flow<UploadPictureEvent> = _events.receiveAsFlow()
-  // What the user types in the place field, searched once they stop typing
-  private val placeQueries = MutableStateFlow("")
+  // What the user types in the place field, searched once they stop typing. Not a StateFlow: a
+  // retry sends the same text again, and a StateFlow would drop it as unchanged.
+  private val placeQueries =
+      MutableSharedFlow<String>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
   init {
     loadCircle()
@@ -487,7 +490,20 @@ class UploadPictureViewModel(
               )
       )
     }
-    placeQueries.value = query
+    placeQueries.tryEmit(query)
+  }
+
+  /**
+   * Searches the place text again after its search failed, e.g. once the network is back: the text
+   * didn't change, so [setPlaceQuery] doesn't search it again.
+   */
+  fun retryPlaceSearch() {
+    val location = _uiState.value.location
+    if (!location.searchFailed) return
+    _uiState.update {
+      it.copy(location = it.location.copy(isSearching = true, searchFailed = false))
+    }
+    placeQueries.tryEmit(location.query)
   }
 
   /**
@@ -521,7 +537,8 @@ class UploadPictureViewModel(
             it.copy(location = it.location.copy(suggestions = places, isSearching = false))
           }
         }
-        .onFailure { error ->
+        // Shown inline through searchFailed; errorMsg is left to the upload and the circle
+        .onFailure {
           _uiState.update {
             it.copy(
                 location =
@@ -532,10 +549,6 @@ class UploadPictureViewModel(
                     )
             )
           }
-          setErrorMsg(
-              UploadPictureViewModelErrorMessage.COULD_NOT_SEARCH_PLACES.mess +
-                  (error.message ?: "")
-          )
         }
   }
 
@@ -546,8 +559,6 @@ class UploadPictureViewModel(
    */
   fun selectPlace(place: GeoLocation) {
     if (place.lat == null || place.lng == null) return // not a point on the map
-    // Typing the same text again after picking must search it again
-    placeQueries.value = ""
     _uiState.update {
       it.copy(
           location = PictureLocationUIState(query = place.placeName.orEmpty(), pickedPlace = place)
