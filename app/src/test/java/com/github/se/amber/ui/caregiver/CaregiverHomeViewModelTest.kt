@@ -1,78 +1,28 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 
-import android.util.Log
-import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Role
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.unmockkAll
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.TestDispatcher
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Rule
+import org.junit.Assert.assertNull
 import org.junit.Test
-import org.junit.rules.TestWatcher
-import org.junit.runner.Description
-
-@OptIn(ExperimentalCoroutinesApi::class)
-class MainDispatcherRule(private val dispatcher: TestDispatcher = UnconfinedTestDispatcher()) :
-    TestWatcher() {
-  override fun starting(description: Description) = Dispatchers.setMain(dispatcher)
-
-  override fun finished(description: Description) = Dispatchers.resetMain()
-}
 
 class CaregiverHomeViewModelTest {
-  @get:Rule val mainRule = MainDispatcherRule()
-
-  private lateinit var authRepo: AuthRepository
-
-  @Before
-  fun setup() {
-    authRepo = mockk(relaxed = true)
-    mockkStatic(Log::class)
-    every { Log.e(any(), any(), any()) } returns 0
-  }
-
-  @After fun tearDown() = unmockkAll()
-
   @Test
   fun homeUIState_patientRoleIsPatient() {
-    assertEquals(Role.PATIENT, CaregiverHomeViewModel(authRepo).uiState.value.patient.role)
+    assertEquals(Role.PATIENT, CaregiverHomeViewModel().uiState.value.patient.role)
   }
 
   @Test
-  fun signOutSuccessSetsSignedOut() = runTest {
-    coEvery { authRepo.signOut() } returns Result.success(Unit)
+  fun clearErrorMsg_resetsTheError() {
+    val viewModel = CaregiverHomeViewModel().apply { setErrorMsg("boom") }
 
-    val vm = CaregiverHomeViewModel(authRepo)
-    vm.signOut()
+    assertEquals("boom", viewModel.uiState.value.errorMsg)
 
-    assertTrue(vm.uiState.value.signedOut)
-  }
+    viewModel.clearErrorMsg()
 
-  @Test
-  fun signOutFailureSetsError_andDoesNotSignOut() = runTest {
-    coEvery { authRepo.signOut() } returns Result.failure(Exception("nope"))
-
-    val vm = CaregiverHomeViewModel(authRepo)
-    vm.signOut()
-
-    assertEquals("nope", vm.uiState.value.errorMsg)
-    assertFalse(vm.uiState.value.signedOut)
+    assertNull(viewModel.uiState.value.errorMsg)
   }
 }

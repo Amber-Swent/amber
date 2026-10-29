@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver.upload
 
@@ -9,8 +10,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
@@ -20,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,10 +32,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
@@ -47,8 +51,10 @@ import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
-import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 object UploadTestTags {
   const val TITLE = "upload_title"
@@ -144,33 +150,47 @@ fun UploadScreen(
 }
 
 /**
- * Displays a button with an icon, label, and click action.
+ * Caregiver button with an icon and a label.
  *
- * @param icon icon displayed on the button.
- * @param text label displayed on the button.
- * @param description content description for the icon.
- * @param onClick callback invoked when the button is selected.
+ * The button has a fixed height, so the caller must place it in scrolling content (`verticalScroll`
+ * or `LazyColumn`).
+ *
+ * @param modifier Modifier applied to the button.
+ * @param icon Icon displayed on the trailing edge of the button.
+ * @param text Label displayed on the button.
+ * @param description Content description of [icon].
+ * @param onClick Callback invoked when the button is pressed.
  */
 @Composable
 fun DisplayButton(
-    modifier: Modifier,
-    icon: ImageVector,
-    text: String,
-    description: String,
-    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Outlined.Description,
+    text: String = "",
+    description: String = "",
+    onClick: () -> Unit = {},
 ) {
   Button(
       onClick = onClick,
-      modifier = modifier.fillMaxWidth(),
-      colors = ButtonDefaults.buttonColors(containerColor = lightOrange),
+      modifier = modifier.fillMaxWidth(WEIGHT_ONE).height(CAREGIVER_BUTTON_HEIGHT_MEDIUM),
+      shape = RoundedCornerShape(ROUND_CORNER),
+      colors =
+          ButtonDefaults.buttonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = MaterialTheme.colorScheme.onTertiary,
+          ),
   ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-      Text(text, color = Color.Black)
-      Icon(icon, contentDescription = description, tint = Color.Black)
+      Text(
+          text = text,
+          style = MaterialTheme.typography.labelLarge,
+          modifier = Modifier.weight(WEIGHT_ONE),
+          textAlign = TextAlign.Start,
+      )
+      Icon(imageVector = icon, contentDescription = description)
     }
   }
 }

@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
 
@@ -7,8 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
-import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -27,20 +26,18 @@ data class PatientHomeUIState(
             circleIds = emptyList(),
         ),
     val errorMsg: String? = null,
-    val signedOut: Boolean = false,
 )
 
 /**
  * ViewModel for the Patient Home screen.
  *
- * Responsible for managing the UI state
+ * Responsible for managing the UI state. Sign-out lives on the shared
+ * [com.github.se.amber.ui.authentication.signOut.SignOutViewModel].
  *
  * @property profileRepository The repository used to fetch the Profile.
- * @property authRepository The repository used to sign the user out.
  */
 class PatientHomeViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
-    private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
 ) : ViewModel() {
 
   // Home UI state
@@ -77,20 +74,6 @@ class PatientHomeViewModel(
               onFailure = { e ->
                 Log.e("PatientHomeViewModel", "Error fetching profile", e)
                 setErrorMsg("Failed to load the profile: ${e.message}")
-              },
-          )
-    }
-  }
-
-  /** Initiates sign-out and update the UI state on success or failure */
-  fun signOut() {
-    viewModelScope.launch {
-      authRepository
-          .signOut()
-          .fold(
-              onSuccess = { _uiState.update { it.copy(signedOut = true) } },
-              onFailure = { throwable ->
-                setErrorMsg(throwable.localizedMessage ?: "Sign out failed")
               },
           )
     }
