@@ -1,5 +1,3 @@
-// Written by Lou-Anne Maier.
-// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.navigation
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -17,40 +15,30 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import com.github.se.amber.ui.theme.BIG_ROUND_CORNER
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
-import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.lightGray
+import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.theme.orange
 
-internal const val HOME_TAB_LABEL = "Home"
-internal const val UPLOAD_TAB_LABEL = "Upload"
-internal const val SETTING_TAB_LABEL = "Setting"
-internal const val PICTURES_TAB_LABEL = "Pictures"
-
-/** Stable tags for the bottom bar, its divider, and one tag per [Tab]. */
 object BottomNavigationMenuTestTags {
-  const val BOTTOM_NAVIGATION_MENU = "BottomNavigationMenu_test_tag_menu"
-  const val DIVIDER = "BottomNavigationMenu_test_tag_divider"
+  const val BOTTOM_NAVIGATION_MENU = "bottom_navigation_menu"
+  const val DIVIDER = "bottom_navigation_menu_divider"
 
-  /**
-   * Tag for [tab], unique across caregiver and patient menus. The default is the caregiver home
-   * tab, the same default selection as [BottomNavigationMenu].
-   */
-  fun tabTag(tab: Tab = CaregiverTab.Home) =
-      "BottomNavigationMenu_test_tag_tab_${tab.id}${tab.name}"
+  fun tabTag(tab: Tab) = "bottom_navigation_menu_tab_${tab.id}${tab.name}"
 }
 
 /**
- * One destination in a bottom navigation menu.
+ * Base interface for all bottom navigation tabs. Ensures consistent structure across all userView.
  *
- * @property name Label used as the icon content description.
- * @property icon Icon drawn for this tab.
- * @property destination Screen opened when the tab is selected.
- * @property id Prefix that keeps a caregiver tag distinct from a patient tag with the same name.
+ * @property name The label associated with the tab.
+ * @property icon The icon displayed for the tab.
+ * @property destination The screen opened when the tab is selected.
  */
 sealed interface Tab {
   val name: String
@@ -59,86 +47,56 @@ sealed interface Tab {
   val id: String
 }
 
-/**
- * Caregiver bottom navigation tabs.
- *
- * @property name Label used as the icon content description.
- * @property icon Icon drawn for this tab.
- * @property destination Screen opened when the tab is selected.
- * @property id Prefix shared by every caregiver tab.
- */
+/** Caregiver's bottom navigation tabs. */
 sealed class CaregiverTab(
     override val name: String,
     override val icon: ImageVector,
     override val destination: CaregiverScreen,
     override val id: String = "caregiverId_",
 ) : Tab {
-  /** Caregiver home. */
-  data object Home : CaregiverTab(HOME_TAB_LABEL, Icons.Outlined.Home, CaregiverScreen.Home)
+  data object Home : CaregiverTab("Home", Icons.Outlined.Home, CaregiverScreen.Home)
 
-  /** Caregiver upload. */
-  data object Upload :
-      CaregiverTab(UPLOAD_TAB_LABEL, Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
+  data object Upload : CaregiverTab("Upload", Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
 
-  /**
-   * Caregiver parameters. The visible label stays [SETTING_TAB_LABEL]; the destination is
-   * [CaregiverScreen.Parameters].
-   */
-  data object Setting :
-      CaregiverTab(SETTING_TAB_LABEL, Icons.Outlined.Settings, CaregiverScreen.Parameters)
+  data object Setting : CaregiverTab("Setting", Icons.Outlined.Settings, CaregiverScreen.Parameters)
 
   companion object {
-    /** Tabs shown on caregiver screens, in bar order. */
     val caregiverTabs: List<CaregiverTab>
       get() = listOf(Home, Upload, Setting)
   }
 }
 
-/**
- * Patient bottom navigation tabs.
- *
- * @property name Label used as the icon content description.
- * @property icon Icon drawn for this tab.
- * @property destination Screen opened when the tab is selected.
- * @property id Prefix shared by every patient tab.
- */
+/** Patient's bottom navigation tabs. */
 sealed class PatientTab(
     override val name: String,
     override val icon: ImageVector,
     override val destination: PatientScreen,
     override val id: String = "patientId_",
 ) : Tab {
-  /** Patient home. */
-  data object Home : PatientTab(HOME_TAB_LABEL, Icons.Outlined.Home, PatientScreen.Home)
+  data object Home : PatientTab("Home", Icons.Outlined.Home, PatientScreen.Home)
 
-  /** Patient picture list. */
-  data object SeePictures :
-      PatientTab(PICTURES_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeePictures)
+  data object SeePictures : PatientTab("Pictures", Icons.Outlined.Photo, PatientScreen.SeePictures)
 
   companion object {
-    /** Tabs shown on patient screens, in bar order. */
     val patientTabs: List<PatientTab>
       get() = listOf(Home, SeePictures)
   }
 }
 
 /**
- * Bottom bar for the tabs of one role.
+ * Displays the application's bottom navigation bar.
  *
- * A selected icon uses `secondary`. An unselected icon uses `tertiary`. The selection indicator
- * uses `surface` so it does not fall back to the theme's unset container color.
- *
- * @param modifier Modifier applied to the column that holds the divider and the bar.
- * @param selectedTab Tab that is currently selected. Ignored when it is not in [tabs].
- * @param onTabSelected Called with the tab the user taps.
- * @param tabs Tabs to show, in order. Defaults to the caregiver tabs.
+ * @param selectedTab The tab that is currently selected
+ * @param onTabSelected Callback invoked with the tab selected by the user.
+ * @param tabs All tabs in the bottom navigation menu
+ * @param modifier Modifier applied to the navigation menu's outer container.
  */
 @Composable
 fun BottomNavigationMenu(
+    selectedTab: Tab,
+    onTabSelected: (Tab) -> Unit,
+    tabs: List<Tab>,
     modifier: Modifier = Modifier,
-    selectedTab: Tab = CaregiverTab.Home,
-    onTabSelected: (Tab) -> Unit = {},
-    tabs: List<Tab> = CaregiverTab.caregiverTabs,
 ) {
   Column(
       modifier =
@@ -147,27 +105,26 @@ fun BottomNavigationMenu(
     HorizontalDivider(
         modifier = Modifier.testTag(BottomNavigationMenuTestTags.DIVIDER),
         thickness = DIVIDER_THICKNESS,
-        color = MaterialTheme.colorScheme.outline,
+        color = lightGray,
     )
 
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.background,
-        contentColor = MaterialTheme.colorScheme.onBackground,
         content = {
           tabs.forEach { tab ->
             NavigationBarItem(
-                icon = { Icon(imageVector = tab.icon, contentDescription = tab.name) },
+                icon = {
+                  Icon(
+                      tab.icon,
+                      contentDescription = tab.name,
+                      tint = if (tab == selectedTab) orange else lightOrange,
+                  )
+                },
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
                 modifier =
-                    Modifier.clip(RoundedCornerShape(ROUND_CORNER))
+                    Modifier.clip(RoundedCornerShape(BIG_ROUND_CORNER))
                         .testTag(BottomNavigationMenuTestTags.tabTag(tab)),
-                colors =
-                    NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.secondary,
-                        unselectedIconColor = MaterialTheme.colorScheme.tertiary,
-                        indicatorColor = MaterialTheme.colorScheme.surface,
-                    ),
             )
           }
         },

@@ -1,6 +1,5 @@
 /* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by Yuhan YANG, with assistance from Cursor.
+ * Claude (Anthropic) via Claude Code.package
  */
 package com.github.se.amber.ui.navigation
 

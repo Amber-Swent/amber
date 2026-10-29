@@ -1,5 +1,3 @@
-// Written by Lou-Anne Maier.
-// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.navigation
 
 //noinspection UsingMaterialAndMaterial3Libraries
@@ -20,46 +18,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
+import com.github.se.amber.ui.theme.lightGray
+import com.github.se.amber.ui.theme.orange
 
-internal const val CANCEL_LABEL = "Cancel"
-internal const val CHECKOUT_LABEL = "Checkout"
-internal const val BACK_CONTENT_DESCRIPTION = "Back"
-
-/** Stable tags for the top bar, its action label, the back control, and the divider. */
 object TopNavigationMenuTestTags {
-  const val TOP_NAVIGATION_MENU = "TopNavigationMenu_test_tag_menu"
-  const val TITLE = "TopNavigationMenu_test_tag_title"
-  const val BACK_BUTTON = "TopNavigationMenu_test_tag_back_button"
-  const val DIVIDER = "TopNavigationMenu_test_tag_divider"
+  const val TOP_NAVIGATION_MENU = "top_navigation_menu"
+  const val TITLE = "top_navigation_menu_title"
+  const val BACK_BUTTON = "top_navigation_menu_back_button"
+  const val DIVIDER = "top_navigation_menu_divider"
 }
 
-/**
- * Label shown in [TopNavigationMenu]. The click itself is [TopNavigationMenu]'s `onBackClick`; this
- * enum only chooses the words.
- *
- * @property label Text shown in the bar.
- */
+/** Text actions that can be displayed in the top navigation menu. */
+// IDEA : associate TopNavigationAction with a function (text to display, associated function),
+//  if clicking on CANCEL or CHECKOUT always triggers the same action
 enum class TopNavigationAction(val label: String) {
-  CANCEL(CANCEL_LABEL),
-  CHECKOUT(CHECKOUT_LABEL),
+  CANCEL("Cancel"),
+  CHECKOUT("Checkout"),
 }
 
 /**
- * Top bar with a back arrow, an action label, and a divider.
+ * Displays a top app bar with a back button and an action label and the associate text.
  *
- * The bar uses `primary` with `onPrimary` text and icon. Callers on a top-level destination should
- * not show this bar; the back action there is easy to confuse with leaving the app.
- *
- * @param modifier Modifier applied to the column that holds the bar and the divider.
- * @param action Label displayed in the bar.
- * @param onBackClick Called when the back arrow is tapped.
+ * @param modifier Modifier applied to the outer column containing the app bar and divider.
+ * @param action The action label displayed in the app top bar.
+ * @param onBackClick Callback invoked when the user taps the back arrow.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopNavigationMenu(
     modifier: Modifier = Modifier,
-    action: TopNavigationAction = TopNavigationAction.CANCEL,
-    onBackClick: () -> Unit = {},
+    action: TopNavigationAction,
+    onBackClick: () -> Unit,
 ) {
   Column(
       modifier = modifier.fillMaxWidth().testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
@@ -67,35 +56,30 @@ fun TopNavigationMenu(
     TopAppBar(
         title = {
           Text(
-              text = action.label,
+              action.label,
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TITLE),
-              style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.onPrimary,
+              color = orange,
           )
         },
         navigationIcon = {
           IconButton(
-              onClick = onBackClick,
+              onClick = { onBackClick() },
               modifier = Modifier.testTag(TopNavigationMenuTestTags.BACK_BUTTON),
           ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = BACK_CONTENT_DESCRIPTION,
-                tint = MaterialTheme.colorScheme.onPrimary,
+                tint = orange,
+                contentDescription = "Back",
             )
           }
         },
         colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            ),
+            TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
     )
     HorizontalDivider(
-        modifier = Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
+        Modifier.testTag(TopNavigationMenuTestTags.DIVIDER),
         thickness = DIVIDER_THICKNESS,
-        color = MaterialTheme.colorScheme.outline,
+        color = lightGray,
     )
   }
 }
