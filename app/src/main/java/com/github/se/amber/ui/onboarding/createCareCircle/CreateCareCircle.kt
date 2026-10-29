@@ -44,8 +44,8 @@ import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Stable tags for locating the form controls and validation message in UI tests. */
 object CreateCareCircleTestTags {
-  const val NAME_FIELD = "CreateCareCircle_test_tag_name_field"
-  const val NAME_ERROR = "CreateCareCircle_test_tag_name_error"
+  const val NAME_FIELD = "create_care_circle_name_field"
+  const val NAME_ERROR = "create_care_circle_name_error"
 }
 
 /**
