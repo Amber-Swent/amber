@@ -86,12 +86,6 @@ class UploadPicturesTest {
     }
   }
 
-  private fun fakeCircle(members: List<String>): CareCircle = mockk {
-    every { id } returns "circle1"
-    every { people } returns emptyMap()
-    every { memberIds } returns members
-  }
-
   private fun fillValidForm() {
     composeTestRule.runOnIdle {
       uiStateFlow.value =
@@ -173,17 +167,6 @@ class UploadPicturesTest {
   }
 
   // ---------- who is involved ----------
-
-  private val twoMembersCircle by lazy { fakeCircle(members = listOf("member1", "member2")) }
-
-  private fun setCircleWithOptions(circle: CareCircle) {
-    composeTestRule.runOnIdle {
-      careCircleFlow.value = circle
-      // The mocked ViewModel doesn't derive this itself. It mirrors the real mapping
-      // for a circle with no people: memberIds.associateWith { it }.
-      involvedOptionsFlow.value = circle.memberIds.associateWith { it }
-    }
-  }
 
   private val chips
     get() =
