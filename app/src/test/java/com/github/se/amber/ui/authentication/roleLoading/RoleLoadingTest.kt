@@ -1,6 +1,10 @@
-// this code was written with the aid of AI
+/* This file was written with the aid of AI.
+ * Modified by Alaabrine, with assistance from Cursor.
+ */
 package com.github.se.amber.ui.roleloading
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -13,6 +17,7 @@ import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingTestTags
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingUIState
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
 import com.github.se.amber.ui.authentication.roleLoading.RoleState
+import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -72,6 +77,16 @@ class RoleLoadingScreenTest {
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON).assertDoesNotExist()
   }
 
+  private fun assertSharedAuthenticationLayoutShown() {
+    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertIsDisplayed()
+  }
+
+  private fun assertSharedAuthenticationLayoutHidden() {
+    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertDoesNotExist()
+  }
+
   // ---------- Loading ----------
 
   @Test
@@ -79,6 +94,13 @@ class RoleLoadingScreenTest {
     setScreen(RoleState.Loading)
 
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertIsDisplayed()
+  }
+
+  @Test
+  fun loading_showsSharedAuthenticationLayout() {
+    setScreen(RoleState.Loading)
+
+    assertSharedAuthenticationLayoutShown()
   }
 
   @Test
@@ -122,6 +144,13 @@ class RoleLoadingScreenTest {
 
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.ERROR_MESSAGE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.RETRY_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun error_showsSharedAuthenticationLayout() {
+    setScreen(RoleState.Error)
+
+    assertSharedAuthenticationLayoutShown()
   }
 
   @Test
@@ -248,6 +277,7 @@ class RoleLoadingScreenTest {
 
     assertNoErrorOrBackToLoginShown()
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertDoesNotExist()
+    assertSharedAuthenticationLayoutHidden()
   }
 
   // ---------- Loaded ----------
@@ -279,6 +309,7 @@ class RoleLoadingScreenTest {
 
     assertNoErrorOrBackToLoginShown()
     composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertDoesNotExist()
+    assertSharedAuthenticationLayoutHidden()
   }
 
   // ---------- State transitions ----------
@@ -316,5 +347,27 @@ class RoleLoadingScreenTest {
     composeTestRule.waitForIdle()
 
     assertEquals(1, noProfileCount)
+  }
+
+  // ---------- Default arguments (Sonar branch coverage) ----------
+
+  @Test
+  fun screen_withDefaultCallbacks_stillLoadsRole() {
+    stateFlow.value = RoleLoadingUIState(roleState = RoleState.Loading)
+    composeTestRule.setContent {
+      RoleLoadingScreen(
+          modifier = Modifier.testTag(SCREEN_ROOT),
+          viewModel = viewModel,
+      )
+    }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(SCREEN_ROOT).assertExists()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertIsDisplayed()
+    verify(exactly = 1) { viewModel.loadRole() }
+  }
+
+  private companion object {
+    const val SCREEN_ROOT = "roleLoading_screenRoot"
   }
 }

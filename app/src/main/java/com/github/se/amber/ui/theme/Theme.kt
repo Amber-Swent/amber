@@ -37,6 +37,9 @@ private val DarkColorScheme =
         /** Button, unselected icon */
         tertiary = lightGray,
         onTertiary = darkCyan,
+
+        /** Gray text, comments */
+        outline = Color.White,
         surface = darkCyan,
         onSurface = Color.White,
         error = Color.White,
@@ -63,6 +66,9 @@ private val LightColorScheme =
         /** Button, unselected icon */
         tertiary = lightOrange,
         onTertiary = Color.Black,
+
+        /** Gray text, comments */
+        outline = darkGray,
         surface = Color.White,
         onSurface = Color.Black,
         error = darkOrange,

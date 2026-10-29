@@ -1,10 +1,11 @@
 // This file was written with the aid of AI.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding
 
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleUiState
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleUIState
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -45,7 +46,7 @@ class CreateCareCircleViewModelTest {
 
   @Test
   fun initialStateIsEmptyAndIdle() {
-    assertEquals(CreateCareCircleUiState(), viewModel.uiState.value)
+    assertEquals(CreateCareCircleUIState(), viewModel.uiState.value)
   }
 
   @Test
