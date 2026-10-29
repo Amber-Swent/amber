@@ -1,18 +1,21 @@
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -57,6 +60,7 @@ class AddPersonDialogTest {
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.careCircle } returns MutableStateFlow(null)
     every { viewModel.involvedOptions } returns MutableStateFlow(emptyMap())
+    every { viewModel.placeOptions } returns MutableStateFlow(emptyMap())
   }
 
   private fun launchScreen() {
@@ -179,6 +183,7 @@ class AddPersonDialogTest {
             authRepo = fakeAuthRepo,
             profileRepo = fakeProfileRepo,
             circleRepo = fakeCircleRepo,
+            placeRepo = PlaceSearchRepository { Result.success(emptyList()) },
             pictureReader = pictureReader,
         )
     launchScreen()
@@ -188,7 +193,13 @@ class AddPersonDialogTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON)
         .performScrollTo()
         .performClick()
-    composeTestRule.onAllNodesWithTag(DisplayTextFieldTestTags.TEXT)[1].performTextInput("Anne")
+    // the screen has its own text fields: the first one in the dialog is First Name
+    composeTestRule
+        .onAllNodes(
+            hasTestTag(DisplayTextFieldTestTags.TEXT) and
+                hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
+        )[0]
+        .performTextInput("Anne")
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
