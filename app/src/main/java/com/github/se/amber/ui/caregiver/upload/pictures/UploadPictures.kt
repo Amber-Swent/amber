@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
@@ -65,6 +67,7 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.lightGray
 import com.github.se.amber.ui.theme.lightOrange
+import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Picture components. */
 object UploadPictureScreenTestTags {
@@ -192,6 +195,7 @@ fun UploadPictureScreen(
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
+              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
               onDateSelected = viewModel::setDate,
           )
 

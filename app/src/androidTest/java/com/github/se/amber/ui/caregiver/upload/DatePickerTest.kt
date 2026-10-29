@@ -5,6 +5,8 @@
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -13,6 +15,8 @@ import androidx.compose.ui.test.performScrollToIndex
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.time.Month
+import java.time.format.TextStyle
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +43,7 @@ class CaregiverUtilsAndroidTest {
   private val listener = FakeDateSelectionListener()
 
   // Jan 31 of a leap year: lets us test month clamping (31 -> 29) and a 31-day month.
-  private val initialDate = MemoryDate(2024, Month.JANUARY.value, 31)
+  private val initialDate = MemoryDate(2024, Month.JANUARY, 31)
 
   // ---------- helpers ----------
 
@@ -88,6 +92,20 @@ class CaregiverUtilsAndroidTest {
   }
 
   @Test
+  fun dayBox_isDisabledWhenMonthIsUnknown() {
+    launch(MemoryDate(2024))
+    composeRule.onNodeWithTag(DatePickerTestTags.box(DateField.DAY)).assertIsNotEnabled()
+  }
+
+  @Test
+  fun dayBox_isEnabledAfterMonthIsSelected() {
+    launch(MemoryDate(2024))
+    openDialog(DateField.MONTH)
+    selectItem(1)
+    composeRule.onNodeWithTag(DatePickerTestTags.box(DateField.DAY)).assertIsEnabled()
+  }
+
+  @Test
   fun yearBox_showsYearOfInitialDate() {
     launch()
     composeRule
@@ -100,7 +118,7 @@ class CaregiverUtilsAndroidTest {
     launch()
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.MONTH), useUnmergedTree = true)
-        .assertTextEquals(DateField.MONTH.format(DateField.MONTH.valueIn(initialDate)!!))
+        .assertTextEquals(DateField.MONTH.formatCompact(DateField.MONTH.valueIn(initialDate)!!))
   }
 
   @Test
@@ -109,6 +127,17 @@ class CaregiverUtilsAndroidTest {
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.DAY), useUnmergedTree = true)
         .assertTextEquals(DateField.DAY.format(DateField.DAY.valueIn(initialDate)!!))
+  }
+
+  @Test
+  fun yearOnlyDate_showsUnknownMonthAndDay() {
+    launch(MemoryDate(2024))
+    composeRule
+        .onNodeWithTag(DatePickerTestTags.boxValue(DateField.MONTH), useUnmergedTree = true)
+        .assertTextEquals("Unknown")
+    composeRule
+        .onNodeWithTag(DatePickerTestTags.boxValue(DateField.DAY), useUnmergedTree = true)
+        .assertTextEquals("Unknown")
   }
 
   @Test
@@ -139,6 +168,14 @@ class CaregiverUtilsAndroidTest {
     composeRule.onNodeWithTag(DatePickerTestTags.dialogTitle(DateField.MONTH)).assertIsDisplayed()
   }
 
+  @Test
+  fun monthDialog_showsFullMonthName() {
+    launch()
+    openDialog(DateField.MONTH)
+    composeRule
+        .onNodeWithTag(DatePickerTestTags.item(1))
+        .assertTextEquals(Month.JANUARY.getDisplayName(TextStyle.FULL, Locale.getDefault()))
+  }
   @Test
   fun clickingDayBox_opensDayDialog() {
     launch()
@@ -178,7 +215,7 @@ class CaregiverUtilsAndroidTest {
   // ---------- list content ----------
   @Test
   fun dayList_hasNoItemBeyondLengthOfMonth() {
-    val february = MemoryDate(2023, Month.FEBRUARY.value, 10)
+    val february = MemoryDate(2023, Month.FEBRUARY, 10)
     launch(february)
     openDialog(DateField.DAY)
     val lastIndex = DateField.DAY.range(february).count()
@@ -258,7 +295,7 @@ class CaregiverUtilsAndroidTest {
     launch()
     openDialog(DateField.MONTH)
     selectItem(Month.MARCH.value - DateField.MONTH.range(initialDate).first + 1)
-    assertEquals(listOf(initialDate.copy(month = Month.MARCH.value)), listener.selections)
+    assertEquals(listOf(initialDate.copy(month = Month.MARCH)), listener.selections)
   }
 
   @Test
@@ -273,12 +310,20 @@ class CaregiverUtilsAndroidTest {
   }
 
   @Test
+  fun selectingUnknownMonth_clearsMonthAndDay() {
+    launch()
+    openDialog(DateField.MONTH)
+    selectItem(0)
+    assertEquals(listOf(MemoryDate(initialDate.year)), listener.selections)
+  }
+
+  @Test
   fun clickingShorterMonth_clampsDayToLastDayOfThatMonth() {
     launch()
     openDialog(DateField.MONTH)
     selectItem(Month.FEBRUARY.value - DateField.MONTH.range(initialDate).first + 1)
     assertEquals(
-        listOf(initialDate.copy(month = Month.FEBRUARY.value, day = 29)),
+        listOf(initialDate.copy(month = Month.FEBRUARY, day = 29)),
         listener.selections,
     )
   }

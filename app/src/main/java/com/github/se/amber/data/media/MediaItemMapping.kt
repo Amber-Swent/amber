@@ -1,11 +1,14 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified with assistance from OpenAI Codex.
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
+import java.time.DateTimeException
+import java.time.Month
 
 /*
  * How a MediaItem is stored, in its Firestore document and in the outbox (MediaOutbox): a map of
@@ -32,7 +35,7 @@ fun MediaItem.toMap(): Map<String, Any?> {
           "storagePath" to storagePath,
           "createdAt" to createdAt,
           "description" to description,
-          "date" to date?.let { mapOf("year" to it.year, "month" to it.month, "day" to it.day) },
+          "date" to date?.let { mapOf("year" to it.year, "month" to it.month?.value, "day" to it.day) },
           "location" to
               location?.let {
                 mapOf("lat" to it.lat, "lng" to it.lng, "placeName" to it.placeName)
@@ -135,7 +138,14 @@ private class Fields(private val map: Map<String, Any?>) {
     val date = nested("date") ?: return null
     return MemoryDate(
         year = date.int("year"),
-        month = date.intOrNull("month"),
+        month =
+            date.intOrNull("month")?.let { value ->
+              try {
+                Month.of(value)
+              } catch (_: DateTimeException) {
+                throw BadFieldException("month")
+              }
+            },
         day = date.intOrNull("day"),
     )
   }

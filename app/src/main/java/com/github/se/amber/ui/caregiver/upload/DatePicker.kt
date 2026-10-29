@@ -60,7 +60,11 @@ import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import java.time.LocalDate
+import java.time.Month
+import java.time.Year
 import java.time.YearMonth
+import java.time.format.TextStyle
+import java.util.Locale
 
 internal object DatePickerTestTags {
   const val DIVIDER = "date_picker_divider"
@@ -80,6 +84,8 @@ internal object DatePickerTestTags {
   fun item(index: Int) = "date_picker_item_$index"
 }
 
+internal const val MIN_MEMORY_YEAR = 1900
+
 enum class DateField(val label: String) {
   YEAR("Year"),
   MONTH("Month"),
@@ -88,11 +94,12 @@ enum class DateField(val label: String) {
   /**
    * Returns the valid values for this date field.
    *
-   * @param date date used to determine the valid range
+   * @param date The date whose year and month determine the valid days.
+   * @param currentYear The latest year available for a memory.
    */
-  fun range(date: MemoryDate): IntRange =
+  fun range(date: MemoryDate, currentYear: Int = Year.now().value): IntRange =
       when (this) {
-        YEAR -> date.year - 100..date.year + 100
+        YEAR -> MIN_MEMORY_YEAR..currentYear
         MONTH -> 1..12
         DAY -> 1..(date.month?.let { YearMonth.of(date.year, it).lengthOfMonth() } ?: 0)
       }
@@ -100,35 +107,57 @@ enum class DateField(val label: String) {
   /**
    * Returns this field's value from the given date.
    *
-   * @param date date from which to read the value
+   * @param date The date containing the field value to read.
    */
   fun valueIn(date: MemoryDate): Int? =
       when (this) {
         YEAR -> date.year
-        MONTH -> date.month
+        MONTH -> date.month?.value
         DAY -> date.day
       }
 
   /**
    * Returns a date with this field replaced by [value].
    *
-   * @param date date to update
-   * @param value new value for this field
+   * @param date The original date to update.
+   * @param value The replacement field value, or null for an unknown month or day.
+   * @return the MemoryDate updated.
    */
   fun applyTo(date: MemoryDate, value: Int?): MemoryDate =
       when (this) {
         YEAR -> date.copy(year = requireNotNull(value)).withValidDay()
         MONTH ->
-            date.copy(month = value, day = if (value == null) null else date.day).withValidDay()
+            date.copy(month = value?.let(Month::of), day = if (value == null) null else date.day)
+                .withValidDay()
         DAY -> date.copy(day = if (date.month == null) null else value)
       }
 
   /**
-   * Formats a value for display in the picker.
+   * Formats this field's numeric value for a dialog choice. Months use their full localized names;
+   * days use two digits, and years remain unchanged.
    *
-   * @param value value to format
+   * @param value The numeric year, month (1 to 12), or day to display.
+   * @param locale The locale used for month names.
+   * @return The label shown for this value in the selection dialog.
    */
-  fun format(value: Int): String = if (this == YEAR) "$value" else value.toString().padStart(2, '0')
+  fun format(value: Int, locale: Locale = Locale.getDefault()): String =
+      when (this) {
+        YEAR -> "$value"
+        MONTH -> Month.of(value).getDisplayName(TextStyle.FULL, locale)
+        DAY -> value.toString().padStart(2, '0')
+      }
+
+  /**
+   * Formats this field's value for its date box. Months use short localized names to fit the box;
+   * years and days use the same labels as [format].
+   *
+   * @param value The numeric year, month (1 to 12), or day to display.
+   * @param locale The locale used for month names.
+   * @return The label shown in the date box.
+   */
+  fun formatCompact(value: Int, locale: Locale = Locale.getDefault()): String =
+      if (this == MONTH) Month.of(value).getDisplayName(TextStyle.SHORT, locale)
+      else format(value, locale)
 }
 
 /** Keeps a known day valid when the selected month or year changes. */
@@ -139,9 +168,9 @@ private fun MemoryDate.withValidDay(): MemoryDate =
 /**
  * Displays a picker for a memory date. Month and day may be unknown.
  *
- * @param modifier modifier applied to the picker
- * @param initialDate date shown before a selection is made
- * @param onDateSelected called with the selected date, including unknown fields
+ * @param modifier The layout and styling applied to the picker.
+ * @param initialDate The date shown before the user makes a selection.
+ * @param onDateSelected Receives the selected date, including any unknown month or day.
  */
 @Composable
 fun DisplayScrollableDatePicker(
@@ -170,7 +199,8 @@ fun DisplayScrollableDatePicker(
     DateField.entries.forEach { field ->
       DateBox(
           field = field,
-          value = field.valueIn(date)?.let(field::format) ?: "Unknown",
+          value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
+          enabled = field != DateField.DAY || date.month != null,
           onClick = { openField = field },
           modifier = Modifier.weight(WEIGHT_ONE).testTag(DatePickerTestTags.box(field)),
       )
@@ -185,8 +215,8 @@ fun DisplayScrollableDatePicker(
     ScrollablePickerDialog(
         field = field,
         items =
-            if (allowsUnknown) listOf("Unknown") + range.map(field::format)
-            else range.map(field::format),
+            if (allowsUnknown) listOf("Unknown") + range.map { field.format(it) }
+            else range.map { field.format(it) },
         initialIndex =
             field.valueIn(date)?.let { it - range.first + if (allowsUnknown) 1 else 0 } ?: 0,
         onDismiss = { openField = null },
@@ -205,20 +235,25 @@ fun DisplayScrollableDatePicker(
 /**
  * Displays one date field in the picker.
  *
- * @param field current dataField (c.f. year, month or day)
- * @param value formatted field value
- * @param onClick called when the field is selected
- * @param modifier modifier applied to the field
+ * @param field The year, month, or day represented by this box.
+ * @param value The formatted value shown in the box.
+ * @param enabled Whether the box can open its selection dialog.
+ * @param onClick Opens the selection dialog for this field.
+ * @param modifier The layout and styling applied to the box.
  */
 @Composable
 private fun DateBox(
     field: DateField,
     value: String,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val interactionSource = remember { MutableInteractionSource() }
   val isPressed by interactionSource.collectIsPressedAsState()
+  val textColor =
+      if (enabled) MaterialTheme.colorScheme.onSurface
+      else MaterialTheme.colorScheme.onSurfaceVariant
 
   Column(
       modifier =
@@ -230,6 +265,7 @@ private fun DateBox(
                   else Modifier
               )
               .clickable(
+                  enabled = enabled,
                   interactionSource = interactionSource,
                   indication = null,
                   onClick = onClick,
@@ -239,7 +275,7 @@ private fun DateBox(
   ) {
     Text(
         text = field.label,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = textColor,
         style = MaterialTheme.typography.bodyMedium,
     )
 
@@ -251,7 +287,7 @@ private fun DateBox(
     Text(
         modifier = Modifier.testTag(DatePickerTestTags.boxValue(field)),
         text = value,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = textColor,
         style = MaterialTheme.typography.bodyMedium,
     )
   }
@@ -260,11 +296,11 @@ private fun DateBox(
 /**
  * Displays a dialog for selecting one value from a scrollable list.
  *
- * @param field title display at the top
- * @param items values shown in the picker
- * @param initialIndex initially selected item index
- * @param onDismiss called when the dialog is dismissed
- * @param onSelected called with the selected item index
+ * @param field The date field being edited; its label determines the dialog title.
+ * @param items The choices shown in the scrollable list.
+ * @param initialIndex The index of the initially selected choice.
+ * @param onDismiss Closes the dialog without applying a choice.
+ * @param onSelected Receives the index of the confirmed choice.
  */
 @Composable
 private fun ScrollablePickerDialog(
@@ -370,7 +406,6 @@ private fun ScrollablePickerDialog(
         ) {
           Text(
               text = "Done",
-              color = MaterialTheme.colorScheme.onTertiary,
               style = MaterialTheme.typography.labelLarge,
           )
         }
@@ -387,7 +422,6 @@ private fun ScrollablePickerDialog(
         ) {
           Text(
               text = "Cancel",
-              color = MaterialTheme.colorScheme.onTertiary,
               style = MaterialTheme.typography.labelLarge,
           )
         }
