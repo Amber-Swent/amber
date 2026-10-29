@@ -4,6 +4,8 @@
  */
 package com.github.se.amber.ui.navigation
 
+import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
+import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -56,6 +58,13 @@ class TabsTest {
     assertEquals(CaregiverScreen.Parameters, CaregiverTab.Setting.destination)
   }
 
+  @Test
+  fun caregiverTabsUseTheCaregiverIconSize() {
+    assertEquals(CAREGIVER_ICON_SIZE, CaregiverTab.Home.iconSize)
+    assertEquals(CAREGIVER_ICON_SIZE, CaregiverTab.Upload.iconSize)
+    assertEquals(CAREGIVER_ICON_SIZE, CaregiverTab.Setting.iconSize)
+  }
+
   // ---------- Patient tabs ----------
   @Test
   fun patientHomeNameIsHome() {
@@ -85,5 +94,12 @@ class TabsTest {
   @Test
   fun patientSettingDestinationIsPatientParametersScreen() {
     assertEquals(PatientScreen.Parameters, PatientTab.Setting.destination)
+  }
+
+  @Test
+  fun patientTabsUseThePatientIconSize() {
+    assertEquals(PATIENT_ICON_SIZE, PatientTab.Home.iconSize)
+    assertEquals(PATIENT_ICON_SIZE, PatientTab.SeePictures.iconSize)
+    assertEquals(PATIENT_ICON_SIZE, PatientTab.Setting.iconSize)
   }
 }

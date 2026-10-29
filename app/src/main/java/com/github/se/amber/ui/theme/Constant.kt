@@ -1,4 +1,7 @@
-/** Written by Lou-Anne Maier. Modified by nehachak1, with assistance from Claude Code. */
+/**
+ * Written by Lou-Anne Maier. Modified by nehachak1, with assistance from Claude Code. Modified by
+ * Yuhan YANG, with assistance from Cursor.
+ */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -96,3 +99,10 @@ const val WEIGHT_TWO = 2f
 
 // ------- LOGO -------
 val LOGO_SIZE = 48.dp
+
+// ------- NAVIGATION ICON -------
+/** Icon size for caregiver tabs. */
+val CAREGIVER_ICON_SIZE = 24.dp
+
+/** Icon size for patient tabs. */
+val PATIENT_ICON_SIZE = 32.dp
