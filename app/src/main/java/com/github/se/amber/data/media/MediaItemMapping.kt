@@ -35,7 +35,8 @@ fun MediaItem.toMap(): Map<String, Any?> {
           "storagePath" to storagePath,
           "createdAt" to createdAt,
           "description" to description,
-          "date" to date?.let { mapOf("year" to it.year, "month" to it.month?.value, "day" to it.day) },
+          "date" to
+              date?.let { mapOf("year" to it.year, "month" to it.month?.value, "day" to it.day) },
           "location" to
               location?.let {
                 mapOf("lat" to it.lat, "lng" to it.lng, "placeName" to it.placeName)

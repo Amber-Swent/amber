@@ -127,7 +127,8 @@ enum class DateField(val label: String) {
       when (this) {
         YEAR -> date.copy(year = requireNotNull(value)).withValidDay()
         MONTH ->
-            date.copy(month = value?.let(Month::of), day = if (value == null) null else date.day)
+            date
+                .copy(month = value?.let(Month::of), day = if (value == null) null else date.day)
                 .withValidDay()
         DAY -> date.copy(day = if (date.month == null) null else value)
       }

@@ -56,7 +56,10 @@ class MediaItemMappingTest {
   fun monthIsStoredAsAnIntegerAndReadAsMonth() {
     val storedDate = picture.toMap()["date"] as Map<*, *>
     assertEquals(7, storedDate["month"])
-    assertEquals(Month.JULY, (mediaItemFromMap("m1", picture.toMap()) as MediaItem.Picture).date?.month)
+    assertEquals(
+        Month.JULY,
+        (mediaItemFromMap("m1", picture.toMap()) as MediaItem.Picture).date?.month,
+    )
   }
 
   @Test

@@ -94,7 +94,8 @@ class UploadPictureViewModel(
     private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(UploadPictureUIState(date = MemoryDate(LocalDate.now().year)))
+  private val _uiState =
+      MutableStateFlow(UploadPictureUIState(date = MemoryDate(LocalDate.now().year)))
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
   // “Upload finished, navigate away” is an event:
   // it should happen once and then be gone. A Channel is built for that.

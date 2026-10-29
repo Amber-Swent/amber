@@ -9,8 +9,8 @@ import java.time.Month
  * When a memory happened. Day and month are optional because families often only know the year
  * ("summer 1974"); filling them in gives a more precise timeline when they are known.
  *
- * Embedded in a MediaItem as a map {year, month, day}. The month is stored as its number
- * (1 to 12) and converted back to [Month] when read.
+ * Embedded in a MediaItem as a map {year, month, day}. The month is stored as its number (1 to 12)
+ * and converted back to [Month] when read.
  */
 data class MemoryDate(
     val year: Int = 0,

@@ -176,6 +176,7 @@ class CaregiverUtilsAndroidTest {
         .onNodeWithTag(DatePickerTestTags.item(1))
         .assertTextEquals(Month.JANUARY.getDisplayName(TextStyle.FULL, Locale.getDefault()))
   }
+
   @Test
   fun clickingDayBox_opensDayDialog() {
     launch()
