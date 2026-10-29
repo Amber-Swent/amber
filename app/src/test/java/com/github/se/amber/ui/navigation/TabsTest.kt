@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code
+ * Claude (Anthropic) via Claude Code.
+ * Modified by Yuhan YANG, with assistance from Cursor.
  */
 package com.github.se.amber.ui.navigation
 
@@ -27,6 +28,14 @@ class TabsTest {
   }
 
   @Test
+  fun tabTagDefaultsToCaregiverHome() {
+    assertEquals(
+        BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home),
+        BottomNavigationMenuTestTags.tabTag(),
+    )
+  }
+
+  @Test
   fun caregiverUploadNameIsUpload() {
     assertEquals("Upload", CaregiverTab.Upload.name)
   }
@@ -41,6 +50,12 @@ class TabsTest {
     assertEquals(CaregiverScreen.Upload, CaregiverTab.Upload.destination)
   }
 
+  @Test
+  fun caregiverSettingOpensParameters() {
+    assertEquals("Setting", CaregiverTab.Setting.name)
+    assertEquals(CaregiverScreen.Parameters, CaregiverTab.Setting.destination)
+  }
+
   // ---------- Patient tabs ----------
   @Test
   fun patientHomeNameIsHome() {
@@ -53,6 +68,11 @@ class TabsTest {
   }
 
   @Test
+  fun patientSettingNameIsSetting() {
+    assertEquals("Setting", PatientTab.Setting.name)
+  }
+
+  @Test
   fun patientHomeDestinationIsPatientHomeScreen() {
     assertEquals(PatientScreen.Home, PatientTab.Home.destination)
   }
@@ -60,5 +80,10 @@ class TabsTest {
   @Test
   fun patientSeeMediasDestinationIsPatientSeeMediasScreen() {
     assertEquals(PatientScreen.SeeMedias, PatientTab.SeeMedias.destination)
+  }
+
+  @Test
+  fun patientSettingDestinationIsPatientParametersScreen() {
+    assertEquals(PatientScreen.Parameters, PatientTab.Setting.destination)
   }
 }

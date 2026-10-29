@@ -1,4 +1,5 @@
 // This file was written with the aid of AI.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.createCareCircle
 
 import androidx.lifecycle.ViewModel
@@ -21,11 +22,10 @@ private const val NAME_REQUIRED_ERROR = "Circle name cannot be empty"
  *
  * @param name Care circle name currently entered by the user.
  * @param nameError Validation message shown below the name field, or null when the name is valid.
- * @param submitError Message for the latest creation failure, or null when there is no failure.
  * @param isLoading Whether circle creation is currently running.
  * @param isCreated Whether the first care circle was created successfully.
  */
-data class CreateCareCircleUiState(
+data class CreateCareCircleUIState(
     val name: String = "",
     val nameError: String? = null,
     val isLoading: Boolean = false,
@@ -44,13 +44,13 @@ data class CreateCareCircleUiState(
 class CreateCareCircleViewModel(
     private val repository: OnboardingRepository = OnboardingRepositoryProvider.default.repository,
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(CreateCareCircleUiState())
+  private val _uiState = MutableStateFlow(CreateCareCircleUIState())
   val uiState = _uiState.asStateFlow()
 
   /*
-   Channel.BUFFERED holds the Event until the screen collects it
-   Removing the channel and using uiState.isCreated could be a problem if the screen is
-   recreated before navigation finished: the callback isCreated() would run again
+  Channel.BUFFERED gives the screen a reliable one-shot success signal even if the composition is
+  recreated before the navigation callback finishes. The channel stays open because a successful
+  create should only happen once while the form is locked by `isCreated`.
   */
   private val successChannel = Channel<Unit>(Channel.BUFFERED)
 
@@ -93,7 +93,7 @@ class CreateCareCircleViewModel(
     // Checks name is not empty before calling the repository
     // Covers the case where the user presses Create without touching the text field before
     if (name.isEmpty()) {
-      _uiState.update { it.copy(name = name, nameError = NAME_REQUIRED_ERROR) }
+      _uiState.update { it.copy(name = state.name, nameError = NAME_REQUIRED_ERROR) }
       return
     }
 
@@ -106,8 +106,6 @@ class CreateCareCircleViewModel(
                 onSuccess = {
                   _uiState.update { it.copy(name = name, isLoading = false, isCreated = true) }
                   successChannel.send(Unit)
-                  // Make explicit that successChannel will never send another request
-                  successChannel.close()
                 },
                 onFailure = { error ->
                   _uiState.update { it.copy(isLoading = false) } // Creation stopped

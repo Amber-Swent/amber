@@ -1,64 +1,66 @@
-// this code was written by Alaabrine
-// with the aid of AI coding agent
+/* Written by Alaabrine with the aid of AI coding agent.
+ * Modify by LaMaier, with the assistance of Claude Code.
+ */
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.onboarding.AmberHeader
-import com.github.se.amber.ui.theme.BUTTON_HEIGHT
-import com.github.se.amber.ui.theme.BUTTON_HEIGHT_TALL
-import com.github.se.amber.ui.theme.PADDING_BIG
-import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_SMALL
-import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.lightGray
-import com.github.se.amber.ui.theme.lightOrange
+import com.github.se.amber.ui.onboarding.Divider
+import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PADDING_MINI
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Test tags for [CaregiverChoiceScreen]. */
-enum class CaregiverChoiceTestTags {
-  BACK_BUTTON,
-  WELCOME_HEADER,
-  CREATE_BUTTON,
-  JOIN_BUTTON,
+object CaregiverChoiceTestTags {
+  const val BACK_BUTTON = "caregiver_choice_back_button"
+  const val WELCOME_HEADER = "caregiver_choice_welcom_header"
+  const val QUESTION = "caregiver_choice_question"
+  const val CREATE_BUTTON = "caregiver_choice_create_button"
+  const val JOIN_BUTTON = "caregiver_choice_join_button"
+  const val INFORMATION = "caregiver_choice_information_text"
 }
 
 internal const val CREATE_CIRCLE_LABEL = "Create a new care circle"
 internal const val JOIN_CIRCLE_LABEL = "Join an existing care circle"
 internal const val INSTRUCTION_LABEL = "How will you enter your Care Circle?"
-internal const val INVITE_LINK_HINT_LABEL = "Use your invite link"
-internal const val OR_LABEL = "or"
+internal const val INVITE_LINK_HINT_LABEL_CONDITION =
+    "To join an existing care circle, you must have an invite link."
+internal const val INVITE_LINK_HINT_LABEL_SOLUTION =
+    "Any caregiver belonging to the circle can create a link for you."
 internal const val BACK_LABEL = "Back"
+internal const val WELCOME = "Welcome"
 
 /**
  * Caregiver onboarding step: choose to create a new care circle or join an existing one.
  *
- * [onBack] should navigate to [CreateProfile]. [onCreateCircle] and [onJoinCircle] are invoked
- * directly from the buttons so a navigation owner can route to [CreateCareCircle] or
- * [EnterInvitation].
+ * [onBack] should navigate to CreateProfileScreen. [onCreateCircle] and [onJoinCircle] are invoked
+ * directly from the buttons so a navigation owner can route to CreateCareCircle or EnterInvitation
+ * respectively.
  */
 @Composable
 fun CaregiverChoiceScreen(
@@ -67,146 +69,99 @@ fun CaregiverChoiceScreen(
     onCreateCircle: () -> Unit = {},
     onJoinCircle: () -> Unit = {},
 ) {
-  val uiState by viewModel.uiState.collectAsState()
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
   Column(
       modifier =
           Modifier.fillMaxSize()
-              .background(Color.White)
-              .padding(horizontal = PADDING_BIG, vertical = PADDING_MEDIUM),
-      verticalArrangement = Arrangement.spacedBy(PADDING_BIG + PADDING_MEDIUM),
+              .background(MaterialTheme.colorScheme.background)
+              .padding(
+                  horizontal = CAREGIVER_PADDING_MEDIUM,
+                  vertical = CAREGIVER_PADDING_MEDIUM,
+              ),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      // space between the Header and the "Welcome"-Button part
+      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_ENORMOUS),
   ) {
     AmberHeader()
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        // the weight ensure the Back button is at the bottom
+        modifier = Modifier.fillMaxWidth().weight(WEIGHT_ONE),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PADDING_BIG),
+        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
     ) {
       Column(
           horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
       ) {
         Text(
-            text = "Welcome, ${uiState.displayName}",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
+            text =
+                if (uiState.displayName.isEmpty()) WELCOME
+                else WELCOME + ", ${uiState.displayName}",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
-            modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER.name),
         )
         Text(
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.QUESTION),
             text = INSTRUCTION_LABEL,
             style = MaterialTheme.typography.titleMedium,
-            color = Color.Black,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
         )
       }
 
       Column(
-          modifier = Modifier.fillMaxWidth(),
           horizontalAlignment = Alignment.CenterHorizontally,
-          verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM),
+          verticalArrangement = Arrangement.spacedBy(PADDING_MINI),
       ) {
-        Button(
+        DisplayCaregiverButton(
             onClick = onCreateCircle,
-            modifier =
-                Modifier.fillMaxWidth(0.75f)
-                    .height(BUTTON_HEIGHT_TALL)
-                    .testTag(CaregiverChoiceTestTags.CREATE_BUTTON.name),
-            shape = RoundedCornerShape(PADDING_SMALL),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = lightOrange,
-                    contentColor = Color.Black,
-                ),
-        ) {
-          Text(
-              text = CREATE_CIRCLE_LABEL,
-              style = MaterialTheme.typography.labelLarge,
-              fontWeight = FontWeight.Medium,
-              textAlign = TextAlign.Center,
-          )
-        }
-
-        OrDivider(modifier = Modifier.fillMaxWidth(0.75f))
-
-        Button(
-            onClick = onJoinCircle,
-            modifier =
-                Modifier.fillMaxWidth(0.75f)
-                    .height(BUTTON_HEIGHT_TALL)
-                    .testTag(CaregiverChoiceTestTags.JOIN_BUTTON.name),
-            shape = RoundedCornerShape(PADDING_SMALL),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = lightOrange,
-                    contentColor = Color.Black,
-                ),
-        ) {
-          Text(
-              text = JOIN_CIRCLE_LABEL,
-              style = MaterialTheme.typography.labelLarge,
-              fontWeight = FontWeight.Medium,
-              textAlign = TextAlign.Center,
-          )
-        }
-
-        Text(
-            text = INVITE_LINK_HINT_LABEL,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Black,
+            text = CREATE_CIRCLE_LABEL,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
         )
+
+        Divider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
+
+        DisplayCaregiverButton(
+            onClick = onJoinCircle,
+            text = JOIN_CIRCLE_LABEL,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
+        )
+      }
+
+      Row(
+          modifier = Modifier.testTag(CaregiverChoiceTestTags.INFORMATION),
+          horizontalArrangement = Arrangement.spacedBy(PADDING_MINI),
+      ) {
+        Icon(
+            imageVector = Icons.Default.Info,
+            contentDescription = "Info",
+            tint = MaterialTheme.colorScheme.outline,
+        )
+        Column {
+          Text(
+              text = INVITE_LINK_HINT_LABEL_CONDITION,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.outline,
+          )
+          Text(
+              text = INVITE_LINK_HINT_LABEL_SOLUTION,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.outline,
+          )
+        }
       }
     }
 
-    Spacer(modifier = Modifier.weight(1f))
-
-    Button(
+    DisplayCaregiverButton(
         onClick = onBack,
-        modifier =
-            Modifier.fillMaxWidth(0.55f)
-                .align(Alignment.CenterHorizontally)
-                .height(BUTTON_HEIGHT)
-                .testTag(CaregiverChoiceTestTags.BACK_BUTTON.name),
-        shape = RoundedCornerShape(PADDING_SMALL),
-        colors =
-            ButtonDefaults.buttonColors(
-                containerColor = lightGray,
-                contentColor = Color.Black,
-            ),
-    ) {
-      Text(
-          text = BACK_LABEL,
-          style = MaterialTheme.typography.labelLarge,
-          fontWeight = FontWeight.Medium,
-          textAlign = TextAlign.Center,
-      )
-    }
-  }
-}
-
-@Composable
-private fun OrDivider(modifier: Modifier = Modifier) {
-  Row(
-      modifier = modifier,
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    HorizontalDivider(
-        modifier = Modifier.weight(1f),
-        color = lightGray,
-    )
-    Text(
-        text = OR_LABEL,
-        color = darkGray,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Medium,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.padding(horizontal = PADDING_MEDIUM),
-    )
-    HorizontalDivider(
-        modifier = Modifier.weight(1f),
-        color = lightGray,
+        text = BACK_LABEL,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.testTag(CaregiverChoiceTestTags.BACK_BUTTON),
     )
   }
 }
@@ -214,5 +169,5 @@ private fun OrDivider(modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun CaregiverChoicePreview() {
-  CaregiverChoiceScreen()
+  AmberAppTheme(darkTheme = false) { CaregiverChoiceScreen() }
 }

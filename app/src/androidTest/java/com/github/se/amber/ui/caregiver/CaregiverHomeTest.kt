@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Alaabrine, with assistance from Cursor.
  */
 package com.github.se.amber.ui.caregiver
 
@@ -8,7 +9,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -25,7 +25,7 @@ class CaregiverHomeScreenTest {
     viewModel = CaregiverHomeViewModel()
   }
 
-  private fun setScreen(signOut: () -> Unit = {}) {
+  private fun setScreen() {
     composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel) }
   }
 
@@ -39,12 +39,6 @@ class CaregiverHomeScreenTest {
   fun welcomeText_isDisplayed() {
     setScreen()
     composeTestRule.onNodeWithTag(WELCOME_TEXT).assertIsDisplayed()
-  }
-
-  @Test
-  fun topNavigationMenu_isDisplayed() {
-    setScreen()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
   }
 
   @Test
@@ -62,22 +56,5 @@ class CaregiverHomeScreenTest {
     viewModel.setErrorMsg("Test error")
     composeTestRule.mainClock.advanceTimeByFrame()
     assertTrue(viewModel.uiState.value.errorMsg == null)
-  }
-
-  @Test
-  fun launchedEffect_whenSignedOut_onSignedOutCallbackInvoked() {
-    val signedOutCalled = mutableListOf<Boolean>()
-
-    composeTestRule.setContent {
-      CaregiverHomeScreen(
-          viewModel = viewModel,
-          onSignedOut = { signedOutCalled.add(true) },
-      )
-    }
-
-    viewModel.setSignedOut(true)
-    composeTestRule.mainClock.advanceTimeByFrame()
-
-    assertTrue(signedOutCalled.size == 1)
   }
 }

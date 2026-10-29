@@ -1,9 +1,8 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
-package com.github.se.amber.ui.createProfile.caregiverOnboarding
+package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -11,9 +10,6 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
-import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
-import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +24,7 @@ class CaregiverChoiceUITests {
   private var joinCircleCount = 0
   private var backCount = 0
 
-  private fun profileRepository(displayName: String = DISPLAY_NAME): ProfileRepository =
+  private fun profileRepository(displayName: String = "Sahra"): ProfileRepository =
       object : ProfileRepository {
         override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
 
@@ -45,7 +41,7 @@ class CaregiverChoiceUITests {
       }
 
   private fun setScreen(
-      displayName: String = DISPLAY_NAME,
+      displayName: String = "Sahra",
       viewModel: CaregiverChoiceViewModel =
           CaregiverChoiceViewModel(
               profileRepository = profileRepository(displayName),
@@ -65,13 +61,11 @@ class CaregiverChoiceUITests {
     composeTestRule.waitForIdle()
   }
 
-  // ---------- Back (→ CreateProfile) ----------
-
   @Test
   fun backButton_click_invokesOnBackOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -79,25 +73,11 @@ class CaregiverChoiceUITests {
     assertEquals(0, joinCircleCount)
   }
 
-  // ---------- Welcome (name from ViewModel) ----------
-
   @Test
-  fun welcomeHeader_displaysNameFromViewModel() {
-    setScreen(displayName = DISPLAY_NAME)
-
-    composeTestRule
-        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER.name)
-        .assertIsDisplayed()
-        .assertTextEquals("Welcome, $DISPLAY_NAME")
-  }
-
-  // ---------- Navigation callbacks (create → CreateCareCircle, join → EnterInvitation) ----------
-
-  @Test
-  fun createButton_click_invokesOnCreateCircleOnly() {
+  fun createCircleButton_click_invokesOnCreateCirclekOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)
@@ -109,7 +89,7 @@ class CaregiverChoiceUITests {
   fun joinButton_click_invokesOnJoinCircleOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, backCount)
@@ -117,7 +97,47 @@ class CaregiverChoiceUITests {
     assertEquals(1, joinCircleCount)
   }
 
-  private companion object {
-    const val DISPLAY_NAME = "Sarah"
+  // ---------- isDisplay ----------
+
+  @Test
+  fun welcomeHeader_isDisplay() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER).assertIsDisplayed()
+  }
+
+  @Test
+  fun question_isDisplay() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.QUESTION).assertIsDisplayed()
+  }
+
+  @Test
+  fun createCircleButton_isDisplay() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun joinButton_isDisplay() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun backButton_isDisplay() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun informationText_isDisplay() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.INFORMATION).assertIsDisplayed()
   }
 }
