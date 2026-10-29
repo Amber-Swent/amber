@@ -536,6 +536,7 @@ test("links a bucket already linked by an earlier run, and stops when linking fa
     provisionSetup({circle: {storageBucket: ""}, bucket: configuredBucket()});
     const {provisionCareCircleBucket} = callableModule();
     await provisionCareCircleBucket({params: {circleId: "circle-1"}});
+    assert.equal(state.linkRequests.length, 1);
     assert.equal(state.updates.length, 1);
   });
 
