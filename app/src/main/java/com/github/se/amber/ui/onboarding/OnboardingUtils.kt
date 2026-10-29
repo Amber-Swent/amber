@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
-import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
 import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_LEFT
 import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_RIGHT
 import com.github.se.amber.ui.onboarding.DividerTestTags.ROW
@@ -22,7 +21,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import com.github.se.amber.ui.theme.lightGray
 
-/** Test tags for [CaregiverChoiceScreen]. */
+/** Test tags for [Divider]. */
 object DividerTestTags {
   const val HORIZONTAL_DIVIDER_LEFT = "divider_horitonzal_divider_left"
   const val HORIZONTAL_DIVIDER_RIGHT = "divider_horitonzal_divider_right"

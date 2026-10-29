@@ -26,12 +26,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.onboarding.AmberHeader
+import com.github.se.amber.ui.onboarding.Divider
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.onboarding.Divider
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
@@ -53,6 +53,7 @@ internal const val INVITE_LINK_HINT_LABEL_CONDITION =
 internal const val INVITE_LINK_HINT_LABEL_SOLUTION =
     "Any caregiver belonging to the circle can create a link for you."
 internal const val BACK_LABEL = "Back"
+internal const val WELCOME = "Welcome"
 
 /**
  * Caregiver onboarding step: choose to create a new care circle or join an existing one.
@@ -96,7 +97,8 @@ fun CaregiverChoiceScreen(
         Text(
             modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
             text =
-                if (uiState.displayName.isEmpty()) "Welcome" else "Welcome, ${uiState.displayName}",
+                if (uiState.displayName.isEmpty()) WELCOME
+                else WELCOME + ", ${uiState.displayName}",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,

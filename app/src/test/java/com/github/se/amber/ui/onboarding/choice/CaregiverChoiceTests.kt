@@ -74,7 +74,7 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun createCircleButton_click_invokesOnBackOnly() {
+  fun createCircleButton_click_invokesOnCreateCirclekOnly() {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.CREATE_BUTTON).performClick()
@@ -86,7 +86,7 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun joinButton_click_invokesOnBackOnly() {
+  fun joinButton_click_invokesOnJoinCircleOnly() {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.JOIN_BUTTON).performClick()

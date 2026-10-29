@@ -27,15 +27,15 @@ class DividerTest {
   @Test
   fun horizontalDivider_isDisplay() {
     setContent()
-    composeTestRule.onNodeWithTag(HORIZONTAL_DIVIDER_LEFT).assertExists().assertIsDisplayed()
+    composeTestRule.onNodeWithTag(HORIZONTAL_DIVIDER_LEFT).assertIsDisplayed()
 
-    composeTestRule.onNodeWithTag(HORIZONTAL_DIVIDER_RIGHT).assertExists().assertIsDisplayed()
+    composeTestRule.onNodeWithTag(HORIZONTAL_DIVIDER_RIGHT).assertIsDisplayed()
   }
 
   @Test
   fun text_isDisplay() {
     setContent()
-    composeTestRule.onNodeWithTag(TEXT).assertExists().assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TEXT).assertIsDisplayed()
   }
 
   // ---- take parameter into account
