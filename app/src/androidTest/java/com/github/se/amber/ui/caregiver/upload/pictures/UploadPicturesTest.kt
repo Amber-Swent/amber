@@ -260,7 +260,7 @@ class UploadPicturesTest {
     composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
   }
-  
+
   @Test
   fun emptyCircleMessageIsHiddenWhenCircleHasMembers() {
     launchScreen()
@@ -271,7 +271,7 @@ class UploadPicturesTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .assertDoesNotExist()
   }
-  
+
   @Test
   fun clickingAChipTogglesOnlyThatPerson() {
     toggleShownIdsForReal()
@@ -291,7 +291,7 @@ class UploadPicturesTest {
     composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
   }
 
-    @Test
+  @Test
   fun chipIsDisplayedForEachCircleMember() {
     launchScreen()
     composeTestRule.runOnIdle {
@@ -379,7 +379,7 @@ class UploadPicturesTest {
         .performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }
-  
+
   // ---------- add person dialog ----------
 
   @Test
