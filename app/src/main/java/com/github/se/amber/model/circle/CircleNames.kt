@@ -29,6 +29,11 @@ fun CareCircle.displayNameOf(
 ): String? {
   val viewerNickname = viewerUid?.let { nicknames[it]?.get(id) }
   if (!viewerNickname.isNullOrBlank()) return viewerNickname
-  val person = people[id] ?: members[id] ?: return null
+  val person =
+      when (id) {
+        in people -> people.getValue(id)
+        in members -> members.getValue(id)
+        else -> return null
+      }
   return person.nickname?.takeIf { it.isNotBlank() } ?: person.firstName.takeIf { it.isNotBlank() }
 }
