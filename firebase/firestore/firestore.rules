@@ -2,6 +2,7 @@
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 rules_version = '2';
 
 service cloud.firestore {
@@ -162,6 +163,8 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.memberIds == [request.auth.uid]
         && request.resource.data.patientId == ''
+        // the bucket is assigned by the backend only: the app writes it empty
+        && request.resource.data.get('storageBucket', '') == ''
         && request.resource.data.createdAt is int;
 
       allow update: if memberCircleFieldEdit(circleId);
