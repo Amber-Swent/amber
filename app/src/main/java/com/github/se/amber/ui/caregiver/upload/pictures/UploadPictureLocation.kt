@@ -16,6 +16,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ object UploadPictureLocationTestTags {
   const val NO_RESULT = "UploadPictureLocation_test_tag_no_result"
   const val TOO_SHORT = "UploadPictureLocation_test_tag_too_short"
   const val SEARCH_FAILED = "UploadPictureLocation_test_tag_search_failed"
+  const val RETRY_SEARCH = "UploadPictureLocation_test_tag_retry_search"
 }
 
 /** Shown when a typed place matches nothing: the upload stays blocked until the user acts. */
@@ -48,7 +50,7 @@ internal const val PLACE_QUERY_TOO_SHORT_HINT =
 
 /** Shown when the search itself failed, e.g. offline: the toast with the error is gone by then. */
 internal const val PLACE_SEARCH_FAILED_HINT =
-    "Couldn't search places. Check your connection, or clear the field to upload without a location."
+    "Couldn't search places. Check your connection and try again, or clear the field to upload without a location."
 
 /**
  * Displays where the picture was taken: chips for the circle's saved places, and a field to search
@@ -60,6 +62,7 @@ internal const val PLACE_SEARCH_FAILED_HINT =
  * @param onSavedPlaceClick The callback used to pick or drop a saved place.
  * @param onQueryChange The callback invoked when the searched text changes.
  * @param onSuggestionClick The callback used to pick a suggested place.
+ * @param onRetrySearch The callback used to search the typed place again after its search failed.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -69,6 +72,7 @@ internal fun DisplayLocation(
     onSavedPlaceClick: (String) -> Unit = {},
     onQueryChange: (String) -> Unit = {},
     onSuggestionClick: (GeoLocation) -> Unit = {},
+    onRetrySearch: () -> Unit = {},
 ) {
   Column(
       modifier = Modifier.fillMaxWidth().testTag(UploadPictureLocationTestTags.SECTION),
@@ -110,10 +114,18 @@ internal fun DisplayLocation(
         !state.isLongEnoughToSearch ->
             DisplayLocationHint(PLACE_QUERY_TOO_SHORT_HINT, UploadPictureLocationTestTags.TOO_SHORT)
         state.searchFailed ->
-            DisplayLocationHint(
-                PLACE_SEARCH_FAILED_HINT,
-                UploadPictureLocationTestTags.SEARCH_FAILED,
-            )
+            Column {
+              DisplayLocationHint(
+                  PLACE_SEARCH_FAILED_HINT,
+                  UploadPictureLocationTestTags.SEARCH_FAILED,
+              )
+              TextButton(
+                  onClick = onRetrySearch,
+                  modifier = Modifier.testTag(UploadPictureLocationTestTags.RETRY_SEARCH),
+              ) {
+                Text("Try again")
+              }
+            }
         state.suggestions.isEmpty() ->
             DisplayLocationHint(NO_PLACE_FOUND_HINT, UploadPictureLocationTestTags.NO_RESULT)
         else ->

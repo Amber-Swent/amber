@@ -105,7 +105,8 @@ class UploadPictureLocationTest {
   @Test
   fun eachSearchStateShowsOnlyItsOwnHint() {
     var state by mutableStateOf(PictureLocationUIState(query = "Grandma's house"))
-    composeTestRule.setContent { DisplayLocation(state = state) }
+    var retries = 0
+    composeTestRule.setContent { DisplayLocation(state = state, onRetrySearch = { retries++ }) }
 
     // a place typed but not found says how to unblock the upload
     composeTestRule
@@ -113,6 +114,7 @@ class UploadPictureLocationTest {
         .assertIsDisplayed()
         .assert(hasOnlyText(NO_PLACE_FOUND_HINT))
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
 
     // a failed search is not shown as no places found
     composeTestRule.runOnIdle {
@@ -123,6 +125,9 @@ class UploadPictureLocationTest {
         .assertIsDisplayed()
         .assert(hasOnlyText(PLACE_SEARCH_FAILED_HINT))
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    // ...and it can be searched again from there
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).performClick()
+    assertEquals(1, retries)
 
     // a place too short to search says how many letters are needed
     composeTestRule.runOnIdle { state = PictureLocationUIState(query = "La") }
@@ -138,6 +143,7 @@ class UploadPictureLocationTest {
     }
     composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 

@@ -216,6 +216,7 @@ fun UploadPictureScreen(
               onSavedPlaceClick = viewModel::selectPlace,
               onQueryChange = viewModel::setPlaceQuery,
               onSuggestionClick = viewModel::selectPlace,
+              onRetrySearch = viewModel::retryPlaceSearch,
           )
 
           DisplayScrollableDatePicker(
