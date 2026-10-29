@@ -175,8 +175,6 @@ class PatientHomeScreenTest {
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
 
-
-
   // ---------- Messages d'erreur ----------
 
   @Test
