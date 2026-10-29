@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.printToLog
 import androidx.test.core.app.ApplicationProvider
@@ -198,7 +199,15 @@ class InvitationEndToEndTest {
    */
   private fun click(tag: String) {
     waitForNode(hasTestTag(tag) and isEnabled(), "enabled node '$tag'")
-    composeTestRule.onNodeWithTag(tag).performClick()
+    val node = composeTestRule.onNodeWithTag(tag)
+    // A control can sit below the emulator window on a scrolling screen. Touch input misses it
+    // there, so bring it into view when the screen scrolls.
+    try {
+      node.performScrollTo()
+    } catch (_: AssertionError) {
+      // This screen does not scroll. The control is already in view.
+    }
+    node.performClick()
   }
 
   /**
