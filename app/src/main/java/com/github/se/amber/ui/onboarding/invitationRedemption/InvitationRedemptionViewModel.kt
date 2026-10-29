@@ -1,5 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of an AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
 import androidx.lifecycle.ViewModel
@@ -27,7 +28,7 @@ internal const val CODE_REQUIRED_MESSAGE = "Enter an invitation code and try aga
  * @param redemptionError actionable repository failure message, or null when there is none.
  * @param isRedeeming true while a redeem request is in flight.
  */
-data class InvitationRedemptionUiState(
+data class InvitationRedemptionUIState(
     val inviteCode: String = "",
     val validationAttempted: Boolean = false,
     val redemptionError: String? = null,
@@ -56,13 +57,13 @@ class InvitationRedemptionViewModel(
         InvitationRedemptionRepositoryProvider.default.repository,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(InvitationRedemptionUiState())
-  val uiState: StateFlow<InvitationRedemptionUiState> = _uiState.asStateFlow()
+  private val _uiState = MutableStateFlow(InvitationRedemptionUIState())
+  val uiState: StateFlow<InvitationRedemptionUIState> = _uiState.asStateFlow()
 
   private var redeemedResult: InvitationRedemptionResult? = null
 
   /**
-   * Updates [InvitationRedemptionUiState.inviteCode] and clears a previous redemption error so the
+   * Updates [InvitationRedemptionUIState.inviteCode] and clears a previous redemption error so the
    * user can retry with a corrected code.
    */
   fun onInviteCodeChange(value: String) {
@@ -76,7 +77,7 @@ class InvitationRedemptionViewModel(
    * Submit), so the navigation owner can route without observing UI state. Does nothing while a
    * redeem is already in progress. Trims only the value sent to the repository so the entered code
    * stays in the field after failure. Does not call the repository when the code is blank after
-   * trim; the derived [InvitationRedemptionUiState.errorMessage] is shown instead.
+   * trim; the derived [InvitationRedemptionUIState.errorMessage] is shown instead.
    */
   fun onSubmit(onSuccess: (InvitationRedemptionResult) -> Unit = {}) {
     redeemedResult?.let {
