@@ -1,4 +1,7 @@
-/** Written by Lou-Anne Maier. Modified by nehachak1, with assistance from Claude Code. */
+/**
+ * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified with
+ * assistance from OpenAI Codex.
+ */
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -51,9 +54,9 @@ val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
 val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 
-// It may be necessary to add some Small, Medium, Big Width.
-// If it's the case, do a specific Pr for this and remove this comment
+// FIXME open a PR for renaming all the caregiver button width to small, medium, etc
 const val CAREGIVER_BUTTON_WIDTH = 0.5f
+const val CAREGIVER_BUTTON_WIDTH_BIG = 1f
 
 // ------- PATIENT BUTTON -------
 val PATIENT_BUTTON_HEIGHT_SMALL = 52.dp

@@ -1,9 +1,13 @@
-/* Written by Lou-Anne Maier, with assistance from
+/* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.pictures
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -11,18 +15,13 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
+import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
@@ -43,12 +42,6 @@ class UploadPicturesTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
-  private lateinit var mediaRepo: MediaRepository
-  private lateinit var authRepo: AuthRepository
-  private lateinit var profileRepo: ProfileRepository
-  private lateinit var circleRepo: CareCircleRepository
-  private lateinit var pictureReader: SelectedPictureReader
-
   private lateinit var viewModel: UploadPictureViewModel
   private var uploadCallbackCount = 0
   private var goBackCallbackCount = 0
@@ -62,12 +55,6 @@ class UploadPicturesTest {
     uiStateFlow = MutableStateFlow(UploadPictureUIState())
     careCircleFlow = MutableStateFlow(null)
     involvedOptionsFlow = MutableStateFlow(emptyMap())
-
-    mediaRepo = mockk(relaxed = true)
-    authRepo = mockk(relaxed = true)
-    profileRepo = mockk(relaxed = true)
-    circleRepo = mockk(relaxed = true)
-    pictureReader = mockk(relaxed = true)
 
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow
@@ -86,6 +73,12 @@ class UploadPicturesTest {
           goBack = { goBackCallbackCount++ },
       )
     }
+  }
+
+  private fun fakeCircle(members: List<String>): CareCircle = mockk {
+    every { id } returns "circle1"
+    every { people } returns emptyMap()
+    every { memberIds } returns members
   }
 
   private fun fillValidForm() {
@@ -140,7 +133,7 @@ class UploadPicturesTest {
   fun involvedSectionIsDisplayed() {
     launchScreen()
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.SELECT_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
   }
@@ -205,8 +198,26 @@ class UploadPicturesTest {
 
   // ---------- who is involved ----------
 
+  private val twoMembersCircle by lazy { fakeCircle(members = listOf("member1", "member2")) }
+
+  private fun setCircleWithOptions(circle: CareCircle) {
+    composeTestRule.runOnIdle {
+      careCircleFlow.value = circle
+      // The mocked ViewModel doesn't derive this itself. It mirrors the real mapping
+      // for a circle with no people: memberIds.associateWith { it }.
+      involvedOptionsFlow.value = circle.memberIds.associateWith { it }
+    }
+  }
+
   private val chips
-    get() = composeTestRule.onAllNodesWithTag(UploadPictureScreenTestTags.PERSON_INVOLVED)
+    get() =
+        composeTestRule.onAllNodes(
+            SemanticsMatcher("person chip") { node ->
+              node.config
+                  .getOrNull(SemanticsProperties.TestTag)
+                  ?.startsWith(DisplayWhoIsInvolvedTestTags.personInvolved("")) == true
+            }
+        )
 
   /** Makes the mocked ViewModel tag or untag a person like the real one does. */
   private fun toggleShownIdsForReal() {
@@ -226,7 +237,7 @@ class UploadPicturesTest {
   fun withoutOptionsShowsTheEmptyMessageAndNoChip() {
     launchScreen()
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .performScrollTo()
         .assertIsDisplayed()
     chips.assertCountEquals(0)
@@ -239,14 +250,29 @@ class UploadPicturesTest {
       involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
     }
     composeTestRule
-        .onNodeWithTag(UploadPictureScreenTestTags.NO_PERSON_INVOLVED)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
         .assertDoesNotExist()
     chips.assertCountEquals(2)
-    chips[0].assertIsNotSelected()
-    chips[1].assertIsNotSelected()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("uid123"))
+        .assertIsNotSelected()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("p1"))
+        .assertIsNotSelected()
     composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed()
     composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
+  }
+
+  @Test
+  fun emptyCircleMessageIsHiddenWhenCircleHasMembers() {
+    launchScreen()
+    composeTestRule.runOnIdle {
+      involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
+    }
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
+        .assertDoesNotExist()
   }
 
   @Test
@@ -266,5 +292,94 @@ class UploadPicturesTest {
     composeTestRule.onNodeWithText("Anne").performClick()
     composeTestRule.onNodeWithText("Anne").assertIsNotSelected()
     composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
+  }
+
+  @Test
+  fun chipIsDisplayedForEachCircleMember() {
+    launchScreen()
+    composeTestRule.runOnIdle {
+      involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
+    }
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member2"))
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun chipIsNotSelectedByDefault() {
+    launchScreen()
+    setCircleWithOptions(twoMembersCircle)
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .assertIsNotSelected()
+  }
+
+  @Test
+  fun clickingAChipSelectsIt() {
+    launchScreen()
+    composeTestRule.runOnIdle { involvedOptionsFlow.value = mapOf("member1" to "Member 1") }
+
+    every { viewModel.toggleShownId(any()) } answers
+        {
+          uiStateFlow.value =
+              uiStateFlow.value.copy(
+                  shownIds =
+                      uiStateFlow.value.shownIds.toMutableSet().apply { add(firstArg<String>()) }
+              )
+        }
+
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .performClick()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .assertIsSelected()
+  }
+
+  @Test
+  fun clickingASelectedChipDeselectsIt() {
+    launchScreen()
+    setCircleWithOptions(twoMembersCircle)
+    val chip = composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+    chip.performClick()
+    chip.performClick()
+    chip.assertIsNotSelected()
+  }
+
+  @Test
+  fun clickingAChipDoesNotSelectTheOthers() {
+    launchScreen()
+    setCircleWithOptions(twoMembersCircle)
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .performClick()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member2"))
+        .assertIsNotSelected()
+  }
+
+  @Test
+  fun clickingAChipTagsThePersonInTheViewModel() {
+    launchScreen()
+    composeTestRule.runOnIdle {
+      involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
+    }
+
+    every { viewModel.toggleShownId(any()) } answers
+        {
+          uiStateFlow.value =
+              uiStateFlow.value.copy(
+                  shownIds =
+                      uiStateFlow.value.shownIds.toMutableSet().apply { add(firstArg<String>()) }
+              )
+        }
+
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .performClick()
+    composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }
 }
