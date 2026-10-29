@@ -1,10 +1,12 @@
 // this code was written with the aid of AI
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
@@ -106,6 +108,14 @@ class AmberAppNavigationTest {
   }
 
   private fun click(tag: String) {
+    // The screen can still be composing after a navigation, so the click target is not there yet.
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+      try {
+        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+      } catch (_: IllegalStateException) {
+        false
+      }
+    }
     composeRule.onNodeWithTag(tag).performClick()
     composeRule.waitForIdle()
   }
