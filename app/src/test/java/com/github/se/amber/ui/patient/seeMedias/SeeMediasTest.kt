@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.navigation.PatientTab
+import com.github.se.amber.ui.navigation.Tab
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -32,10 +34,16 @@ class SeeMediasScreenTest {
   fun screen_displaysTitleButtonsAndBottomNavigation() {
     composeTestRule.setContent { SeeMediasScreen(viewModel = viewModel) }
 
-    composeTestRule.onNodeWithText("See Medias").assertIsDisplayed()
-    composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
-    composeTestRule.onNodeWithText("See Texts").assertIsDisplayed()
-    composeTestRule.onNodeWithText("See Audio").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText("See Medias")
+        .assertIsDisplayed() // Title is at the top so we don't scroll
+
+    composeTestRule.onNodeWithText("See Pictures").performScrollTo().assertIsDisplayed()
+
+    composeTestRule.onNodeWithText("See Texts").performScrollTo().assertIsDisplayed()
+
+    composeTestRule.onNodeWithText("See Audio").performScrollTo().assertIsDisplayed()
+
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
@@ -64,6 +72,24 @@ class SeeMediasScreenTest {
 
     composeTestRule.onNodeWithText("See Audio").performScrollTo().performClick()
     assertEquals(listOf(1, 1, 1), listOf(pictureClicks, textClicks, audioClicks))
+  }
+
+  @Test
+  fun clickingHomeTab_triggersOnTabSelected() {
+    var selectedTab: Tab? = null
+
+    composeTestRule.setContent {
+      SeeMediasScreen(
+          viewModel = viewModel,
+          onTabSelected = { selectedTab = it },
+      )
+    }
+
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(PatientTab.Home))
+        .performClick()
+
+    assertEquals(PatientTab.Home, selectedTab)
   }
 
   @Test
