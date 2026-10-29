@@ -145,9 +145,9 @@ class SeePicturesScreenTest {
     val viewModel = setContent()
 
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertDoesNotExist()
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -158,9 +158,9 @@ class SeePicturesScreenTest {
   fun empty_message_is_displayed_when_there_are_no_pictures() {
     setContent()
 
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithText("There are no pictures yet.").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
   }
 
   @Test
@@ -178,8 +178,8 @@ class SeePicturesScreenTest {
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("1")).assertExists()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("2")).assertExists()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -191,17 +191,17 @@ class SeePicturesScreenTest {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
     setContent()
 
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithText("Failed to load the profile: boom").assertIsDisplayed()
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertDoesNotExist()
 
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertIsDisplayed()
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -221,8 +221,8 @@ class SeePicturesScreenTest {
     assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
     assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg)
     // The screen is still usable: no blocking error replaced it
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
   }
 
   @Test
@@ -240,6 +240,6 @@ class SeePicturesScreenTest {
     val state = viewModel.uiState.value as SeePicturesUIState.Content
     assertNull(state.errorMsg)
     assertEquals(listOf(picture), state.allPictures)
-    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR_SEE_PICTURES).assertDoesNotExist()
   }
 }

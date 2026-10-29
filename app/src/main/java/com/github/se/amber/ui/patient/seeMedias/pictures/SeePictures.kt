@@ -46,8 +46,8 @@ import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 object SeePicturesTestTags {
-  const val NO_PICTURES = "no_pictures_text"
-  const val ERROR = "pictures_error_text"
+  const val NO_PICTURES_SEE_PICTURES = "no_pictures_see_pictures"
+  const val ERROR_SEE_PICTURES = "pictures_error_see_pictures"
 
   fun picture(id: String = "") = "picture_$id"
 }
@@ -74,7 +74,7 @@ fun SeePicturesScreen(
   // Show error message if fetching todos fails
   LaunchedEffect(errorMsg) {
     errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
       pictureViewModel.clearErrorMsg()
     }
   }
@@ -121,11 +121,11 @@ fun SeePicturesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
-                  modifier = Modifier.testTag(SeePicturesTestTags.ERROR),
+                  modifier = Modifier.testTag(SeePicturesTestTags.ERROR_SEE_PICTURES),
                   text = actualState.message,
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.error,
-                  style = MaterialTheme.typography.titleMedium,
+                  style = MaterialTheme.typography.titleLarge,
               )
               DisplayPatientButton(
                   text = "Retry",
@@ -141,7 +141,7 @@ fun SeePicturesScreen(
                 contentAlignment = Alignment.Center,
             ) {
               Text(
-                  modifier = Modifier.testTag(SeePicturesTestTags.NO_PICTURES),
+                  modifier = Modifier.testTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES),
                   text = "There are no pictures yet.",
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.onBackground,
