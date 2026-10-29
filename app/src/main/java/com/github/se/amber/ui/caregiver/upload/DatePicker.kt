@@ -84,7 +84,7 @@ internal object DatePickerTestTags {
   fun item(index: Int) = "date_picker_item_$index"
 }
 
-internal const val MIN_MEMORY_YEAR = 1900
+internal const val YEAR_RANGE = 100
 
 enum class DateField(val label: String) {
   YEAR("Year"),
@@ -99,7 +99,7 @@ enum class DateField(val label: String) {
    */
   fun range(date: MemoryDate, currentYear: Int = Year.now().value): IntRange =
       when (this) {
-        YEAR -> MIN_MEMORY_YEAR..currentYear
+        YEAR -> currentYear - YEAR_RANGE..currentYear
         MONTH -> 1..12
         DAY -> 1..(date.month?.let { YearMonth.of(date.year, it).lengthOfMonth() } ?: 0)
       }

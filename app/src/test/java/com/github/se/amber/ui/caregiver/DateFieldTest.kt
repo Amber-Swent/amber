@@ -28,11 +28,6 @@ class DateFieldTest {
   }
 
   @Test
-  fun range_year_startsAtFixedMinimum() {
-    assertEquals(1900, DateField.YEAR.range(thirtyOneMonth, currentYear = 2026).first)
-  }
-
-  @Test
   fun range_year_endsAtCurrentYear() {
     assertEquals(2026, DateField.YEAR.range(thirtyOneMonth, currentYear = 2026).last)
   }

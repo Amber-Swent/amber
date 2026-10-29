@@ -70,6 +70,7 @@ import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Picture components. */
 object UploadPictureScreenTestTags {
