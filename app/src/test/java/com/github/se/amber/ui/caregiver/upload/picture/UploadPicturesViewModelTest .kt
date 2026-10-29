@@ -1292,9 +1292,10 @@ class UploadPictureViewModelTest {
   fun selectingAnUnknownOrUnmappedSavedPlaceDoesNothing() {
     circleWithPlaces(unmapped)
     val vm = createViewModel()
+    val initialState = vm.uiState.value
     vm.selectPlace("missing")
     vm.selectPlace("old")
-    assertEquals(UploadPictureUIState(), vm.uiState.value)
+    assertEquals(initialState, vm.uiState.value)
   }
 
   @Test
@@ -1343,7 +1344,7 @@ class UploadPictureViewModelTest {
   private val completeState =
       UploadPictureUIState(
           description = "A description",
-          date = MemoryDate(2024, 5, 12),
+          date = MemoryDate(2024, Month.MAY, 12),
           pictureFile = File("picture.jpg"),
       )
 
