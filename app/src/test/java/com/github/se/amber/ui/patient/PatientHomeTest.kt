@@ -143,6 +143,18 @@ class PatientHomeScreenTest {
   }
 
   @Test
+  fun clickingEachTabCallsOnTabSelectedWithThatTab() {
+    setScreen()
+
+    PatientTab.patientTabs.indices.forEach { index ->
+      composeTestRule.onAllNodes(hasClickAction() and inBottomBar)[index].performClick()
+    }
+    composeTestRule.waitForIdle()
+
+    assertEquals(PatientTab.patientTabs, selectedTabs)
+  }
+
+  @Test
   fun clickingATabCallsOnTabSelected() {
     setScreen()
 
@@ -162,6 +174,8 @@ class PatientHomeScreenTest {
 
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
+
+
 
   // ---------- Messages d'erreur ----------
 
@@ -196,6 +210,30 @@ class PatientHomeScreenTest {
     stateFlow.value = stateFlow.value.copy(errorMsg = "Second")
     composeTestRule.waitForIdle()
     assertEquals("Second", ShadowToast.getTextOfLatestToast())
+
+    verify(exactly = 2) { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  fun errorPresentAtStartIsShownAndCleared() {
+    stateFlow.value = stateFlow.value.copy(errorMsg = "Boom")
+    setScreen()
+    composeTestRule.waitForIdle()
+
+    assertEquals("Boom", ShadowToast.getTextOfLatestToast())
+    verify { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  fun sameErrorShownAgainAfterBeingCleared() {
+    setScreen()
+
+    repeat(2) {
+      stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
+      composeTestRule.waitForIdle()
+      stateFlow.value = stateFlow.value.copy(errorMsg = null)
+      composeTestRule.waitForIdle()
+    }
 
     verify(exactly = 2) { viewModel.clearErrorMsg() }
   }
