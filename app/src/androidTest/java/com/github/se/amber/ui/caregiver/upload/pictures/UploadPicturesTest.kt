@@ -18,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.credentials.Credential
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -26,6 +27,7 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.AddPersonDialogTestTags
@@ -35,7 +37,6 @@ import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -421,23 +422,47 @@ class UploadPicturesTest {
   fun addPersonPopupSavesWithInMemoryRepositoriesAndShowsSelectedChip() {
     val userId = "caregiver1"
     val circleId = "circle1"
-    var storedCircle = CareCircle(id = circleId, memberIds = listOf(userId))
-    every { authRepo.currentUser } returns AuthUser(userId)
-    coEvery { profileRepo.getProfile(userId) } returns
-        Result.success(UserProfile(uid = userId, circleIds = listOf(circleId)))
-    coEvery { circleRepo.getCircle(circleId) } coAnswers { Result.success(storedCircle) }
-    coEvery { circleRepo.addPerson(circleId, any()) } coAnswers
-        {
-          val person = secondArg<Person>().copy(id = "person1")
-          storedCircle = storedCircle.copy(people = storedCircle.people + (person.id to person))
-          Result.success(person)
+    val fakeAuthRepo =
+        object : AuthRepository {
+          override val currentUser = AuthUser(userId)
+
+          override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+              error("Not used by this test")
+
+          override suspend fun signOut(): Result<Unit> = error("Not used by this test")
+        }
+    val fakeProfileRepo =
+        object : ProfileRepository {
+          override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+              error("Not used by this test")
+
+          override suspend fun getCurrentProfile(): Result<UserProfile?> =
+              error("Not used by this test")
+
+          override suspend fun getProfile(uid: String): Result<UserProfile?> =
+              Result.success(UserProfile(uid = uid, circleIds = listOf(circleId)))
+        }
+    val fakeCircleRepo =
+        object : CareCircleRepository {
+          var circle = CareCircle(id = circleId, memberIds = listOf(userId))
+
+          override fun newId(): String = "person1"
+
+          override suspend fun getCircle(circleId: String): Result<CareCircle> =
+              Result.success(circle)
+
+          override suspend fun addPerson(circleId: String, person: Person): Result<Person> {
+            val saved = person.copy(id = newId())
+            circle = circle.copy(people = circle.people + (saved.id to saved))
+            return Result.success(saved)
+          }
         }
     viewModel =
         UploadPictureViewModel(
             mediaRepo = mediaRepo,
-            authRepo = authRepo,
-            profileRepo = profileRepo,
-            circleRepo = circleRepo,
+            authRepo = fakeAuthRepo,
+            profileRepo = fakeProfileRepo,
+            circleRepo = fakeCircleRepo,
             pictureReader = pictureReader,
         )
     launchScreen()
@@ -453,6 +478,6 @@ class UploadPicturesTest {
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
     val savedId = viewModel.uiState.value.shownIds.single()
     composeTestRule.onNode(hasText("Anne") and hasClickAction()).assertIsSelected()
-    assertEquals("Anne", storedCircle.people[savedId]?.firstName)
+    assertEquals("Anne", fakeCircleRepo.circle.people[savedId]?.firstName)
   }
 }

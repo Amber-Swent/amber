@@ -28,13 +28,29 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
-/** Tags owned by the shared add-person dialog. */
+/** Test tags for the dialog container and its close button. */
 object AddPersonDialogTestTags {
   const val DIALOG = "upload_picture_add_person_dialog"
   const val CLOSE = "upload_picture_close_add_person"
 }
 
-/** Displays the add-person form used by caregiver upload screens. The caller owns its state. */
+/**
+ * Displays the add-person form shared by caregiver upload screens.
+ *
+ * The save button requires a nonblank first name. On save, the dialog sends trimmed values to the
+ * change callbacks before invoking [onSave].
+ *
+ * @param isOpen whether the dialog is shown.
+ * @param isAddingPerson whether a save is in progress; disables the save button.
+ * @param firstName current first-name draft.
+ * @param lastName current surname draft.
+ * @param nickname current nickname draft.
+ * @param onFirstNameChange called when the first name changes or is trimmed on save.
+ * @param onLastNameChange called when the surname changes or is trimmed on save.
+ * @param onNicknameChange called when the nickname changes or is trimmed on save.
+ * @param onDismiss called when the dialog or close button is dismissed.
+ * @param onSave called after the trimmed values are sent to the change callbacks.
+ */
 @Composable
 fun AddPersonDialog(
     isOpen: Boolean = false,
