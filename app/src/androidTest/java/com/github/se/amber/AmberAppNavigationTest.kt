@@ -408,7 +408,7 @@ class AmberAppNavigationTest {
 
     click(Tags.PATIENT_TAB_SEE_MEDIAS)
 
-    assertRoute(PatientScreen.SeePictures.route)
+    assertRoute(PatientScreen.SeeMedias.route)
   }
 
   @Test
