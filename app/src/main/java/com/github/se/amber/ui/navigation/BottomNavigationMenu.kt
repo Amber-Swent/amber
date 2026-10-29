@@ -115,10 +115,12 @@ sealed class PatientTab(
   data object SeePictures :
       PatientTab(PICTURES_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeePictures)
 
+  data object Setting : PatientTab("Setting", Icons.Outlined.Settings, PatientScreen.Parameters)
+
   companion object {
     /** Tabs shown on patient screens, in bar order. */
     val patientTabs: List<PatientTab>
-      get() = listOf(Home, SeePictures)
+      get() = listOf(Home, SeePictures, Setting)
   }
 }
 
