@@ -1,5 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
@@ -70,6 +71,8 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   SELECT_DATE(mess = "date can't be empty"),
   PICK_A_PLACE(mess = "Pick the place from the suggestions"),
   COULD_NOT_SEARCH_PLACES(mess = "Could not search places: "),
+  FIRST_NAME_REQUIRED(mess = "A first name is required"),
+  COULD_NOT_ADD_PERSON(mess = "Could not add person"),
   PERSON_WITHOUT_ID(mess = "This person wasn't saved, try again"),
   CANNOT_TAG_PERSON(
       mess = "This person was saved but can't be tagged: your care circle isn't loaded"
@@ -108,6 +111,11 @@ data class UploadPictureUIState(
     val pictureHeight: Int = 0,
     val isUploading: Boolean = false,
     val errorMsg: String? = null,
+    val isAddPersonOpen: Boolean = false,
+    val isAddingPerson: Boolean = false,
+    val personFirstName: String = "",
+    val personLastName: String = "",
+    val personNickname: String = "",
 ) {
   val canUpload: Boolean
     get() =
@@ -209,7 +217,6 @@ class UploadPictureViewModel(
   // id -> label shown on the "who is involved" chips.
   // All the names in the care circle are clickable, using chips.
   // This prevents spelling mistakes and the omission of separators, making the code more robust.
-  // TODO :add a button for adding a person has not yet been implemented. This will be done in M2.
   /**
    * People available for tagging, keyed by person ID and displayed by name. Empty until both the
    * circle and its members' profiles are loaded, so no chip shows a placeholder while loading.
@@ -355,7 +362,7 @@ class UploadPictureViewModel(
     val taggableIds = circle.taggableIds()
     val shownIds = state.shownIds.filter { it in taggableIds }
 
-    _uiState.value = state.copy(isUploading = true)
+    _uiState.update { it.copy(isUploading = true) }
     viewModelScope.launch {
       try {
         val id = mediaRepo.newMediaId(circle.id)
@@ -381,7 +388,7 @@ class UploadPictureViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _uiState.value = _uiState.value.copy(isUploading = false)
+        _uiState.update { it.copy(isUploading = false) }
         setErrorMsg(UploadPictureViewModelErrorMessage.UNKNOW_ERROR.mess + (e.message ?: ""))
       }
     }
@@ -418,18 +425,19 @@ class UploadPictureViewModel(
    * @param width The picture width in pixels.
    * @param height The picture height in pixels.
    */
-  fun setPicture(file: File, width: Int, height: Int) {
-    _uiState.value =
-        _uiState.value.copy(
-            pictureFile = file,
-            pictureWidth = width,
-            pictureHeight = height,
-        )
+  internal fun setPicture(file: File, width: Int, height: Int) {
+    _uiState.update {
+      it.copy(
+          pictureFile = file,
+          pictureWidth = width,
+          pictureHeight = height,
+      )
+    }
   }
 
   /** Clears the current error message from the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
+    _uiState.update { it.copy(errorMsg = null) }
   }
 
   /**
@@ -437,8 +445,8 @@ class UploadPictureViewModel(
    *
    * @param errorMsg The error message to display.
    */
-  fun setErrorMsg(errorMsg: String) {
-    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+  internal fun setErrorMsg(errorMsg: String) {
+    _uiState.update { it.copy(errorMsg = errorMsg) }
   }
 
   /**
@@ -447,7 +455,7 @@ class UploadPictureViewModel(
    * @param description The new picture description.
    */
   fun setDescription(description: String) {
-    _uiState.value = _uiState.value.copy(description = description)
+    _uiState.update { it.copy(description = description) }
   }
 
   /**
@@ -456,7 +464,7 @@ class UploadPictureViewModel(
    * @param date The date associated with the picture.
    */
   fun setDate(date: MemoryDate) {
-    _uiState.value = _uiState.value.copy(date = date)
+    _uiState.update { it.copy(date = date) }
   }
 
   /**
@@ -603,6 +611,88 @@ class UploadPictureViewModel(
     _uiState.update { state ->
       val updated = if (id in state.shownIds) state.shownIds - id else state.shownIds + id
       state.copy(shownIds = updated)
+    }
+  }
+
+  fun onAddPerson() {
+    _uiState.update { it.copy(isAddPersonOpen = true) }
+  }
+
+  fun dismissAddPerson() {
+    if (_uiState.value.isAddingPerson) return
+    _uiState.update {
+      it.copy(
+          isAddPersonOpen = false,
+          personFirstName = "",
+          personLastName = "",
+          personNickname = "",
+      )
+    }
+  }
+
+  fun setPersonFirstName(firstName: String) {
+    _uiState.update { it.copy(personFirstName = firstName) }
+  }
+
+  fun setPersonLastName(lastName: String) {
+    _uiState.update { it.copy(personLastName = lastName) }
+  }
+
+  fun setPersonNickname(nickname: String) {
+    _uiState.update { it.copy(personNickname = nickname) }
+  }
+
+  /** Saves a person in the care circle and makes them available for picture tagging. */
+  fun addPerson() {
+    val circle =
+        _careCircle.value
+            ?: run {
+              setErrorMsg(UploadPictureViewModelErrorMessage.STILL_LOADING.mess)
+              return
+            }
+    val state = _uiState.value
+    if (state.isAddingPerson) return
+    if (state.personFirstName.isBlank()) {
+      setErrorMsg(UploadPictureViewModelErrorMessage.FIRST_NAME_REQUIRED.mess)
+      return
+    }
+    _uiState.update { it.copy(isAddingPerson = true) }
+    viewModelScope.launch {
+      try {
+        circleRepo
+            .addPerson(
+                circle.id,
+                Person(
+                    firstName = state.personFirstName,
+                    lastName = state.personLastName,
+                    nickname = state.personNickname,
+                ),
+            )
+            .onSuccess { person ->
+              _careCircle.update { it?.copy(people = it.people + (person.id to person)) }
+              _uiState.update {
+                it.copy(
+                    isAddPersonOpen = false,
+                    isAddingPerson = false,
+                    personFirstName = "",
+                    personLastName = "",
+                    personNickname = "",
+                    shownIds = it.shownIds + person.id,
+                )
+              }
+            }
+            .onFailure {
+              setErrorMsg(
+                  it.message ?: UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess
+              )
+            }
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        setErrorMsg(e.message ?: UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess)
+      } finally {
+        _uiState.update { it.copy(isAddingPerson = false) }
+      }
     }
   }
 

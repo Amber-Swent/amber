@@ -1,33 +1,28 @@
 // this code was written with the aid of AI
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
 
 import android.util.Log
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -47,12 +42,10 @@ class PatientHomeViewModelTest {
   @get:Rule val mainRule = MainDispatcherRule()
 
   private lateinit var profileRepo: ProfileRepository
-  private lateinit var authRepo: AuthRepository
 
   @Before
   fun setup() {
     profileRepo = mockk()
-    authRepo = mockk(relaxed = true)
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -71,7 +64,7 @@ class PatientHomeViewModelTest {
   fun `success updates the profile`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
 
-    val vm = PatientHomeViewModel(profileRepo, authRepo) // init lance getProfile()
+    val vm = PatientHomeViewModel(profileRepo)
 
     assertEquals(profile, vm.uiState.value.patientProfile)
     assertNull(vm.uiState.value.errorMsg)
@@ -81,7 +74,7 @@ class PatientHomeViewModelTest {
   fun `null profile sets error`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(null)
 
-    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    val vm = PatientHomeViewModel(profileRepo)
 
     assertEquals("No profile found.", vm.uiState.value.errorMsg)
   }
@@ -90,60 +83,20 @@ class PatientHomeViewModelTest {
   fun `failure sets error with message`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
-    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    val vm = PatientHomeViewModel(profileRepo)
 
     assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
-  }
-
-  @Test
-  fun `signOut success sets signedOut`() = runTest {
-    coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
-    coEvery { authRepo.signOut() } returns Result.success(Unit)
-
-    val vm = PatientHomeViewModel(profileRepo, authRepo)
-    vm.signOut() // No longer uses a CredentialManager
-
-    coVerify(exactly = 1) { authRepo.signOut() }
-    assertTrue(vm.uiState.value.signedOut)
-  }
-
-  @Test
-  fun `signOut failure sets error and does not sign out`() = runTest {
-    coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
-    coEvery { authRepo.signOut() } returns Result.failure(Exception("nope"))
-
-    val vm = PatientHomeViewModel(profileRepo, authRepo)
-    vm.signOut()
-
-    assertEquals("nope", vm.uiState.value.errorMsg)
-    assertFalse(vm.uiState.value.signedOut)
   }
 
   @Test
   fun `clearErrorMsg resets the error`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
-    val vm = PatientHomeViewModel(profileRepo, authRepo)
+    val vm = PatientHomeViewModel(profileRepo)
     assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
 
     vm.clearErrorMsg()
 
     assertNull(vm.uiState.value.errorMsg)
-  }
-
-  @Test
-  fun `late profile result does not undo sign out`() = runTest {
-    val pendingProfile = CompletableDeferred<Result<UserProfile?>>()
-    coEvery { profileRepo.getCurrentProfile() } coAnswers { pendingProfile.await() }
-    coEvery { authRepo.signOut() } returns Result.success(Unit)
-
-    val vm = PatientHomeViewModel(profileRepo, authRepo)
-    vm.signOut()
-    assertTrue(vm.uiState.value.signedOut) // sign-out finishes before getCurrentProfile()
-
-    pendingProfile.complete(Result.success(profile))
-    advanceUntilIdle()
-
-    assertTrue(vm.uiState.value.signedOut) // must not be reset to false
   }
 }
