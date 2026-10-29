@@ -1,12 +1,13 @@
 // this code was written by Alaabrine
 // with the aid of an AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.createProfile
 
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.onboarding.createProfile.CreateProfileUiState
+import com.github.se.amber.ui.onboarding.createProfile.CreateProfileUIState
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
 import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
 import io.mockk.coEvery
@@ -67,7 +68,7 @@ class CreateProfileViewModelTests {
 
   @Test
   fun initialState_hasEmptyFieldsAndNoErrors() {
-    assertEquals(CreateProfileUiState(), viewModel.uiState.value)
+    assertEquals(CreateProfileUIState(), viewModel.uiState.value)
     assertNull(viewModel.uiState.value.nameError)
     assertNull(viewModel.uiState.value.surnameError)
   }
@@ -229,6 +230,23 @@ class CreateProfileViewModelTests {
   }
 
   // ---------- Repository failures ----------
+
+  @Test
+  fun onRoleSelected_invalidPersonDetails_setsMappedSubmitError() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.InvalidPersonDetails)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(
+        "Enter your first and last name and try again.",
+        viewModel.uiState.value.submitError,
+    )
+    assertEquals(0, successCount)
+    assertFalse(viewModel.uiState.value.isSaving)
+  }
 
   @Test
   fun onRoleSelected_profileAlreadyExists_setsMappedSubmitError() = runTest {

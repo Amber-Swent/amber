@@ -1,5 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of an AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.createProfile
 
 import androidx.lifecycle.ViewModel
@@ -29,7 +30,7 @@ internal const val FILL_OUT_MESSAGE = "Please fill this out"
  * @param isSaving true while a create-profile request is in flight.
  * @param submitError actionable repository failure message, or null when there is none.
  */
-data class CreateProfileUiState(
+data class CreateProfileUIState(
     val name: String = "",
     val surname: String = "",
     val validationAttempted: Boolean = false,
@@ -55,17 +56,17 @@ class CreateProfileViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
 ) : ViewModel() {
 
-  private val _uiState = MutableStateFlow(CreateProfileUiState())
-  val uiState: StateFlow<CreateProfileUiState> = _uiState.asStateFlow()
+  private val _uiState = MutableStateFlow(CreateProfileUIState())
+  val uiState: StateFlow<CreateProfileUIState> = _uiState.asStateFlow()
 
   private var createdRole: Role? = null
 
-  /** Updates [CreateProfileUiState.name]; field error clears automatically when non-blank. */
+  /** Updates [CreateProfileUIState.name]; field error clears automatically when non-blank. */
   fun onNameChange(value: String) {
     updateNameField(name = value)
   }
 
-  /** Updates [CreateProfileUiState.surname]; field error clears automatically when non-blank. */
+  /** Updates [CreateProfileUIState.surname]; field error clears automatically when non-blank. */
   fun onSurnameChange(value: String) {
     updateNameField(surname = value)
   }

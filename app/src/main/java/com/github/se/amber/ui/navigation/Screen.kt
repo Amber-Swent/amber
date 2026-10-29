@@ -121,6 +121,12 @@ sealed class CaregiverScreen(
           isTopLevelDestination = true,
       )
 
+  data object SignOut :
+      CaregiverScreen(
+          route = "caregiver_sign_out",
+          name = "Sign out",
+      )
+
   data object CreateInvitationCode :
       CaregiverScreen(
           route = "create_invitation_code",
@@ -150,6 +156,19 @@ sealed class PatientScreen(
           route = "patient_pictures",
           name = "Pictures",
           isTopLevelDestination = true,
+      )
+
+  data object Parameters :
+      PatientScreen(
+          route = "patient_parameters",
+          name = "Parameters",
+          isTopLevelDestination = true,
+      )
+
+  data object SignOut :
+      PatientScreen(
+          route = "patient_sign_out",
+          name = "Sign out",
       )
 }
 

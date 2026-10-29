@@ -1,53 +1,56 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import com.github.se.amber.ui.theme.LOGO_SIZE
-import com.github.se.amber.ui.theme.PADDING_SMALL
-import com.github.se.amber.ui.theme.lightOrange
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import com.github.se.amber.R
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.SURFACE_BIG
 
 /**
- * Shared onboarding header: logo placeholder and Amber brand name.
+ * Shared onboarding header: Amber logo and brand name.
  *
- * Used by the create-profile, caregiver-choice, and invitation-redemption screens so the real logo
- * only has to be plugged in once.
+ * Used by the create-profile, caregiver-choice, invitation-redemption, and create-care-circle
+ * screens so the logo only has to be plugged in once.
  *
  * @param modifier Modifier applied to the header column.
+ * @param horizontalAlignment Horizontal alignment of the logo and brand name.
  */
 @Composable
-fun AmberHeader(modifier: Modifier = Modifier) {
+fun AmberHeader(
+    modifier: Modifier = Modifier,
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+) {
   Column(
-      modifier = modifier,
-      horizontalAlignment = Alignment.Start,
-      verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+      modifier = modifier.testTag(AmberHeaderTestTags.HEADER),
+      horizontalAlignment = horizontalAlignment,
+      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
   ) {
-    Box(
-        modifier = Modifier.size(LOGO_SIZE).background(lightOrange, CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-      Text(
-          text = "logo",
-          style = MaterialTheme.typography.bodySmall,
-          color = Color.Black,
-      )
-    }
+    Image(
+        painter = painterResource(R.drawable.amber_icon),
+        contentDescription = "Amber logo",
+        modifier = Modifier.size(SURFACE_BIG),
+    )
     Text(
         text = "Amber",
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary,
     )
   }
+}
+
+/** Test tags used by [AmberHeader]. */
+object AmberHeaderTestTags {
+  const val HEADER = "AmberHeader_test_tag_header"
 }
