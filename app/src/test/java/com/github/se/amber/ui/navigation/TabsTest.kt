@@ -60,9 +60,7 @@ class TabsTest {
 
   @Test
   fun caregiverTabsUseTheCaregiverIconSize() {
-    assertEquals(CAREGIVER_ICON_SIZE, CaregiverTab.Home.iconSize)
-    assertEquals(CAREGIVER_ICON_SIZE, CaregiverTab.Upload.iconSize)
-    assertEquals(CAREGIVER_ICON_SIZE, CaregiverTab.Setting.iconSize)
+    CaregiverTab.caregiverTabs.forEach { tab -> assertEquals(CAREGIVER_ICON_SIZE, tab.iconSize) }
   }
 
   // ---------- Patient tabs ----------
@@ -98,8 +96,6 @@ class TabsTest {
 
   @Test
   fun patientTabsUseThePatientIconSize() {
-    assertEquals(PATIENT_ICON_SIZE, PatientTab.Home.iconSize)
-    assertEquals(PATIENT_ICON_SIZE, PatientTab.SeePictures.iconSize)
-    assertEquals(PATIENT_ICON_SIZE, PatientTab.Setting.iconSize)
+    PatientTab.patientTabs.forEach { tab -> assertEquals(PATIENT_ICON_SIZE, tab.iconSize) }
   }
 }
