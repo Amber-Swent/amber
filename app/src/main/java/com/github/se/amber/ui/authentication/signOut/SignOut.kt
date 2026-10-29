@@ -1,12 +1,17 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.authentication.signOut
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -89,24 +94,27 @@ fun SignOutScreen(
         }
       },
       content = { paddingValues ->
-        Column(
-            modifier =
-                Modifier.fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = CAREGIVER_PADDING_BIG),
-            verticalArrangement =
-                Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-          Text(
-              text =
-                  "You will be signed out of Amber on this device. You can sign in again at any time.",
-              color = MaterialTheme.colorScheme.onBackground,
-              style = MaterialTheme.typography.bodyLarge,
-              textAlign = TextAlign.Center,
-              modifier = Modifier.fillMaxWidth().testTag(SignOutTestTags.EXPLANATION),
-          )
-          SignOutButton(viewModel = viewModel)
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+          Column(
+              modifier =
+                  Modifier.fillMaxWidth()
+                      .verticalScroll(rememberScrollState())
+                      .heightIn(min = maxHeight)
+                      .padding(horizontal = CAREGIVER_PADDING_BIG),
+              verticalArrangement =
+                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
+              horizontalAlignment = Alignment.CenterHorizontally,
+          ) {
+            Text(
+                text =
+                    "You will be signed out of Amber on this device. You can sign in again at any time.",
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().testTag(SignOutTestTags.EXPLANATION),
+            )
+            SignOutButton(viewModel = viewModel)
+          }
         }
       },
   )

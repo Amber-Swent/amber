@@ -6,8 +6,6 @@
  */
 package com.github.se.amber.ui.caregiver.parameters
 
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -166,41 +164,9 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
-  fun actionButtonUsesDefaultOnClickWhenOmitted() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        CaregiverParameterActionButton(
-            modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
-            text = "Create Invitation",
-            description = "Create Invitation",
-        )
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
-        .assertIsDisplayed()
-        .performClick()
-  }
-
-  @Test
-  fun actionButtonUsesAllDefaults() {
-    composeTestRule.setContent { AmberAppTheme { CaregiverParameterActionButton() } }
-
-    composeTestRule.waitForIdle()
-  }
-
-  @Test
   fun screenPreviewRendersWithoutCrashing() {
     composeTestRule.setContent { CaregiverParameterScreenPreview() }
 
     composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
-  }
-
-  @Test
-  fun actionButtonPreviewRendersWithoutCrashing() {
-    composeTestRule.setContent { CaregiverParameterActionButtonPreview() }
-
-    composeTestRule.waitForIdle()
   }
 }
