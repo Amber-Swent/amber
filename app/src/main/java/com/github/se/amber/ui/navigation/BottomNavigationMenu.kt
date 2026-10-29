@@ -113,7 +113,7 @@ sealed class PatientTab(
 
   /** Patient picture list. */
   data object SeeMedias :
-      PatientTab(MEDIAS_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeePictures)
+      PatientTab(MEDIAS_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeeMedias)
 
   data object Setting : PatientTab("Setting", Icons.Outlined.Settings, PatientScreen.Parameters)
 
