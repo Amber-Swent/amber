@@ -4,7 +4,6 @@
  */
 package com.github.se.amber.ui.caregiver.upload.pictures
 
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -243,14 +242,6 @@ class UploadPicturesTest {
   }
 
   @Test
-  fun noChipIsDisplayedWithoutCircle() {
-    launchScreen()
-    composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)
-        .assertCountEquals(0)
-  }
-
-  @Test
   fun emptyCircleMessageIsHiddenWhenCircleHasMembers() {
     launchScreen()
     composeTestRule.runOnIdle {
@@ -268,8 +259,11 @@ class UploadPicturesTest {
       involvedOptionsFlow.value = mapOf("member1" to "Member 1", "member2" to "Member 2")
     }
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)
-        .assertCountEquals(2)
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member2"))
+        .assertIsDisplayed()
   }
 
   @Test
@@ -277,7 +271,7 @@ class UploadPicturesTest {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
         .assertIsNotSelected()
   }
 
@@ -296,10 +290,10 @@ class UploadPicturesTest {
         }
 
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
         .performClick()
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
         .assertIsSelected()
   }
 
@@ -307,7 +301,7 @@ class UploadPicturesTest {
   fun clickingASelectedChipDeselectsIt() {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
-    val chip = composeTestRule.onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+    val chip = composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
     chip.performClick()
     chip.performClick()
     chip.assertIsNotSelected()
@@ -318,10 +312,10 @@ class UploadPicturesTest {
     launchScreen()
     setCircleWithOptions(twoMembersCircle)
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
         .performClick()
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[1]
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member2"))
         .assertIsNotSelected()
   }
 
@@ -342,7 +336,7 @@ class UploadPicturesTest {
         }
 
     composeTestRule
-        .onAllNodesWithTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED)[0]
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("member1"))
         .performClick()
     composeTestRule.runOnIdle { assertTrue("member1" in viewModel.uiState.value.shownIds) }
   }

@@ -87,7 +87,9 @@ object DisplayWhoIsInvolvedTestTags {
   const val SELECT_PERSON_INVOLVED = "upload_picture_selected_person_involved"
   const val ADD_PERSON = "upload_picture_add_person"
   const val NO_PERSON_INVOLVED = "upload_picture_no_person_involved"
-  const val PERSON_INVOLVED = "upload_picture_person_involved"
+  private const val PERSON_INVOLVED = "upload_picture_person_involved"
+
+  fun personInvolved(id: String): String = "${PERSON_INVOLVED}_$id"
 }
 
 /**
@@ -311,7 +313,7 @@ private fun DisplayWhoIsInvolved(
               selected = id in shownIds,
               onClick = { toggleShownId(id) },
               label = { Text(label, style = MaterialTheme.typography.labelMedium) },
-              modifier = Modifier.testTag(DisplayWhoIsInvolvedTestTags.PERSON_INVOLVED),
+              modifier = Modifier.testTag(DisplayWhoIsInvolvedTestTags.personInvolved(id)),
               colors =
                   FilterChipDefaults.filterChipColors(
                       containerColor = MaterialTheme.colorScheme.tertiary,
