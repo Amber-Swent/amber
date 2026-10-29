@@ -41,6 +41,7 @@ import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
@@ -165,7 +166,7 @@ fun SeePicturesScreen(
                     circle = actualState.careCircle,
                     picture = picture,
                     modifier =
-                        Modifier.fillMaxWidth(WEIGHT_ONE)
+                        Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG)
                             .aspectRatioOf(picture)
                             .testTag(SeePicturesTestTags.picture(picture.id)),
                     loading = { CircularProgressIndicator() },
