@@ -65,7 +65,7 @@ val PATIENT_BUTTON_HEIGHT_BIG = 120.dp
 const val PATIENT_BUTTON_WIDTH = 0.7f
 
 // ------- PATIENT ICON -------
-val PATIENT_ICON_SIZE = 32.dp
+val PATIENT_ICON_SIZE = 40.dp
 
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
