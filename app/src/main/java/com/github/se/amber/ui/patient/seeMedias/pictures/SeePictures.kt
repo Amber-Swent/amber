@@ -1,35 +1,33 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
-package com.github.se.amber.ui.patient.seePictures
+package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.media.MediaImage
 import com.github.se.amber.ui.media.aspectRatioOf
@@ -40,31 +38,31 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.patient.DisplayPatientButton
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.PADDING_BIG
-import com.github.se.amber.ui.theme.PADDING_SMALL
-import com.github.se.amber.ui.theme.darkGray
-import com.github.se.amber.ui.theme.orange
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
+import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
-object SeePicturesScreenTestTags {
-  const val TITLE = "pictures_title"
-  const val NO_PICTURES = "no_pictures_text"
-  const val PICTURES_LIST = "pictures_list"
-  const val ERROR = "pictures_error_text"
-  const val RETRY = "pictures_retry_button"
+object SeePicturesTestTags {
+  const val NO_PICTURES_SEE_PICTURES = "no_pictures_see_pictures"
+  const val ERROR_SEE_PICTURES = "pictures_error_see_pictures"
 
-  fun picture(id: String) = "picture_$id"
+  const val TITLE_SEE_PICTURES = "title_see_pictures"
+
+  fun picture(id: String = "") = "picture_$id"
 }
 
 @Composable
 fun SeePicturesScreen(
     pictureViewModel: SeePicturesViewModel = viewModel(),
-    onBackClick: () -> Unit,
-    onTabSelected: (Tab) -> Unit,
+    onBackClick: () -> Unit = {},
+    onTabSelected: (Tab) -> Unit = {},
 ) {
 
   val context = LocalContext.current
-  val uiState by pictureViewModel.uiState.collectAsState()
+  val uiState by pictureViewModel.uiState.collectAsStateWithLifecycle()
 
   // Non-blocking error message: only Empty and Content can carry one
   val errorMsg =
@@ -78,29 +76,23 @@ fun SeePicturesScreen(
   // Show error message if fetching todos fails
   LaunchedEffect(errorMsg) {
     errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
       pictureViewModel.clearErrorMsg()
     }
   }
 
   Scaffold(
       topBar = {
-        Column() {
+        Column {
           TopNavigationMenu(
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
               action = TopNavigationAction.CANCEL,
               onBackClick = onBackClick,
           )
-          Spacer(modifier = Modifier.height(PADDING_SMALL))
-          Text(
-              modifier = Modifier.fillMaxWidth().testTag(SeePicturesScreenTestTags.TITLE),
-              text = "See Pictures",
-              textAlign = TextAlign.Center,
-              color = orange,
-              style = MaterialTheme.typography.headlineSmall,
-              fontWeight = FontWeight.Bold,
+          DisplayPatientTitle(
+              title = "See Pictures",
+              testTag = SeePicturesTestTags.TITLE_SEE_PICTURES,
           )
-          Spacer(modifier = Modifier.height(PADDING_BIG))
         }
       },
       bottomBar = {
@@ -124,36 +116,40 @@ fun SeePicturesScreen(
 
           is SeePicturesUIState.BlockingError -> {
             Column(
-                modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_BIG),
-                verticalArrangement = Arrangement.Center,
+                modifier =
+                    Modifier.fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(PATIENT_PADDING_MEDIUM)
+                        .verticalScroll(rememberScrollState()),
+                verticalArrangement =
+                    Arrangement.spacedBy(PATIENT_PADDING_SMALL, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
-                  modifier = Modifier.testTag(SeePicturesScreenTestTags.ERROR),
+                  modifier = Modifier.testTag(SeePicturesTestTags.ERROR_SEE_PICTURES),
                   text = actualState.message,
                   textAlign = TextAlign.Center,
-                  color = darkGray,
-                  style = MaterialTheme.typography.titleMedium,
+                  color = MaterialTheme.colorScheme.error,
+                  style = MaterialTheme.typography.titleLarge,
               )
-              TextButton(
-                  modifier = Modifier.testTag(SeePicturesScreenTestTags.RETRY),
+              DisplayPatientButton(
+                  text = "Retry",
                   onClick = { pictureViewModel.retry() },
-              ) {
-                Text("Retry")
-              }
+              )
             }
           }
 
           is SeePicturesUIState.Empty -> {
             Box(
-                modifier = Modifier.fillMaxSize().padding(paddingValues).padding(PADDING_BIG),
+                modifier =
+                    Modifier.fillMaxSize().padding(paddingValues).padding(PATIENT_PADDING_MEDIUM),
                 contentAlignment = Alignment.Center,
             ) {
               Text(
-                  modifier = Modifier.testTag(SeePicturesScreenTestTags.NO_PICTURES),
+                  modifier = Modifier.testTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES),
                   text = "There are no pictures yet.",
                   textAlign = TextAlign.Center,
-                  color = darkGray,
+                  color = MaterialTheme.colorScheme.onBackground,
                   style = MaterialTheme.typography.titleLarge,
               )
             }
@@ -162,13 +158,16 @@ fun SeePicturesScreen(
           is SeePicturesUIState.Content -> {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
-                verticalArrangement = Arrangement.spacedBy(PADDING_SMALL),
+                verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             ) {
               items(actualState.allPictures, key = { it.id }) { picture ->
                 MediaImage(
                     circle = actualState.careCircle,
                     picture = picture,
-                    modifier = Modifier.fillMaxWidth().aspectRatioOf(picture),
+                    modifier =
+                        Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG)
+                            .aspectRatioOf(picture)
+                            .testTag(SeePicturesTestTags.picture(picture.id)),
                     loading = { CircularProgressIndicator() },
                 )
               }

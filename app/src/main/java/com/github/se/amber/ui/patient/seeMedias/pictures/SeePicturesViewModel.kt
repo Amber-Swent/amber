@@ -1,6 +1,6 @@
 // this code was written with the aid of AI
 
-package com.github.se.amber.ui.patient.seePictures
+package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
@@ -80,17 +80,17 @@ class SeePicturesViewModel(
    * Non-blocking error: if something is already displayed we keep it and add a message, otherwise
    * we fall back to a blocking error.
    */
-  private fun showNonBlockingError(message: String) {
+  private fun setNonBlockingErrorMsg(message: String) {
     when (val state = _uiState.value) {
       is SeePicturesUIState.Empty -> _uiState.value = state.copy(errorMsg = message)
       is SeePicturesUIState.Content -> _uiState.value = state.copy(errorMsg = message)
       is SeePicturesUIState.Loading,
-      is SeePicturesUIState.BlockingError -> showBlockingError(message)
+      is SeePicturesUIState.BlockingError -> setBlockingErrorMsg(message)
     }
   }
 
   /** Blocking error: replaces the whole screen with an error message and a Retry button */
-  private fun showBlockingError(message: String) {
+  private fun setBlockingErrorMsg(message: String) {
     _uiState.value = SeePicturesUIState.BlockingError(message)
   }
 
@@ -104,18 +104,18 @@ class SeePicturesViewModel(
       val profile =
           profileRepository.getCurrentProfile().getOrElse { e ->
             Log.e(TAG, "Error fetching profile", e)
-            showBlockingError("Failed to load the profile: ${e.message}")
+            setBlockingErrorMsg("Failed to load the profile: ${e.message}")
             return@launch
           }
       if (profile == null) {
-        showBlockingError("No profile found.")
+        setBlockingErrorMsg("No profile found.")
         return@launch
       }
 
       // 2. Circle id (explicit error if missing)
       val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
       if (circleId == null) {
-        showBlockingError("No care circle found for this patient.")
+        setBlockingErrorMsg("No care circle found for this patient.")
         return@launch
       }
 
@@ -123,7 +123,7 @@ class SeePicturesViewModel(
       val circle =
           circleRepository.getCircle(circleId).getOrElse { e ->
             Log.e(TAG, "Error fetching care circle", e)
-            showBlockingError("Failed to load the care circle: ${e.message}")
+            setBlockingErrorMsg("Failed to load the care circle: ${e.message}")
             return@launch
           }
 
@@ -132,7 +132,7 @@ class SeePicturesViewModel(
           .observeApprovedMedia(circleId)
           .catch { e ->
             Log.e(TAG, "Error observing media", e)
-            showNonBlockingError("Failed to load media: ${e.message}")
+            setNonBlockingErrorMsg("Failed to load media: ${e.message}")
           }
           .collect { medias ->
             val pictures = medias.filterIsInstance<MediaItem.Picture>()

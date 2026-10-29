@@ -66,6 +66,7 @@ val PATIENT_BUTTON_HEIGHT_BIG = 120.dp
 // It may be necessary to add some Small, Medium, Big Width.
 // If it's the case, do a specific Pr for this and remove this comment
 const val PATIENT_BUTTON_WIDTH = 0.7f
+const val PATIENT_BUTTON_WIDTH_BIG = 1f
 
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
