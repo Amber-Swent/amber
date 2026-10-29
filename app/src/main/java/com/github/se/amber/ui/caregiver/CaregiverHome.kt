@@ -91,7 +91,7 @@ fun CaregiverHomeScreen(
                   if (uiState.patient.uid.isNotBlank()) {
                     "Welcome ! You are with " + uiState.patient.person.firstName
                   } else {
-                    "Welcome! There are not patient related to this carecircle yet."
+                    "Welcome! There are no patient linked to this care circle yet."
                   },
               modifier = Modifier.fillMaxWidth().testTag(CaregiverHomeTestTags.WELCOME_TEXT),
               color = MaterialTheme.colorScheme.onBackground,

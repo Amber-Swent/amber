@@ -16,8 +16,8 @@ import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -74,7 +74,7 @@ class CaregiverHomeScreenTest {
     setScreen()
     composeTestRule
         .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
-        .assertTextEquals("Welcome! There are not patient related to this carecircle yet.")
+        .assertTextEquals("Welcome! There are no patient linked to this care circle yet.")
   }
 
   @Test
@@ -95,10 +95,9 @@ class CaregiverHomeScreenTest {
 
   @Test
   fun launchedEffect_whenErrorMsgIsSet_clearErrorMsgIsCalled() {
-    composeTestRule.setContent { CaregiverHomeScreen(viewModel = viewModel) }
+    uiStateFlow.value = uiStateFlow.value.copy(errorMsg = "Test error")
+    setScreen()
 
-    viewModel.setErrorMsg("Test error")
-    composeTestRule.mainClock.advanceTimeByFrame()
-    assertTrue(viewModel.uiState.value.errorMsg == null)
+    verify { viewModel.clearErrorMsg() }
   }
 }
