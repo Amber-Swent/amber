@@ -875,6 +875,22 @@ class UploadPictureViewModelTest {
     assertFalse(readyViewModel(date = null).uiState.value.canUpload)
   }
 
+  @Test
+  fun uploadInProgressDisablesFormAndIgnoresSecondSubmission() {
+    val uploadReply = CompletableDeferred<Unit>()
+    coEvery { mediaRepo.addMedia(any(), any(), any()) } coAnswers { uploadReply.await() }
+    val vm = readyViewModel()
+
+    vm.uploadPicture()
+    assertTrue(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.canUpload)
+    vm.uploadPicture()
+    coVerify(exactly = 1) { mediaRepo.addMedia(any(), any(), any()) }
+
+    uploadReply.complete(Unit)
+    assertFalse(vm.uiState.value.isUploading)
+  }
+
   // ---------- add person ----------
 
   @Test
@@ -947,6 +963,95 @@ class UploadPictureViewModelTest {
     vm.addPerson()
 
     assertEquals("offline", vm.uiState.value.errorMsg)
+    assertEquals("Anne", vm.uiState.value.personFirstName)
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.isAddingPerson)
+  }
+
+  @Test
+  fun addPersonWithoutLoadedCircleReportsRetryError() {
+    coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("offline"))
+    val vm = createViewModel()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals(UploadPictureViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+  }
+
+  @Test
+  fun successfulAddPersonSendsAndClearsAllDraftFields() {
+    loadCircle(CareCircle(id = "circle1"))
+    val saved = Person(id = "person1", firstName = "Anne", lastName = "Dupont", nickname = "Nana")
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.success(saved)
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonLastName("Dupont")
+    vm.setPersonNickname("Nana")
+
+    vm.addPerson()
+
+    coVerify(exactly = 1) {
+      circleRepo.addPerson(
+          "circle1",
+          match { it.firstName == "Anne" && it.lastName == "Dupont" && it.nickname == "Nana" },
+      )
+    }
+    assertEquals("", vm.uiState.value.personFirstName)
+    assertEquals("", vm.uiState.value.personLastName)
+    assertEquals("", vm.uiState.value.personNickname)
+    assertTrue("person1" in vm.uiState.value.shownIds)
+  }
+
+  @Test
+  fun addPersonInProgressKeepsDialogOpenAndIgnoresSecondSubmission() {
+    loadCircle(CareCircle(id = "circle1"))
+    val personReply = CompletableDeferred<Result<Person>>()
+    coEvery { circleRepo.addPerson(any(), any()) } coAnswers { personReply.await() }
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+    assertTrue(vm.uiState.value.isAddingPerson)
+    vm.dismissAddPerson()
+    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertEquals("Anne", vm.uiState.value.personFirstName)
+    vm.addPerson()
+    coVerify(exactly = 1) { circleRepo.addPerson(any(), any()) }
+
+    personReply.complete(Result.success(Person(id = "person1", firstName = "Anne")))
+    assertFalse(vm.uiState.value.isAddingPerson)
+    assertFalse(vm.uiState.value.isAddPersonOpen)
+  }
+
+  @Test
+  fun addPersonFailureWithoutMessageUsesFallbackError() {
+    coEvery { circleRepo.addPerson(any(), any()) } returns Result.failure(IOException())
+    val vm = createViewModel()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
+        vm.uiState.value.errorMsg,
+    )
+    assertFalse(vm.uiState.value.isAddingPerson)
+  }
+
+  @Test
+  fun thrownAddPersonFailureClearsSavingStateAndKeepsDraft() {
+    coEvery { circleRepo.addPerson(any(), any()) } throws IOException("broken")
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+
+    vm.addPerson()
+
+    assertEquals("broken", vm.uiState.value.errorMsg)
     assertEquals("Anne", vm.uiState.value.personFirstName)
     assertTrue(vm.uiState.value.isAddPersonOpen)
     assertFalse(vm.uiState.value.isAddingPerson)
