@@ -124,7 +124,7 @@ private fun CreateInvitationContent(
               action = TopNavigationAction.CANCEL,
               onBackClick = checkout,
           )
-          DisplayCaregiverTitle("Parameters", Modifier.testTag(CreateInvitationTestTags.TITLE))
+          DisplayCaregiverTitle(Modifier.testTag(CreateInvitationTestTags.TITLE), "Parameters")
         }
       },
       bottomBar = {

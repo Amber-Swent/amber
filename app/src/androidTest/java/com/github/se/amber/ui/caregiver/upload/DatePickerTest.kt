@@ -174,7 +174,7 @@ class CaregiverUtilsAndroidTest {
     openDialog(DateField.MONTH)
     composeRule
         .onNodeWithTag(DatePickerTestTags.item(1))
-        .assertTextEquals(Month.JANUARY.getDisplayName(TextStyle.FULL, Locale.getDefault()))
+        .assertTextEquals(Month.JANUARY.getDisplayName(TextStyle.FULL, Locale.ENGLISH))
   }
 
   @Test

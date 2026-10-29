@@ -23,8 +23,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,6 +43,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.CANCEL_BUTTON
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG
 import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
@@ -59,6 +58,7 @@ import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.theme.YEAR_RANGE
 import java.time.LocalDate
 import java.time.Month
 import java.time.Year
@@ -83,8 +83,6 @@ internal object DatePickerTestTags {
 
   fun item(index: Int) = "date_picker_item_$index"
 }
-
-internal const val YEAR_RANGE = 100
 
 enum class DateField(val label: String) {
   YEAR("Year"),
@@ -141,7 +139,7 @@ enum class DateField(val label: String) {
    * @param locale The locale used for month names.
    * @return The label shown for this value in the selection dialog.
    */
-  fun format(value: Int, locale: Locale = Locale.getDefault()): String =
+  fun format(value: Int, locale: Locale = Locale.ENGLISH): String =
       when (this) {
         YEAR -> "$value"
         MONTH -> Month.of(value).getDisplayName(TextStyle.FULL, locale)
@@ -156,7 +154,7 @@ enum class DateField(val label: String) {
    * @param locale The locale used for month names.
    * @return The label shown in the date box.
    */
-  fun formatCompact(value: Int, locale: Locale = Locale.getDefault()): String =
+  fun formatCompact(value: Int, locale: Locale = Locale.ENGLISH): String =
       if (this == MONTH) Month.of(value).getDisplayName(TextStyle.SHORT, locale)
       else format(value, locale)
 }
@@ -236,19 +234,19 @@ fun DisplayScrollableDatePicker(
 /**
  * Displays one date field in the picker.
  *
+ * @param modifier The layout and styling applied to the box.
  * @param field The year, month, or day represented by this box.
  * @param value The formatted value shown in the box.
  * @param enabled Whether the box can open its selection dialog.
  * @param onClick Opens the selection dialog for this field.
- * @param modifier The layout and styling applied to the box.
  */
 @Composable
 private fun DateBox(
-    field: DateField,
-    value: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    field: DateField, // No natural default here
+    value: String = "",
+    enabled: Boolean = true,
+    onClick: () -> Unit = {},
 ) {
   val interactionSource = remember { MutableInteractionSource() }
   val isPressed by interactionSource.collectIsPressedAsState()
@@ -305,11 +303,11 @@ private fun DateBox(
  */
 @Composable
 private fun ScrollablePickerDialog(
-    field: DateField,
+    field: DateField, // No natural default for the next three values that would not break behaviour
     items: List<String>,
     initialIndex: Int,
-    onDismiss: () -> Unit,
-    onSelected: (Int) -> Unit,
+    onDismiss: () -> Unit = {},
+    onSelected: (Int) -> Unit = {},
 ) {
   Dialog(
       onDismissRequest = onDismiss,
@@ -394,38 +392,22 @@ private fun ScrollablePickerDialog(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL),
       ) {
-        // Done Button
-        Button(
-            modifier = Modifier.weight(WEIGHT_ONE).testTag(DONE_BUTTON),
+        DisplayCaregiverButton(
+            modifier = Modifier.weight(WEIGHT_ONE),
             onClick = { onSelected(selectedIndex) },
-            shape = RoundedCornerShape(ROUND_CORNER),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    contentColor = MaterialTheme.colorScheme.onTertiary,
-                ),
-        ) {
-          Text(
-              text = "Done",
-              style = MaterialTheme.typography.labelLarge,
-          )
-        }
-        // Cancel Button
-        Button(
-            modifier = Modifier.weight(WEIGHT_ONE).testTag(CANCEL_BUTTON),
+            text = "Done",
+            style = MaterialTheme.typography.labelLarge,
+            widthPercentage = WEIGHT_ONE,
+            buttonTestTag = DONE_BUTTON,
+        )
+        DisplayCaregiverButton(
+            modifier = Modifier.weight(WEIGHT_ONE),
             onClick = onDismiss,
-            shape = RoundedCornerShape(ROUND_CORNER),
-            colors =
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    contentColor = MaterialTheme.colorScheme.onTertiary,
-                ),
-        ) {
-          Text(
-              text = "Cancel",
-              style = MaterialTheme.typography.labelLarge,
-          )
-        }
+            text = "Cancel",
+            style = MaterialTheme.typography.labelLarge,
+            widthPercentage = WEIGHT_ONE,
+            buttonTestTag = CANCEL_BUTTON,
+        )
       }
     }
   }

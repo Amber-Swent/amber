@@ -95,8 +95,12 @@ const val MAX_CHAR_DESCRIPTION = 200
 
 const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pickers
 
+// ------- DATE PICKER CONSTANTS -------
+
 const val DATE_PICKER_LIST_HEIGHT_FRACTION = 0.3f
 const val DATE_PICKER_DIALOG_WIDTH_FRACTION = 0.7f
+
+const val YEAR_RANGE = 100
 
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f

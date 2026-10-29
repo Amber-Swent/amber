@@ -164,13 +164,13 @@ class DateFieldTest {
 
   @Test
   fun format_monthUsesFullLocalizedName() {
-    assertEquals("March", DateField.MONTH.format(3, Locale.ENGLISH))
+    assertEquals("March", DateField.MONTH.format(3))
     assertEquals("mars", DateField.MONTH.format(3, Locale.FRENCH))
   }
 
   @Test
   fun formatCompact_monthUsesShortName() {
-    assertEquals("Mar", DateField.MONTH.formatCompact(3, Locale.ENGLISH))
+    assertEquals("Mar", DateField.MONTH.formatCompact(3))
   }
 
   @Test

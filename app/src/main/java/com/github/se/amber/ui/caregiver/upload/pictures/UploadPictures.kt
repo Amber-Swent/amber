@@ -139,8 +139,8 @@ fun UploadPictureScreen(
         Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
           TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
           DisplayCaregiverTitle(
-              "Upload Picture",
               Modifier.testTag(UploadPictureScreenTestTags.TITLE),
+              "Upload Picture",
           )
         }
       },

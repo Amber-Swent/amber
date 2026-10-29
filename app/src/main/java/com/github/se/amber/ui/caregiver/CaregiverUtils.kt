@@ -58,11 +58,11 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 /**
  * Displays a title shared by caregiver screens.
  *
- * @param title Text to display.
  * @param modifier Modifier applied to the title, including any caller-provided test tag.
+ * @param title Text to display.
  */
 @Composable
-fun DisplayCaregiverTitle(title: String, modifier: Modifier = Modifier) {
+fun DisplayCaregiverTitle(modifier: Modifier = Modifier, title: String) {
   Text(
       modifier = modifier.padding(top = PADDING_SMALL, bottom = PADDING_MEDIUM),
       text = title,
@@ -95,6 +95,7 @@ object DisplayCaregiverButtonTestTags {
  * @param height minimum height of the button; content can make it taller.
  * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
+ * @param buttonTestTag The test tag applied to the button.
  */
 @Composable
 fun DisplayCaregiverButton(
@@ -108,6 +109,7 @@ fun DisplayCaregiverButton(
     height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
     widthPercentage: Float = CAREGIVER_BUTTON_WIDTH,
     paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
+    buttonTestTag: String = BUTTON,
 ) {
   require((icon == null && description.isEmpty()) || (icon != null && description.isNotEmpty())) {
     "An icon requires a description, and a description requires an icon"
@@ -116,7 +118,8 @@ fun DisplayCaregiverButton(
       onClick = onClick,
       enabled = enabled,
       // A minimum height lets multiline text expand without being clipped.
-      modifier = modifier.fillMaxWidth(widthPercentage).heightIn(min = height).testTag(BUTTON),
+      modifier =
+          modifier.fillMaxWidth(widthPercentage).heightIn(min = height).testTag(buttonTestTag),
       colors =
           ButtonDefaults.buttonColors(
               containerColor = MaterialTheme.colorScheme.tertiary,
@@ -174,9 +177,9 @@ object DisplayTextFieldTestTags {
 @Composable
 fun DisplayTextField(
     modifier: Modifier = Modifier,
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
+    value: String = "",
+    onValueChange: (String) -> Unit = {},
+    label: String = "",
     placeholder: String? = null,
     emptyErrorMessage: String? = null,
     minLines: Int = MIN_LINE_DEFAULT,
@@ -259,10 +262,10 @@ object DisplayBoxWithIconTextTestTags {
 @Composable
 fun DisplayBoxWithIconText(
     modifier: Modifier = Modifier,
-    icon: ImageVector,
-    contentDescription: String,
-    label: String,
-    onClick: () -> Unit,
+    icon: ImageVector, // No built-in default value
+    contentDescription: String = "",
+    label: String = "",
+    onClick: () -> Unit = {},
 ) {
   Row(
       modifier =
