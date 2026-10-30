@@ -26,6 +26,7 @@ mockk = "1.14.11"
 mockkAndroid = "1.14.11"
 mockitoKotlin = "5.4.0"
 coil = "3.6.3"
+exifinterface = "1.4.2"
 work = "2.10.1"
 
 [libraries]
@@ -54,6 +55,7 @@ compose-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-
 compose-test-junit = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 compose-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 
 kaspresso = { group = "com.kaspersky.android-components", name = "kaspresso", version.ref = "kaspresso" }

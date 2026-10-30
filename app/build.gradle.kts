@@ -200,6 +200,7 @@ dependencies {
   // ----------          Coil         ------------
   // Decodes and displays local media files; the files themselves come from MediaFileCache.
   implementation(libs.coil.compose)
+  implementation(libs.androidx.exifinterface)
 
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))

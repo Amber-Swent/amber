@@ -1,11 +1,13 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.Firebase
 import com.google.firebase.app
 import java.io.File
@@ -75,23 +77,34 @@ class SelectedPictureReaderAndroid(
           file.outputStream().use { destination -> source.copyTo(destination) }
         }
 
-        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-
-        BitmapFactory.decodeFile(
-            file.absolutePath,
-            options,
-        )
-
-        require(options.outWidth > 0 && options.outHeight > 0) {
-          "Could not decode selected picture"
-        }
-
-        PickedImage(
-            file = file,
-            width = options.outWidth,
-            height = options.outHeight,
-        )
+        decodePickedImage(file)
       }
+}
+
+/**
+ * Reads the dimensions of a local picture as it is displayed: cameras often save a portrait photo
+ * as landscape pixels plus a rotation, which image loaders apply when they show it.
+ *
+ * @param file The local picture file.
+ * @return The picture and its displayed pixel dimensions.
+ * @throws IllegalArgumentException If the file isn't a picture.
+ */
+internal fun decodePickedImage(file: File): PickedImage {
+  val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+
+  BitmapFactory.decodeFile(
+      file.absolutePath,
+      options,
+  )
+
+  require(options.outWidth > 0 && options.outHeight > 0) { "Could not decode selected picture" }
+
+  val isSideways = ExifInterface(file).rotationDegrees % 180 != 0
+  return PickedImage(
+      file = file,
+      width = if (isSideways) options.outHeight else options.outWidth,
+      height = if (isSideways) options.outWidth else options.outHeight,
+  )
 }
 
 /** Lazily initialized provider for the Android selected-picture reader. */

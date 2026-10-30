@@ -33,6 +33,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Gives the camera app a content URI to write captured pictures to -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- WorkManager is set up by AmberApplication instead, on first use -->
         <provider
             android:name="androidx.startup.InitializationProvider"

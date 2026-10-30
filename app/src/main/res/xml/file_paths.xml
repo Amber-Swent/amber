@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keep in sync with the folder used by CapturedPictureSourceAndroid -->
+<paths>
+    <cache-path
+        name="captured_pictures"
+        path="captured_pictures/" />
+</paths>
