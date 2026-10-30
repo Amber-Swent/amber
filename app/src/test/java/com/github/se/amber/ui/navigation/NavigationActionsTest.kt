@@ -33,8 +33,9 @@ class NavigationActionsTest {
       listOf(
           CaregiverScreen.Home,
           CaregiverScreen.Upload,
+          CaregiverScreen.Parameters,
           PatientScreen.Home,
-          PatientScreen.SeePictures,
+          PatientScreen.SeeMedias,
       )
 
   @Before

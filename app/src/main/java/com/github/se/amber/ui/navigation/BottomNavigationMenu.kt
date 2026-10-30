@@ -35,7 +35,7 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 internal const val HOME_TAB_LABEL = "Home"
 internal const val UPLOAD_TAB_LABEL = "Upload"
 internal const val SETTING_TAB_LABEL = "Setting"
-internal const val PICTURES_TAB_LABEL = "Pictures"
+internal const val MEDIAS_TAB_LABEL = "Medias"
 
 /** Stable tags for the bottom bar, its divider, and one tag per [Tab]. */
 object BottomNavigationMenuTestTags {
@@ -124,15 +124,15 @@ sealed class PatientTab(
   data object Home : PatientTab(HOME_TAB_LABEL, Icons.Outlined.Home, PatientScreen.Home)
 
   /** Patient picture list. */
-  data object SeePictures :
-      PatientTab(PICTURES_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeePictures)
+  data object SeeMedias :
+      PatientTab(MEDIAS_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeeMedias)
 
   data object Setting : PatientTab("Setting", Icons.Outlined.Settings, PatientScreen.Parameters)
 
   companion object {
     /** Tabs shown on patient screens, in bar order. */
     val patientTabs: List<PatientTab>
-      get() = listOf(Home, SeePictures, Setting)
+      get() = listOf(Home, SeeMedias, Setting)
   }
 }
 

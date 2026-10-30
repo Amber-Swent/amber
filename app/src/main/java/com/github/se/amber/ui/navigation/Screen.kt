@@ -151,11 +151,17 @@ sealed class PatientScreen(
           isTopLevelDestination = true,
       )
 
+  data object SeeMedias :
+      PatientScreen(
+          route = "patient_see_medias",
+          name = "See Medias",
+          isTopLevelDestination = true,
+      )
+
   data object SeePictures :
       PatientScreen(
-          route = "patient_pictures",
-          name = "Pictures",
-          isTopLevelDestination = true,
+          route = "patient_see_pictures",
+          name = "See Pictures",
       )
 
   data object Parameters :
