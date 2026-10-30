@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified with assistance from GitHub Copilot.
 // Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
@@ -33,7 +34,6 @@ import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
 /** No-op [ProfileRepository] used by Compose previews (and preview-driven tests). */
 private object PreviewPatientHomeProfileRepository : ProfileRepository {
@@ -45,9 +45,9 @@ private object PreviewPatientHomeProfileRepository : ProfileRepository {
   override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
 }
 
-object PatientHomeScreenTestTags {
-  const val TITLE = "home_title"
+object PatientHomeTestTags {
   const val GREETINGS = "home_greetings"
+  const val TITLE = "home_title"
 }
 
 /**
@@ -66,6 +66,7 @@ fun PatientHomeScreen(
   val context = LocalContext.current
   val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
+  // Show error message
   LaunchedEffect(uiState.errorMsg) {
     uiState.errorMsg?.let { message ->
       Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -74,18 +75,6 @@ fun PatientHomeScreen(
   }
 
   Scaffold(
-      topBar = {
-        Text(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(top = PATIENT_PADDING_SMALL, bottom = PATIENT_PADDING_MEDIUM)
-                    .testTag(PatientHomeScreenTestTags.TITLE),
-            text = "Home",
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
-        )
-      },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = PatientTab.Home,
@@ -103,12 +92,14 @@ fun PatientHomeScreen(
                     .padding(top = PATIENT_PADDING_MEDIUM),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+          DisplayPatientTitle(title = "Home")
+          val firstName = uiState.patientProfile.person.firstName
           Text(
-              modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.GREETINGS),
-              text = "Hello " + uiState.patientProfile.person.firstName + " !",
+              modifier = Modifier.fillMaxWidth().testTag(PatientHomeTestTags.GREETINGS),
+              text = "Hello $firstName!",
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onBackground,
-              style = MaterialTheme.typography.headlineMedium,
+              style = MaterialTheme.typography.bodyLarge,
           )
         }
       },

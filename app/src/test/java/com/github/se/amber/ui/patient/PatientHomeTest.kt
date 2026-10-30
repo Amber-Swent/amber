@@ -1,21 +1,30 @@
 // this code was written with the aid of AI
-// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -32,6 +41,9 @@ class PatientHomeScreenTest {
   private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
 
   private val selectedTabs = mutableListOf<Tab>()
+
+  private val inBottomBar =
+      hasAnyAncestor(hasTestTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU))
 
   private fun profileOf(firstName: String) =
       UserProfile(
@@ -51,55 +63,119 @@ class PatientHomeScreenTest {
 
   private fun setScreen() {
     composeTestRule.setContent {
-      AmberAppTheme {
-        PatientHomeScreen(
-            homeViewModel = viewModel,
-            onTabSelected = { selectedTabs.add(it) },
-        )
-      }
+      PatientHomeScreen(
+          homeViewModel = viewModel,
+          onTabSelected = { selectedTabs.add(it) },
+      )
     }
   }
+
+  // ---------- Contenu ----------
 
   @Test
   fun displaysTitle() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertTextEquals("Home")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertTextEquals("Home")
   }
 
   @Test
   fun displaysGreetingWithFirstName() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.GREETINGS).assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
-        .assertTextEquals("Hello Alice !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice!")
   }
 
   @Test
   fun greetingUpdatesWhenStateChanges() {
     setScreen()
-    composeTestRule
-        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
-        .assertTextEquals("Hello Alice !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice!")
 
     stateFlow.value = PatientHomeUIState(patientProfile = profileOf("Bob"))
     composeTestRule.waitForIdle()
 
-    composeTestRule
-        .onNodeWithTag(PatientHomeScreenTestTags.GREETINGS)
-        .assertTextEquals("Hello Bob !")
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Bob!")
   }
 
   @Test
-  fun navigationBarsAreDisplayed() {
+  fun greetingWithEmptyFirstNameDoesNotCrash() {
+    stateFlow.value = PatientHomeUIState(patientProfile = profileOf(""))
+    setScreen()
+
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello !")
+  }
+
+  @Test
+  fun greetingWithLongFirstNameIsDisplayed() {
+    stateFlow.value = PatientHomeUIState(patientProfile = profileOf("A".repeat(30)))
+    setScreen()
+
+    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
+  }
+
+  // ---------- Bottom navigation ----------
+
+  @Test
+  fun bottomNavigationBarIsDisplayed() {
     setScreen()
 
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
+  }
+
+  @Test
+  fun screenUsesDefaultOnTabSelectedWhenOmitted() {
+    composeTestRule.setContent { AmberAppTheme { PatientHomeScreen(homeViewModel = viewModel) } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun bottomNavigationShowsAllPatientTabs() {
+    setScreen()
+
+    composeTestRule
+        .onAllNodes(hasClickAction() and inBottomBar)
+        .assertCountEquals(PatientTab.patientTabs.size)
+  }
+
+  @Test
+  fun homeTabIsTheOnlySelectedTab() {
+    setScreen()
+
+    composeTestRule.onAllNodes(isSelected() and inBottomBar).assertCountEquals(1)
+  }
+
+  @Test
+  fun clickingEachTabCallsOnTabSelectedWithThatTab() {
+    setScreen()
+
+    PatientTab.patientTabs.indices.forEach { index ->
+      composeTestRule.onAllNodes(hasClickAction() and inBottomBar)[index].performClick()
+    }
+    composeTestRule.waitForIdle()
+
+    assertEquals(PatientTab.patientTabs, selectedTabs)
+  }
+
+  @Test
+  fun clickingATabCallsOnTabSelected() {
+    setScreen()
+
+    // On clique sur le dernier onglet (différent de Home, qui est déjà sélectionné)
+    val lastIndex = PatientTab.patientTabs.size - 1
+    composeTestRule.onAllNodes(hasClickAction() and inBottomBar)[lastIndex].performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, selectedTabs.size)
+    assertTrue(selectedTabs.single() in PatientTab.patientTabs)
   }
 
   @Test
@@ -110,39 +186,77 @@ class PatientHomeScreenTest {
     assertEquals(emptyList<Tab>(), selectedTabs)
   }
 
-  @Test
-  fun errorToastClearsErrorMsg() {
-    stateFlow.value = stateFlow.value.copy(errorMsg = "oops")
-    setScreen()
+  // ---------- Messages d'erreur ----------
 
+  @Test
+  fun noToastWhenThereIsNoError() {
+    setScreen()
     composeTestRule.waitForIdle()
 
-    io.mockk.verify { viewModel.clearErrorMsg() }
+    assertNull(ShadowToast.getLatestToast())
+    verify(exactly = 0) { viewModel.clearErrorMsg() }
   }
 
   @Test
-  fun noToastIsShownWhenThereIsNoError() {
+  fun errorMessageIsClearedAfterBeingShown() {
     setScreen()
 
+    stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
     composeTestRule.waitForIdle()
 
-    assertEquals(0, ShadowToast.shownToastCount())
+    assertEquals("Oops", ShadowToast.getTextOfLatestToast())
+    verify { viewModel.clearErrorMsg() }
   }
 
   @Test
-  fun screenUsesDefaultOnTabSelectedWhenOmitted() {
-    composeTestRule.setContent { AmberAppTheme { PatientHomeScreen(homeViewModel = viewModel) } }
+  fun secondDifferentErrorShowsANewToast() {
+    setScreen()
 
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
-        .assertIsDisplayed()
+    stateFlow.value = stateFlow.value.copy(errorMsg = "First")
+    composeTestRule.waitForIdle()
+    assertEquals("First", ShadowToast.getTextOfLatestToast())
+
+    stateFlow.value = stateFlow.value.copy(errorMsg = "Second")
+    composeTestRule.waitForIdle()
+    assertEquals("Second", ShadowToast.getTextOfLatestToast())
+
+    verify(exactly = 2) { viewModel.clearErrorMsg() }
   }
+
+  @Test
+  fun errorPresentAtStartIsShownAndCleared() {
+    stateFlow.value = stateFlow.value.copy(errorMsg = "Boom")
+    setScreen()
+    composeTestRule.waitForIdle()
+
+    assertEquals("Boom", ShadowToast.getTextOfLatestToast())
+    verify { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  fun sameErrorShownAgainAfterBeingCleared() {
+    setScreen()
+
+    repeat(2) {
+      stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
+      composeTestRule.waitForIdle()
+      stateFlow.value = stateFlow.value.copy(errorMsg = null)
+      composeTestRule.waitForIdle()
+    }
+
+    verify(exactly = 2) { viewModel.clearErrorMsg() }
+  }
+
+  // ---------- Preview ----------
 
   @Test
   fun previewRendersWithoutCrashing() {
     composeTestRule.setContent { PatientHomeScreenPreview() }
+    composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(PatientHomeScreenTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
   }
 }
