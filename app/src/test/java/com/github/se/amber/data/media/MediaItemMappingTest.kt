@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
@@ -7,6 +8,7 @@ import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
+import java.time.Month
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -22,7 +24,7 @@ class MediaItemMappingTest {
           storagePath = "careCircles/c1/media/m1.jpg",
           createdAt = 1_700_000_000_000L,
           description = "Grandma's garden",
-          date = MemoryDate(year = 1974, month = 7),
+          date = MemoryDate(year = 1974, month = Month.JULY),
           location = GeoLocation(lat = 46.5, lng = 6.6, placeName = "Lausanne"),
           shownIds = listOf("u2", "p1"),
           authorizedIds = listOf("u3"),
@@ -49,6 +51,22 @@ class MediaItemMappingTest {
     for (item in listOf(picture, audio, audio.copy(transcript = null), text)) {
       assertEquals(item, mediaItemFromMap(item.id, item.toMap()))
     }
+  }
+
+  @Test
+  fun monthIsStoredAsAnIntegerAndReadAsMonth() {
+    val storedDate = picture.toMap()["date"] as Map<*, *>
+    assertEquals(7, storedDate["month"])
+    assertEquals(
+        Month.JULY,
+        (mediaItemFromMap("m1", picture.toMap()) as MediaItem.Picture).date?.month,
+    )
+  }
+
+  @Test
+  fun invalidStoredMonthCannotBeRead() {
+    val fields = picture.toMap() + ("date" to mapOf("year" to 1974, "month" to 13))
+    assertNull(mediaItemFromMap("m1", fields))
   }
 
   @Test

@@ -1,6 +1,6 @@
 /**
- * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified with
- * assistance from OpenAI Codex. Modified by Yuhan YANG, with assistance from Cursor.
+ * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified by MeiliV,
+ * with assistance from OpenAI Codex. Modified by Yuhan YANG, with assistance from Cursor.
  */
 package com.github.se.amber.ui.theme
 
@@ -86,12 +86,22 @@ val TEXT_FIELD_BIG = 200.dp
 
 // ------- MAX -------
 
+const val MIN_LINE_DEFAULT = 1
 const val MAX_LINE_DEFAULT = 2
 const val MAX_LINE_DESCRIPTION = 5
 
 const val MAX_CHAR_DEFAULT = 20
 const val MAX_CHAR_DESCRIPTION = 200
 const val MAX_CHAR_PLACE_SEARCH = 100
+
+const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pickers
+
+// ------- DATE PICKER CONSTANTS -------
+
+const val DATE_PICKER_LIST_HEIGHT_FRACTION = 0.3f
+const val DATE_PICKER_DIALOG_WIDTH_FRACTION = 0.7f
+
+const val YEAR_RANGE = 100
 
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f

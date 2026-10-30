@@ -1,6 +1,6 @@
 /* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
- * Modified with assistance from OpenAI Codex.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.pictures
@@ -38,6 +38,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
+import java.time.Month
 import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertTrue
@@ -94,7 +95,7 @@ class UploadPicturesTest {
               pictureWidth = 640,
               pictureHeight = 480,
               description = "Beach day",
-              date = MemoryDate(2000, 10, 10),
+              date = MemoryDate(2000, Month.OCTOBER, 10),
           )
     }
   }

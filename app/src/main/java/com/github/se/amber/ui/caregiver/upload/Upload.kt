@@ -104,7 +104,10 @@ fun UploadScreen(
               action = TopNavigationAction.CHECKOUT,
               onBackClick = checkout,
           )
-          DisplayCaregiverTitle("Upload", modifier = Modifier.testTag(UploadTestTags.TITLE))
+          DisplayCaregiverTitle(
+              modifier = Modifier.testTag(UploadTestTags.TITLE),
+              "Upload",
+          )
         }
       },
       bottomBar = {

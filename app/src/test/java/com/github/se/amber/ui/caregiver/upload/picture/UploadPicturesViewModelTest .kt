@@ -1,6 +1,6 @@
 /* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
- * Modified with assistance from OpenAI Codex.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
@@ -26,6 +26,8 @@ import io.mockk.slot
 import io.mockk.unmockkAll
 import java.io.File
 import java.io.IOException
+import java.time.LocalDate
+import java.time.Month
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -116,12 +118,12 @@ class UploadPictureViewModelTest {
 
   private fun readyViewModel(
       description: String = "A description",
-      date: MemoryDate? = MemoryDate(2024, 5, 12),
+      date: MemoryDate? = MemoryDate(2024, Month.MAY, 12),
   ): UploadPictureViewModel {
     val vm = createViewModel() // init loads the circle (Unconfined dispatcher: runs immediately)
     vm.setPicture(pictureFile, 640, 480)
     vm.setDescription(description)
-    date?.let { vm.setDate(it) }
+    vm.setDate(date)
     return vm
   }
 
@@ -312,7 +314,7 @@ class UploadPictureViewModelTest {
   @Test
   fun setDateUpdatesState() {
     val vm = createViewModel()
-    val date = MemoryDate(2026, 10, 14)
+    val date = MemoryDate(2026, Month.OCTOBER, 14)
     vm.setDate(date)
     assertEquals(date, vm.uiState.value.date)
   }
@@ -878,9 +880,19 @@ class UploadPictureViewModelTest {
 
   @Test
   fun uploadedItemHasDate() {
-    val date = MemoryDate(2024, 5, 12)
+    val date = MemoryDate(2024, Month.MAY, 12)
     readyViewModel(date = date).uploadPicture()
     assertEquals(date, captureUploadedItem().date)
+  }
+
+  @Test
+  fun initialYearOnlyDateAllowsUploadAfterPictureAndDescription() {
+    val currentYear = LocalDate.now().year
+    val vm = createViewModel()
+    assertEquals(MemoryDate(currentYear), vm.uiState.value.date)
+    vm.setPicture(pictureFile, 640, 480)
+    vm.setDescription("A description")
+    assertTrue(vm.uiState.value.canUpload)
   }
 
   // ---------- place search ----------
@@ -1280,9 +1292,10 @@ class UploadPictureViewModelTest {
   fun selectingAnUnknownOrUnmappedSavedPlaceDoesNothing() {
     circleWithPlaces(unmapped)
     val vm = createViewModel()
+    val initialState = vm.uiState.value
     vm.selectPlace("missing")
     vm.selectPlace("old")
-    assertEquals(UploadPictureUIState(), vm.uiState.value)
+    assertEquals(initialState, vm.uiState.value)
   }
 
   @Test
@@ -1331,7 +1344,7 @@ class UploadPictureViewModelTest {
   private val completeState =
       UploadPictureUIState(
           description = "A description",
-          date = MemoryDate(2024, 5, 12),
+          date = MemoryDate(2024, Month.MAY, 12),
           pictureFile = File("picture.jpg"),
       )
 

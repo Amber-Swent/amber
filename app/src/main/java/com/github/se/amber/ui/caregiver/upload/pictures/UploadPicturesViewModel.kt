@@ -1,6 +1,6 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
- * Modified with assistance from OpenAI Codex.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
@@ -28,6 +28,7 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
 import java.io.File
+import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -193,7 +194,8 @@ class UploadPictureViewModel(
     private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(UploadPictureUIState())
+  private val _uiState =
+      MutableStateFlow(UploadPictureUIState(date = MemoryDate(LocalDate.now().year)))
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
   // “Upload finished, navigate away” is an event:
   // it should happen once and then be gone. A Channel is built for that.
@@ -466,7 +468,7 @@ class UploadPictureViewModel(
    *
    * @param date The date associated with the picture.
    */
-  fun setDate(date: MemoryDate) {
+  fun setDate(date: MemoryDate?) {
     _uiState.update { it.copy(date = date) }
   }
 

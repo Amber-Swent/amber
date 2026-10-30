@@ -1,7 +1,7 @@
 /* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Modified with assistance from OpenAI Codex.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -73,6 +73,7 @@ import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Picture components. */
 object UploadPictureScreenTestTags {
@@ -142,8 +143,8 @@ fun UploadPictureScreen(
         Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
           TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
           DisplayCaregiverTitle(
-              "Upload Picture",
               Modifier.testTag(UploadPictureScreenTestTags.TITLE),
+              "Upload Picture",
           )
         }
       },
@@ -221,9 +222,8 @@ fun UploadPictureScreen(
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
-              onDateSelected = { year, month, day ->
-                viewModel.setDate(MemoryDate(year, month, day))
-              },
+              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
+              onDateSelected = viewModel::setDate,
           )
         }
       },
