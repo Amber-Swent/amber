@@ -370,7 +370,7 @@ async function leaveCircle(uid, circleRef) {
     }
     transaction.update(circleRef, {
       memberIds: FieldValue.arrayRemove(uid),
-      nicknames: nicknamesWithout(uid, circle.nicknames ?? {}),
+      ...(circle.nicknames ? { nicknames: nicknamesWithout(uid, circle.nicknames) } : {}),
       ...(circle.patientId === uid ? { patientId: "" } : {}),
       ...(circle.createdBy === uid ? { createdBy: "" } : {}),
     });
