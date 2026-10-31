@@ -46,8 +46,8 @@ private object PreviewPatientHomeProfileRepository : ProfileRepository {
 }
 
 object PatientHomeTestTags {
-  const val GREETINGS = "home_greetings"
-  const val TITLE = "home_title"
+  const val GREETINGS = "patient_home_greetings"
+  const val TITLE = "patient_home_title"
 }
 
 /**
@@ -75,6 +75,7 @@ fun PatientHomeScreen(
   }
 
   Scaffold(
+      topBar = { DisplayPatientTitle(title = "Home") },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = PatientTab.Home,
@@ -92,7 +93,6 @@ fun PatientHomeScreen(
                     .padding(top = PATIENT_PADDING_MEDIUM),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayPatientTitle(title = "Home")
           val firstName = uiState.patientProfile.person.firstName
           Text(
               modifier = Modifier.fillMaxWidth().testTag(PatientHomeTestTags.GREETINGS),

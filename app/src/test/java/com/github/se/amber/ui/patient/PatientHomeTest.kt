@@ -3,6 +3,7 @@ package com.github.se.amber.ui.patient
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -138,7 +139,7 @@ class PatientHomeScreenTest {
   }
 
   @Test
-  fun bottomNavigationShowsAllPatientTabs() {
+  fun bottomNavigationAssert_RightNumberOfPatientTabs_andHasClick() {
     setScreen()
 
     composeTestRule
@@ -149,6 +150,10 @@ class PatientHomeScreenTest {
   @Test
   fun homeTabIsTheOnlySelectedTab() {
     setScreen()
+
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(PatientTab.Home))
+        .assertIsSelected()
 
     composeTestRule.onAllNodes(isSelected() and inBottomBar).assertCountEquals(1)
   }
@@ -169,7 +174,7 @@ class PatientHomeScreenTest {
   fun clickingATabCallsOnTabSelected() {
     setScreen()
 
-    // On clique sur le dernier onglet (différent de Home, qui est déjà sélectionné)
+    // Click the last tab (different from Home, which is already selected)
     val lastIndex = PatientTab.patientTabs.size - 1
     composeTestRule.onAllNodes(hasClickAction() and inBottomBar)[lastIndex].performClick()
     composeTestRule.waitForIdle()
