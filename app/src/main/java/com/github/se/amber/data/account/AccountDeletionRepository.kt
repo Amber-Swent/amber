@@ -7,12 +7,12 @@ interface AccountDeletionRepository {
 
   /**
    * Asks the backend to delete the current user's account and personal data. Once it confirms,
-   * everything kept on this device is cleared and the user is signed out. If the backend fails,
-   * nothing changes on the device and the user stays signed in, so they can try again: deletion is
-   * safe to repeat.
+   * everything kept on this device is cleared, the user is signed out and the app restarts on its
+   * first screen, so this doesn't return: tell the user what will happen before calling it. If the
+   * backend fails, nothing changes on the device and the user stays signed in, so they can try
+   * again: deletion is safe to repeat.
    *
-   * @return Success once the account is deleted and the device is cleared, or an
-   *   [AccountDeletionError].
+   * @return An [AccountDeletionError]; success can only be seen with a fake [LocalAccountData].
    */
   suspend fun deleteAccount(): Result<Unit>
 
@@ -22,7 +22,10 @@ interface AccountDeletionRepository {
    * device was cleared, which shows as
    * [com.github.se.amber.model.authentication.ReauthenticationError.AccountNotFound].
    *
-   * @return Success once the device is cleared, or [AccountDeletionError.LocalDataNotCleared].
+   * Like [deleteAccount], this restarts the app once the device is cleared.
+   *
+   * @return [AccountDeletionError.LocalDataNotCleared]; success can only be seen with a fake
+   *   [LocalAccountData].
    */
   suspend fun clearLocalData(): Result<Unit>
 }
