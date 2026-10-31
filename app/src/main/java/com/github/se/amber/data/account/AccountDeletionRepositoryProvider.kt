@@ -46,7 +46,8 @@ class AccountDeletionRepositoryProvider(
     /** Opens the app's first screen in a new process, so nothing still uses the old Firestore. */
     private fun restartApp(context: Context) {
       val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-      context.startActivity(Intent.makeRestartActivityTask(launchIntent?.component))
+      // The process must end whatever happens here: Firestore can't be used any more
+      runCatching { context.startActivity(Intent.makeRestartActivityTask(launchIntent?.component)) }
       Runtime.getRuntime().exit(0)
     }
   }
