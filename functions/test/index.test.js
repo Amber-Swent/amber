@@ -563,3 +563,24 @@ test("links a bucket already linked by an earlier run, and stops when linking fa
     assert.deepEqual(state.updates, []);
   });
 });
+
+test("does not redeem an invitation for a user being deleted", async (t) => {
+  const deleting = {role: "CAREGIVER", circleIds: [], deletionRequested: true};
+  for (const [name, invitationData, circleIds] of [
+    ["an unused invitation", invitation(), []],
+    ["their own redeemed invitation", invitation({usedBy: "user-1"}), ["circle-1"]],
+  ]) {
+    await t.test(name, async () => {
+      setupRedeem({invitationData, user: {...deleting, circleIds}});
+      const {redeemInvitation} = callableModule();
+
+      await expectHttpsError(
+        redeemInvitation({auth: {uid: "user-1"}, data: {code: "code-1"}}),
+        "failed-precondition",
+        "User is being deleted",
+        "PROFILE_INVALID",
+      );
+      assert.deepEqual(state.updates, []);
+    });
+  }
+});
