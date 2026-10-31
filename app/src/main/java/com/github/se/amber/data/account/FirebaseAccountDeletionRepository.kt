@@ -7,9 +7,7 @@ import com.google.firebase.functions.FirebaseFunctionsException
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 
 /**
  * Firebase Functions-backed implementation of [AccountDeletionRepository].
@@ -41,11 +39,12 @@ class FirebaseAccountDeletionRepository(
         Result.failure(AccountDeletionError.Unknown(exception))
       }
 
-  // The account is gone: leaving the screen must not leave private data on the device
   private suspend fun clearLocalData(): Result<Unit> =
       try {
-        withContext(NonCancellable) { localData.clear() }
+        localData.clear()
         Result.success(Unit)
+      } catch (exception: CancellationException) {
+        throw exception
       } catch (exception: Exception) {
         Result.failure(AccountDeletionError.LocalDataNotCleared(exception))
       }

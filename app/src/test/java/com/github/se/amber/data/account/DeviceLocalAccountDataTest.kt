@@ -14,7 +14,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -116,5 +118,24 @@ class DeviceLocalAccountDataTest {
     assertFalse(picked.exists())
     assertFalse(other.exists())
     assertFalse(captured.exists())
+  }
+
+  @Test
+  fun leavingTheScreenDoesNotInterruptClearing() = runBlocking {
+    val clearing = CompletableDeferred<Unit>()
+    val mayFinish = CompletableDeferred<Unit>()
+    coEvery { mediaRepository.clearLocalMedia() } coAnswers
+        {
+          clearing.complete(Unit)
+          mayFinish.await()
+        }
+    val job = launch(Dispatchers.Default) { localData.clear() }
+
+    clearing.await()
+    job.cancel()
+    mayFinish.complete(Unit)
+    job.join()
+
+    coVerify(exactly = 1) { authRepository.signOut() }
   }
 }

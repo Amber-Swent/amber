@@ -11,10 +11,6 @@ import com.google.firebase.functions.HttpsCallableResult
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -157,29 +153,5 @@ class FirebaseAccountDeletionRepositoryTest {
         failure.message,
         (error as AccountDeletionError.LocalDataNotCleared).source.message,
     )
-  }
-
-  @Test
-  fun leavingTheScreenDoesNotInterruptClearingTheDevice() = runBlocking {
-    respondWith(mapOf("deleted" to true))
-    val clearing = CompletableDeferred<Unit>()
-    val mayFinish = CompletableDeferred<Unit>()
-    var finished = false
-    clearLocalData = {
-      clearing.complete(Unit)
-      mayFinish.await()
-      finished = true
-    }
-    val deletion =
-        async(Dispatchers.Default, start = CoroutineStart.UNDISPATCHED) {
-          repository.deleteAccount()
-        }
-
-    clearing.await()
-    deletion.cancel()
-    mayFinish.complete(Unit)
-    runCatching { deletion.await() }
-
-    assertTrue(finished)
   }
 }

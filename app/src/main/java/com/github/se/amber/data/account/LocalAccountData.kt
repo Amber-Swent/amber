@@ -9,16 +9,18 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 /** Everything the app keeps on this device for the signed-in user. */
 fun interface LocalAccountData {
 
   /**
-   * Clears it all and ends the session on this device.
+   * Clears it all and ends the session on this device. Leaving the screen doesn't interrupt it: the
+   * account is gone, so nothing private may stay behind.
    *
    * @throws Exception if something couldn't be cleared: it may still be on the device. Every step
-   *   is still attempted.
+   *   is still attempted, and clearing can run again.
    */
   suspend fun clear()
 }
@@ -42,20 +44,29 @@ class DeviceLocalAccountData(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : LocalAccountData {
 
-  override suspend fun clear() {
-    val failures =
-        listOf<suspend () -> Unit>(
-                { mediaRepository.clearLocalMedia() },
-                { imageMemory.clearAll() },
-                { deleteTemporaryPictures() },
-                { authRepository.signOut().getOrThrow() },
-            )
-            .mapNotNull { step -> runCatching { step() }.exceptionOrNull() }
-    failures.firstOrNull()?.let { first ->
-      failures.drop(1).forEach(first::addSuppressed)
-      throw first
-    }
-  }
+  override suspend fun clear(): Unit =
+      withContext(NonCancellable) {
+        val failures =
+            listOf<suspend () -> Unit>(
+                    { mediaRepository.clearLocalMedia() },
+                    { imageMemory.clearAll() },
+                    { deleteTemporaryPictures() },
+                    { authRepository.signOut().getOrThrow() },
+                )
+                .mapNotNull { step -> failureOf(step) }
+        failures.firstOrNull()?.let { first ->
+          failures.drop(1).forEach(first::addSuppressed)
+          throw first
+        }
+      }
+
+  private suspend fun failureOf(step: suspend () -> Unit): Exception? =
+      try {
+        step()
+        null
+      } catch (exception: Exception) {
+        exception
+      }
 
   /**
    * Deletes the files SelectedPictureReaderAndroid copies picked pictures to, and camera photos.
