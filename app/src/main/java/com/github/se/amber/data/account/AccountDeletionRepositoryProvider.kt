@@ -11,6 +11,9 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.google.firebase.Firebase
 import com.google.firebase.app
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Holds a single [AccountDeletionRepository], built lazily by `factory` on first access.
@@ -24,6 +27,26 @@ class AccountDeletionRepositoryProvider(
     factory: () -> AccountDeletionRepository = { firebaseRepository() },
 ) {
   val repository: AccountDeletionRepository by lazy(factory)
+
+  /**
+   * Finishes a deletion started by an earlier launch, if [marker] says there was one. Otherwise
+   * nothing is built, so a normal launch doesn't touch Firebase.
+   *
+   * It doesn't wait for the UI: clearing stops Firestore and restarts the app, wherever it is.
+   *
+   * @param marker Tells whether a deletion was started.
+   * @param scope Where it runs.
+   */
+  fun resumeInterruptedDeletion(
+      marker: DeletionMarker,
+      scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+  ) {
+    if (!marker.isSet) return
+    scope.launch {
+      // A failure here must not stop the app from opening; the next launch tries again
+      runCatching { repository.finishInterruptedDeletion() }
+    }
+  }
 
   companion object {
     /** The app-wide instance. Don't use it in tests. */
@@ -40,7 +63,7 @@ class AccountDeletionRepositoryProvider(
               cacheDir = context.cacheDir,
               firestore = Firebase.firestore,
               marker = marker,
-              restartApp = { restartApp(context) },
+              restartApp = { restartApp(context, ::stopApp) },
               stopApp = ::stopApp,
           ),
           marker,
@@ -48,10 +71,12 @@ class AccountDeletionRepositoryProvider(
     }
 
     /** Opens the app's first screen in a new process, so nothing still uses the old Firestore. */
-    private fun restartApp(context: Context) {
-      val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+    internal fun restartApp(context: Context, stopApp: () -> Unit) {
       // The process must end whatever happens here: Firestore can't be used any more
-      runCatching { context.startActivity(Intent.makeRestartActivityTask(launchIntent?.component)) }
+      runCatching {
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        context.startActivity(Intent.makeRestartActivityTask(launchIntent?.component))
+      }
       stopApp()
     }
 

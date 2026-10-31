@@ -13,9 +13,6 @@ import com.github.se.amber.data.account.SharedPreferencesDeletionMarker
 import com.github.se.amber.data.media.image.MediaPictureFetcher
 import com.github.se.amber.data.media.image.MediaPictureKeyer
 import com.github.se.amber.model.media.MediaRepositoryProvider
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 /**
  * The app itself, created by Android before any activity or background job.
@@ -34,15 +31,9 @@ class AmberApplication : Application(), SingletonImageLoader.Factory, Configurat
 
   override fun onCreate() {
     super.onCreate()
-    if (SharedPreferencesDeletionMarker(this).isSet) {
-      // Doesn't wait for the UI: clearing stops Firestore and restarts the app, wherever it is
-      CoroutineScope(Dispatchers.Default).launch {
-        // A failure here must not stop the app from opening; the next launch tries again
-        runCatching {
-          AccountDeletionRepositoryProvider.default.repository.finishInterruptedDeletion()
-        }
-      }
-    }
+    AccountDeletionRepositoryProvider.default.resumeInterruptedDeletion(
+        SharedPreferencesDeletionMarker(this),
+    )
   }
 
   override fun newImageLoader(context: PlatformContext): ImageLoader =
