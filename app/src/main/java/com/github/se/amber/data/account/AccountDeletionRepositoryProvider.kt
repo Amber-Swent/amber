@@ -38,7 +38,9 @@ class AccountDeletionRepositoryProvider(
               imageMemory = MediaImageMemory(SingletonImageLoader.get(context)),
               cacheDir = context.cacheDir,
               firestore = Firebase.firestore,
+              marker = SharedPreferencesDeletionMarker(context),
               restartApp = { restartApp(context) },
+              stopApp = ::stopApp,
           ),
       )
     }
@@ -48,6 +50,10 @@ class AccountDeletionRepositoryProvider(
       val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
       // The process must end whatever happens here: Firestore can't be used any more
       runCatching { context.startActivity(Intent.makeRestartActivityTask(launchIntent?.component)) }
+      stopApp()
+    }
+
+    private fun stopApp() {
       Runtime.getRuntime().exit(0)
     }
   }

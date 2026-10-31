@@ -33,14 +33,18 @@ fun interface LocalAccountData {
  * state: the local Firebase session would otherwise outlive the deleted account.
  *
  * Firestore's copy of the user's documents goes last, once everything else worked: clearing it
- * needs a stopped Firestore, which the repositories can't use any more, so the app restarts.
+ * needs a stopped Firestore, which the repositories can't use any more, so the process ends. It
+ * only reopens on the first screen if the device is clear: [marker] would otherwise make every
+ * launch fail and relaunch in a loop, and instead the next launch the user makes tries again.
  *
  * @param mediaRepository Holds the media kept on the phone and their pending sends.
  * @param authRepository Ends the session.
  * @param imageMemory Holds the decoded pictures; clearLocalMedia doesn't clear these.
  * @param cacheDir The application cache, where the upload screens leave their temporary files.
  * @param firestore Keeps the documents the user read in its local cache.
+ * @param marker Removed once everything is cleared, before the app restarts.
  * @param restartApp Restarts the app; doesn't return in the real app.
+ * @param stopApp Ends the process without reopening the app; doesn't return in the real app.
  * @param ioDispatcher The dispatcher used for file operations.
  */
 class DeviceLocalAccountData(
@@ -49,7 +53,9 @@ class DeviceLocalAccountData(
     private val imageMemory: MediaImageMemory,
     private val cacheDir: File,
     private val firestore: FirebaseFirestore,
+    private val marker: DeletionMarker,
     private val restartApp: () -> Unit,
+    private val stopApp: () -> Unit,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : LocalAccountData {
 
@@ -70,10 +76,12 @@ class DeviceLocalAccountData(
         try {
           firestore.terminate().await()
           firestore.clearPersistence().await()
-          Unit
-        } finally {
-          restartApp()
+        } catch (exception: Exception) {
+          stopApp()
+          throw exception
         }
+        marker.remove()
+        restartApp()
       }
 
   private suspend fun failureOf(step: suspend () -> Unit): Exception? =

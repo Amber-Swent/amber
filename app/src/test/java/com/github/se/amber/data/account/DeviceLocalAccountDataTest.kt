@@ -44,6 +44,16 @@ class DeviceLocalAccountDataTest {
   private lateinit var localData: DeviceLocalAccountData
   private val firestore: FirebaseFirestore = mockk()
   private val calls = mutableListOf<String>()
+  private val marker =
+      object : DeletionMarker {
+        override val isSet = true
+
+        override fun set() = Unit
+
+        override fun remove() {
+          calls += "removeMarker"
+        }
+      }
 
   @Before
   fun setUp() {
@@ -86,7 +96,9 @@ class DeviceLocalAccountDataTest {
             MediaImageMemory(imageLoader),
             cacheDir,
             firestore,
+            marker,
             { calls += "restart" },
+            { calls += "stop" },
             Dispatchers.Unconfined,
         )
   }
@@ -103,7 +115,7 @@ class DeviceLocalAccountDataTest {
     assertFalse(pickedMemo.exists())
     assertTrue(otherFile.exists())
     coVerify(exactly = 1) { authRepository.signOut() }
-    assertEquals(listOf("terminate", "clearPersistence", "restart"), calls)
+    assertEquals(listOf("terminate", "clearPersistence", "removeMarker", "restart"), calls)
   }
 
   @Test
@@ -151,12 +163,12 @@ class DeviceLocalAccountDataTest {
   }
 
   @Test
-  fun aFirestoreThatCannotBeClearedStillRestartsTheApp() {
+  fun aFirestoreThatCannotBeClearedKeepsTheMarkerAndStopsWithoutRelaunching() {
     every { firestore.clearPersistence() } returns Tasks.forException(IOException("Cache left"))
 
     assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
 
-    assertEquals(listOf("terminate", "restart"), calls)
+    assertEquals(listOf("terminate", "stop"), calls)
   }
 
   @Test
@@ -175,6 +187,6 @@ class DeviceLocalAccountDataTest {
     mayFinish.complete(Unit)
     job.join()
 
-    assertEquals(listOf("terminate", "clearPersistence", "restart"), calls)
+    assertEquals(listOf("terminate", "clearPersistence", "removeMarker", "restart"), calls)
   }
 }
