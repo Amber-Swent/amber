@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media.image
 
 import coil3.ImageLoader
@@ -11,8 +12,8 @@ import coil3.ImageLoader
  *
  * Used only by the session cleanup, after it has cleared the local media through
  * `MediaRepository.clearLocalMedia`; not by screens or ViewModels. Run it once the circle's screens
- * are gone: a picture still loading may otherwise be put back in memory. That cleanup doesn't exist
- * yet, so nothing uses this class for now.
+ * are gone: a picture still loading may otherwise be put back in memory. Only account deletion
+ * (`DeviceLocalAccountData`) uses it for now.
  */
 class MediaImageMemory(private val imageLoader: ImageLoader) {
 

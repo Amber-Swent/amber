@@ -1,0 +1,78 @@
+// Written by Neha Chakraborty, with assistance from
+// Claude (Anthropic) via Claude Code.
+package com.github.se.amber.data.account
+
+import com.github.se.amber.data.media.image.MediaImageMemory
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.media.MediaRepository
+import java.io.File
+import java.io.IOException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/** Everything the app keeps on this device for the signed-in user. */
+fun interface LocalAccountData {
+
+  /**
+   * Clears it all and ends the session on this device.
+   *
+   * @throws Exception if something couldn't be cleared: it may still be on the device. Every step
+   *   is still attempted.
+   */
+  suspend fun clear()
+}
+
+/**
+ * Clears the media and its background sends, the decoded pictures in memory and the temporary
+ * pictures in [cacheDir], then signs out, which also clears the credential provider state: the
+ * local Firebase session would otherwise outlive the deleted account.
+ *
+ * @param mediaRepository Holds the media kept on the phone and their pending sends.
+ * @param authRepository Ends the session.
+ * @param imageMemory Holds the decoded pictures; clearLocalMedia doesn't clear these.
+ * @param cacheDir The application cache, where the picture screens leave their temporary files.
+ * @param ioDispatcher The dispatcher used for file operations.
+ */
+class DeviceLocalAccountData(
+    private val mediaRepository: MediaRepository,
+    private val authRepository: AuthRepository,
+    private val imageMemory: MediaImageMemory,
+    private val cacheDir: File,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : LocalAccountData {
+
+  override suspend fun clear() {
+    val failures =
+        listOf<suspend () -> Unit>(
+                { mediaRepository.clearLocalMedia() },
+                { imageMemory.clearAll() },
+                { deleteTemporaryPictures() },
+                { authRepository.signOut().getOrThrow() },
+            )
+            .mapNotNull { step -> runCatching { step() }.exceptionOrNull() }
+    failures.firstOrNull()?.let { first ->
+      failures.drop(1).forEach(first::addSuppressed)
+      throw first
+    }
+  }
+
+  /**
+   * Deletes the files SelectedPictureReaderAndroid copies picked pictures to, and camera photos.
+   */
+  private suspend fun deleteTemporaryPictures() =
+      withContext(ioDispatcher) {
+        val picked = cacheDir.listFiles { file ->
+          file.name.startsWith(PICKED_PREFIX) && file.name.endsWith(PICTURE_SUFFIX)
+        }
+        val captured = File(cacheDir, CAPTURED_DIR)
+        val allDeleted = picked.orEmpty().all { it.delete() } and captured.deleteRecursively()
+        if (!allDeleted) throw IOException("Some temporary pictures could not be deleted")
+      }
+
+  private companion object {
+    const val PICKED_PREFIX = "picked_"
+    const val PICTURE_SUFFIX = ".jpg"
+    const val CAPTURED_DIR = "captured_pictures"
+  }
+}
