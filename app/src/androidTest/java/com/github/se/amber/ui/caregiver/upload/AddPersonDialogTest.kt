@@ -149,6 +149,9 @@ class AddPersonDialogTest {
           override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
               error("Not used by this test")
 
+          override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
+              error("Not used by this test")
+
           override suspend fun signOut(): Result<Unit> = error("Not used by this test")
         }
     val fakeProfileRepo =

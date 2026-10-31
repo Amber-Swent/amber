@@ -1,4 +1,5 @@
 // This file was written with the aid of AI
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.authentication
 
 import androidx.credentials.Credential
@@ -31,6 +32,17 @@ interface AuthRepository {
    * @throws kotlinx.coroutines.CancellationException If authentication is cancelled.
    */
   suspend fun signInWithGoogle(credential: Credential): Result<AuthUser>
+
+  /**
+   * Confirms that the signed-in user is the one at the device, using a Google ID-token credential
+   * returned by Credential Manager. Needed before a sensitive action, such as deleting the account.
+   *
+   * @param credential The Google credential to use, which must belong to the signed-in user.
+   * @return `Result.success(Unit)` once confirmed, or a failure if nobody is signed in, the
+   *   credential is unsupported or belongs to someone else, or authentication fails.
+   * @throws kotlinx.coroutines.CancellationException If authentication is cancelled.
+   */
+  suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit>
 
   /**
    * Ends the Firebase session, then clears credential provider state.
