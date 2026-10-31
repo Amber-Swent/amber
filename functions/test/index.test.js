@@ -914,7 +914,7 @@ test("deleteAccount frees the patient slot when the patient is deleted", async (
 
 test("deleteAccount keeps the circle of a last caregiver while its patient remains", async () => {
   setupAccounts();
-  const circle = state.store.get("careCircles/shared");
+  const {nicknames: _nicknames, ...circle} = state.store.get("careCircles/shared");
   state.store.set("careCircles/shared", {...circle, memberIds: ["gone", "patient"]});
   const {deleteAccount} = callableModule();
 
@@ -922,6 +922,7 @@ test("deleteAccount keeps the circle of a last caregiver while its patient remai
 
   assertNoReferenceTo("gone");
   assert.deepEqual(state.store.get("careCircles/shared").memberIds, ["patient"]);
+  assert.equal("nicknames" in state.store.get("careCircles/shared"), false);
   assert.equal(state.buckets.has(BUCKET), true);
 });
 
