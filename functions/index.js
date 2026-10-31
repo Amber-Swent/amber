@@ -418,7 +418,10 @@ async function refreshBucketRules(circleId, bucketName) {
 async function removeFromCircle(uid, circleSnapshot) {
   const circleRef = circleSnapshot.ref;
   const bucketName = circleSnapshot.get("storageBucket");
-  await refreshBucketRules(circleRef.id, bucketName);
+  // Alone in the circle, the whole bucket is about to go
+  if (circleSnapshot.get("memberIds").length > 1) {
+    await refreshBucketRules(circleRef.id, bucketName);
+  }
   await deleteAuthoredMedia(uid, circleRef, bucketName);
   await removeFromRemainingMedia(uid, circleRef);
   await removeFromAppointments(uid, circleRef);
