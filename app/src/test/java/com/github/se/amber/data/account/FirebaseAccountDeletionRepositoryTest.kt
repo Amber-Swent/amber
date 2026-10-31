@@ -211,6 +211,19 @@ class FirebaseAccountDeletionRepositoryTest {
   }
 
   @Test
+  fun cancellingWhileCheckingTheAccountOrClearingTheDeviceIsNotReportedAsAFailure() {
+    marker.set()
+    `when`(user.reload()).thenReturn(Tasks.forException(CancellationException("Cancelled")))
+    assertThrows(CancellationException::class.java) {
+      runBlocking { repository.finishInterruptedDeletion() }
+    }
+    assertEquals(0, clears)
+
+    clearLocalData = { throw CancellationException("Cancelled") }
+    assertThrows(CancellationException::class.java) { runBlocking { repository.clearLocalData() } }
+  }
+
+  @Test
   fun aDeviceThatCouldNotBeClearedIsReportedAsSuch() = runBlocking {
     respondWith(mapOf("deleted" to true))
     val failure = IOException("Files left")
