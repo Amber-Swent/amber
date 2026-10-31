@@ -36,11 +36,18 @@ service cloud.firestore {
       return getAfter(circlePath(circleId)).data;
     }
 
+    // Set by deleteAccount, before it looks for what the user has: anything written after that
+    // would be left behind.
+    function isBeingDeleted() {
+      return userDoc(request.auth.uid).get('deletionRequested', false) == true;
+    }
+
     function isMember(circleId) {
       return isSignedIn()
         && exists(circlePath(circleId))
         // The profile and circle must agree on the family (care-circle) ID.
         && exists(userPath(request.auth.uid))
+        && !isBeingDeleted()
         && circleId in userDoc(request.auth.uid).circleIds
         && request.auth.uid in circleDoc(circleId).memberIds;
     }
@@ -48,6 +55,7 @@ service cloud.firestore {
     function isCaregiver() {
       return isSignedIn()
         && exists(userPath(request.auth.uid))
+        && !isBeingDeleted()
         && userDoc(request.auth.uid).role == 'CAREGIVER';
     }
 
@@ -55,6 +63,7 @@ service cloud.firestore {
     function isCaregiverAfter() {
       return isSignedIn()
         && existsAfter(userPath(request.auth.uid))
+        && getAfter(userPath(request.auth.uid)).data.get('deletionRequested', false) != true
         && getAfter(userPath(request.auth.uid)).data.role == 'CAREGIVER';
     }
 
