@@ -38,7 +38,7 @@ class DeviceLocalAccountDataTest {
   private lateinit var cacheDir: File
   private lateinit var picked: File
   private lateinit var captured: File
-  private lateinit var mediaCache: File
+  private lateinit var otherFile: File
   private lateinit var recorded: File
   private lateinit var pickedMemo: File
   private lateinit var localData: DeviceLocalAccountData
@@ -71,7 +71,7 @@ class DeviceLocalAccountDataTest {
           parentFile!!.mkdirs()
           writeText("photo")
         }
-    mediaCache = File(cacheDir, "other.txt").apply { writeText("kept") }
+    otherFile = File(cacheDir, "other.txt").apply { writeText("kept") }
     recorded = File(cacheDir, "recording_123.m4a").apply { writeText("memo") }
     pickedMemo =
         File(cacheDir, "audio/picked_123.m4a").apply {
@@ -101,7 +101,7 @@ class DeviceLocalAccountDataTest {
     assertFalse(captured.parentFile!!.exists())
     assertFalse(recorded.exists())
     assertFalse(pickedMemo.exists())
-    assertTrue(mediaCache.exists())
+    assertTrue(otherFile.exists())
     coVerify(exactly = 1) { authRepository.signOut() }
     assertEquals(listOf("terminate", "clearPersistence", "restart"), calls)
   }
