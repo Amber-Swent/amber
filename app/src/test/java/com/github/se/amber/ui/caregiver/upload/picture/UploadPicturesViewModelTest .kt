@@ -990,6 +990,22 @@ class UploadPictureViewModelTest {
   }
 
   @Test
+  fun aCaptureThatIsNotAPhotoSaysSoKeepsTheSelectedPictureAndTheCameraCanOpenAgain() {
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } throws IllegalArgumentException("Video")
+    coEvery { capturedPictureSource.newCaptureUri(any()) } returns CAPTURE_URI
+    val vm = readyViewModel()
+    vm.onTakePicture()
+
+    vm.onPictureCaptured(CAPTURE_URI)
+
+    assertEquals(UploadPictureViewModelErrorMessage.NOT_A_PHOTO.mess, vm.uiState.value.errorMsg)
+    assertEquals(pictureFile, vm.uiState.value.pictureFile)
+    coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
+    vm.onTakePicture()
+    coVerify(exactly = 2) { capturedPictureSource.newCaptureUri(any()) }
+  }
+
+  @Test
   fun onCaptureCancelledDiscardsTheFileAndKeepsThePictureAlreadySelected() {
     val vm = readyViewModel()
 

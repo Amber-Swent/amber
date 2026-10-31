@@ -84,6 +84,7 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   UNKNOW_ERROR(mess = "Upload failed: "),
   COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
   COULD_NOT_OPEN_CAMERA(mess = "Could not open the camera"),
+  NOT_A_PHOTO(mess = "Only photos can be uploaded. Tap the camera to take a photo."),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
   PICK_A_PLACE(mess = "Pick the place from the suggestions"),
@@ -477,7 +478,7 @@ class UploadPictureViewModel(
 
   /**
    * Stores the picture the camera app just saved, replacing any earlier capture. A file that can't
-   * be read is deleted.
+   * be read is deleted, and the user can tap the camera again.
    *
    * @param uri The URI sent in [UploadPictureEvent.OpenCamera].
    */
@@ -491,6 +492,10 @@ class UploadPictureViewModel(
         selectedCaptureUri = uri
       } catch (e: CancellationException) {
         throw e
+      } catch (_: IllegalArgumentException) {
+        // Not a picture: a camera app may have saved a video
+        setErrorMsg(UploadPictureViewModelErrorMessage.NOT_A_PHOTO.mess)
+        capturedPictureSource.discard(uri)
       } catch (e: Exception) {
         setErrorMsg(
             UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + (e.message ?: "")
