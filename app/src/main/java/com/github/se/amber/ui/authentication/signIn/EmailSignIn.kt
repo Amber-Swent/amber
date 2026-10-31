@@ -5,6 +5,7 @@ package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
 
 /** Test tags of [EmailSignInScreen] and of its private helpers. */
@@ -156,7 +158,9 @@ internal fun EmailSignInContent(
         color = MaterialTheme.colorScheme.primary,
     )
     AuthenticationText(
-        modifier = Modifier.testTag(EmailSignInTestTags.INSTRUCTION),
+        modifier =
+            Modifier.padding(bottom = CAREGIVER_PADDING_BIG)
+                .testTag(EmailSignInTestTags.INSTRUCTION),
         text = INSTRUCTION_LABEL,
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.titleMedium,
