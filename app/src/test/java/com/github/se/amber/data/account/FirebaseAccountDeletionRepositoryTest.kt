@@ -3,6 +3,10 @@
 package com.github.se.amber.data.account
 
 import com.google.android.gms.tasks.Tasks
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.FirebaseFunctionsException.Code
@@ -25,9 +29,23 @@ import org.mockito.Mockito.`when`
 
 class FirebaseAccountDeletionRepositoryTest {
   private lateinit var callable: HttpsCallableReference
+  private lateinit var auth: FirebaseAuth
+  private lateinit var user: FirebaseUser
   private lateinit var repository: FirebaseAccountDeletionRepository
   private var clears = 0
   private var clearLocalData: suspend () -> Unit = {}
+  private val marker =
+      object : DeletionMarker {
+        override var isSet = false
+
+        override fun set() {
+          isSet = true
+        }
+
+        override fun remove() {
+          isSet = false
+        }
+      }
 
   @Before
   fun setUp() {
@@ -38,7 +56,10 @@ class FirebaseAccountDeletionRepositoryTest {
       clears++
       clearLocalData()
     }
-    repository = FirebaseAccountDeletionRepository(localData, functions)
+    auth = mock(FirebaseAuth::class.java)
+    user = mock(FirebaseUser::class.java)
+    `when`(auth.currentUser).thenReturn(user)
+    repository = FirebaseAccountDeletionRepository(localData, marker, functions, auth)
   }
 
   private fun respondWith(data: Any?) {
@@ -135,6 +156,58 @@ class FirebaseAccountDeletionRepositoryTest {
     assertThrows(CancellationException::class.java) { runBlocking { repository.deleteAccount() } }
 
     assertEquals(0, clears)
+  }
+
+  @Test
+  fun theMarkerIsSetBeforeTheBackendIsCalledAndOutlivesEveryFailure() = runBlocking {
+    var markedWhenCalled = false
+    `when`(callable.call()).thenAnswer {
+      markedWhenCalled = marker.isSet
+      Tasks.forException<HttpsCallableResult>(functionsException(Code.UNAVAILABLE))
+    }
+
+    repository.deleteAccount()
+
+    assertTrue(markedWhenCalled)
+    assertTrue(marker.isSet)
+  }
+
+  @Test
+  fun anInterruptedDeletionClearsTheDeviceOnlyIfMarkedAndTheAccountIsGone() = runBlocking {
+    val gone = FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "Gone")
+    `when`(user.reload()).thenReturn(Tasks.forException(gone))
+
+    repository.finishInterruptedDeletion()
+    assertEquals(0, clears)
+    verifyNoInteractions(user)
+
+    marker.set()
+    repository.finishInterruptedDeletion()
+    assertEquals(1, clears)
+
+    `when`(auth.currentUser).thenReturn(null)
+    repository.finishInterruptedDeletion()
+    assertEquals(2, clears)
+    verifyNoInteractions(callable)
+  }
+
+  @Test
+  fun anAccountThatMayStillExistKeepsItsDataAndItsMarker() = runBlocking {
+    marker.set()
+    val answers =
+        listOf(
+            Tasks.forResult<Void>(null),
+            Tasks.forException(FirebaseNetworkException("Offline")),
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_DISABLED", "Disabled")),
+        )
+    for (answer in answers) {
+      `when`(user.reload()).thenReturn(answer)
+
+      repository.finishInterruptedDeletion()
+    }
+
+    assertEquals(0, clears)
+    assertTrue(marker.isSet)
   }
 
   @Test

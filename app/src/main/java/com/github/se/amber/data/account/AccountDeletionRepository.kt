@@ -28,4 +28,12 @@ interface AccountDeletionRepository {
    *   [LocalAccountData].
    */
   suspend fun clearLocalData(): Result<Unit>
+
+  /**
+   * Finishes a deletion the app couldn't: it may have died during the call to the backend, or
+   * before the device was cleared. If one was started and the account is gone, the device is
+   * cleared and the app restarts. If the account still exists, or that can't be told offline,
+   * nothing happens and a later launch checks again: the backend may still be working on it.
+   */
+  suspend fun finishInterruptedDeletion()
 }

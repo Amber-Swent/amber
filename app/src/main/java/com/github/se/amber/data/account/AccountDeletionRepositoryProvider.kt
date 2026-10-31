@@ -31,6 +31,7 @@ class AccountDeletionRepositoryProvider(
 
     private fun firebaseRepository(): AccountDeletionRepository {
       val context = Firebase.app.applicationContext
+      val marker = SharedPreferencesDeletionMarker(context)
       return FirebaseAccountDeletionRepository(
           DeviceLocalAccountData(
               mediaRepository = MediaRepositoryProvider.repository,
@@ -38,10 +39,11 @@ class AccountDeletionRepositoryProvider(
               imageMemory = MediaImageMemory(SingletonImageLoader.get(context)),
               cacheDir = context.cacheDir,
               firestore = Firebase.firestore,
-              marker = SharedPreferencesDeletionMarker(context),
+              marker = marker,
               restartApp = { restartApp(context) },
               stopApp = ::stopApp,
           ),
+          marker,
       )
     }
 
