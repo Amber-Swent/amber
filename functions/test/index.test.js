@@ -32,6 +32,7 @@ const state = {
   buckets: null,
   authUsers: null,
   failWrite: null,
+  batches: 0,
 };
 
 // the only HTTP call the functions make: linking a bucket to Firebase Storage
@@ -61,6 +62,7 @@ function resetState() {
   state.buckets = null;
   state.authUsers = null;
   state.failWrite = null;
+  state.batches = 0;
   state.storage = {
     bucket: () => {
       throw new Error("Storage bucket was not configured");
@@ -138,6 +140,8 @@ function storedFirestore() {
         update: (reference, data) => writes.push(["update", reference.path, data]),
         delete: (reference) => writes.push(["delete", reference.path]),
         commit: async () => {
+          assert.ok(writes.length <= 500, "Firestore refuses a batch above 500 writes");
+          state.batches += 1;
           const before = new Map(state.store);
           try {
             writes.forEach((entry) => write(...entry));
@@ -842,6 +846,22 @@ test("deleteAccount finishes when a concurrent call deletes a circle first", asy
   assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {}}), {deleted: true});
 
   assert.equal(state.store.has("users/gone"), false);
+});
+
+test("deleteAccount splits a large circle over several batches", async () => {
+  setupAccounts();
+  const count = 900;
+  for (let index = 0; index < count; index += 1) {
+    state.store.set(`careCircles/shared/media/many-${index}`, storedMedia(`many-${index}`, {
+      shownIds: ["gone"],
+    }));
+  }
+  const {deleteAccount} = callableModule();
+
+  await deleteAccount({auth: freshAuth(), data: {}});
+
+  assertNoReferenceTo("gone");
+  assert.ok(state.batches >= 3, `${state.batches} batches`);
 });
 
 test("deleteAccount blocks new redemptions from the moment it starts", async () => {
