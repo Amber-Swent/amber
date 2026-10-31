@@ -99,7 +99,7 @@ class FirebaseAccountDeletionRepositoryTest {
   }
 
   @Test
-  fun unexpectedFailuresAreUnknownAndLeaveTheDeviceAlone() = runBlocking {
+  fun unexpectedFailuresAndUnconfirmedResponsesAreUnknownAndLeaveTheDeviceAlone() = runBlocking {
     val failures =
         listOf(
             functionsException(Code.INTERNAL),
@@ -117,11 +117,6 @@ class FirebaseAccountDeletionRepositoryTest {
       assertEquals(failure.message, error.source.message)
     }
 
-    assertEquals(0, clears)
-  }
-
-  @Test
-  fun anUnconfirmedResponseLeavesTheDeviceAlone() = runBlocking {
     for (response in listOf(null, "deleted", mapOf("deleted" to false), emptyMap<String, Any>())) {
       respondWith(response)
 
