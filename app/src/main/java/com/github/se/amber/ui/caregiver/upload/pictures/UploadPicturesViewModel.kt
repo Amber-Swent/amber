@@ -213,7 +213,7 @@ class UploadPictureViewModel(
     private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
     private val capturedPictureSource: CapturedPictureSource = capturedPictures,
-    private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val savedState: SavedStateHandle,
     private val cleanupScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : ViewModel() {
   private val _uiState =
@@ -533,7 +533,6 @@ class UploadPictureViewModel(
   /** A capture that wasn't uploaded is a private picture nothing will use any more. */
   override fun onCleared() {
     selectedCaptureUri?.let { uri -> cleanupScope.launch { capturedPictureSource.discard(uri) } }
-    super.onCleared()
   }
 
   /**
