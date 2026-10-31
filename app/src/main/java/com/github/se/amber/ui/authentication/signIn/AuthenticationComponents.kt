@@ -37,7 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
@@ -161,7 +161,7 @@ internal fun AuthenticationButton(
   Button(
       onClick = onClick,
       enabled = enabled,
-      modifier = modifier.fillMaxWidth().height(CAREGIVER_BUTTON_HEIGHT_MEDIUM),
+      modifier = modifier.fillMaxWidth().height(CAREGIVER_BUTTON_HEIGHT_BIG),
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
