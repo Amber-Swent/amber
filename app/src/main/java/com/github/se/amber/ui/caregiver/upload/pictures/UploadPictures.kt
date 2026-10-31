@@ -5,6 +5,7 @@
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
+import android.content.ActivityNotFoundException
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -43,13 +44,18 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.media.MemoryDate
@@ -97,6 +103,49 @@ object DisplayWhoIsInvolvedTestTags {
 }
 
 /**
+ * What the screen can do with the camera.
+ *
+ * @property takePicture Starts a new capture, unless the camera is already open.
+ * @property openCamera Opens the camera app, which saves its picture to the given URI.
+ */
+private class CameraActions(val takePicture: () -> Unit, val openCamera: (String) -> Unit)
+
+/**
+ * Connects the camera app to [viewModel]. It needs no camera permission: the camera app takes the
+ * picture, and declaring the permission would make launching it fail until the user grants it.
+ *
+ * @param viewModel The view model told about the results.
+ */
+@Composable
+private fun rememberCameraActions(viewModel: UploadPictureViewModel): CameraActions {
+  // Saved because the system can kill the app while the camera is in front, and the camera's
+  // result only says whether it succeeded, not which file it was for
+  var pendingCaptureUri by rememberSaveable { mutableStateOf<String?>(null) }
+
+  val cameraLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        val uri = pendingCaptureUri ?: return@rememberLauncherForActivityResult
+        pendingCaptureUri = null
+        if (saved) viewModel.onPictureCaptured(uri) else viewModel.onCaptureCancelled(uri)
+      }
+
+  return remember(viewModel, cameraLauncher) {
+    CameraActions(
+        takePicture = { if (pendingCaptureUri == null) viewModel.onTakePicture() },
+        openCamera = { uri ->
+          pendingCaptureUri = uri
+          try {
+            cameraLauncher.launch(uri.toUri())
+          } catch (_: ActivityNotFoundException) {
+            pendingCaptureUri = null
+            viewModel.onCameraUnavailable(uri)
+          }
+        },
+    )
+  }
+}
+
+/**
  * Displays the picture upload screen.
  *
  * @param viewModel The view model that manages the screen state and actions.
@@ -120,6 +169,7 @@ fun UploadPictureScreen(
       rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.selectPicture(it.toString()) }
       }
+  val camera = rememberCameraActions(viewModel)
 
   LaunchedEffect(errorMessage) {
     if (errorMessage != null) {
@@ -134,7 +184,7 @@ fun UploadPictureScreen(
     viewModel.events.collect { event ->
       when (event) {
         UploadPictureEvent.Uploaded -> currentOnUpload()
-        is UploadPictureEvent.OpenCamera -> Unit
+        is UploadPictureEvent.OpenCamera -> camera.openCamera(event.uri)
       }
     }
   }
@@ -166,9 +216,7 @@ fun UploadPictureScreen(
               icon = Icons.Outlined.PhotoCamera,
               contentDescription = "Photo",
               label = "Take a new Picture",
-              onClick = {},
-              // TODO: implement the Take a Picture function,
-              //  once the Backend as been set up for it - M2
+              onClick = camera.takePicture,
           )
 
           // Display the "Choose a picture from the galeri"

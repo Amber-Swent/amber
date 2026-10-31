@@ -5,6 +5,12 @@
  */
 package com.github.se.amber.ui.caregiver.upload.pictures
 
+import android.content.ActivityNotFoundException
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -24,11 +30,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.core.app.ActivityOptionsCompat
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
 import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
+import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureEvent
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
@@ -40,6 +49,7 @@ import io.mockk.verify
 import java.io.File
 import java.time.Month
 import kotlin.getValue
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -87,6 +97,46 @@ class UploadPicturesTest {
     }
   }
 
+  /** Answers the camera without leaving the screen. */
+  private inner class FakeResults : ActivityResultRegistry() {
+    val launchedContracts = mutableListOf<ActivityResultContract<*, *>>()
+    var pictureSaved = true
+    var hasCameraApp = true
+
+    override fun <I, O> onLaunch(
+        requestCode: Int,
+        contract: ActivityResultContract<I, O>,
+        input: I,
+        options: ActivityOptionsCompat?,
+    ) {
+      launchedContracts += contract
+      if (!hasCameraApp) throw ActivityNotFoundException()
+      dispatchResult(requestCode, pictureSaved)
+    }
+  }
+
+  private fun launchScreenWithCamera(results: ActivityResultRegistry) {
+    val owner =
+        object : ActivityResultRegistryOwner {
+          override val activityResultRegistry = results
+        }
+    composeTestRule.setContent {
+      CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner) {
+        UploadPictureScreen(viewModel = viewModel)
+      }
+    }
+  }
+
+  private fun tapCamera() {
+    composeTestRule
+        .onNode(
+            hasTestTag(ICON_BUTTON) and
+                hasAnyAncestor(hasTestTag(UploadPictureScreenTestTags.TAKE_PICTURE))
+        )
+        .performClick()
+    composeTestRule.waitForIdle()
+  }
+
   private fun fillValidForm() {
     composeTestRule.runOnIdle {
       uiStateFlow.value =
@@ -98,6 +148,36 @@ class UploadPicturesTest {
               date = MemoryDate(2000, Month.OCTOBER, 10),
           )
     }
+  }
+
+  // ---------- camera ----------
+
+  @Test
+  fun cameraButtonStartsACaptureAndEachResultIsReportedForItsFile() {
+    val events = MutableSharedFlow<UploadPictureEvent>(extraBufferCapacity = 1)
+    every { viewModel.events } returns events
+    val results = FakeResults()
+    launchScreenWithCamera(results)
+    fun openCamera(uri: String) {
+      composeTestRule.runOnIdle { events.tryEmit(UploadPictureEvent.OpenCamera(uri)) }
+      composeTestRule.waitForIdle()
+    }
+
+    // no permission is asked for: nothing is launched until the camera itself is opened
+    tapCamera()
+    verify(exactly = 1) { viewModel.onTakePicture() }
+    assertTrue(results.launchedContracts.isEmpty())
+
+    openCamera("content://test/saved.jpg")
+    verify(exactly = 1) { viewModel.onPictureCaptured("content://test/saved.jpg") }
+
+    results.pictureSaved = false
+    openCamera("content://test/cancelled.jpg")
+    verify(exactly = 1) { viewModel.onCaptureCancelled("content://test/cancelled.jpg") }
+
+    results.hasCameraApp = false
+    openCamera("content://test/no_app.jpg")
+    verify(exactly = 1) { viewModel.onCameraUnavailable("content://test/no_app.jpg") }
   }
 
   // ---------- initial screen ----------
