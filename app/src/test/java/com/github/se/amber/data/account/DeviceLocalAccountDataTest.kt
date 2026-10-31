@@ -96,8 +96,25 @@ class DeviceLocalAccountDataTest {
     val error = assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
 
     assertEquals(mediaFailure.message, error.message)
-    assertEquals(listOf(signOutFailure.message), error.suppressed.map { it.message })
+    // coroutines may wrap what they rethrow in a copy: the original is then its cause
+    val suppressed =
+        generateSequence<Throwable>(error) { it.cause }.flatMap { it.suppressed.asList() }
+    assertEquals(listOf(signOutFailure.message), suppressed.map { it.message }.toList())
     verify(exactly = 1) { memoryCache.clear() }
     assertFalse(picked.exists())
+  }
+
+  @Test
+  fun aFileThatCannotBeDeletedDoesNotKeepTheOthers() {
+    // a folder with a file in it can't be deleted: sorted first, like any name in listFiles may be
+    val stuck = File(cacheDir, "picked_0.jpg").apply { mkdir() }
+    File(stuck, "inside").writeText("photo")
+    val other = File(cacheDir, "picked_9.jpg").apply { writeText("photo") }
+
+    assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
+
+    assertFalse(picked.exists())
+    assertFalse(other.exists())
+    assertFalse(captured.exists())
   }
 }

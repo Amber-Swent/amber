@@ -66,7 +66,9 @@ class DeviceLocalAccountData(
           file.name.startsWith(PICKED_PREFIX) && file.name.endsWith(PICTURE_SUFFIX)
         }
         val captured = File(cacheDir, CAPTURED_DIR)
-        val allDeleted = picked.orEmpty().all { it.delete() } and captured.deleteRecursively()
+        // map, not all: a file that can't be deleted must not keep the next ones
+        val allDeleted =
+            picked.orEmpty().map { it.delete() }.all { it } and captured.deleteRecursively()
         if (!allDeleted) throw IOException("Some temporary pictures could not be deleted")
       }
 
