@@ -8,8 +8,10 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Firebase
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
@@ -59,9 +61,18 @@ class AuthRepositoryFirebase(
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
-      Result.failure(e)
+      Result.failure(e.toReauthenticationError())
     }
   }
+
+  private fun Exception.toReauthenticationError(): ReauthenticationError =
+      when {
+        this is FirebaseNetworkException -> ReauthenticationError.Network
+        this !is FirebaseAuthException -> ReauthenticationError.Unknown(this)
+        errorCode == ERROR_USER_MISMATCH -> ReauthenticationError.WrongAccount
+        errorCode == ERROR_USER_NOT_FOUND -> ReauthenticationError.AccountNotFound
+        else -> ReauthenticationError.Unknown(this)
+      }
 
   /**
    * Checks that [credential] is a Google one, and builds the Firebase credential from its token.
@@ -86,5 +97,10 @@ class AuthRepositoryFirebase(
     } catch (e: Exception) {
       Result.failure(e)
     }
+  }
+
+  private companion object {
+    const val ERROR_USER_MISMATCH = "ERROR_USER_MISMATCH"
+    const val ERROR_USER_NOT_FOUND = "ERROR_USER_NOT_FOUND"
   }
 }

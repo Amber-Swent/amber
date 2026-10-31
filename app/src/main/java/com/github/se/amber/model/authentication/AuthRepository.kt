@@ -38,8 +38,7 @@ interface AuthRepository {
    * returned by Credential Manager. Needed before a sensitive action, such as deleting the account.
    *
    * @param credential The Google credential to use, which must belong to the signed-in user.
-   * @return `Result.success(Unit)` once confirmed, or a failure if nobody is signed in, the
-   *   credential is unsupported or belongs to someone else, or authentication fails.
+   * @return `Result.success(Unit)` once confirmed, or a [ReauthenticationError].
    * @throws kotlinx.coroutines.CancellationException If authentication is cancelled.
    */
   suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit>
