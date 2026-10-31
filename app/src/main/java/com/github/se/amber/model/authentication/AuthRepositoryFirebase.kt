@@ -1,4 +1,5 @@
 // This file was written with the aid of AI
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.authentication
 
 import androidx.credentials.ClearCredentialStateRequest
@@ -7,6 +8,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.Firebase
+import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
@@ -36,15 +38,7 @@ class AuthRepositoryFirebase(
 
   override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> {
     return try {
-      require(
-          credential is CustomCredential &&
-              credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-      ) {
-        "Unsupported sign-in credential"
-      }
-
-      // Build Firebase Credential from the Google ID token
-      val firebaseCredential = googleSignInHelper.getAuthCredential(credential.data)
+      val firebaseCredential = firebaseCredentialOf(credential)
 
       // Authenticate with Firebase
       val user = checkNotNull(auth.signInWithCredential(firebaseCredential).await().user)
@@ -54,6 +48,32 @@ class AuthRepositoryFirebase(
     } catch (e: Exception) {
       Result.failure(e)
     }
+  }
+
+  override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> {
+    return try {
+      val firebaseCredential = firebaseCredentialOf(credential)
+      val user = checkNotNull(auth.currentUser) { "Nobody is signed in" }
+      user.reauthenticate(firebaseCredential).await()
+      Result.success(Unit)
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Result.failure(e)
+    }
+  }
+
+  /**
+   * Checks that [credential] is a Google one, and builds the Firebase credential from its token.
+   */
+  private fun firebaseCredentialOf(credential: Credential): AuthCredential {
+    require(
+        credential is CustomCredential &&
+            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+    ) {
+      "Unsupported sign-in credential"
+    }
+    return googleSignInHelper.getAuthCredential(credential.data)
   }
 
   override suspend fun signOut(): Result<Unit> {

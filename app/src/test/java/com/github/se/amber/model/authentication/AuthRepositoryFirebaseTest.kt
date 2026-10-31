@@ -1,4 +1,5 @@
 // This file was written with the aid of AI
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.authentication
 
 import android.app.Application
@@ -30,6 +31,7 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doThrow
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
@@ -109,6 +111,45 @@ class AuthRepositoryFirebaseTest {
         verify(auth).signInWithCredential(firebaseCredential)
         assertFalse(cleanupCompleted)
       }
+
+  @Test
+  fun reauthenticationConfirmsTheSignedInUserWithTheGoogleCredential() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reauthenticate(firebaseCredential)).thenReturn(Tasks.forResult(null))
+
+    assertTrue(repository.reauthenticateWithGoogle(credential).isSuccess)
+
+    verify(helper).getAuthCredential(credential.data)
+    verify(user).reauthenticate(firebaseCredential)
+    assertEquals(AuthUser("user-123"), repository.currentUser)
+  }
+
+  @Test
+  fun reauthenticationFailsWithoutCallingFirebaseWhenNobodyIsSignedInOrTheCredentialIsWrong() =
+      runBlocking {
+        assertTrue(repository.reauthenticateWithGoogle(credential).isFailure)
+
+        currentFirebaseUser = user
+        val result = repository.reauthenticateWithGoogle(PasswordCredential("user", "password"))
+
+        assertEquals("Unsupported sign-in credential", result.exceptionOrNull()?.message)
+        verify(user, never()).reauthenticate(firebaseCredential)
+        Unit
+      }
+
+  @Test
+  fun reauthenticationReturnsFirebaseFailuresAndRethrowsCancellation() = runBlocking {
+    currentFirebaseUser = user
+    val failure = IllegalStateException("Another Google account")
+    `when`(user.reauthenticate(firebaseCredential)).thenReturn(Tasks.forException(failure))
+    assertSame(failure, repository.reauthenticateWithGoogle(credential).exceptionOrNull())
+
+    `when`(user.reauthenticate(firebaseCredential)).thenThrow(CancellationException("Cancelled"))
+    assertThrows(CancellationException::class.java) {
+      runBlocking { repository.reauthenticateWithGoogle(credential) }
+    }
+    Unit
+  }
 
   @Test
   fun passwordCredentialIsRejectedBeforeConversion() = runBlocking {
