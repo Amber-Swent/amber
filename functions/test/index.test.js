@@ -930,8 +930,6 @@ test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
   setupAccounts();
   process.env.FUNCTIONS_EMULATOR = "true";
   t.after(() => delete process.env.FUNCTIONS_EMULATOR);
-  state.store.set("careCircles/shared", {...state.store.get("careCircles/shared"), storageBucket: ""});
-  state.store.delete("careCircles/alone/media/photo");
   const {deleteAccount} = callableModule();
 
   await deleteAccount({auth: freshAuth(), data: {}});
