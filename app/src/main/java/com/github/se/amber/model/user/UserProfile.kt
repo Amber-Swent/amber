@@ -1,6 +1,7 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty and Copilot.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.model.user
 
 /**
@@ -23,6 +24,10 @@ package com.github.se.amber.model.user
  * A user can belong to several circles. [circleIds] lets the app list them with a single read;
  * membership itself is CareCircle.memberIds, kept in sync with circleIds when a circle is created
  * or an invitation is redeemed.
+ *
+ * The deleteAccount function also sets `deletionRequested` in the document while it deletes the
+ * user. It isn't a field here: the app never reads it, and only the backend can write it. Security
+ * rules refuse the user's writes while it is set.
  *
  * Subject to change: [role] is global, the same in every circle the user belongs to. Someone who is
  * a caregiver in one circle can't be the patient of another. The role may have to move to a
