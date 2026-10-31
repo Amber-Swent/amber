@@ -5,11 +5,13 @@ package com.github.se.amber.data.account
 import com.github.se.amber.data.media.image.MediaImageMemory
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.media.MediaRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 
 /** Everything the app keeps on this device for the signed-in user. */
@@ -30,10 +32,15 @@ fun interface LocalAccountData {
  * pictures in [cacheDir], then signs out, which also clears the credential provider state: the
  * local Firebase session would otherwise outlive the deleted account.
  *
+ * Firestore's copy of the user's documents goes last, once everything else worked: clearing it
+ * needs a stopped Firestore, which the repositories can't use any more, so the app restarts.
+ *
  * @param mediaRepository Holds the media kept on the phone and their pending sends.
  * @param authRepository Ends the session.
  * @param imageMemory Holds the decoded pictures; clearLocalMedia doesn't clear these.
  * @param cacheDir The application cache, where the picture screens leave their temporary files.
+ * @param firestore Keeps the documents the user read in its local cache.
+ * @param restartApp Restarts the app; doesn't return in the real app.
  * @param ioDispatcher The dispatcher used for file operations.
  */
 class DeviceLocalAccountData(
@@ -41,6 +48,8 @@ class DeviceLocalAccountData(
     private val authRepository: AuthRepository,
     private val imageMemory: MediaImageMemory,
     private val cacheDir: File,
+    private val firestore: FirebaseFirestore,
+    private val restartApp: () -> Unit,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : LocalAccountData {
 
@@ -57,6 +66,13 @@ class DeviceLocalAccountData(
         failures.firstOrNull()?.let { first ->
           failures.drop(1).forEach(first::addSuppressed)
           throw first
+        }
+        try {
+          firestore.terminate().await()
+          firestore.clearPersistence().await()
+          Unit
+        } finally {
+          restartApp()
         }
       }
 

@@ -2,12 +2,15 @@
 // Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.account
 
+import android.content.Context
+import android.content.Intent
 import coil3.SingletonImageLoader
 import com.github.se.amber.data.media.image.MediaImageMemory
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.google.firebase.Firebase
 import com.google.firebase.app
+import com.google.firebase.firestore.firestore
 
 /**
  * Holds a single [AccountDeletionRepository], built lazily by `factory` on first access.
@@ -34,8 +37,17 @@ class AccountDeletionRepositoryProvider(
               authRepository = AuthRepositoryProvider.repository,
               imageMemory = MediaImageMemory(SingletonImageLoader.get(context)),
               cacheDir = context.cacheDir,
+              firestore = Firebase.firestore,
+              restartApp = { restartApp(context) },
           ),
       )
+    }
+
+    /** Opens the app's first screen in a new process, so nothing still uses the old Firestore. */
+    private fun restartApp(context: Context) {
+      val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+      context.startActivity(Intent.makeRestartActivityTask(launchIntent?.component))
+      Runtime.getRuntime().exit(0)
     }
   }
 }

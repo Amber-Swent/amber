@@ -7,6 +7,8 @@ import coil3.memory.MemoryCache
 import com.github.se.amber.data.media.image.MediaImageMemory
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.media.MediaRepository
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -38,6 +40,8 @@ class DeviceLocalAccountDataTest {
   private lateinit var captured: File
   private lateinit var mediaCache: File
   private lateinit var localData: DeviceLocalAccountData
+  private val firestore: FirebaseFirestore = mockk()
+  private val calls = mutableListOf<String>()
 
   @Before
   fun setUp() {
@@ -45,6 +49,17 @@ class DeviceLocalAccountDataTest {
     val imageLoader =
         mockk<ImageLoader> {
           every { memoryCache } returns this@DeviceLocalAccountDataTest.memoryCache
+        }
+
+    every { firestore.terminate() } answers
+        {
+          calls += "terminate"
+          Tasks.forResult(null)
+        }
+    every { firestore.clearPersistence() } answers
+        {
+          calls += "clearPersistence"
+          Tasks.forResult(null)
         }
 
     cacheDir = tempFolder.newFolder("cache")
@@ -62,6 +77,8 @@ class DeviceLocalAccountDataTest {
             authRepository,
             MediaImageMemory(imageLoader),
             cacheDir,
+            firestore,
+            { calls += "restart" },
             Dispatchers.Unconfined,
         )
   }
@@ -76,6 +93,7 @@ class DeviceLocalAccountDataTest {
     assertFalse(captured.parentFile!!.exists())
     assertTrue(mediaCache.exists())
     coVerify(exactly = 1) { authRepository.signOut() }
+    assertEquals(listOf("terminate", "clearPersistence", "restart"), calls)
   }
 
   @Test
@@ -104,6 +122,8 @@ class DeviceLocalAccountDataTest {
     assertEquals(listOf(signOutFailure.message), suppressed.map { it.message }.toList())
     verify(exactly = 1) { memoryCache.clear() }
     assertFalse(picked.exists())
+    // Firestore stays usable, and the app open, so that clearing can run again
+    assertEquals(emptyList<String>(), calls)
   }
 
   @Test
@@ -118,6 +138,15 @@ class DeviceLocalAccountDataTest {
     assertFalse(picked.exists())
     assertFalse(other.exists())
     assertFalse(captured.exists())
+  }
+
+  @Test
+  fun aFirestoreThatCannotBeClearedStillRestartsTheApp() {
+    every { firestore.clearPersistence() } returns Tasks.forException(IOException("Cache left"))
+
+    assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
+
+    assertEquals(listOf("terminate", "restart"), calls)
   }
 
   @Test
@@ -136,6 +165,6 @@ class DeviceLocalAccountDataTest {
     mayFinish.complete(Unit)
     job.join()
 
-    coVerify(exactly = 1) { authRepository.signOut() }
+    assertEquals(listOf("terminate", "clearPersistence", "restart"), calls)
   }
 }
