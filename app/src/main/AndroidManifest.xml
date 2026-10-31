@@ -4,6 +4,8 @@
 
     <!-- ConnectivityMonitor; WorkManager also merges it in, this keeps it if that changes -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- AudioRecorder; the screen asks for it at runtime before recording -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:name=".AmberApplication"
