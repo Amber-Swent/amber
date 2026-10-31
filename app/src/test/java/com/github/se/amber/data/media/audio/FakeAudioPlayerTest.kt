@@ -17,16 +17,24 @@ class FakeAudioPlayerTest {
 
   private val player = FakeAudioPlayer(durationMs = 5_000L)
   private val file = File("memo.m4a")
+  private val other = File("other.m4a")
 
   @Test
   fun playLoadsTheFileAndPlaysFromTheStart() = runTest {
     player.play(file)
 
-    assertEquals(
-        AudioState(isPlaying = true, positionMs = 0L, durationMs = 5_000L),
-        player.state.value,
-    )
+    assertEquals(AudioState(file, isPlaying = true, durationMs = 5_000L), player.state.value)
     assertEquals(listOf(file), player.played)
+  }
+
+  @Test
+  fun playingAnotherFileReplacesTheFirst() = runTest {
+    player.play(file)
+    player.seekTo(2_000L)
+
+    player.play(other)
+
+    assertEquals(AudioState(other, isPlaying = true, durationMs = 5_000L), player.state.value)
   }
 
   @Test
@@ -56,23 +64,23 @@ class FakeAudioPlayerTest {
   }
 
   @Test
-  fun finishStopsAtTheStartAndKeepsTheDuration() = runTest {
+  fun finishStopsAtTheStartAndKeepsTheFileAndDuration() = runTest {
     player.play(file)
     player.seekTo(3_000L)
 
     player.finish()
 
-    assertEquals(
-        AudioState(isPlaying = false, positionMs = 0L, durationMs = 5_000L),
-        player.state.value,
-    )
+    assertEquals(AudioState(file, isPlaying = false, durationMs = 5_000L), player.state.value)
   }
 
   @Test
-  fun releaseResetsTheStateAndAllowsAnotherPlay() = runTest {
+  fun stopUnloadsOnlyTheFileItIsGiven() = runTest {
     player.play(file)
 
-    player.release()
+    player.stop(other)
+    assertEquals(file, player.state.value.file)
+
+    player.stop(file)
     assertEquals(AudioState(), player.state.value)
     player.resume()
     assertEquals(AudioState(), player.state.value)
@@ -82,11 +90,12 @@ class FakeAudioPlayerTest {
   }
 
   @Test
-  fun playThrowsTheErrorItIsGiven() = runTest {
+  fun playThrowsTheErrorItIsGivenAndLeavesNothingLoaded() = runTest {
+    player.play(file)
     val undecodable = IOException("can't decode")
     player.playError = undecodable
 
-    assertSame(undecodable, runCatching { player.play(file) }.exceptionOrNull())
+    assertSame(undecodable, runCatching { player.play(other) }.exceptionOrNull())
     assertEquals(AudioState(), player.state.value)
   }
 }
