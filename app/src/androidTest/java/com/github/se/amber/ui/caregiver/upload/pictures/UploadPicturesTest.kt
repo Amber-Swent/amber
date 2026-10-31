@@ -34,6 +34,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.core.app.ActivityOptionsCompat
+import androidx.lifecycle.viewmodel.compose.viewModel as defaultViewModel
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
@@ -210,6 +211,15 @@ class UploadPicturesTest {
 
     composeTestRule.waitForIdle()
     verify(exactly = 1) { viewModel.onPictureCaptured(CAPTURE_URI) }
+  }
+
+  @Test
+  fun theDefaultViewModelCanBeBuiltWithItsSavedState() {
+    composeTestRule.setContent {
+      defaultViewModel<UploadPictureViewModel>(factory = UploadPictureViewModel.Factory)
+    }
+
+    composeTestRule.waitForIdle()
   }
 
   // ---------- initial screen ----------

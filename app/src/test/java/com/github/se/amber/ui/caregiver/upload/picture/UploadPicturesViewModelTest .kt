@@ -5,6 +5,7 @@
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
@@ -109,7 +110,7 @@ class UploadPictureViewModelTest {
 
   // ---------- helpers ----------
 
-  private fun createViewModel() =
+  private fun createViewModel(savedState: SavedStateHandle = SavedStateHandle()) =
       UploadPictureViewModel(
           mediaRepo = mediaRepo,
           authRepo = authRepo,
@@ -118,6 +119,7 @@ class UploadPictureViewModelTest {
           pictureReader = pictureReader,
           capturedPictureSource = capturedPictureSource,
           placeRepo = placeRepo,
+          savedState = savedState,
           cleanupScope = CoroutineScope(testDispatcher),
       )
 
@@ -863,6 +865,52 @@ class UploadPictureViewModelTest {
 
     vm.selectPicture("gallery")
     coVerify(exactly = 1) { capturedPictureSource.discard(newerCapture) }
+  }
+
+  @Test
+  fun theFormAndTheSelectedCaptureSurviveAndroidKillingTheApp() {
+    val realPicture = File.createTempFile("capture", ".jpg").apply { deleteOnExit() }
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns PickedImage(realPicture, 30, 40)
+    coEvery { capturedPictureSource.newCaptureUri(any()) } returns "content://next"
+    val date = MemoryDate(2024, Month.MAY, 12)
+    val savedState = SavedStateHandle()
+    val before = createViewModel(savedState)
+    before.setDescription("At the lake")
+    before.setDate(date)
+    before.toggleShownId("user2")
+    before.selectPlace(lausanne)
+    before.onPictureCaptured(CAPTURE_URI)
+
+    // a new process only gets what was saved
+    val after =
+        createViewModel(SavedStateHandle(savedState.keys().associateWith { savedState[it] }))
+
+    val state = after.uiState.value
+    assertEquals("At the lake", state.description)
+    assertEquals(date, state.date)
+    assertEquals(setOf("user2"), state.shownIds)
+    assertEquals(lausanne, state.location.pickedPlace)
+    assertEquals(realPicture, state.pictureFile)
+    assertEquals(30, state.pictureWidth)
+    assertEquals(40, state.pictureHeight)
+    after.onTakePicture()
+    coVerify(exactly = 1) { capturedPictureSource.newCaptureUri(CAPTURE_URI) }
+  }
+
+  @Test
+  fun aRestoredPictureWhoseFileIsGoneIsLeftOutButAClearedDateStaysCleared() {
+    val gone = File("/no/such/picture.jpg")
+    val savedState = SavedStateHandle()
+    val before = createViewModel(savedState)
+    before.setPicture(gone, 30, 40)
+    before.setDate(null)
+
+    val state = createViewModel(savedState).uiState.value
+
+    assertNull(state.pictureFile)
+    assertEquals(0, state.pictureWidth)
+    assertNull(state.date)
+    assertNull(state.location.pickedPlace)
   }
 
   @Test

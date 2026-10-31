@@ -5,8 +5,12 @@
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -196,6 +200,7 @@ private sealed interface UploadCheck {
  * @param placeRepo The repository used to find real places from what the user types.
  * @param pictureReader The reader used to copy selected pictures and read their dimensions.
  * @param capturedPictureSource The source of the files the camera app saves pictures to.
+ * @param savedState Keeps the form and the selected capture if Android kills the app.
  * @param cleanupScope Where the last capture is deleted: the view model's own scope is over by
  *   then.
  */
@@ -207,10 +212,13 @@ class UploadPictureViewModel(
     private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
     private val capturedPictureSource: CapturedPictureSource = capturedPictures,
+    private val savedState: SavedStateHandle = SavedStateHandle(),
     private val cleanupScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) : ViewModel() {
   private val _uiState =
-      MutableStateFlow(UploadPictureUIState(date = MemoryDate(LocalDate.now().year)))
+      MutableStateFlow(
+          savedState.restoreDraft(UploadPictureUIState(date = MemoryDate(LocalDate.now().year)))
+      )
   val uiState: StateFlow<UploadPictureUIState> = _uiState.asStateFlow()
   // “Upload finished, navigate away” is an event:
   // it should happen once and then be gone. A Channel is built for that.
@@ -231,11 +239,16 @@ class UploadPictureViewModel(
   // From the tap until the camera answers: a double tap must not open the camera twice
   private var captureInProgress = false
   // The capture shown as the selected picture, deleted if it ends up not being uploaded
-  private var selectedCaptureUri: String? = null
+  private var selectedCaptureUri: String?
+    get() = savedState[SELECTED_CAPTURE_KEY]
+    set(uri) {
+      savedState[SELECTED_CAPTURE_KEY] = uri
+    }
 
   init {
     loadCircle()
     searchPlacesAsTyped()
+    viewModelScope.launch { _uiState.collect(savedState::saveDraft) }
   }
 
   // id -> label shown on the "who is involved" chips.
@@ -804,8 +817,15 @@ class UploadPictureViewModel(
     }
   }
 
-  private companion object {
+  companion object {
+    private const val SELECTED_CAPTURE_KEY = "selected_capture_uri"
+
+    /** Gives the view model its saved state, which the default factory wouldn't. */
+    val Factory = viewModelFactory {
+      initializer { UploadPictureViewModel(savedState = createSavedStateHandle()) }
+    }
+
     /** How long the user must stop typing before their place search is sent. */
-    val PLACE_SEARCH_DEBOUNCE = 300.milliseconds
+    private val PLACE_SEARCH_DEBOUNCE = 300.milliseconds
   }
 }

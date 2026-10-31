@@ -161,7 +161,7 @@ private fun rememberCameraActions(viewModel: UploadPictureViewModel): CameraActi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadPictureScreen(
-    viewModel: UploadPictureViewModel = viewModel(),
+    viewModel: UploadPictureViewModel = viewModel(factory = UploadPictureViewModel.Factory),
     onUpload: () -> Unit = {},
     goBack: () -> Unit = {},
 ) {
