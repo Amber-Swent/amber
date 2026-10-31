@@ -57,6 +57,7 @@ import org.junit.Test
 class UploadPictureViewModelTest {
   private val testDispatcher = UnconfinedTestDispatcher()
   private val ERROR_MESSAGE = "Boom"
+  private val CAPTURE_URI = "content://com.github.se.amber.fileprovider/captured_pictures/1.jpg"
   private val SLOW_SEARCH = 1_000.milliseconds
   private val AFTER_DEBOUNCE = 400L // ms: past the 300 ms pause, before SLOW_SEARCH ends
 
@@ -65,6 +66,7 @@ class UploadPictureViewModelTest {
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
   private lateinit var pictureReader: SelectedPictureReader
+  private lateinit var capturedPictureSource: CapturedPictureSource
   private lateinit var placeRepo: PlaceSearchRepository
 
   private lateinit var circle: CareCircle
@@ -79,6 +81,7 @@ class UploadPictureViewModelTest {
     profileRepo = mockk()
     circleRepo = mockk()
     pictureReader = mockk()
+    capturedPictureSource = mockk(relaxUnitFun = true)
     placeRepo = mockk()
 
     circle = fakeCircle()
@@ -105,6 +108,7 @@ class UploadPictureViewModelTest {
           profileRepo = profileRepo,
           circleRepo = circleRepo,
           pictureReader = pictureReader,
+          capturedPictureSource = capturedPictureSource,
           placeRepo = placeRepo,
       )
 
@@ -786,6 +790,108 @@ class UploadPictureViewModelTest {
   }
 
   // ______________________________________
+
+  // ---------- camera ----------
+
+  @Test
+  fun onTakePictureAsksTheScreenToOpenTheCameraOnANewFile() = runTest {
+    coEvery { capturedPictureSource.newCaptureUri() } returns CAPTURE_URI
+    val vm = createViewModel()
+
+    vm.onTakePicture()
+
+    assertEquals(UploadPictureEvent.OpenCamera(CAPTURE_URI), vm.events.first())
+  }
+
+  @Test
+  fun onTakePictureIgnoresASecondTapWhileTheFileIsBeingCreated() {
+    val uri = CompletableDeferred<String>()
+    coEvery { capturedPictureSource.newCaptureUri() } coAnswers { uri.await() }
+    val vm = createViewModel()
+
+    vm.onTakePicture()
+    vm.onTakePicture()
+    uri.complete(CAPTURE_URI)
+
+    coVerify(exactly = 1) { capturedPictureSource.newCaptureUri() }
+  }
+
+  @Test
+  fun onTakePictureCanStartAgainOnceTheFirstFileIsReady() {
+    coEvery { capturedPictureSource.newCaptureUri() } returns CAPTURE_URI
+    val vm = createViewModel()
+
+    vm.onTakePicture()
+    vm.onTakePicture()
+
+    coVerify(exactly = 2) { capturedPictureSource.newCaptureUri() }
+  }
+
+  @Test
+  fun onTakePictureShowsAnErrorWhenTheFileCannotBeCreated() {
+    coEvery { capturedPictureSource.newCaptureUri() } throws IOException(ERROR_MESSAGE)
+    val vm = createViewModel()
+
+    vm.onTakePicture()
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess,
+        vm.uiState.value.errorMsg,
+    )
+  }
+
+  @Test
+  fun onPictureCapturedStoresThePictureAndKeepsItsFile() {
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns PickedImage(pictureFile, 1440, 1920)
+    val vm = createViewModel()
+
+    vm.onPictureCaptured(CAPTURE_URI)
+
+    val state = vm.uiState.value
+    assertEquals(pictureFile, state.pictureFile)
+    assertEquals(1440, state.pictureWidth)
+    assertEquals(1920, state.pictureHeight)
+    coVerify(exactly = 0) { capturedPictureSource.discard(any()) }
+  }
+
+  @Test
+  fun onPictureCapturedDiscardsAFileItCannotRead() {
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } throws IOException(ERROR_MESSAGE)
+    val vm = createViewModel()
+
+    vm.onPictureCaptured(CAPTURE_URI)
+
+    assertNull(vm.uiState.value.pictureFile)
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
+        vm.uiState.value.errorMsg,
+    )
+    coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
+  }
+
+  @Test
+  fun onCaptureCancelledDiscardsTheFileAndKeepsThePictureAlreadySelected() {
+    val vm = readyViewModel()
+
+    vm.onCaptureCancelled(CAPTURE_URI)
+
+    coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
+    assertEquals(pictureFile, vm.uiState.value.pictureFile)
+    assertNull(vm.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun onCameraUnavailableShowsAnErrorAndDiscardsTheFile() {
+    val vm = createViewModel()
+
+    vm.onCameraUnavailable(CAPTURE_URI)
+
+    assertEquals(
+        UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess,
+        vm.uiState.value.errorMsg,
+    )
+    coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
+  }
 
   @Test
   fun selectPictureRequestsSelectedUriFromReader() {

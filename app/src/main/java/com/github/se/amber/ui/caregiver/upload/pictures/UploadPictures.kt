@@ -134,6 +134,7 @@ fun UploadPictureScreen(
     viewModel.events.collect { event ->
       when (event) {
         UploadPictureEvent.Uploaded -> currentOnUpload()
+        is UploadPictureEvent.OpenCamera -> Unit
       }
     }
   }

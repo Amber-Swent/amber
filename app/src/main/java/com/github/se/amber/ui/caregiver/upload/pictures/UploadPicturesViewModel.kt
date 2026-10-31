@@ -33,6 +33,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.BufferOverflow
@@ -58,6 +59,9 @@ import kotlinx.coroutines.launch
 
 sealed interface UploadPictureEvent {
   data object Uploaded : UploadPictureEvent
+
+  /** The camera app should be opened to save a picture to [uri]. */
+  data class OpenCamera(val uri: String) : UploadPictureEvent
 }
 
 /** Error message used by the caregiver Upload Picture ViewModel. */
@@ -70,6 +74,7 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
   SELECT_PICTURE(mess = "Please select a picture first"),
   UNKNOW_ERROR(mess = "Upload failed: "),
   COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
+  COULD_NOT_OPEN_CAMERA(mess = "Could not open the camera"),
   DESCRIPTION_EMPTY(mess = "description is  empty"),
   SELECT_DATE(mess = "date can't be empty"),
   PICK_A_PLACE(mess = "Pick the place from the suggestions"),
@@ -185,6 +190,7 @@ private sealed interface UploadCheck {
  * @param circleRepo The repository used to load the user's care circle.
  * @param placeRepo The repository used to find real places from what the user types.
  * @param pictureReader The reader used to copy selected pictures and read their dimensions.
+ * @param capturedPictureSource The source of the files the camera app saves pictures to.
  */
 class UploadPictureViewModel(
     private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
@@ -193,6 +199,7 @@ class UploadPictureViewModel(
     private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
     private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
+    private val capturedPictureSource: CapturedPictureSource = capturedPictures,
 ) : ViewModel() {
   private val _uiState =
       MutableStateFlow(UploadPictureUIState(date = MemoryDate(LocalDate.now().year)))
@@ -213,6 +220,8 @@ class UploadPictureViewModel(
   // retry sends the same text again, and a StateFlow would drop it as unchanged.
   private val placeQueries =
       MutableSharedFlow<String>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+  // Set while the file for a new capture is created: a double tap must not open the camera twice
+  private var preparingCapture: Job? = null
 
   init {
     loadCircle()
@@ -421,6 +430,60 @@ class UploadPictureViewModel(
         )
       }
     }
+  }
+
+  /** Prepares a file for a new picture and asks the screen to open the camera on it. */
+  fun onTakePicture() {
+    if (preparingCapture?.isActive == true) return
+    preparingCapture = viewModelScope.launch {
+      try {
+        _events.send(UploadPictureEvent.OpenCamera(capturedPictureSource.newCaptureUri()))
+      } catch (e: CancellationException) {
+        throw e
+      } catch (_: Exception) {
+        setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess)
+      }
+    }
+  }
+
+  /**
+   * Stores the picture the camera app just saved. A file that can't be read is deleted.
+   *
+   * @param uri The URI sent in [UploadPictureEvent.OpenCamera].
+   */
+  fun onPictureCaptured(uri: String) {
+    viewModelScope.launch {
+      try {
+        val picture = capturedPictureSource.read(uri)
+        setPicture(picture.file, picture.width, picture.height)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        setErrorMsg(
+            UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + (e.message ?: "")
+        )
+        capturedPictureSource.discard(uri)
+      }
+    }
+  }
+
+  /**
+   * Deletes the file of a capture the user cancelled. Any picture already selected is kept.
+   *
+   * @param uri The URI sent in [UploadPictureEvent.OpenCamera].
+   */
+  fun onCaptureCancelled(uri: String) {
+    viewModelScope.launch { capturedPictureSource.discard(uri) }
+  }
+
+  /**
+   * Tells the user that no camera app could be opened and deletes the file prepared for it.
+   *
+   * @param uri The URI sent in [UploadPictureEvent.OpenCamera].
+   */
+  fun onCameraUnavailable(uri: String) {
+    setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess)
+    onCaptureCancelled(uri)
   }
 
   /**
