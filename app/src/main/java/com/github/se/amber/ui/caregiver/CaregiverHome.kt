@@ -25,7 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
@@ -55,6 +54,7 @@ fun CaregiverHomeScreen(
     onTabSelected: (Tab) -> Unit = {},
 ) {
   val context = LocalContext.current
+
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
   LaunchedEffect(uiState.errorMsg) {
@@ -65,21 +65,6 @@ fun CaregiverHomeScreen(
   }
 
   Scaffold(
-      topBar = {
-        Text(
-            text = "Home",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(
-                        top = CAREGIVER_PADDING_SMALL,
-                        bottom = CAREGIVER_PADDING_MEDIUM,
-                    )
-                    .testTag(CaregiverHomeTestTags.TITLE),
-        )
-      },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = CaregiverTab.Home,
@@ -91,13 +76,24 @@ fun CaregiverHomeScreen(
       content = { paddingValues ->
         Column(
             modifier =
-                Modifier.fillMaxSize().padding(paddingValues).padding(CAREGIVER_PADDING_MEDIUM),
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(
+                        horizontal = CAREGIVER_PADDING_MEDIUM,
+                        vertical = CAREGIVER_PADDING_SMALL,
+                    ),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+          DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
           Text(
-              text = "Welcome ! You are with " + uiState.patient.person.firstName,
-              modifier = Modifier.testTag(WELCOME_TEXT),
+              text =
+                  if (uiState.patient.uid.isNotBlank()) {
+                    "Welcome ! You are with " + uiState.patient.person.firstName
+                  } else {
+                    "Welcome! There are no patient linked to this care circle yet."
+                  },
+              modifier = Modifier.fillMaxWidth().testTag(CaregiverHomeTestTags.WELCOME_TEXT),
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.bodyLarge,
               textAlign = TextAlign.Center,
