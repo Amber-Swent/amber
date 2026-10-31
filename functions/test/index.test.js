@@ -758,12 +758,19 @@ function setupAccounts() {
       nicknames: {gone: {other: "Bob"}, other: {gone: "Al", patient: "Mum"}, patient: {gone: "Son"}},
     },
     "careCircles/shared/media/own-photo": storedMedia("own-photo", {authorId: "gone"}),
+    "careCircles/shared/media/own-memo": storedMedia("own-memo", {
+      authorId: "gone",
+      storagePath: "careCircles/shared/media/own-memo.m4a",
+    }),
     "careCircles/shared/media/own-text": storedMedia("own-text", {authorId: "gone", storagePath: ""}),
     "careCircles/shared/media/tagged": storedMedia("tagged", {shownIds: ["gone", "patient"]}),
     "careCircles/shared/media/restricted": storedMedia("restricted", {authorizedIds: ["gone"]}),
     "careCircles/shared/media/two-allowed": storedMedia("two-allowed", {authorizedIds: ["gone", "patient"]}),
     "careCircles/shared/stories/own-story": {createdBy: "gone", mediaIds: ["tagged"]},
-    "careCircles/shared/stories/other-story": {createdBy: "other", mediaIds: ["own-photo", "tagged", "own-text"]},
+    "careCircles/shared/stories/other-story": {
+      createdBy: "other",
+      mediaIds: ["own-photo", "tagged", "own-memo", "own-text"],
+    },
     "careCircles/shared/appointments/doctor": {createdBy: "gone", attendeeIds: ["gone", "other"]},
     "careCircles/shared/appointments/physio": {createdBy: "other", attendeeIds: ["other"]},
     "careCircles/alone": {memberIds: ["gone"], patientId: "", createdBy: "gone", storageBucket: EMPTY_BUCKET},
@@ -778,7 +785,11 @@ function setupAccounts() {
     "invitations/unrelated": {createdBy: "other", usedBy: "patient", circleId: "shared"},
   }));
   state.buckets = new Map([
-    [BUCKET, new Set(["careCircles/shared/media/own-photo.jpg", "careCircles/shared/media/tagged.jpg"])],
+    [BUCKET, new Set([
+      "careCircles/shared/media/own-photo.jpg",
+      "careCircles/shared/media/own-memo.m4a",
+      "careCircles/shared/media/tagged.jpg",
+    ])],
     [EMPTY_BUCKET, new Set(["careCircles/alone/media/photo.jpg"])],
     ["amber-other", new Set(["careCircles/unrelated/media/photo.jpg"])],
   ]);
@@ -934,6 +945,7 @@ test("deleteAccount leaves no trace of a caregiver in their circles and changes 
 
   const stored = (documentPath) => state.store.get(`careCircles/shared/${documentPath}`);
   assert.equal(stored("media/own-photo"), undefined);
+  assert.equal(stored("media/own-memo"), undefined);
   assert.equal(stored("media/own-text"), undefined);
   assert.deepEqual(stored("media/tagged").shownIds, ["patient"]);
   assert.deepEqual(stored("media/two-allowed").authorizedIds, ["patient"]);
@@ -992,7 +1004,7 @@ test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
 
   assert.equal(state.store.has("careCircles/alone"), false);
   assert.equal(state.buckets.has(EMPTY_BUCKET), true);
-  assert.equal(state.buckets.get(BUCKET).size, 2);
+  assert.equal(state.buckets.get(BUCKET).size, 3);
   assert.equal(rulesReleases, 0);
 });
 
