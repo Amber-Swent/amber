@@ -283,6 +283,12 @@ async function deleteInvitations(uid) {
   await deleteDocuments([...created.docs, ...used.docs]);
 }
 
+// Without a bucket no file can have been stored. The emulators don't provision buckets, and this
+// would reach the real Cloud Storage.
+function usesStorage(bucketName) {
+  return Boolean(bucketName) && process.env.FUNCTIONS_EMULATOR !== "true";
+}
+
 // Stories go first: the ids to remove are only known while the media documents still exist.
 async function deleteAuthoredMedia(uid, circleRef, bucketName) {
   const media = await circleRef.collection("media").where("authorId", "==", uid).get();
@@ -301,9 +307,8 @@ async function deleteAuthoredMedia(uid, circleRef, bucketName) {
   await writeInBatches(otherStories, (batch, story) =>
     batch.update(story.ref, { mediaIds: FieldValue.arrayRemove(...story.ids) }));
 
-  // The files go before their documents, the only record of where they are. Without a bucket
-  // (always the case in the emulator) no file can have been stored.
-  if (bucketName) {
+  // The files go before their documents, the only record of where they are
+  if (usesStorage(bucketName)) {
     const bucket = getStorage().bucket(bucketName);
     for (const item of media.docs) {
       const storagePath = item.get("storagePath");
@@ -378,9 +383,8 @@ async function leaveCircle(uid, circleRef) {
   });
 }
 
-// The emulators don't provision buckets, and this would reach the real Cloud Storage.
 async function deleteBucket(bucketName) {
-  if (!bucketName || process.env.FUNCTIONS_EMULATOR === "true") {
+  if (!usesStorage(bucketName)) {
     return;
   }
   const bucket = getStorage().bucket(bucketName);
