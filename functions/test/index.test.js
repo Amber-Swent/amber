@@ -831,6 +831,19 @@ test("deleteAccount only deletes the caller's account, whatever uid the request 
   assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {}}), {deleted: true});
 });
 
+test("deleteAccount finishes when a concurrent call deletes a circle first", async () => {
+  setupAccounts();
+  const {deleteAccount} = callableModule();
+  state.failWrite = (_action, target) => {
+    if (target === "careCircles/alone/media/photo") state.store.delete("careCircles/alone");
+    return false;
+  };
+
+  assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {}}), {deleted: true});
+
+  assert.equal(state.store.has("users/gone"), false);
+});
+
 test("deleteAccount blocks new redemptions from the moment it starts", async () => {
   setupAccounts();
   const {deleteAccount} = callableModule();

@@ -360,6 +360,10 @@ function nicknamesWithout(uid, nicknames) {
 async function leaveCircle(uid, circleRef) {
   return db.runTransaction(async (transaction) => {
     const circleSnapshot = await transaction.get(circleRef);
+    // a double tap: another call deleted it first
+    if (!circleSnapshot.exists) {
+      return false;
+    }
     const circle = circleSnapshot.data();
     if (circle.memberIds.every((memberId) => memberId === uid)) {
       return true;
