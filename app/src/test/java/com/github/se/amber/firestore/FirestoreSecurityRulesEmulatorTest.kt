@@ -504,7 +504,7 @@ class FirestoreSecurityRulesEmulatorTest {
 
   /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
-  fun aUserBeingDeleted_canNoLongerWriteOrCreateAnything_enforcedByEmulator() {
+  fun aUserBeingDeleted_canReadButNoLongerWriteOrCreateAnything_enforcedByEmulator() {
     val circleId = "c-deleting"
     val gone = "gone"
     val other = "other"
@@ -524,7 +524,6 @@ class FirestoreSecurityRulesEmulatorTest {
 
     fs.assertFails(gone, newMediaFor(gone, "m2"))
     fs.assertFails(gone, fs.delete("careCircles/$circleId/media/m1"))
-    fs.assertFails(gone, fs.get("careCircles/$circleId"))
     fs.assertFails(
         gone,
         fs.set("careCircles/c-new", circle("c-new", gone, listOf(gone), patientId = "")),
@@ -533,8 +532,10 @@ class FirestoreSecurityRulesEmulatorTest {
         gone,
         fs.set("invitations/code", invite("code", circleId, gone, expiresAt = 4_000_000_000_000L)),
     )
-    // the user keeps access to their own profile, and the others aren't affected
+    // a failed deletion must not lock the user out of their data, and the others aren't affected
     fs.assertSucceeds(gone, fs.get("users/$gone"))
+    fs.assertSucceeds(gone, fs.get("careCircles/$circleId"))
+    fs.assertSucceeds(gone, fs.get("careCircles/$circleId/media/m1"))
     fs.assertSucceeds(other, newMediaFor(other, "m3"))
   }
 

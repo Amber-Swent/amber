@@ -1,5 +1,4 @@
 // Written by GitHub Copilot.
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -10,7 +9,6 @@ const coveredConditions = [
   "return isSignedIn()",
   "&& exists(circlePath(circleId))",
   "&& exists(userPath(request.auth.uid))",
-  "&& !isBeingDeleted()",
   "&& circleId in userDoc(request.auth.uid).circleIds",
   "&& request.auth.uid in circleDoc(circleId).memberIds;",
 ];
