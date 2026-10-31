@@ -124,6 +124,7 @@ function storedDocument(documentPath) {
   return {
     path: documentPath,
     collection: (name) => storedCollection(`${documentPath}/${name}`),
+    id: documentPath.split("/").at(-1),
     update: async (data) => write("update", documentPath, data),
     delete: async () => write("delete", documentPath),
   };
@@ -864,6 +865,37 @@ test("deleteAccount splits a large circle over several batches", async () => {
   assert.ok(state.batches >= 3, `${state.batches} batches`);
 });
 
+test("deleteAccount refreshes the Storage rules of the buckets it goes through", async (t) => {
+  await t.test("before deleting any file", async () => {
+    setupAccounts();
+    const released = [];
+    const filesWhenReleased = [];
+    state.securityRules.releaseStorageRuleset = async (_ruleset, bucketName) => {
+      released.push(bucketName);
+      filesWhenReleased.push(state.buckets.get(bucketName).size);
+    };
+    const {deleteAccount} = callableModule();
+
+    await deleteAccount({auth: freshAuth(), data: {}});
+
+    assert.deepEqual(released.sort(), [EMPTY_BUCKET, BUCKET].sort());
+    assert.ok(filesWhenReleased.every((size) => size > 0));
+  });
+
+  await t.test("without letting a failure stop the deletion", async () => {
+    setupAccounts();
+    state.securityRules.releaseStorageRuleset = async () => {
+      throw new Error("Rules API unavailable");
+    };
+    t.mock.method(console, "warn", () => {});
+    const {deleteAccount} = callableModule();
+
+    await deleteAccount({auth: freshAuth(), data: {}});
+
+    assertNoReferenceTo("gone");
+  });
+});
+
 test("deleteAccount blocks new redemptions from the moment it starts", async () => {
   setupAccounts();
   const {deleteAccount} = callableModule();
@@ -948,6 +980,10 @@ test("deleteAccount keeps the circle of a last caregiver while its patient remai
 
 test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
   setupAccounts();
+  let rulesReleases = 0;
+  state.securityRules.releaseStorageRuleset = async () => {
+    rulesReleases += 1;
+  };
   process.env.FUNCTIONS_EMULATOR = "true";
   t.after(() => delete process.env.FUNCTIONS_EMULATOR);
   const {deleteAccount} = callableModule();
@@ -957,6 +993,7 @@ test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
   assert.equal(state.store.has("careCircles/alone"), false);
   assert.equal(state.buckets.has(EMPTY_BUCKET), true);
   assert.equal(state.buckets.get(BUCKET).size, 2);
+  assert.equal(rulesReleases, 0);
 });
 
 test("deleteAccount finishes the job when retried after any partial failure", async (t) => {
