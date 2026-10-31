@@ -9,13 +9,18 @@ service firebase.storage {
       let circle = firestore.get(
         /databases/(default)/documents/careCircles/$(circleId)
       );
+      return request.auth != null
+        && circle.data.storageBucket == bucket
+        && request.auth.uid in circle.data.memberIds;
+    }
+
+    // Set by deleteAccount: a file added after it looked for the user's files would be left behind.
+    // Reads stay allowed, as a failed deletion can leave this set.
+    function notBeingDeleted() {
       let profile = firestore.get(
         /databases/(default)/documents/users/$(request.auth.uid)
       );
-      return request.auth != null
-        && profile.data.get('deletionRequested', false) != true
-        && circle.data.storageBucket == bucket
-        && request.auth.uid in circle.data.memberIds;
+      return profile.data.get('deletionRequested', false) != true;
     }
 
     function circleCaregiver(circleId) {
@@ -47,17 +52,20 @@ service firebase.storage {
     match /careCircles/{circleId}/media/{fileName} {
       allow read: if circleBucketMember(circleId);
       allow create: if circleBucketMember(circleId)
+        && notBeingDeleted()
         && validMediaUpload(fileName)
         && uploadedByCurrentUser();
       allow update: if circleBucketMember(circleId)
+        && notBeingDeleted()
         && resource.metadata.authorId == request.auth.uid
         && uploadedByCurrentUser()
         && validMediaUpload(fileName);
       // resource is null for a missing file: deleting it is allowed, so a member deleting twice
       // gets "not found", not "permission denied"
-      allow delete: if circleCaregiver(circleId)
-        || (circleBucketMember(circleId)
-          && (resource == null || resource.metadata.authorId == request.auth.uid));
+      allow delete: if notBeingDeleted()
+        && (circleCaregiver(circleId)
+          || (circleBucketMember(circleId)
+            && (resource == null || resource.metadata.authorId == request.auth.uid)));
     }
 
     match /{allPaths=**} {
