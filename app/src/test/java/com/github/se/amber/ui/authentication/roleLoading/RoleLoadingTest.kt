@@ -18,6 +18,7 @@ import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingUIState
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
 import com.github.se.amber.ui.authentication.roleLoading.RoleState
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
+import com.github.se.amber.ui.onboarding.AmberHeaderTestTags
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -78,12 +79,12 @@ class RoleLoadingScreenTest {
   }
 
   private fun assertSharedAuthenticationLayoutShown() {
-    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.HEADER).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertIsDisplayed()
   }
 
   private fun assertSharedAuthenticationLayoutHidden() {
-    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.HEADER).assertDoesNotExist()
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertDoesNotExist()
   }
 

@@ -23,6 +23,7 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
+import com.github.se.amber.ui.onboarding.AmberHeaderTestTags
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -31,10 +32,13 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+
+private const val EMAIL_HIDDEN = "Email sign-in is commented out until it is implemented"
 
 /**
  * Tests the email sign-in screen's rendering, input, loading state, and callbacks with Compose.
@@ -83,7 +87,7 @@ class EmailSignInScreenTest {
   @Test
   fun screenShowsHeader() {
     setScreen()
-    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.HEADER).assertIsDisplayed()
   }
 
   @Test
@@ -92,24 +96,28 @@ class EmailSignInScreenTest {
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertIsDisplayed()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun screenShowsHeading() {
     setScreen()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertIsDisplayed()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun screenShowsEmailField() {
     setScreen()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD).assertIsDisplayed()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun continueButtonIsDisabledWhileEmailIsBlank() {
     setScreen()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsNotEnabled()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun continueButtonIsEnabledOnceEmailIsTyped() {
     setScreen()
@@ -120,10 +128,24 @@ class EmailSignInScreenTest {
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsEnabled()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun continueButtonIsDisabledForWhitespaceEmail() {
     setScreen(mockViewModel(EmailSignInUIState(email = "  ")))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun googleIsTheOnlySignInOptionAndTheFooterSaysSo() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.OR_DIVIDER).assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER)
+        .assertTextContains("By signing in", substring = true)
   }
 
   @Test
@@ -132,6 +154,7 @@ class EmailSignInScreenTest {
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsEnabled()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun orDividerIsDisplayed() {
     setScreen()
@@ -146,6 +169,7 @@ class EmailSignInScreenTest {
         .assertTextContains("Signing in…", substring = true)
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun typingEmailPropagatesInputToViewModel() {
     setScreen()
@@ -160,6 +184,7 @@ class EmailSignInScreenTest {
     assertEquals("person@example.com", viewModel.uiState.value.email)
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun continueWithBlankEmailDoesNotInvokeNavigationCallback() {
     setScreen()
@@ -169,6 +194,7 @@ class EmailSignInScreenTest {
     assertEquals(0, continueCount)
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun continueWithEmailInvokesNavigationCallbackOnce() {
     setScreen()
@@ -187,6 +213,7 @@ class EmailSignInScreenTest {
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsNotEnabled()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun continueButtonStaysEnabledDuringLoading() {
     setScreen(mockViewModel(EmailSignInUIState(email = "person@example.com", isLoading = true)))
@@ -229,6 +256,7 @@ class EmailSignInScreenTest {
     assertEquals(0, googleSignInCount)
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun screenWithDefaultArgumentsUsesProviderRepository() {
     every { repository.currentUser } returns AuthUser("existing-user")
@@ -248,6 +276,7 @@ class EmailSignInScreenTest {
     }
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun contentWithDefaultArgumentsShowsEmptyIdleForm() {
     composeTestRule.setContent { EmailSignInContent() }
@@ -258,6 +287,7 @@ class EmailSignInScreenTest {
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).performClick()
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun previewShowsEnteredEmail() {
     composeTestRule.setContent { EmailSignInContentPreview() }
