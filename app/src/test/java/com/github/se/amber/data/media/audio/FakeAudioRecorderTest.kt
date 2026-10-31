@@ -13,8 +13,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * Checks that [FakeAudioRecorder] follows the [AudioRecorder] contract, which the ViewModel tests
- * using it rely on.
+ * Checks that [FakeAudioRecorder] follows the [AudioRecorder] contract and that its test helpers
+ * work, since the ViewModel tests rely on both.
  */
 class FakeAudioRecorderTest {
 
@@ -49,6 +49,9 @@ class FakeAudioRecorderTest {
   @Test
   fun cancelDeletesTheFileAndDoesNothingWhenIdle() = runTest {
     recorder.cancel()
+    assertFalse(recorder.isRecording.value)
+    assertNull(recorder.file)
+
     recorder.start()
     val file = recorder.file!!
 
@@ -58,6 +61,24 @@ class FakeAudioRecorderTest {
     assertNull(recorder.file)
     assertFalse(recorder.isRecording.value)
     assertEquals(2, recorder.cancelCalls)
+  }
+
+  @Test
+  fun amplitudeGoesBackToZeroWhenTheRecordingStops() = runTest {
+    recorder.start()
+    recorder.amplitude.value = 0.6f
+    recorder.stop()
+    assertEquals(0f, recorder.amplitude.value)
+
+    recorder.start()
+    recorder.amplitude.value = 0.6f
+    recorder.cancel()
+    assertEquals(0f, recorder.amplitude.value)
+
+    recorder.start()
+    recorder.amplitude.value = 0.6f
+    recorder.reachLimit()
+    assertEquals(0f, recorder.amplitude.value)
   }
 
   @Test

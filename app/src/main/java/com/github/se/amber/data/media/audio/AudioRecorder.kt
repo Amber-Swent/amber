@@ -6,44 +6,58 @@ import com.github.se.amber.data.media.MAX_FILE_BYTES
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Records voice memos from the microphone, one at a time.
+ * Records audio from the microphone, one recording at a time.
  *
- * ViewModels see only this interface, so tests can pass a fake. They receive it as a constructor
- * parameter. The app has a single instance, since the device has a single microphone; it will come
- * from `AudioRecorderProvider`.
+ * ViewModels only see this interface, so their tests can use a fake instead. They receive it as a
+ * constructor parameter. The app has a single recorder, since the phone has a single microphone,
+ * and it will be provided by `AudioRecorderProvider`.
  */
 interface AudioRecorder {
 
   /**
-   * Whether a recording is under way. It turns true on [start], and false on [stop], on [cancel],
-   * or when the recording ends by itself at [MAX_RECORDING_MS] or near [MAX_FILE_BYTES]; the screen
-   * then calls [stop] to get it.
+   * Whether a recording is in progress. It becomes true when [start] is called, and false when
+   * [stop] or [cancel] is called.
+   *
+   * It also becomes false when the recording stops by itself because it reached [MAX_RECORDING_MS]
+   * or got close to [MAX_FILE_BYTES]. The screen can tell this happened because it didn't call
+   * [stop] or [cancel] itself, and it should then call [stop] to get the recording.
    */
   val isRecording: StateFlow<Boolean>
 
   /**
+   * How loud the microphone is right now, from 0 (silence) to 1 (the loudest it can record), so the
+   * screen can draw a waveform or a level meter. It is updated about every 100 ms while recording,
+   * and goes back to 0 when the recording stops.
+   */
+  val amplitude: StateFlow<Float>
+
+  /**
    * Starts recording from the microphone into a new .m4a file in the app's cache.
    *
-   * @throws IllegalStateException if a recording is under way, or ended at a limit and hasn't been
-   *   taken with [stop] or dropped with [cancel] yet.
-   * @throws SecurityException if RECORD_AUDIO isn't granted (the screen asks for it, not this).
+   * @throws IllegalStateException if a recording is already in progress, or if a recording that
+   *   stopped at a limit hasn't been taken with [stop] or dropped with [cancel] yet.
+   * @throws SecurityException if RECORD_AUDIO (the microphone use permission) isn't granted.
    * @throws java.io.IOException if the microphone can't be opened (e.g. used by another app).
    */
   suspend fun start()
 
   /**
-   * Ends the recording, or takes the one that ended by itself at a limit, and returns it.
+   * Stops the recording and returns it. If the recording already stopped by itself at a limit, it
+   * just returns it.
    *
-   * @throws IllegalStateException if there is no recording to return, or if it is empty or too
-   *   short to be kept (its file is then deleted).
+   * @return the recording. Its file now belongs to the caller.
+   * @throws IllegalStateException if there is no recording to return (none was started, or it was
+   *   already returned or cancelled), if it is empty (the file exists but contains nothing), or if
+   *   it is too short to be kept. In the last two cases, the file is deleted.
    */
   suspend fun stop(): LocalAudio
 
   /**
-   * Ends the recording, if any, and deletes its file. No effect otherwise; safe in `onCleared()`.
+   * Stops the recording, if there is one, and deletes its file. It does nothing otherwise, so it is
+   * safe to call in `onCleared()`.
    */
   fun cancel()
 }
 
-/** Longest recording; the recorder stops by itself when it is reached. */
+/** The longest a recording can last. The recorder stops by itself when it reaches it. */
 const val MAX_RECORDING_MS = 5 * 60 * 1000L

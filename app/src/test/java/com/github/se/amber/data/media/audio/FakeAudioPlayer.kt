@@ -6,19 +6,21 @@ import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * An [AudioPlayer] without a speaker, for the ViewModel tests. Every file it plays lasts
- * [durationMs] and is recorded in [played]; [play] throws [playError] instead while it is set (e.g.
- * an `IOException` for a file that can't be decoded), leaving nothing loaded. The position only
- * moves through [seekTo] and [finish], which ends playback as reaching the end of the file would.
- * Pass the same instance to two ViewModels to test that one memo stops the other.
+ * An [AudioPlayer] for the ViewModel tests, with no speaker. Every file it plays lasts [durationMs]
+ * and is recorded in [played]. Time doesn't pass: the position only moves with [seekTo], and
+ * [finish] ends playback the way reaching the end of the file would.
+ *
+ * To test the error cases, set [playError] (e.g. an `IOException` for a file that can't be
+ * decoded). To test that one audio stops another, give the same player to two ViewModels.
  */
 class FakeAudioPlayer(var durationMs: Long = 5_000L) : AudioPlayer {
 
   override val state = MutableStateFlow(AudioState())
 
-  /** Thrown by every [play] while set, after what was loaded is stopped. */
+  /** Thrown by every [play] while it is set, after what was loaded is stopped. */
   var playError: Exception? = null
 
+  /** The files played so far, in order. */
   val played: MutableList<File> = mutableListOf()
 
   override suspend fun play(file: File) {
@@ -46,7 +48,8 @@ class FakeAudioPlayer(var durationMs: Long = 5_000L) : AudioPlayer {
   }
 
   /**
-   * Ends playback as reaching the end of the file does: stopped, back at 0, file and duration kept.
+   * Ends playback the way reaching the end of the file does: it stops and goes back to 0, keeping
+   * the file and the duration.
    */
   fun finish() {
     check(state.value.file != null) { "Nothing loaded" }

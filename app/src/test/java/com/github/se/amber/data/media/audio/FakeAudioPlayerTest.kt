@@ -10,13 +10,13 @@ import org.junit.Assert.assertSame
 import org.junit.Test
 
 /**
- * Checks that [FakeAudioPlayer] follows the [AudioPlayer] contract, which the ViewModel tests using
- * it rely on.
+ * Checks that [FakeAudioPlayer] follows the [AudioPlayer] contract and that its test helpers work,
+ * since the ViewModel tests rely on both.
  */
 class FakeAudioPlayerTest {
 
   private val player = FakeAudioPlayer(durationMs = 5_000L)
-  private val file = File("memo.m4a")
+  private val file = File("audio.m4a")
   private val other = File("other.m4a")
 
   @Test

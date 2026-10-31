@@ -4,6 +4,7 @@ package com.github.se.amber.data.media.audio
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -11,8 +12,8 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /**
- * Checks that [FakeSelectedAudioReader] follows the [SelectedAudioReader] contract, which the
- * ViewModel tests using it rely on.
+ * Checks that [FakeSelectedAudioReader] follows the [SelectedAudioReader] contract and that its
+ * test helpers work, since the ViewModel tests rely on both.
  */
 class FakeSelectedAudioReaderTest {
 
@@ -22,15 +23,15 @@ class FakeSelectedAudioReaderTest {
 
   @Test
   fun readReturnsANewM4aFileWithTheDuration() = runTest {
-    val first = reader.read("content://memo/1")
-    val second = reader.read("content://memo/2")
+    val first = reader.read("content://audio/1")
+    val second = reader.read("content://audio/2")
 
     assertTrue(first.file.name.endsWith(".m4a"))
     assertEquals(folder.root, first.file.parentFile)
-    assertEquals("audio from content://memo/1", first.file.readText())
+    assertEquals("audio from content://audio/1", first.file.readText())
     assertEquals(7_000L, first.durationMs)
-    assertTrue(first.file != second.file)
-    assertEquals(listOf("content://memo/1", "content://memo/2"), reader.reads)
+    assertNotEquals(first.file, second.file)
+    assertEquals(listOf("content://audio/1", "content://audio/2"), reader.reads)
   }
 
   @Test
@@ -38,8 +39,8 @@ class FakeSelectedAudioReaderTest {
     val notM4a = IllegalArgumentException("not an .m4a")
     reader.error = notM4a
 
-    assertSame(notM4a, runCatching { reader.read("content://memo.mp3") }.exceptionOrNull())
-    assertEquals(listOf("content://memo.mp3"), reader.reads)
+    assertSame(notM4a, runCatching { reader.read("content://audio.mp3") }.exceptionOrNull())
+    assertEquals(listOf("content://audio.mp3"), reader.reads)
     assertEquals(0, folder.root.listFiles()!!.size)
   }
 }
