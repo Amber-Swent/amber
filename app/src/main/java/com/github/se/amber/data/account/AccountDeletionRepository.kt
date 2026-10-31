@@ -3,7 +3,7 @@
 package com.github.se.amber.data.account
 
 /** Permanently deletes the signed-in user's account. */
-fun interface AccountDeletionRepository {
+interface AccountDeletionRepository {
 
   /**
    * Asks the backend to delete the current user's account and personal data. Once it confirms,
@@ -15,4 +15,14 @@ fun interface AccountDeletionRepository {
    *   [AccountDeletionError].
    */
   suspend fun deleteAccount(): Result<Unit>
+
+  /**
+   * Clears this device again, for an account that is already gone: after
+   * [AccountDeletionError.LocalDataNotCleared], or if the deletion was interrupted before the
+   * device was cleared, which shows as
+   * [com.github.se.amber.model.authentication.ReauthenticationError.AccountNotFound].
+   *
+   * @return Success once the device is cleared, or [AccountDeletionError.LocalDataNotCleared].
+   */
+  suspend fun clearLocalData(): Result<Unit>
 }

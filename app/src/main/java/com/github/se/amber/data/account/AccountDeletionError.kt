@@ -22,7 +22,8 @@ sealed class AccountDeletionError(message: String, cause: Throwable? = null) :
 
   /**
    * The account is deleted, but something stayed on this device. Unlike the other failures, the
-   * account can't be used any more: this must be reported, not offered as a retry of the deletion.
+   * account can't be used any more: retry with [AccountDeletionRepository.clearLocalData], not with
+   * a new deletion.
    */
   data class LocalDataNotCleared(val source: Throwable) :
       AccountDeletionError("The account is deleted but the device isn't cleared", source)

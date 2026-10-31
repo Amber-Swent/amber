@@ -20,6 +20,7 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.`when`
 
 class FirebaseAccountDeletionRepositoryTest {
@@ -153,5 +154,22 @@ class FirebaseAccountDeletionRepositoryTest {
         failure.message,
         (error as AccountDeletionError.LocalDataNotCleared).source.message,
     )
+  }
+
+  @Test
+  fun clearLocalDataRetriesTheDeviceWithoutCallingTheBackend() = runBlocking {
+    val failure = IOException("Files left")
+    clearLocalData = { throw failure }
+    val error = repository.clearLocalData().exceptionOrNull()
+    assertEquals(
+        failure.message,
+        (error as AccountDeletionError.LocalDataNotCleared).source.message,
+    )
+
+    clearLocalData = {}
+    assertTrue(repository.clearLocalData().isSuccess)
+
+    assertEquals(2, clears)
+    verifyNoInteractions(callable)
   }
 }

@@ -39,7 +39,7 @@ class FirebaseAccountDeletionRepository(
         Result.failure(AccountDeletionError.Unknown(exception))
       }
 
-  private suspend fun clearLocalData(): Result<Unit> =
+  override suspend fun clearLocalData(): Result<Unit> =
       try {
         localData.clear()
         Result.success(Unit)
