@@ -399,11 +399,26 @@ async function deleteBucket(bucketName) {
   await bucket.delete({ ignoreNotFound: true });
 }
 
+// Rules are only released when a bucket is created, so an older bucket may let the user being
+// deleted add files. Deletion carries on without it: a late upload is less serious than an account
+// that can't be deleted.
+async function refreshBucketRules(circleId, bucketName) {
+  if (!usesStorage(bucketName)) {
+    return;
+  }
+  try {
+    await ensureFamilyBucketRules(bucketName);
+  } catch (error) {
+    console.warn(`Could not refresh the Storage rules of circle ${circleId}`, error);
+  }
+}
+
 // A retry finds the circle through memberIds, so the uid must leave it last. The bucket goes before
 // the circle for the same reason: its name would be lost with the document.
 async function removeFromCircle(uid, circleSnapshot) {
   const circleRef = circleSnapshot.ref;
   const bucketName = circleSnapshot.get("storageBucket");
+  await refreshBucketRules(circleRef.id, bucketName);
   await deleteAuthoredMedia(uid, circleRef, bucketName);
   await removeFromRemainingMedia(uid, circleRef);
   await removeFromAppointments(uid, circleRef);
