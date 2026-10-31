@@ -1,12 +1,11 @@
 /* This file was written with the aid of AI.
- * Modified by nehachak1, with assistance from
- * Claude Code
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,12 +26,17 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
 
 /** Test tags of [EmailSignInScreen] and of its private helpers. */
 internal object EmailSignInTestTags {
+  const val WELCOME = "EmailSignIn_test_tag_welcome"
+  const val INSTRUCTION = "EmailSignIn_test_tag_instruction"
   const val HEADING = "email_sign_in_heading"
   const val EMAIL_FIELD = "email_sign_in_email_field"
   const val CONTINUE_BUTTON = "email_sign_in_continue_button"
   const val GOOGLE_BUTTON = "email_sign_in_google_button"
   const val OR_DIVIDER = "email_sign_in_or_divider"
 }
+
+internal const val WELCOME_LABEL = "Welcome to Amber"
+internal const val INSTRUCTION_LABEL = "Sign in with Google to access your account or create one."
 
 /**
  * Displays the initial authentication screen where the user can enter an email address or
@@ -143,6 +148,20 @@ internal fun EmailSignInContent(
     //   )
     //   OrDivider()
     // Close the action group's Column after the Google button below
+    AuthenticationText(
+        modifier = Modifier.testTag(EmailSignInTestTags.WELCOME),
+        text = WELCOME_LABEL,
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    AuthenticationText(
+        modifier = Modifier.testTag(EmailSignInTestTags.INSTRUCTION),
+        text = INSTRUCTION_LABEL,
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.secondary,
+    )
     AuthenticationButton(
         text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
         onClick = onGoogleSignIn,

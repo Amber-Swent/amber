@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -23,6 +24,8 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
+import com.github.se.amber.ui.authentication.signIn.INSTRUCTION_LABEL
+import com.github.se.amber.ui.authentication.signIn.WELCOME_LABEL
 import com.github.se.amber.ui.onboarding.AmberHeaderTestTags
 import io.mockk.every
 import io.mockk.mockk
@@ -136,9 +139,13 @@ class EmailSignInScreenTest {
   }
 
   @Test
-  fun googleIsTheOnlySignInOptionAndTheFooterSaysSo() {
+  fun theScreenWelcomesTheUserAndGoogleIsTheOnlySignInOption() {
     setScreen()
 
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.WELCOME).assertTextEquals(WELCOME_LABEL)
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.INSTRUCTION)
+        .assertTextEquals(INSTRUCTION_LABEL)
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD).assertDoesNotExist()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertDoesNotExist()
