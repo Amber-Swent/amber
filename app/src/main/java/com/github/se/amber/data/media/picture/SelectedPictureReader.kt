@@ -1,7 +1,7 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.data.media.picture
 
 import android.content.Context
 import android.graphics.BitmapFactory

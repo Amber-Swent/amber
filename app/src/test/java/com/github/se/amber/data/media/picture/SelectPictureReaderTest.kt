@@ -1,14 +1,13 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.data.media.picture
 
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
-import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReaderAndroid
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
