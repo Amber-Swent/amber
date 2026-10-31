@@ -411,6 +411,51 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
+  fun userBeingDeleted_keepsReading_butCanNoLongerWrite() {
+    val db = FakeFirestore()
+    val caregiver =
+        UserProfile(
+            uid = "care",
+            role = Role.CAREGIVER,
+            person = Person(id = "care"),
+            circleIds = listOf("c1"),
+        )
+    val circle = CareCircle(id = "c1", memberIds = listOf("care"), createdBy = "care")
+    val picture =
+        MediaItem.Picture(
+            id = "m1",
+            authorId = "care",
+            storagePath = "careCircles/c1/media/m1.jpg",
+            status = MediaStatus.PENDING,
+        )
+    val story = Story(id = "s1", title = "Trip", createdBy = "care")
+    val appointment = Appointment(id = "a1", title = "Doctor", createdBy = "care")
+    val invite = Invitation(code = "ABC123", circleId = "c1", createdBy = "care", usedBy = null)
+    db.putUser(caregiver)
+    db.putCircle(circle)
+    db.putMedia("c1", picture)
+    assertTrue(db.rulesFor("care").canWriteTo("c1"))
+
+    db.markBeingDeleted("care")
+    val rules = db.rulesFor("care")
+
+    assertTrue(rules.isMember("c1"))
+    assertFalse(rules.canWriteTo("c1"))
+    assertFalse(
+        rules.canCreateCircle(CareCircle(id = "c2", memberIds = listOf("care"), createdBy = "care"))
+    )
+    assertFalse(rules.canUpdateCircle(circle, circle.copy(name = "New")))
+    assertFalse(rules.canCreateMedia("c1", picture))
+    assertFalse(rules.canUpdateMedia("c1", picture, picture.copy(description = "beach")))
+    assertFalse(rules.canDeleteMedia("c1", picture))
+    assertFalse(rules.canWriteStory("c1", story))
+    assertFalse(rules.canDeleteStory("c1"))
+    assertFalse(rules.canWriteAppointment("c1", appointment))
+    assertFalse(rules.canDeleteAppointment("c1"))
+    assertFalse(rules.canCreateInvitation(invite))
+  }
+
+  @Test
   fun invitations_getCreate_denyClientRedeem_enforcedByFakeStore() {
     val db = FakeFirestore()
     db.putUser(
@@ -477,6 +522,9 @@ private class FakeFirestore {
   private val pendingUsers = mutableMapOf<String, UserProfile>()
   private val pendingCircles = mutableMapOf<String, CareCircle>()
 
+  /** Users whose document has `deletionRequested`, which only the backend sets. */
+  private val usersBeingDeleted = mutableSetOf<String>()
+
   fun putUser(profile: UserProfile) {
     users[profile.uid] = profile
   }
@@ -491,6 +539,10 @@ private class FakeFirestore {
 
   fun putInvitation(invitation: Invitation) {
     invitations[invitation.code] = invitation
+  }
+
+  fun markBeingDeleted(uid: String) {
+    usersBeingDeleted += uid
   }
 
   fun stageUser(profile: UserProfile) {
@@ -517,6 +569,8 @@ private class FakeFirestore {
 
                 override fun circleAfter(circleId: String) =
                     pendingCircles[circleId] ?: circles[circleId]
+
+                override fun isBeingDeleted(uid: String) = uid in usersBeingDeleted
               },
       )
 }
@@ -529,6 +583,8 @@ private interface DocumentLookup {
   fun userAfter(uid: String): UserProfile?
 
   fun circleAfter(circleId: String): CareCircle?
+
+  fun isBeingDeleted(uid: String): Boolean = false
 }
 
 /**
@@ -548,6 +604,10 @@ private class FirestoreSecurityRules(
     val user = authUid?.let(lookup::user) ?: return false
     return isSignedIn() && circleId in user.circleIds && authUid in circle.memberIds
   }
+
+  fun isBeingDeleted(): Boolean = authUid?.let(lookup::isBeingDeleted) ?: false
+
+  fun canWriteTo(circleId: String): Boolean = isMember(circleId) && !isBeingDeleted()
 
   fun isCaregiver(): Boolean {
     val user = authUid?.let(lookup::user) ?: return false
@@ -584,7 +644,7 @@ private class FirestoreSecurityRules(
       else resource.storagePath.matches(Regex("^careCircles/$circleId/media/[^/]+$"))
 
   fun memberCircleFieldEdit(circleId: String, before: CareCircle, after: CareCircle): Boolean {
-    if (!isMember(circleId)) return false
+    if (!canWriteTo(circleId)) return false
     if (
         after.id != before.id ||
             after.createdBy != before.createdBy ||
@@ -640,6 +700,7 @@ private class FirestoreSecurityRules(
   /** Rules also require `createdAt is int`; CareCircle always carries a Long when mirrored. */
   fun canCreateCircle(resource: CareCircle): Boolean =
       isSignedIn() &&
+          !isBeingDeleted() &&
           (isCaregiver() || isCaregiverAfter()) &&
           resource.id.isNotEmpty() &&
           resource.createdBy == authUid &&
@@ -653,7 +714,7 @@ private class FirestoreSecurityRules(
   fun canDeleteCircle(): Boolean = false
 
   fun canCreateMedia(circleId: String, resource: MediaItem): Boolean =
-      isMember(circleId) &&
+      canWriteTo(circleId) &&
           resource.id.isNotEmpty() &&
           resource.authorId == authUid &&
           mediaStoragePathMatches(circleId, resource)
@@ -668,22 +729,22 @@ private class FirestoreSecurityRules(
   }
 
   fun canUpdateMedia(circleId: String, before: MediaItem, after: MediaItem): Boolean =
-      isMember(circleId) &&
+      canWriteTo(circleId) &&
           before.authorId == authUid &&
           onlyEditableMediaFieldsChanged(before, after)
 
   fun canDeleteMedia(circleId: String, before: MediaItem): Boolean =
-      isMember(circleId) && before.authorId == authUid
+      canWriteTo(circleId) && before.authorId == authUid
 
   fun canWriteStory(circleId: String, resource: Story): Boolean =
-      isMember(circleId) && resource.id.isNotEmpty()
+      canWriteTo(circleId) && resource.id.isNotEmpty()
 
-  fun canDeleteStory(circleId: String): Boolean = isMember(circleId)
+  fun canDeleteStory(circleId: String): Boolean = canWriteTo(circleId)
 
   fun canWriteAppointment(circleId: String, resource: Appointment): Boolean =
-      isMember(circleId) && isCaregiver() && resource.id.isNotEmpty()
+      canWriteTo(circleId) && isCaregiver() && resource.id.isNotEmpty()
 
-  fun canDeleteAppointment(circleId: String): Boolean = isMember(circleId) && isCaregiver()
+  fun canDeleteAppointment(circleId: String): Boolean = canWriteTo(circleId) && isCaregiver()
 
   fun canGetInvitation(): Boolean = isSignedIn()
 
@@ -692,7 +753,7 @@ private class FirestoreSecurityRules(
 
   fun canCreateInvitation(resource: Invitation): Boolean =
       isCaregiver() &&
-          isMember(resource.circleId) &&
+          canWriteTo(resource.circleId) &&
           resource.createdBy == authUid &&
           resource.usedBy == null
 
