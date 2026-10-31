@@ -283,6 +283,128 @@ async function deleteInvitations(uid) {
   await deleteDocuments([...created.docs, ...used.docs]);
 }
 
+// Stories go first: the ids to remove are only known while the media documents still exist.
+async function deleteAuthoredMedia(uid, circleRef, bucketName) {
+  const media = await circleRef.collection("media").where("authorId", "==", uid).get();
+  const stories = await circleRef.collection("stories").get();
+  const mediaIds = new Set(media.docs.map((item) => item.id));
+
+  const ownStories = stories.docs.filter((story) => story.get("createdBy") === uid);
+  await deleteDocuments(ownStories);
+  const otherStories = stories.docs
+    .filter((story) => story.get("createdBy") !== uid)
+    .map((story) => ({
+      ref: story.ref,
+      ids: (story.get("mediaIds") ?? []).filter((id) => mediaIds.has(id)),
+    }))
+    .filter((story) => story.ids.length > 0);
+  await writeInBatches(otherStories, (batch, story) =>
+    batch.update(story.ref, { mediaIds: FieldValue.arrayRemove(...story.ids) }));
+
+  // The files go before their documents, the only record of where they are. Without a bucket
+  // (always the case in the emulator) no file can have been stored.
+  if (bucketName) {
+    const bucket = getStorage().bucket(bucketName);
+    for (const item of media.docs) {
+      const storagePath = item.get("storagePath");
+      if (storagePath) {
+        await bucket.file(storagePath).delete({ ignoreNotFound: true });
+      }
+    }
+  }
+  await deleteDocuments(media.docs);
+}
+
+async function removeFromRemainingMedia(uid, circleRef) {
+  const media = circleRef.collection("media");
+  const [shown, authorized] = await Promise.all([
+    media.where("shownIds", "array-contains", uid).get(),
+    media.where("authorizedIds", "array-contains", uid).get(),
+  ]);
+  await writeInBatches(shown.docs, (batch, item) =>
+    batch.update(item.ref, { shownIds: FieldValue.arrayRemove(uid) }));
+  // An empty list means the whole circle can see the media: keep it restricted to its author
+  await writeInBatches(authorized.docs, (batch, item) => {
+    const isOnlyOneAllowed = item.get("authorizedIds").length === 1;
+    batch.update(item.ref, {
+      authorizedIds: isOnlyOneAllowed ? [item.get("authorId")] : FieldValue.arrayRemove(uid),
+    });
+  });
+}
+
+async function removeFromAppointments(uid, circleRef) {
+  const appointments = circleRef.collection("appointments");
+  const [attending, created] = await Promise.all([
+    appointments.where("attendeeIds", "array-contains", uid).get(),
+    appointments.where("createdBy", "==", uid).get(),
+  ]);
+  await writeInBatches(attending.docs, (batch, appointment) =>
+    batch.update(appointment.ref, { attendeeIds: FieldValue.arrayRemove(uid) }));
+  await writeInBatches(created.docs, (batch, appointment) =>
+    batch.update(appointment.ref, { createdBy: "" }));
+}
+
+function nicknamesWithout(uid, nicknames) {
+  return Object.fromEntries(
+    Object.entries(nicknames)
+      .filter(([viewerId]) => viewerId !== uid)
+      .map(([viewerId, viewerNicknames]) => [
+        viewerId,
+        Object.fromEntries(Object.entries(viewerNicknames).filter(([id]) => id !== uid)),
+      ]),
+  );
+}
+
+// Removes the membership, unless it's the last one: the circle is then deleted as a whole.
+// Returns whether it was the last one.
+async function leaveCircle(uid, circleRef) {
+  return db.runTransaction(async (transaction) => {
+    const circleSnapshot = await transaction.get(circleRef);
+    const circle = circleSnapshot.data();
+    if (circle.memberIds.every((memberId) => memberId === uid)) {
+      return true;
+    }
+    transaction.update(circleRef, {
+      memberIds: FieldValue.arrayRemove(uid),
+      nicknames: nicknamesWithout(uid, circle.nicknames ?? {}),
+      ...(circle.patientId === uid ? { patientId: "" } : {}),
+      ...(circle.createdBy === uid ? { createdBy: "" } : {}),
+    });
+    return false;
+  });
+}
+
+// The emulators don't provision buckets, and this would reach the real Cloud Storage.
+async function deleteBucket(bucketName) {
+  if (!bucketName || process.env.FUNCTIONS_EMULATOR === "true") {
+    return;
+  }
+  const bucket = getStorage().bucket(bucketName);
+  try {
+    await bucket.deleteFiles({ force: true });
+  } catch (error) {
+    // 404: deleted by an earlier, retried run
+    if (error.code !== 404) {
+      throw error;
+    }
+  }
+  await bucket.delete({ ignoreNotFound: true });
+}
+
+// A retry finds the circle through memberIds, so the uid must leave it last. The bucket goes before
+// the circle for the same reason: its name would be lost with the document.
+async function removeFromCircle(uid, circleSnapshot) {
+  const circleRef = circleSnapshot.ref;
+  const bucketName = circleSnapshot.get("storageBucket");
+  await deleteAuthoredMedia(uid, circleRef, bucketName);
+  await removeFromRemainingMedia(uid, circleRef);
+  await removeFromAppointments(uid, circleRef);
+  if (await leaveCircle(uid, circleRef)) {
+    await deleteBucket(bucketName);
+    await db.recursiveDelete(circleRef);
+  }
+}
+
 async function deleteAuthUser(uid) {
   try {
     await getAuth().deleteUser(uid);
@@ -304,7 +426,12 @@ exports.deleteAccount = onCall({ timeoutSeconds: 540 }, async (request) => {
 
   const uid = request.auth.uid;
   await markDeletionRequested(uid);
+  // Before the circles, so nobody joins a circle that is about to be deleted
   await deleteInvitations(uid);
+  const circles = await db.collection("careCircles").where("memberIds", "array-contains", uid).get();
+  for (const circle of circles.docs) {
+    await removeFromCircle(uid, circle);
+  }
   await db.doc(`users/${uid}`).delete();
   await deleteAuthUser(uid);
   return { deleted: true };

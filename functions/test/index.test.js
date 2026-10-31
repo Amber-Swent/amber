@@ -781,6 +781,13 @@ function setupAccounts() {
   state.authUsers = new Set(["gone", "other", "patient"]);
 }
 
+function assertNoReferenceTo(uid) {
+  const stored = JSON.stringify([...state.store.entries()]);
+  assert.equal(stored.includes(`"${uid}"`), false, stored);
+  assert.equal(stored.includes(`users/${uid}`), false, stored);
+  assert.equal(state.authUsers.has(uid), false);
+}
+
 test("deleteAccount rejects anonymous callers and stale sign-ins without writing anything", async (t) => {
   const staleSeconds = Math.floor(Date.now() / 1000) - 6 * 60;
   const signInRequired = [
@@ -831,4 +838,124 @@ test("deleteAccount blocks new redemptions from the moment it starts", async () 
   await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}));
 
   assert.equal(state.store.get("users/gone").deletionRequested, true);
+});
+
+test("deleteAccount leaves no trace of a caregiver in their circles and changes nobody else's data", async () => {
+  setupAccounts();
+  const untouched = [
+    "users/other",
+    "users/patient",
+    "careCircles/unrelated",
+    "careCircles/unrelated/media/photo",
+    "careCircles/shared/appointments/physio",
+    "invitations/unrelated",
+  ];
+  const before = untouched.map((documentPath) => state.store.get(documentPath));
+  const {deleteAccount} = callableModule();
+
+  await deleteAccount({auth: freshAuth(), data: {}});
+
+  assertNoReferenceTo("gone");
+  assert.deepEqual(untouched.map((documentPath) => state.store.get(documentPath)), before);
+  assert.equal(state.buckets.get("amber-other").size, 1);
+
+  // the circle they shared
+  const circle = state.store.get("careCircles/shared");
+  assert.deepEqual(circle.memberIds, ["other", "patient"]);
+  assert.equal(circle.patientId, "patient");
+  assert.equal(circle.createdBy, "");
+  assert.deepEqual(circle.nicknames, {other: {patient: "Mum"}, patient: {}});
+  assert.deepEqual(state.buckets.get(BUCKET), new Set(["careCircles/shared/media/tagged.jpg"]));
+
+  const stored = (documentPath) => state.store.get(`careCircles/shared/${documentPath}`);
+  assert.equal(stored("media/own-photo"), undefined);
+  assert.equal(stored("media/own-text"), undefined);
+  assert.deepEqual(stored("media/tagged").shownIds, ["patient"]);
+  assert.deepEqual(stored("media/two-allowed").authorizedIds, ["patient"]);
+  // an empty list would show it to the whole circle
+  assert.deepEqual(stored("media/restricted").authorizedIds, ["other"]);
+  assert.equal(stored("stories/own-story"), undefined);
+  assert.deepEqual(stored("stories/other-story").mediaIds, ["tagged"]);
+  assert.deepEqual(stored("appointments/doctor"), {createdBy: "", attendeeIds: ["other"]});
+
+  // the circle they were the last member of
+  assert.deepEqual(
+    [...state.store.keys()].filter((key) => key.startsWith("careCircles/alone")),
+    [],
+  );
+  assert.equal(state.buckets.has(EMPTY_BUCKET), false);
+});
+
+test("deleteAccount frees the patient slot when the patient is deleted", async () => {
+  setupAccounts();
+  const {deleteAccount} = callableModule();
+
+  await deleteAccount({auth: freshAuth("patient"), data: {}});
+
+  assertNoReferenceTo("patient");
+  const circle = state.store.get("careCircles/shared");
+  assert.deepEqual(circle.memberIds, ["gone", "other"]);
+  assert.equal(circle.patientId, "");
+  assert.equal(circle.createdBy, "gone");
+});
+
+test("deleteAccount keeps the circle of a last caregiver while its patient remains", async () => {
+  setupAccounts();
+  const circle = state.store.get("careCircles/shared");
+  state.store.set("careCircles/shared", {...circle, memberIds: ["gone", "patient"]});
+  const {deleteAccount} = callableModule();
+
+  await deleteAccount({auth: freshAuth(), data: {}});
+
+  assertNoReferenceTo("gone");
+  assert.deepEqual(state.store.get("careCircles/shared").memberIds, ["patient"]);
+  assert.equal(state.buckets.has(BUCKET), true);
+});
+
+test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
+  setupAccounts();
+  process.env.FUNCTIONS_EMULATOR = "true";
+  t.after(() => delete process.env.FUNCTIONS_EMULATOR);
+  state.store.set("careCircles/shared", {...state.store.get("careCircles/shared"), storageBucket: ""});
+  state.store.delete("careCircles/alone/media/photo");
+  const {deleteAccount} = callableModule();
+
+  await deleteAccount({auth: freshAuth(), data: {}});
+
+  assert.equal(state.store.has("careCircles/alone"), false);
+  assert.equal(state.buckets.has(EMPTY_BUCKET), true);
+  assert.equal(state.buckets.get(BUCKET).size, 2);
+});
+
+test("deleteAccount finishes the job when retried after any partial failure", async (t) => {
+  const failures = [
+    ["a Storage file", "deleteFile", "careCircles/shared/media/own-photo.jpg"],
+    ["the media documents", "delete", "careCircles/shared/media/own-photo"],
+    ["the other members' stories", "update", "careCircles/shared/stories/other-story"],
+    ["the remaining media", "update", "careCircles/shared/media/restricted"],
+    ["an appointment", "update", "careCircles/shared/appointments/doctor"],
+    ["leaving the shared circle", "update", "careCircles/shared"],
+    ["the bucket", "deleteBucket", EMPTY_BUCKET],
+    ["the last member's circle", "recursiveDelete", "careCircles/alone"],
+    ["an invitation", "delete", "invitations/used"],
+    ["the profile", "delete", "users/gone"],
+    ["the Auth user", "deleteUser", "gone"],
+  ];
+
+  for (const [name, failingAction, failingPath] of failures) {
+    await t.test(`after failing on ${name}`, async () => {
+      setupAccounts();
+      const {deleteAccount} = callableModule();
+      state.failWrite = (action, target) => action === failingAction && target === failingPath;
+      await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}));
+
+      state.failWrite = null;
+      await deleteAccount({auth: freshAuth(), data: {}});
+
+      assertNoReferenceTo("gone");
+      assert.equal(state.buckets.has(EMPTY_BUCKET), false);
+      assert.equal(state.buckets.get(BUCKET).has("careCircles/shared/media/own-photo.jpg"), false);
+      assert.deepEqual(state.store.get("careCircles/shared/stories/other-story").mediaIds, ["tagged"]);
+    });
+  }
 });
