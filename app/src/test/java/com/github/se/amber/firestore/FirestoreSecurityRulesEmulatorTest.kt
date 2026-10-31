@@ -504,6 +504,41 @@ class FirestoreSecurityRulesEmulatorTest {
 
   /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
+  fun aUserBeingDeleted_canNoLongerWriteOrCreateAnything_enforcedByEmulator() {
+    val circleId = "c-deleting"
+    val gone = "gone"
+    val other = "other"
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, gone, listOf(gone, other), patientId = ""),
+    )
+    fs.adminSet(
+        "users/$gone",
+        user(gone, "CAREGIVER", listOf(circleId), "Ada") + ("deletionRequested" to true),
+    )
+    fs.adminSet("users/$other", user(other, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.adminSet("careCircles/$circleId/media/m1", text("m1", gone))
+
+    fun newMediaFor(uid: String, id: String) =
+        fs.set("careCircles/$circleId/media/$id", text(id, uid))
+
+    fs.assertFails(gone, newMediaFor(gone, "m2"))
+    fs.assertFails(gone, fs.delete("careCircles/$circleId/media/m1"))
+    fs.assertFails(gone, fs.get("careCircles/$circleId"))
+    fs.assertFails(
+        gone,
+        fs.set("careCircles/c-new", circle("c-new", gone, listOf(gone), patientId = "")),
+    )
+    fs.assertFails(
+        gone,
+        fs.set("invitations/code", invite("code", circleId, gone, expiresAt = 4_000_000_000_000L)),
+    )
+    // the user keeps access to their own profile, and the others aren't affected
+    fs.assertSucceeds(gone, fs.get("users/$gone"))
+    fs.assertSucceeds(other, newMediaFor(other, "m3"))
+  }
+
+  @Test
   fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
     val circleId = "c-read"
     val care = "care"
