@@ -889,7 +889,8 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
 
     await deleteAccount({auth: freshAuth(), data: {}});
 
-    assert.deepEqual(released.sort(), [EMPTY_BUCKET, BUCKET].sort());
+    // not the bucket of the circle they are alone in: it is deleted anyway
+    assert.deepEqual(released, [BUCKET]);
     assert.ok(filesWhenReleased.every((size) => size > 0));
   });
 
