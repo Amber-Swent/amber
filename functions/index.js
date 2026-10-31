@@ -7,6 +7,7 @@ const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { initializeApp } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
 const { FieldValue, getFirestore } = require("firebase-admin/firestore");
 const { getSecurityRules } = require("firebase-admin/security-rules");
 const { getStorage } = require("firebase-admin/storage");
@@ -19,6 +20,10 @@ const app = initializeApp();
 const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
 const db = getFirestore();
 const VALID_ROLES = ["CAREGIVER", "PATIENT"];
+const RECENT_SIGN_IN_SECONDS = 5 * 60;
+const FIRESTORE_NOT_FOUND = 5;
+// Below Firestore's limit of 500 writes in one batch
+const BATCH_SIZE = 400;
 
 // Clients map redemption failures on `details.reason`; messages are for logs only.
 function redemptionFailed(reason, message) {
@@ -229,6 +234,80 @@ exports.redeemInvitation = onCall(async (request) => {
 
     return { circleId, role: user.role };
   });
+});
+
+// The Admin SDK's deleteUser doesn't check this itself. Clients map failures on `details.reason`.
+function requireRecentSignIn(token) {
+  const signedInSeconds = token?.auth_time;
+  if (
+    !Number.isFinite(signedInSeconds)
+    || Date.now() / 1000 - signedInSeconds > RECENT_SIGN_IN_SECONDS
+  ) {
+    throw new HttpsError("failed-precondition", "Sign in again before deleting your account", {
+      reason: "RECENT_SIGN_IN_REQUIRED",
+    });
+  }
+}
+
+async function writeInBatches(items, write) {
+  for (let start = 0; start < items.length; start += BATCH_SIZE) {
+    const batch = db.batch();
+    items.slice(start, start + BATCH_SIZE).forEach((item) => write(batch, item));
+    await batch.commit();
+  }
+}
+
+async function deleteDocuments(snapshots) {
+  await writeInBatches(snapshots, (batch, snapshot) => batch.delete(snapshot.ref));
+}
+
+// Comes first: redeemInvitation reads the profile in its transaction, so once this is written no
+// redemption can add a circle that the query in deleteAccount would miss. Stays set after a partial
+// failure, as the account is then half deleted. The profile is already gone on some retries.
+async function markDeletionRequested(uid) {
+  try {
+    await db.doc(`users/${uid}`).update({ deletionRequested: true });
+  } catch (error) {
+    if (error.code !== FIRESTORE_NOT_FOUND) {
+      throw error;
+    }
+  }
+}
+
+async function deleteInvitations(uid) {
+  const invitations = db.collection("invitations");
+  const [created, used] = await Promise.all([
+    invitations.where("createdBy", "==", uid).get(),
+    invitations.where("usedBy", "==", uid).get(),
+  ]);
+  await deleteDocuments([...created.docs, ...used.docs]);
+}
+
+async function deleteAuthUser(uid) {
+  try {
+    await getAuth().deleteUser(uid);
+  } catch (error) {
+    // already deleted by an earlier, retried run
+    if (error.code !== "auth/user-not-found") {
+      throw error;
+    }
+  }
+}
+
+// Permanently deletes the caller's account and personal data. Every step can run again, so a client
+// can simply retry after a failure. Only ever acts on request.auth.uid: the request data is ignored.
+exports.deleteAccount = onCall({ timeoutSeconds: 540 }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Sign in before deleting your account");
+  }
+  requireRecentSignIn(request.auth.token);
+
+  const uid = request.auth.uid;
+  await markDeletionRequested(uid);
+  await deleteInvitations(uid);
+  await db.doc(`users/${uid}`).delete();
+  await deleteAuthUser(uid);
+  return { deleted: true };
 });
 
 exports.provisionCareCircleBucket = onDocumentCreated(

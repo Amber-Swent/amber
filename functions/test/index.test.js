@@ -28,6 +28,10 @@ const state = {
   creates: [],
   linkRequests: [],
   linkStatus: 200,
+  store: null,
+  buckets: null,
+  authUsers: null,
+  failWrite: null,
 };
 
 // the only HTTP call the functions make: linking a bucket to Firebase Storage
@@ -53,6 +57,10 @@ function resetState() {
   state.linkStatus = 200;
   state.circleSnapshots = [];
   state.circleReadIndex = 0;
+  state.store = null;
+  state.buckets = null;
+  state.authUsers = null;
+  state.failWrite = null;
   state.storage = {
     bucket: () => {
       throw new Error("Storage bucket was not configured");
@@ -68,6 +76,117 @@ function resetState() {
   };
 }
 
+// An in-memory Firestore for deleteAccount, which needs real queries and writes.
+function applyField(current, value) {
+  if (value?.arrayRemove) return (current ?? []).filter((item) => !value.arrayRemove.includes(item));
+  return value;
+}
+
+function write(action, documentPath, data) {
+  if (state.failWrite?.(action, documentPath)) throw new Error(`Failed ${action} ${documentPath}`);
+  if (action === "delete") {
+    state.store.delete(documentPath);
+    return;
+  }
+  const current = state.store.get(documentPath);
+  if (!current) throw Object.assign(new Error(`No document ${documentPath}`), {code: 5});
+  const updated = {...current};
+  for (const [field, value] of Object.entries(data)) updated[field] = applyField(current[field], value);
+  state.store.set(documentPath, updated);
+}
+
+function storedSnapshot(documentPath) {
+  return {
+    ...snapshot(state.store.get(documentPath)),
+    id: documentPath.split("/").at(-1),
+    ref: storedDocument(documentPath),
+  };
+}
+
+function storedCollection(collectionPath, filters = []) {
+  return {
+    where: (field, operator, value) => storedCollection(
+      collectionPath,
+      [...filters, (data) => (operator === "==" ? data[field] === value : data[field]?.includes(value))],
+    ),
+    get: async () => ({
+      docs: [...state.store.keys()]
+        .filter((key) => key.slice(0, key.lastIndexOf("/")) === collectionPath)
+        .filter((key) => filters.every((filter) => filter(state.store.get(key))))
+        .map(storedSnapshot),
+    }),
+  };
+}
+
+function storedDocument(documentPath) {
+  return {
+    path: documentPath,
+    collection: (name) => storedCollection(`${documentPath}/${name}`),
+    update: async (data) => write("update", documentPath, data),
+    delete: async () => write("delete", documentPath),
+  };
+}
+
+function storedFirestore() {
+  return {
+    doc: storedDocument,
+    collection: storedCollection,
+    // like the real one, nothing is written if any write of the batch fails
+    batch: () => {
+      const writes = [];
+      return {
+        update: (reference, data) => writes.push(["update", reference.path, data]),
+        delete: (reference) => writes.push(["delete", reference.path]),
+        commit: async () => {
+          const before = new Map(state.store);
+          try {
+            writes.forEach((entry) => write(...entry));
+          } catch (error) {
+            state.store = before;
+            throw error;
+          }
+        },
+      };
+    },
+    runTransaction: async (callback) => {
+      const writes = [];
+      const result = await callback({
+        get: async (reference) => storedSnapshot(reference.path),
+        update: (reference, data) => writes.push(["update", reference.path, data]),
+      });
+      writes.forEach((entry) => write(...entry));
+      return result;
+    },
+    recursiveDelete: async (reference) => {
+      if (state.failWrite?.("recursiveDelete", reference.path)) throw new Error("Failed recursive delete");
+      for (const key of [...state.store.keys()]) {
+        if (key === reference.path || key.startsWith(`${reference.path}/`)) state.store.delete(key);
+      }
+    },
+  };
+}
+
+function storedBucket(name) {
+  const notFound = () => Object.assign(new Error(`No bucket ${name}`), {code: 404});
+  return {
+    file: (filePath) => ({
+      delete: async ({ignoreNotFound}) => {
+        if (state.failWrite?.("deleteFile", filePath)) throw new Error(`Failed to delete ${filePath}`);
+        if (!state.buckets.get(name)?.delete(filePath) && !ignoreNotFound) throw notFound();
+      },
+    }),
+    deleteFiles: async ({force}) => {
+      assert.equal(force, true);
+      if (!state.buckets.has(name)) throw notFound();
+      state.buckets.get(name).clear();
+    },
+    delete: async ({ignoreNotFound}) => {
+      if (state.failWrite?.("deleteBucket", name)) throw new Error(`Failed to delete ${name}`);
+      if (!state.buckets.delete(name) && !ignoreNotFound) throw notFound();
+    },
+  };
+}
+
 function callableModule() {
   const originalLoad = Module._load;
   Module._load = function mockModuleLoad(request, parent, isMain) {
@@ -78,10 +197,25 @@ function callableModule() {
         }),
       };
     }
+    if (request === "firebase-admin/auth") {
+      return {
+        getAuth: () => ({
+          deleteUser: async (uid) => {
+            if (state.failWrite?.("deleteUser", uid)) throw new Error("Failed to delete the user");
+            if (!state.authUsers.delete(uid)) {
+              throw Object.assign(new Error("No user"), {code: "auth/user-not-found"});
+            }
+          },
+        }),
+      };
+    }
     if (request === "firebase-admin/firestore") {
       return {
-        FieldValue: {arrayUnion: (value) => ({arrayUnion: value})},
-        getFirestore: () => ({
+        FieldValue: {
+          arrayUnion: (value) => ({arrayUnion: value}),
+          arrayRemove: (...values) => ({arrayRemove: values}),
+        },
+        getFirestore: () => (state.store ? storedFirestore() : {
           doc: (documentPath) => ({
             path: documentPath,
             get: async () => {
@@ -108,7 +242,8 @@ function callableModule() {
       return {defineString: () => ({value: () => state.bucketLocation})};
     }
     if (request === "firebase-functions/v2/https") {
-      return {HttpsError: MockHttpsError, onCall: (handler) => handler};
+      // the handler comes last, after the options if there are any
+      return {HttpsError: MockHttpsError, onCall: (...args) => args.at(-1)};
     }
     if (request === "firebase-functions/v2/firestore") {
       return {onDocumentCreated: (_options, handler) => handler};
@@ -583,4 +718,117 @@ test("does not redeem an invitation for a user being deleted", async (t) => {
       assert.deepEqual(state.updates, []);
     });
   }
+});
+
+// ---------- deleteAccount ----------
+
+const BUCKET = "amber-family-test";
+const EMPTY_BUCKET = "amber-family-alone";
+
+function freshAuth(uid = "gone") {
+  return {uid, token: {auth_time: Math.floor(Date.now() / 1000)}};
+}
+
+function storedMedia(id, overrides = {}) {
+  return {
+    authorId: "other",
+    storagePath: `careCircles/shared/media/${id}.jpg`,
+    shownIds: [],
+    authorizedIds: [],
+    ...overrides,
+  };
+}
+
+// "gone" is deleted; "other" and "patient" stay, in a circle shared with them and one of their own
+function setupAccounts() {
+  state.store = new Map(Object.entries({
+    "users/gone": {uid: "gone", role: "CAREGIVER", circleIds: ["shared", "alone"]},
+    "users/other": {uid: "other", role: "CAREGIVER", circleIds: ["shared", "unrelated"]},
+    "users/patient": {uid: "patient", role: "PATIENT", circleIds: ["shared"]},
+    "careCircles/shared": {
+      memberIds: ["gone", "other", "patient"],
+      patientId: "patient",
+      createdBy: "gone",
+      storageBucket: BUCKET,
+      nicknames: {gone: {other: "Bob"}, other: {gone: "Al", patient: "Mum"}, patient: {gone: "Son"}},
+    },
+    "careCircles/shared/media/own-photo": storedMedia("own-photo", {authorId: "gone"}),
+    "careCircles/shared/media/own-text": storedMedia("own-text", {authorId: "gone", storagePath: ""}),
+    "careCircles/shared/media/tagged": storedMedia("tagged", {shownIds: ["gone", "patient"]}),
+    "careCircles/shared/media/restricted": storedMedia("restricted", {authorizedIds: ["gone"]}),
+    "careCircles/shared/media/two-allowed": storedMedia("two-allowed", {authorizedIds: ["gone", "patient"]}),
+    "careCircles/shared/stories/own-story": {createdBy: "gone", mediaIds: ["tagged"]},
+    "careCircles/shared/stories/other-story": {createdBy: "other", mediaIds: ["own-photo", "tagged", "own-text"]},
+    "careCircles/shared/appointments/doctor": {createdBy: "gone", attendeeIds: ["gone", "other"]},
+    "careCircles/shared/appointments/physio": {createdBy: "other", attendeeIds: ["other"]},
+    "careCircles/alone": {memberIds: ["gone"], patientId: "", createdBy: "gone", storageBucket: EMPTY_BUCKET},
+    "careCircles/alone/media/photo": storedMedia("photo", {
+      authorId: "gone",
+      storagePath: "careCircles/alone/media/photo.jpg",
+    }),
+    "careCircles/unrelated": {memberIds: ["other"], patientId: "", createdBy: "other", storageBucket: "amber-other"},
+    "careCircles/unrelated/media/photo": storedMedia("photo", {shownIds: ["other"]}),
+    "invitations/created": {createdBy: "gone", usedBy: null, circleId: "shared"},
+    "invitations/used": {createdBy: "other", usedBy: "gone", circleId: "shared"},
+    "invitations/unrelated": {createdBy: "other", usedBy: "patient", circleId: "shared"},
+  }));
+  state.buckets = new Map([
+    [BUCKET, new Set(["careCircles/shared/media/own-photo.jpg", "careCircles/shared/media/tagged.jpg"])],
+    [EMPTY_BUCKET, new Set(["careCircles/alone/media/photo.jpg"])],
+    ["amber-other", new Set(["careCircles/unrelated/media/photo.jpg"])],
+  ]);
+  state.storage = {bucket: storedBucket};
+  state.authUsers = new Set(["gone", "other", "patient"]);
+}
+
+test("deleteAccount rejects anonymous callers and stale sign-ins without writing anything", async (t) => {
+  const staleSeconds = Math.floor(Date.now() / 1000) - 6 * 60;
+  const signInRequired = [
+    "failed-precondition",
+    "Sign in again before deleting your account",
+    "RECENT_SIGN_IN_REQUIRED",
+  ];
+  for (const [name, auth, ...expected] of [
+    ["no authentication", undefined, "unauthenticated", "Sign in before deleting your account"],
+    ["a stale auth_time", {uid: "gone", token: {auth_time: staleSeconds}}, ...signInRequired],
+    ["no auth_time", {uid: "gone", token: {}}, ...signInRequired],
+    ["a malformed auth_time", {uid: "gone", token: {auth_time: "now"}}, ...signInRequired],
+  ]) {
+    await t.test(`rejects ${name}`, async () => {
+      setupAccounts();
+      const before = new Map(state.store);
+      const {deleteAccount} = callableModule();
+
+      await expectHttpsError(deleteAccount({auth, data: {}}), ...expected);
+
+      assert.deepEqual(state.store, before);
+      assert.equal(state.authUsers.has("gone"), true);
+    });
+  }
+});
+
+test("deleteAccount only deletes the caller's account, whatever uid the request names, and can run again", async () => {
+  setupAccounts();
+  const {deleteAccount} = callableModule();
+
+  assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {uid: "other"}}), {deleted: true});
+
+  assert.equal(state.store.has("users/gone"), false);
+  assert.equal(state.store.has("invitations/created"), false);
+  assert.equal(state.store.has("invitations/used"), false);
+  assert.equal(state.store.has("invitations/unrelated"), true);
+  assert.equal(state.store.has("users/other"), true);
+  assert.equal(state.store.has("users/patient"), true);
+  assert.deepEqual(state.authUsers, new Set(["other", "patient"]));
+
+  assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {}}), {deleted: true});
+});
+
+test("deleteAccount blocks new redemptions from the moment it starts", async () => {
+  setupAccounts();
+  const {deleteAccount} = callableModule();
+  state.failWrite = (action, target) => target === "invitations/used";
+  await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}));
+
+  assert.equal(state.store.get("users/gone").deletionRequested, true);
 });
