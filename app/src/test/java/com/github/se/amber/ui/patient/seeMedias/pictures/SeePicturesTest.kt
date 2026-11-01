@@ -17,6 +17,10 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreenTestTags
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesUIState
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesViewModel
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery

@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
@@ -624,6 +625,16 @@ class MediaOutboxTest {
     // a failed media isn't retried on its own, even after a restart
     assertEquals(SendState.FAILED, restarted.get("c1", "m3")?.state)
     assertEquals("bytes of m1", restarted.fileOf("c1", "m1")!!.readText())
+  }
+
+  @Test
+  fun aTypedPlaceNameSurvivesARestart() = runTest {
+    val item = picture("m1").copy(location = GeoLocation(placeName = "Grandma's house"))
+    newOutbox().add("c1", item, source())
+
+    val restarted = newOutbox()
+
+    assertEquals(item, restarted.get("c1", "m1")?.item)
   }
 
   @Test

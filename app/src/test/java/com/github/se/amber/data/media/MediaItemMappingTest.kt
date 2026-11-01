@@ -1,11 +1,15 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
+import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
+import java.time.Month
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -21,7 +25,7 @@ class MediaItemMappingTest {
           storagePath = "careCircles/c1/media/m1.jpg",
           createdAt = 1_700_000_000_000L,
           description = "Grandma's garden",
-          date = MemoryDate(year = 1974, month = 7),
+          date = MemoryDate(year = 1974, month = Month.JULY),
           location = GeoLocation(lat = 46.5, lng = 6.6, placeName = "Lausanne"),
           shownIds = listOf("u2", "p1"),
           authorizedIds = listOf("u3"),
@@ -38,6 +42,7 @@ class MediaItemMappingTest {
           createdAt = 1_700_000_000_001L,
           durationMs = 93_000L,
           transcript = "Hello Arthur",
+          waveform = List(WAVEFORM_BARS) { it / (WAVEFORM_BARS - 1f) }, // from silence to loudest
       )
 
   private val text =
@@ -45,9 +50,26 @@ class MediaItemMappingTest {
 
   @Test
   fun everyKindOfMediaComesBackUnchanged() {
-    for (item in listOf(picture, audio, audio.copy(transcript = null), text)) {
+    val audioWithoutExtras = audio.copy(transcript = null, waveform = emptyList())
+    for (item in listOf(picture, audio, audioWithoutExtras, text)) {
       assertEquals(item, mediaItemFromMap(item.id, item.toMap()))
     }
+  }
+
+  @Test
+  fun monthIsStoredAsAnIntegerAndReadAsMonth() {
+    val storedDate = picture.toMap()["date"] as Map<*, *>
+    assertEquals(7, storedDate["month"])
+    assertEquals(
+        Month.JULY,
+        (mediaItemFromMap("m1", picture.toMap()) as MediaItem.Picture).date?.month,
+    )
+  }
+
+  @Test
+  fun invalidStoredMonthCannotBeRead() {
+    val fields = picture.toMap() + ("date" to mapOf("year" to 1974, "month" to 13))
+    assertNull(mediaItemFromMap("m1", fields))
   }
 
   @Test
@@ -123,8 +145,54 @@ class MediaItemMappingTest {
     assertEquals(1_700_000_000L, read.createdAt)
     assertEquals(4032, read.width)
     assertEquals(3024, read.height)
-    assertEquals(46.0, read.location!!.lat, 0.0)
-    assertEquals(6.6, read.location!!.lng, 1e-6)
+    assertEquals(46.0, read.location!!.lat!!, 0.0)
+    assertEquals(6.6, read.location!!.lng!!, 1e-6)
+  }
+
+  @Test
+  fun anAudioStoredWithoutAWaveformHasAnEmptyOne() {
+    // documents written before the waveform existed
+    val read = mediaItemFromMap("m2", audio.toMap() - "waveform") as MediaItem.Audio
+
+    assertEquals(emptyList<Float>(), read.waveform)
+  }
+
+  @Test
+  fun aWaveformIsReadFromAnyKindOfNumberAndNothingElse() {
+    // JSON gives a whole value like 1.0 back as an Int
+    val read =
+        mediaItemFromMap("m2", audio.toMap() + ("waveform" to listOf(0.5, 1, 0.25f)))
+            as MediaItem.Audio
+
+    assertEquals(listOf(0.5f, 1f, 0.25f), read.waveform)
+    assertNull(mediaItemFromMap("m2", audio.toMap() + ("waveform" to listOf(0.5, "loud"))))
+    assertNull(mediaItemFromMap("m2", audio.toMap() + ("waveform" to "loud")))
+  }
+
+  @Test
+  fun aTypedPlaceNameComesBackWithoutCoordinates() {
+    val item = picture.copy(location = GeoLocation(placeName = "Grandma's house"))
+
+    val fields = item.toMap()
+    val read = mediaItemFromMap("m1", fields)
+
+    assertEquals(
+        mapOf("lat" to null, "lng" to null, "placeName" to "Grandma's house"),
+        fields["location"],
+    )
+    assertEquals(item, read)
+  }
+
+  @Test
+  fun missingCoordinatesAreReadAsUnknownNotZero() {
+    // an outbox entry drops null values; an older document may lack them too
+    val read =
+        mediaItemFromMap(
+            "m1",
+            mapOf("type" to "picture", "location" to mapOf("placeName" to "Lake Geneva")),
+        )
+
+    assertEquals(GeoLocation(placeName = "Lake Geneva"), read?.location)
   }
 
   @Test

@@ -4,6 +4,8 @@
  */
 package com.github.se.amber.ui.navigation
 
+import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
+import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -56,6 +58,11 @@ class TabsTest {
     assertEquals(CaregiverScreen.Parameters, CaregiverTab.Setting.destination)
   }
 
+  @Test
+  fun caregiverTabsUseTheCaregiverIconSize() {
+    CaregiverTab.caregiverTabs.forEach { tab -> assertEquals(CAREGIVER_ICON_SIZE, tab.iconSize) }
+  }
+
   // ---------- Patient tabs ----------
   @Test
   fun patientHomeNameIsHome() {
@@ -63,8 +70,8 @@ class TabsTest {
   }
 
   @Test
-  fun patientSeePicturesNameIsPictures() {
-    assertEquals("Pictures", PatientTab.SeePictures.name)
+  fun patientSeeMediasNameIsPictures() {
+    assertEquals("Medias", PatientTab.SeeMedias.name)
   }
 
   @Test
@@ -78,12 +85,17 @@ class TabsTest {
   }
 
   @Test
-  fun patientSeePicturesDestinationIsPatientSeePicturesScreen() {
-    assertEquals(PatientScreen.SeePictures, PatientTab.SeePictures.destination)
+  fun patientSeeMediasDestinationIsPatientSeeMediasScreen() {
+    assertEquals(PatientScreen.SeeMedias, PatientTab.SeeMedias.destination)
   }
 
   @Test
   fun patientSettingDestinationIsPatientParametersScreen() {
     assertEquals(PatientScreen.Parameters, PatientTab.Setting.destination)
+  }
+
+  @Test
+  fun patientTabsUseThePatientIconSize() {
+    PatientTab.patientTabs.forEach { tab -> assertEquals(PATIENT_ICON_SIZE, tab.iconSize) }
   }
 }

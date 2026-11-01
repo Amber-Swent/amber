@@ -97,7 +97,7 @@ fun SeePicturesScreen(
       },
       bottomBar = {
         BottomNavigationMenu(
-            selectedTab = PatientTab.SeePictures,
+            selectedTab = PatientTab.SeeMedias,
             onTabSelected = onTabSelected,
             tabs = PatientTab.patientTabs,
             modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
