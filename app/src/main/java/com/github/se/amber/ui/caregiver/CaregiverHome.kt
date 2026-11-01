@@ -65,6 +65,12 @@ fun CaregiverHomeScreen(
   }
 
   Scaffold(
+      topBar = {
+        DisplayCaregiverTitle(
+            title = "Home",
+            modifier = Modifier.testTag(CaregiverHomeTestTags.TITLE),
+        )
+      },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = CaregiverTab.Home,
@@ -85,13 +91,12 @@ fun CaregiverHomeScreen(
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayCaregiverTitle("Home", Modifier.testTag(CaregiverHomeTestTags.TITLE))
           Text(
               text =
                   if (uiState.patient.uid.isNotBlank()) {
                     "Welcome ! You are with " + uiState.patient.person.firstName
                   } else {
-                    "Welcome! There are no patient linked to this care circle yet."
+                    "Welcome! There is no patient linked to this care circle yet."
                   },
               modifier = Modifier.fillMaxWidth().testTag(CaregiverHomeTestTags.WELCOME_TEXT),
               color = MaterialTheme.colorScheme.onBackground,
