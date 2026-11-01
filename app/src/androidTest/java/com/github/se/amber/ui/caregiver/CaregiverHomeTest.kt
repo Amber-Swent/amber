@@ -74,7 +74,7 @@ class CaregiverHomeScreenTest {
     setScreen()
     composeTestRule
         .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
-        .assertTextEquals("Welcome! There are no patient linked to this care circle yet.")
+        .assertTextEquals("Welcome! There is no patient linked to this care circle yet.")
   }
 
   @Test
