@@ -771,7 +771,10 @@ class UploadPictureViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException()
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertEquals(UploadMediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.media.errorMsg)
+    assertEquals(
+        UploadMediaViewModelErrorMessage.UNKNOW_ERROR.mess,
+        vm.uiState.value.media.errorMsg,
+    )
   }
 
   @Test
@@ -957,7 +960,10 @@ class UploadPictureViewModelTest {
     // a pending upload error isn't replaced by a search failure
     vm.uploadPicture()
     vm.searchPlace("Geneva")
-    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.media.errorMsg)
+    assertEquals(
+        UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess,
+        vm.uiState.value.media.errorMsg,
+    )
   }
 
   @Test
@@ -1106,7 +1112,10 @@ class UploadPictureViewModelTest {
     assertFalse(vm.uiState.value.canUpload)
     vm.uploadPicture()
 
-    assertEquals(UploadMediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.media.errorMsg)
+    assertEquals(
+        UploadMediaViewModelErrorMessage.PICK_A_PLACE.mess,
+        vm.uiState.value.media.errorMsg,
+    )
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
@@ -1223,7 +1232,10 @@ class UploadPictureViewModelTest {
   fun uploadReportsTheFirstMissingThing() {
     val vm = createViewModel() // no picture, no description, no date
     vm.uploadPicture()
-    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.media.errorMsg)
+    assertEquals(
+        UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess,
+        vm.uiState.value.media.errorMsg,
+    )
   }
 
   // ---------- saved places ----------
@@ -1349,14 +1361,15 @@ class UploadPictureViewModelTest {
   }
 
   private val completeState =
-    UploadPictureUIState(
-      media =
-        UploadMediaUIState(
-          description = "A description",
-          date = MemoryDate(2024, Month.MAY, 12),
-        ),
-      pictureFile = File("picture.jpg"),
-    )
+      UploadPictureUIState(
+          media =
+              UploadMediaUIState(
+                  description = "A description",
+                  date = MemoryDate(2024, Month.MAY, 12),
+              ),
+          pictureFile = File("picture.jpg"),
+      )
+
   @Test
   fun canUploadIsFalseWithoutPicture() {
     assertTrue(completeState.canUpload)
@@ -1474,7 +1487,10 @@ class UploadPictureViewModelTest {
 
     vm.addPerson()
 
-    assertEquals(UploadMediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.media.errorMsg)
+    assertEquals(
+        UploadMediaViewModelErrorMessage.STILL_LOADING.mess,
+        vm.uiState.value.media.errorMsg,
+    )
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
   }
 

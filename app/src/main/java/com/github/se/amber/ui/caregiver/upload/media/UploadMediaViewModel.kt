@@ -111,16 +111,16 @@ abstract class UploadMediaViewModel(
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
 ) : ViewModel() {
 
-// --------- Variable -------------
-protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScope)
+  // --------- Variable -------------
+  protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScope)
 
-    private val _fields = MutableStateFlow(UploadMediaUIState())
+  private val _fields = MutableStateFlow(UploadMediaUIState())
   protected val _mediaState = MutableStateFlow(UploadMediaUIState())
-    // UI continue to see it as a single State, with location inside
-    val mediaState: StateFlow<UploadMediaUIState> =
-        combine(_fields, picker.state) { fields, location -> fields.copy(location = location) }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, UploadMediaUIState())
-    protected val _careCircle = MutableStateFlow<CareCircle?>(null)
+  // UI continue to see it as a single State, with location inside
+  val mediaState: StateFlow<UploadMediaUIState> =
+      combine(_fields, picker.state) { fields, location -> fields.copy(location = location) }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, UploadMediaUIState())
+  protected val _careCircle = MutableStateFlow<CareCircle?>(null)
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
 
   /**
@@ -167,13 +167,13 @@ protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScop
           .map { circle -> circle?.pickablePlaces().orEmpty().mapValues { it.value.name } }
           .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-// --------------- Init ------------------
+  // --------------- Init ------------------
 
-    init {
+  init {
     loadCircle()
   }
 
-// --------------- Update and Set Functions ------------------
+  // --------------- Update and Set Functions ------------------
 
   protected fun updateMediaState(transform: (UploadMediaUIState) -> UploadMediaUIState) {
     _mediaState.update(transform)
@@ -279,15 +279,19 @@ protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScop
   private fun CareCircle.pickablePlaces(): Map<String, Place> = places.filterValues {
     it.location.lat != null && it.location.lng != null
   }
-// ----------------- Location ---------------------
-    // Delegation to avoid making the UI complex
-    fun setPlaceQuery(query: String) = picker.setQuery(query)
-    fun retryPlaceSearch() = picker.retrySearch()
-    fun selectPlace(place: GeoLocation) = picker.selectPlace(place)
-    fun selectPlace(placeId: String) =
-        picker.selectSavedPlace(placeId, _careCircle.value?.pickablePlaces().orEmpty())
 
-// ----------------- Tagged people and add-person dialog ---------------------
+  // ----------------- Location ---------------------
+  // Delegation to avoid making the UI complex
+  fun setPlaceQuery(query: String) = picker.setQuery(query)
+
+  fun retryPlaceSearch() = picker.retrySearch()
+
+  fun selectPlace(place: GeoLocation) = picker.selectPlace(place)
+
+  fun selectPlace(placeId: String) =
+      picker.selectSavedPlace(placeId, _careCircle.value?.pickablePlaces().orEmpty())
+
+  // ----------------- Tagged people and add-person dialog ---------------------
 
   /**
    * Adds a person to the tagged people, or removes them if already tagged.
@@ -413,7 +417,7 @@ protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScop
     }
   }
 
-// ----------------- Upload ---------------------
+  // ----------------- Upload ---------------------
 
   /**
    * Checks everything needed to upload, in the order the user should fix it: sign-in, circle, date,

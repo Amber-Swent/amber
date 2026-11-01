@@ -25,7 +25,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayTextField
-import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
@@ -132,5 +131,5 @@ fun AddPersonDialog(
 @Composable
 private fun AddPersonDialogPreview() {
 
-    AmberAppTheme(dynamicColor = false) { AddPersonDialog(isOpen = true) }
+  AmberAppTheme(dynamicColor = false) { AddPersonDialog(isOpen = true) }
 }

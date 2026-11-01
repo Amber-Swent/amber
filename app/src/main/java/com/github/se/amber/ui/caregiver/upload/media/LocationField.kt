@@ -194,5 +194,5 @@ internal fun DisplayLocationHint(text: String = "", tag: String = "") {
 @Composable
 private fun DisplayLocationPreview() {
 
-    AmberAppTheme(dynamicColor = false) { DisplayLocation() }
+  AmberAppTheme(dynamicColor = false) { DisplayLocation() }
 }
