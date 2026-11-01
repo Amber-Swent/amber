@@ -99,7 +99,7 @@ fun PatientHomeScreen(
               text = "Hello $firstName!",
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onBackground,
-              style = MaterialTheme.typography.bodyLarge,
+              style = MaterialTheme.typography.headlineMedium,
           )
         }
       },
