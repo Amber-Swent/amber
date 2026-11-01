@@ -58,4 +58,13 @@ class NavigationMenuTest {
 
     assertEquals(CaregiverTab.Upload, selected)
   }
+
+  @Test
+  fun bottomMenuPreviewRenders() {
+    composeTestRule.setContent { BottomNavigationMenuPreview() }
+
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
+        .assertIsDisplayed()
+  }
 }

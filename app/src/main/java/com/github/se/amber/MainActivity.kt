@@ -50,7 +50,8 @@ import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.patient.PatientHomeScreen
 import com.github.se.amber.ui.patient.parameters.PatientParameterScreen
-import com.github.se.amber.ui.patient.seePictures.SeePicturesScreen
+import com.github.se.amber.ui.patient.seeMedias.SeeMediasScreen
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
 
@@ -226,12 +227,15 @@ fun AmberApp(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
+      composable(route = PatientScreen.SeeMedias.route) {
+        SeeMediasScreen(
+            onSeePictureClick = { navigationActions.navigateTo(PatientScreen.SeePictures) },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
+      }
       composable(route = PatientScreen.SeePictures.route) {
         SeePicturesScreen(
-            // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen
-            // if we were on a top level destination
-            onBackClick = { navigationActions.navigateToGraph(NavGraphs.PATIENT) },
+            onBackClick = { navigationActions.goBack() },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }

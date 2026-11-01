@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Neha Chakraborty and Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
@@ -41,6 +42,18 @@ class FirestoreSecurityRulesEmulatorTest {
     val peer = "peer"
     val stranger = "stranger"
 
+    // Only the backend assigns a circle's Storage bucket: onboarding can't pick one.
+    fs.assertFails(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, care, listOf(care), patientId = "") +
+                    ("storageBucket" to "other-family-bucket"),
+            ),
+        ),
+    )
     // Caregiver onboarding: profile + first circle in one commit (isCaregiverAfter / getAfter).
     fs.assertSucceeds(
         care,

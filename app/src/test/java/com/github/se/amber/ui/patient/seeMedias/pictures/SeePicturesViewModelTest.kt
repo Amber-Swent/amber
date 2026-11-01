@@ -9,6 +9,8 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesUIState
+import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

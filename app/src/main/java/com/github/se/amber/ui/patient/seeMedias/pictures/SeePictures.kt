@@ -1,7 +1,7 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
-package com.github.se.amber.ui.patient.seePictures
+package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -105,7 +105,7 @@ fun SeePicturesScreen(
       },
       bottomBar = {
         BottomNavigationMenu(
-            selectedTab = PatientTab.SeePictures,
+            selectedTab = PatientTab.SeeMedias,
             onTabSelected = onTabSelected,
             tabs = PatientTab.patientTabs,
             modifier = Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),

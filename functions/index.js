@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -13,7 +14,7 @@ const { defineString } = require("firebase-functions/params");
 const { HttpsError, onCall } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
-initializeApp();
+const app = initializeApp();
 
 const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
 const db = getFirestore();
@@ -102,6 +103,26 @@ async function ensureFamilyBucket(projectId, circleId) {
   return name;
 }
 
+// The app reaches a bucket through Firebase Storage, which only serves the buckets linked to the
+// project: a bucket just created in Cloud Storage isn't, until this links it.
+async function ensureFirebaseLinkedBucket(projectId, bucketName) {
+  const { access_token: accessToken } = await app.options.credential.getAccessToken();
+  const response = await fetch(
+    `https://firebasestorage.googleapis.com/v1beta/projects/${projectId}/buckets/${bucketName}:addFirebase`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: "{}",
+    },
+  );
+  // 409: already linked by an earlier, retried run
+  if (!response.ok && response.status !== 409) {
+    throw new Error(
+      `Could not link bucket ${bucketName} to Firebase: ${response.status} ${await response.text()}`,
+    );
+  }
+}
+
 async function ensureFamilyBucketRules(bucketName) {
   const securityRules = getSecurityRules();
   const source = fs.readFileSync(path.join(__dirname, "storage.rules"), "utf8");
@@ -116,7 +137,8 @@ async function ensureFamilyBucketRules(bucketName) {
       );
     }
   } catch (error) {
-    if (error.code !== "not-found") {
+    // firebase-admin prefixes its error codes: a bucket without rules yet gives this one
+    if (error.code !== "security-rules/not-found") {
       throw error;
     }
     ruleset = await securityRules.createRuleset(
@@ -235,6 +257,7 @@ exports.provisionCareCircleBucket = onDocumentCreated(
     }
 
     const storageBucket = await ensureFamilyBucket(projectId, circleId);
+    await ensureFirebaseLinkedBucket(projectId, storageBucket);
     await ensureFamilyBucketRules(storageBucket);
     const latestCircle = await circleRef.get();
     if (!latestCircle.exists) {

@@ -1,6 +1,7 @@
 /* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
- * Modified with assistance from OpenAI Codex.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +38,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +73,7 @@ import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Picture components. */
 object UploadPictureScreenTestTags {
@@ -108,6 +112,7 @@ fun UploadPictureScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
+  val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
 
@@ -138,8 +143,8 @@ fun UploadPictureScreen(
         Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
           TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
           DisplayCaregiverTitle(
-              "Upload Picture",
               Modifier.testTag(UploadPictureScreenTestTags.TITLE),
+              "Upload Picture",
           )
         }
       },
@@ -206,21 +211,34 @@ fun UploadPictureScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-          DisplayScrollableDatePicker(
-              modifier = Modifier.testTag(SELECT_DATE),
-              onDateSelected = { year, month, day ->
-                viewModel.setDate(MemoryDate(year, month, day))
-              },
+          DisplayLocation(
+              savedPlaceNamesById = placeOptions,
+              state = uiState.location,
+              onSavedPlaceClick = viewModel::selectPlace,
+              onQueryChange = viewModel::setPlaceQuery,
+              onSuggestionClick = viewModel::selectPlace,
+              onRetrySearch = viewModel::retryPlaceSearch,
           )
 
-          DisplayCaregiverButton(
-              onClick = { viewModel.uploadPicture() },
-              modifier = Modifier.padding(top = CAREGIVER_PADDING_MEDIUM).testTag(UPLOAD_BUTTON),
-              enabled = uiState.canUpload,
-              text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
-              widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
+          DisplayScrollableDatePicker(
+              modifier = Modifier.testTag(SELECT_DATE),
+              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
+              onDateSelected = viewModel::setDate,
           )
         }
+      },
+      // Pinned below the form so it stays reachable however long the form grows
+      bottomBar = {
+        DisplayCaregiverButton(
+            onClick = { viewModel.uploadPicture() },
+            modifier =
+                Modifier.navigationBarsPadding()
+                    .padding(CAREGIVER_PADDING_MEDIUM)
+                    .testTag(UPLOAD_BUTTON),
+            enabled = uiState.canUpload,
+            text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
+            widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
+        )
       },
   )
 
@@ -314,13 +332,7 @@ private fun DisplayWhoIsInvolved(
               onClick = { toggleShownId(id) },
               label = { Text(label, style = MaterialTheme.typography.labelMedium) },
               modifier = Modifier.testTag(DisplayWhoIsInvolvedTestTags.personInvolved(id)),
-              colors =
-                  FilterChipDefaults.filterChipColors(
-                      containerColor = MaterialTheme.colorScheme.tertiary,
-                      labelColor = MaterialTheme.colorScheme.onTertiary,
-                      selectedContainerColor = MaterialTheme.colorScheme.secondary,
-                      selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
-                  ),
+              colors = selectableChipColors(),
           )
         }
         AssistChip(
@@ -337,6 +349,16 @@ private fun DisplayWhoIsInvolved(
     }
   }
 }
+
+/** Colors of the selectable chips: the theme's tertiary color, and its secondary once selected. */
+@Composable
+internal fun selectableChipColors(): SelectableChipColors =
+    FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.tertiary,
+        labelColor = MaterialTheme.colorScheme.onTertiary,
+        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+    )
 
 /** Preview of [UploadPictureScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)

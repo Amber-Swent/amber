@@ -1,0 +1,74 @@
+# This file was written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+name: Deploy Cloud Functions
+
+# The functions in the repository only reach the real project when they are deployed: this deploys
+# them whenever main changes them, so the live project never falls behind the code. CI tests the
+# functions before they can be merged.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "functions/**"
+      - "!functions/test/**"
+  # Lets the functions be deployed again by hand from the Actions tab
+  workflow_dispatch:
+
+# Deploys run one at a time, in order: a new deploy waits for the running one to finish and
+# replaces any deploy still waiting, so the newest functions are always deployed last
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Install Firebase CLI
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+
+      # The CLI loads the functions to find what to deploy, so it needs their dependencies
+      - name: Install function dependencies
+        run: npm ci --ignore-scripts
+        working-directory: functions
+
+      # The .env files are not committed: the deployed parameters come from repository variables
+      - name: Write function parameters
+        env:
+          STORAGE_BUCKET_LOCATION: ${{ vars.STORAGE_BUCKET_LOCATION }}
+        run: |
+          if [ -z "$STORAGE_BUCKET_LOCATION" ]; then
+            echo "::error::The STORAGE_BUCKET_LOCATION repository variable is not set."
+            exit 1
+          fi
+          printf 'STORAGE_BUCKET_LOCATION=%s\n' "$STORAGE_BUCKET_LOCATION" > functions/.env.amber-34abf
+
+      # FIREBASE_FUNCTIONS_SERVICE_ACCOUNT is the JSON key of a service account with the roles a
+      # functions deploy needs: Cloud Functions Admin, Service Account User, Artifact Registry
+      # Administrator, Cloud Build Editor and Firebase Viewer
+      - name: Deploy functions
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_FUNCTIONS_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::The FIREBASE_FUNCTIONS_SERVICE_ACCOUNT secret is not set."
+            exit 1
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json"
+          firebase deploy --only functions --project amber-34abf --non-interactive
+
+      - name: Remove the service account key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
