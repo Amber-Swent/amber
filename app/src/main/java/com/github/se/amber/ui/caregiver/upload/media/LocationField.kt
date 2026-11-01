@@ -1,5 +1,6 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.caregiver.upload.picture
+// Modify by LaMaier
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -46,7 +47,7 @@ internal const val NO_PLACE_FOUND_HINT =
 
 /** Shown while the typed place is too short to be searched: the upload is blocked until then. */
 internal const val PLACE_QUERY_TOO_SHORT_HINT =
-    "Type at least $MIN_PLACE_QUERY_LENGTH letters to search, or clear the field."
+    "Type at least ${MIN_PLACE_QUERY_LENGTH} letters to search, or clear the field."
 
 /** Shown when the search itself failed, e.g. offline: the toast with the error is gone by then. */
 internal const val PLACE_SEARCH_FAILED_HINT =
@@ -68,7 +69,7 @@ internal const val PLACE_SEARCH_FAILED_HINT =
 @Composable
 internal fun DisplayLocation(
     savedPlaceNamesById: Map<String, String> = emptyMap(),
-    state: PictureLocationUIState = PictureLocationUIState(),
+    state: LocationUIState = LocationUIState(),
     onSavedPlaceClick: (String) -> Unit = {},
     onQueryChange: (String) -> Unit = {},
     onSuggestionClick: (GeoLocation) -> Unit = {},

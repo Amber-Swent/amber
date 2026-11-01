@@ -18,6 +18,12 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.upload.media.UploadMediaEvent
+import com.github.se.amber.ui.caregiver.upload.media.UploadMediaViewModelErrorMessage
+import com.github.se.amber.ui.caregiver.upload.media.unknownMemberLabel
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModelErrorMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -49,9 +55,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [UploadPictureViewModel]. All repositories are mocked, nothing touches the
- * network. The care circle is loaded in `init`, so each test configures the repositories BEFORE
- * calling [createViewModel].
+ * Unit tests for [com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel]. All
+ * repositories are mocked, nothing touches the network. The care circle is loaded in `init`, so
+ * each test configures the repositories BEFORE calling [createViewModel].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {
@@ -228,7 +234,7 @@ class UploadPictureViewModelTest {
   fun missingUserSetsIdentityError() {
     signIn(null)
     assertEquals(
-        UploadPictureViewModelErrorMessage.UNVERIFIED.mess,
+        UploadMediaViewModelErrorMessage.UNVERIFIED.mess,
         createViewModel().uiState.value.errorMsg,
     )
   }
@@ -250,7 +256,7 @@ class UploadPictureViewModelTest {
   fun profileFailureSetsProfileError() {
     coEvery { profileRepo.getProfile(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "boom",
+        UploadMediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "boom",
         createViewModel().uiState.value.errorMsg,
     )
   }
@@ -266,7 +272,7 @@ class UploadPictureViewModelTest {
   fun missingProfileSetsCircleNotSetUpError() {
     stubProfile(null)
     assertEquals(
-        UploadPictureViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
+        UploadMediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
         createViewModel().uiState.value.errorMsg,
     )
   }
@@ -275,7 +281,7 @@ class UploadPictureViewModelTest {
   fun profileWithoutCircleIdSetsCircleNotSetUpError() {
     stubProfile(emptyList())
     assertEquals(
-        UploadPictureViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
+        UploadMediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
         createViewModel().uiState.value.errorMsg,
     )
   }
@@ -291,7 +297,7 @@ class UploadPictureViewModelTest {
   fun circleFailureSetsCircleError() {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "boom",
+        UploadMediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "boom",
         createViewModel().uiState.value.errorMsg,
     )
   }
@@ -424,7 +430,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     val result = vm.onPersonAdded(bob.copy(id = ""))
     assertEquals(
-        UploadPictureViewModelErrorMessage.PERSON_WITHOUT_ID.mess,
+        UploadMediaViewModelErrorMessage.PERSON_WITHOUT_ID.mess,
         result.exceptionOrNull()?.message,
     )
     assertTrue(vm.uiState.value.shownIds.isEmpty())
@@ -437,7 +443,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     val result = vm.onPersonAdded(bob)
     assertEquals(
-        UploadPictureViewModelErrorMessage.CANNOT_TAG_PERSON.mess,
+        UploadMediaViewModelErrorMessage.CANNOT_TAG_PERSON.mess,
         result.exceptionOrNull()?.message,
     )
     assertTrue(vm.uiState.value.shownIds.isEmpty())
@@ -593,7 +599,7 @@ class UploadPictureViewModelTest {
     val vm = readyViewModel()
     signIn(null)
     vm.uploadPicture()
-    assertEquals(UploadPictureViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.errorMsg)
   }
 
   @Test
@@ -625,7 +631,7 @@ class UploadPictureViewModelTest {
 
     vm.uploadPicture()
 
-    assertEquals(UploadPictureEvent.Uploaded, vm.events.first())
+    assertEquals(UploadMediaEvent.Uploaded, vm.events.first())
   }
 
   @Test
@@ -764,7 +770,7 @@ class UploadPictureViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException()
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertEquals(UploadPictureViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.errorMsg)
   }
 
   @Test
@@ -845,7 +851,7 @@ class UploadPictureViewModelTest {
     val vm = readyViewModel(description = "   ")
     vm.uploadPicture()
     assertEquals(
-        UploadPictureViewModelErrorMessage.DESCRIPTION_EMPTY.mess,
+        UploadMediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess,
         vm.uiState.value.errorMsg,
     )
   }
@@ -860,7 +866,7 @@ class UploadPictureViewModelTest {
   fun missingDateReportsSelectDateError() {
     val vm = readyViewModel(date = null)
     vm.uploadPicture()
-    assertEquals(UploadPictureViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.errorMsg)
   }
 
   @Test
@@ -1099,7 +1105,7 @@ class UploadPictureViewModelTest {
     assertFalse(vm.uiState.value.canUpload)
     vm.uploadPicture()
 
-    assertEquals(UploadPictureViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
@@ -1465,7 +1471,7 @@ class UploadPictureViewModelTest {
 
     vm.addPerson()
 
-    assertEquals(UploadPictureViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
   }
 
@@ -1525,7 +1531,7 @@ class UploadPictureViewModelTest {
     vm.addPerson()
 
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
+        UploadMediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
         vm.uiState.value.errorMsg,
     )
     assertFalse(vm.uiState.value.isAddingPerson)

@@ -25,6 +25,14 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.ui.caregiver.upload.media.DisplayLocation
+import com.github.se.amber.ui.caregiver.upload.media.DisplayLocationHint
+import com.github.se.amber.ui.caregiver.upload.media.DisplayPlaceSuggestion
+import com.github.se.amber.ui.caregiver.upload.media.LocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.NO_PLACE_FOUND_HINT
+import com.github.se.amber.ui.caregiver.upload.media.PLACE_QUERY_TOO_SHORT_HINT
+import com.github.se.amber.ui.caregiver.upload.media.PLACE_SEARCH_FAILED_HINT
+import com.github.se.amber.ui.caregiver.upload.media.UploadPictureLocationTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -70,7 +78,7 @@ class UploadPictureLocationTest {
     composeTestRule.setContent {
       DisplayLocation(
           savedPlaceNamesById = mapOf("home" to "Home"),
-          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
+          state = LocationUIState(query = "Lau", suggestions = listOf(lausanne)),
       )
     }
 
@@ -89,7 +97,7 @@ class UploadPictureLocationTest {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
       DisplayLocation(
-          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
+          state = LocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
           onSuggestionClick = { picked += it },
       )
     }
@@ -104,7 +112,7 @@ class UploadPictureLocationTest {
 
   @Test
   fun eachSearchStateShowsOnlyItsOwnHint() {
-    var state by mutableStateOf(PictureLocationUIState(query = "Grandma's house"))
+    var state by mutableStateOf(LocationUIState(query = "Grandma's house"))
     var retries = 0
     composeTestRule.setContent { DisplayLocation(state = state, onRetrySearch = { retries++ }) }
 
@@ -117,9 +125,7 @@ class UploadPictureLocationTest {
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
 
     // a failed search is not shown as no places found
-    composeTestRule.runOnIdle {
-      state = PictureLocationUIState(query = "Lausanne", searchFailed = true)
-    }
+    composeTestRule.runOnIdle { state = LocationUIState(query = "Lausanne", searchFailed = true) }
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED)
         .assertIsDisplayed()
@@ -130,7 +136,7 @@ class UploadPictureLocationTest {
     assertEquals(1, retries)
 
     // a place too short to search says how many letters are needed
-    composeTestRule.runOnIdle { state = PictureLocationUIState(query = "La") }
+    composeTestRule.runOnIdle { state = LocationUIState(query = "La") }
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.TOO_SHORT)
         .assertIsDisplayed()
@@ -139,7 +145,7 @@ class UploadPictureLocationTest {
 
     // a search still running only shows searching
     composeTestRule.runOnIdle {
-      state = PictureLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
+      state = LocationUIState(query = "Lau", isSearching = true, searchFailed = true)
     }
     composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
@@ -151,7 +157,10 @@ class UploadPictureLocationTest {
   fun pressingEnterInTheSearchFieldDoesNotAddANewLine() {
     var query by mutableStateOf("Lausanne")
     composeTestRule.setContent {
-      DisplayLocation(state = PictureLocationUIState(query = query), onQueryChange = { query = it })
+      DisplayLocation(
+          state = LocationUIState(query = query),
+          onQueryChange = { query = it },
+      )
     }
 
     composeTestRule.onNode(searchField).performClick().performKeyInput { pressKey(Key.Enter) }
@@ -181,8 +190,7 @@ class UploadPictureLocationTest {
 
   @Test
   fun suggestionsGoAwayOnceAPlaceIsPicked() {
-    var state by
-        mutableStateOf(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
+    var state by mutableStateOf(LocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule.setContent { DisplayLocation(state = state) }
     composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
 
