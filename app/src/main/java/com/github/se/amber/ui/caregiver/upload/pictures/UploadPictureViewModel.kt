@@ -65,7 +65,14 @@ class UploadPictureViewModel(
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
-) : UploadMediaViewModel(mediaRepo, authRepo, profileRepo, circleRepo, placeRepo) {
+) :
+    UploadMediaViewModel(
+        mediaRepo = mediaRepo,
+        authRepo = authRepo,
+        profileRepo = profileRepo,
+        circleRepo = circleRepo,
+        placeRepo = placeRepo,
+    ) {
   private val _picture = MutableStateFlow(PictureContent())
 
   val uiState: StateFlow<UploadPictureUIState> =

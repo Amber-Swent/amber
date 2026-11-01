@@ -19,6 +19,7 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.upload.media.UploadMediaEvent
+import com.github.se.amber.ui.caregiver.upload.media.UploadMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.UploadMediaViewModelErrorMessage
 import com.github.se.amber.ui.caregiver.upload.media.unknownMemberLabel
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
@@ -185,7 +186,7 @@ class UploadPictureViewModelTest {
 
   @Test
   fun initialDescriptionIsEmpty() {
-    assertEquals("", createViewModel().uiState.value.description)
+    assertEquals("", createViewModel().uiState.value.media.description)
   }
 
   @Test
@@ -195,12 +196,12 @@ class UploadPictureViewModelTest {
 
   @Test
   fun initialStateIsNotUploading() {
-    assertFalse(createViewModel().uiState.value.isUploading)
+    assertFalse(createViewModel().uiState.value.media.isUploading)
   }
 
   @Test
   fun initialStateHasNoErrorWhenCircleLoads() {
-    assertNull(createViewModel().uiState.value.errorMsg)
+    assertNull(createViewModel().uiState.value.media.errorMsg)
   }
 
   // ---------- circle loading (init) ----------
@@ -235,7 +236,7 @@ class UploadPictureViewModelTest {
     signIn(null)
     assertEquals(
         UploadMediaViewModelErrorMessage.UNVERIFIED.mess,
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.media.errorMsg,
     )
   }
 
@@ -257,7 +258,7 @@ class UploadPictureViewModelTest {
     coEvery { profileRepo.getProfile(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
         UploadMediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "boom",
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.media.errorMsg,
     )
   }
 
@@ -273,7 +274,7 @@ class UploadPictureViewModelTest {
     stubProfile(null)
     assertEquals(
         UploadMediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.media.errorMsg,
     )
   }
 
@@ -282,7 +283,7 @@ class UploadPictureViewModelTest {
     stubProfile(emptyList())
     assertEquals(
         UploadMediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.media.errorMsg,
     )
   }
 
@@ -298,7 +299,7 @@ class UploadPictureViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
         UploadMediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "boom",
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.media.errorMsg,
     )
   }
 
@@ -314,7 +315,7 @@ class UploadPictureViewModelTest {
   fun setDescriptionUpdatesState() {
     val vm = createViewModel()
     vm.setDescription("Grandma's birthday")
-    assertEquals("Grandma's birthday", vm.uiState.value.description)
+    assertEquals("Grandma's birthday", vm.uiState.value.media.description)
   }
 
   @Test
@@ -322,7 +323,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     val date = MemoryDate(2026, Month.OCTOBER, 14)
     vm.setDate(date)
-    assertEquals(date, vm.uiState.value.date)
+    assertEquals(date, vm.uiState.value.media.date)
   }
 
   @Test
@@ -350,7 +351,7 @@ class UploadPictureViewModelTest {
   fun setErrorMsgUpdatesState() {
     val vm = createViewModel()
     vm.setErrorMsg("oops")
-    assertEquals("oops", vm.uiState.value.errorMsg)
+    assertEquals("oops", vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -358,7 +359,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.setErrorMsg("oops")
     vm.clearErrorMsg()
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.media.errorMsg)
   }
 
   // ---------- toggleShownId ----------
@@ -367,7 +368,7 @@ class UploadPictureViewModelTest {
   fun toggleShownIdAddsUnknownId() {
     val vm = createViewModel()
     vm.toggleShownId("new_id")
-    assertTrue("new_id" in vm.uiState.value.shownIds)
+    assertTrue("new_id" in vm.uiState.value.media.shownIds)
   }
 
   @Test
@@ -375,7 +376,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.toggleShownId("new_id")
     vm.toggleShownId("new_id")
-    assertFalse("new_id" in vm.uiState.value.shownIds)
+    assertFalse("new_id" in vm.uiState.value.media.shownIds)
   }
 
   // ---------- onPersonAdded ----------
@@ -395,7 +396,7 @@ class UploadPictureViewModelTest {
     loadCircle(CareCircle(id = "circle1"))
     val vm = createViewModel()
     vm.onPersonAdded(bob)
-    assertTrue("bob" in vm.uiState.value.shownIds)
+    assertTrue("bob" in vm.uiState.value.media.shownIds)
   }
 
   @Test
@@ -404,7 +405,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.toggleShownId("p1")
     vm.onPersonAdded(bob)
-    assertEquals(setOf("p1", "bob"), vm.uiState.value.shownIds)
+    assertEquals(setOf("p1", "bob"), vm.uiState.value.media.shownIds)
   }
 
   @Test
@@ -433,7 +434,7 @@ class UploadPictureViewModelTest {
         UploadMediaViewModelErrorMessage.PERSON_WITHOUT_ID.mess,
         result.exceptionOrNull()?.message,
     )
-    assertTrue(vm.uiState.value.shownIds.isEmpty())
+    assertTrue(vm.uiState.value.media.shownIds.isEmpty())
     assertTrue(vm.careCircle.value?.people.orEmpty().isEmpty())
   }
 
@@ -446,7 +447,7 @@ class UploadPictureViewModelTest {
         UploadMediaViewModelErrorMessage.CANNOT_TAG_PERSON.mess,
         result.exceptionOrNull()?.message,
     )
-    assertTrue(vm.uiState.value.shownIds.isEmpty())
+    assertTrue(vm.uiState.value.media.shownIds.isEmpty())
   }
 
   @Test
@@ -599,7 +600,7 @@ class UploadPictureViewModelTest {
     val vm = readyViewModel()
     signIn(null)
     vm.uploadPicture()
-    assertEquals(UploadMediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -607,14 +608,14 @@ class UploadPictureViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertEquals("Your care circle is still loading, try again", vm.uiState.value.errorMsg)
+    assertEquals("Your care circle is still loading, try again", vm.uiState.value.media.errorMsg)
   }
 
   @Test
   fun uploadWithoutPictureAsksToSelectOne() {
     val vm = createViewModel()
     vm.uploadPicture()
-    assertEquals("Please select a picture first", vm.uiState.value.errorMsg)
+    assertEquals("Please select a picture first", vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -638,14 +639,14 @@ class UploadPictureViewModelTest {
   fun successfulUploadClearsUploadingFlag() {
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.media.isUploading)
   }
 
   @Test
   fun successfulUploadHasNoError() {
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -762,7 +763,7 @@ class UploadPictureViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException("boom")
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertEquals("Upload failed: boom", vm.uiState.value.errorMsg)
+    assertEquals("Upload failed: boom", vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -770,7 +771,7 @@ class UploadPictureViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException()
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertEquals(UploadMediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -778,7 +779,7 @@ class UploadPictureViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException("boom")
     val vm = readyViewModel()
     vm.uploadPicture()
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.media.isUploading)
   }
 
   @Test
@@ -840,7 +841,7 @@ class UploadPictureViewModelTest {
 
     assertEquals(
         UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.media.errorMsg,
     )
   }
 
@@ -852,7 +853,7 @@ class UploadPictureViewModelTest {
     vm.uploadPicture()
     assertEquals(
         UploadMediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.media.errorMsg,
     )
   }
 
@@ -866,7 +867,7 @@ class UploadPictureViewModelTest {
   fun missingDateReportsSelectDateError() {
     val vm = readyViewModel(date = null)
     vm.uploadPicture()
-    assertEquals(UploadMediaViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -879,7 +880,7 @@ class UploadPictureViewModelTest {
   fun invalidUploadDoesNotStartUploading() {
     val vm = readyViewModel(description = "   ")
     vm.uploadPicture()
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.media.isUploading)
   }
 
   // ---------- uploadPicture: item content ----------
@@ -895,7 +896,7 @@ class UploadPictureViewModelTest {
   fun initialYearOnlyDateAllowsUploadAfterPictureAndDescription() {
     val currentYear = LocalDate.now().year
     val vm = createViewModel()
-    assertEquals(MemoryDate(currentYear), vm.uiState.value.date)
+    assertEquals(MemoryDate(currentYear), vm.uiState.value.media.date)
     vm.setPicture(pictureFile, 640, 480)
     vm.setDescription("A description")
     assertTrue(vm.uiState.value.canUpload)
@@ -906,9 +907,9 @@ class UploadPictureViewModelTest {
   @Test
   fun initialStateHasNoPlace() {
     val state = createViewModel().uiState.value
-    assertEquals("", state.location.query)
-    assertTrue(state.location.suggestions.isEmpty())
-    assertNull(state.location.pickedPlace)
+    assertEquals("", state.media.location.query)
+    assertTrue(state.media.location.suggestions.isEmpty())
+    assertNull(state.media.location.pickedPlace)
   }
 
   @Test
@@ -920,7 +921,7 @@ class UploadPictureViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 1) { placeRepo.search("Lausanne") }
-    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
+    assertEquals(listOf(lausanne), vm.uiState.value.media.location.suggestions)
   }
 
   @Test
@@ -940,7 +941,7 @@ class UploadPictureViewModelTest {
     vm.searchPlace("Lausanne")
     vm.searchPlace("  ")
 
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertTrue(vm.uiState.value.media.location.suggestions.isEmpty())
     coVerify(exactly = 1) { placeRepo.search(any()) }
   }
 
@@ -950,13 +951,13 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertNull(vm.uiState.value.errorMsg)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertNull(vm.uiState.value.media.errorMsg)
+    assertTrue(vm.uiState.value.media.location.suggestions.isEmpty())
 
     // a pending upload error isn't replaced by a search failure
     vm.uploadPicture()
     vm.searchPlace("Geneva")
-    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.media.errorMsg)
   }
 
   @Test
@@ -966,23 +967,23 @@ class UploadPictureViewModelTest {
     vm.selectPlace(lausanne)
 
     val state = vm.uiState.value
-    assertEquals(lausanne, state.location.pickedPlace)
-    assertEquals("Lausanne, Switzerland", state.location.query)
-    assertTrue(state.location.suggestions.isEmpty())
+    assertEquals(lausanne, state.media.location.pickedPlace)
+    assertEquals("Lausanne, Switzerland", state.media.location.query)
+    assertTrue(state.media.location.suggestions.isEmpty())
   }
 
   @Test
   fun selectPlaceIgnoresAPlaceWithoutCoordinates() {
     val vm = createViewModel()
     vm.selectPlace(GeoLocation(placeName = "Grandma's house"))
-    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.media.location.pickedPlace)
   }
 
   @Test
   fun selectPlaceIgnoresAPlaceWithOnlyALatitude() {
     val vm = createViewModel()
     vm.selectPlace(GeoLocation(lat = 46.52, placeName = "Lausanne"))
-    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.media.location.pickedPlace)
   }
 
   @Test
@@ -991,8 +992,8 @@ class UploadPictureViewModelTest {
     vm.searchPlace("46.52, 6.63")
     vm.selectPlace(GeoLocation(lat = 46.52, lng = 6.63))
 
-    assertEquals("", vm.uiState.value.location.query)
-    assertTrue(vm.uiState.value.location.hasValidPlace)
+    assertEquals("", vm.uiState.value.media.location.query)
+    assertTrue(vm.uiState.value.media.location.hasValidPlace)
   }
 
   @Test
@@ -1003,14 +1004,14 @@ class UploadPictureViewModelTest {
 
     coEvery { placeRepo.search(any()) } returns Result.success(listOf(lausanne))
     vm.retryPlaceSearch()
-    assertTrue(vm.uiState.value.location.isSearching)
-    assertFalse(vm.uiState.value.location.searchFailed)
+    assertTrue(vm.uiState.value.media.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.searchFailed)
 
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 2) { placeRepo.search("Lausanne") }
-    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertEquals(listOf(lausanne), vm.uiState.value.media.location.suggestions)
+    assertFalse(vm.uiState.value.media.location.isSearching)
   }
 
   @Test
@@ -1022,8 +1023,8 @@ class UploadPictureViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 2) { placeRepo.search("Lausanne") }
-    assertTrue(vm.uiState.value.location.searchFailed)
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertTrue(vm.uiState.value.media.location.searchFailed)
+    assertFalse(vm.uiState.value.media.location.isSearching)
   }
 
   @Test
@@ -1034,7 +1035,7 @@ class UploadPictureViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 1) { placeRepo.search(any()) }
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.isSearching)
   }
 
   @Test
@@ -1042,18 +1043,18 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.selectPlace(lausanne)
     vm.setPlaceQuery("Grandma's house")
-    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.media.location.pickedPlace)
   }
 
   @Test
   fun placeSearchIsInProgressUntilItsResultsArrive() {
     val vm = createViewModel()
     vm.setPlaceQuery("Lausanne")
-    assertTrue(vm.uiState.value.location.isSearching)
+    assertTrue(vm.uiState.value.media.location.isSearching)
 
     testDispatcher.scheduler.advanceUntilIdle()
 
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.isSearching)
   }
 
   @Test
@@ -1062,8 +1063,8 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Grandma's house")
 
-    assertFalse(vm.uiState.value.location.isSearching)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertFalse(vm.uiState.value.media.location.isSearching)
+    assertTrue(vm.uiState.value.media.location.suggestions.isEmpty())
   }
 
   @Test
@@ -1071,15 +1072,15 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.setPlaceQuery("Lausanne")
     vm.setPlaceQuery("")
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.isSearching)
 
     vm.setPlaceQuery("Lausanne")
     vm.selectPlace(lausanne)
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.isSearching)
 
     coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
     vm.searchPlace("Geneva")
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.isSearching)
   }
 
   @Test
@@ -1105,7 +1106,7 @@ class UploadPictureViewModelTest {
     assertFalse(vm.uiState.value.canUpload)
     vm.uploadPicture()
 
-    assertEquals(UploadMediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.media.errorMsg)
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
@@ -1117,8 +1118,8 @@ class UploadPictureViewModelTest {
     vm.searchPlace("La")
 
     coVerify(exactly = 0) { placeRepo.search(any()) }
-    assertFalse(vm.uiState.value.location.isSearching)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertFalse(vm.uiState.value.media.location.isSearching)
+    assertTrue(vm.uiState.value.media.location.suggestions.isEmpty())
   }
 
   @Test
@@ -1127,7 +1128,7 @@ class UploadPictureViewModelTest {
     vm.searchPlace("Lausanne")
     vm.searchPlace("La")
 
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertTrue(vm.uiState.value.media.location.suggestions.isEmpty())
     coVerify(exactly = 1) { placeRepo.search(any()) }
   }
 
@@ -1145,7 +1146,7 @@ class UploadPictureViewModelTest {
 
     vm.searchPlace("Geneva")
 
-    assertEquals(listOf(geneva), vm.uiState.value.location.suggestions)
+    assertEquals(listOf(geneva), vm.uiState.value.media.location.suggestions)
   }
 
   @Test
@@ -1162,8 +1163,8 @@ class UploadPictureViewModelTest {
 
     testDispatcher.scheduler.advanceUntilIdle()
 
-    assertEquals(geneva, vm.uiState.value.location.pickedPlace)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertEquals(geneva, vm.uiState.value.media.location.pickedPlace)
+    assertTrue(vm.uiState.value.media.location.suggestions.isEmpty())
   }
 
   @Test
@@ -1174,8 +1175,8 @@ class UploadPictureViewModelTest {
     vm.searchPlace("Lausanne")
 
     coVerify(exactly = 2) { placeRepo.search("Lausanne") }
-    assertFalse(vm.uiState.value.location.isSearching)
-    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
+    assertFalse(vm.uiState.value.media.location.isSearching)
+    assertEquals(listOf(lausanne), vm.uiState.value.media.location.suggestions)
   }
 
   @Test
@@ -1184,7 +1185,7 @@ class UploadPictureViewModelTest {
     vm.searchPlace("Lausanne")
     vm.setPlaceQuery("Lausanne")
 
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.media.location.isSearching)
   }
 
   @Test
@@ -1193,7 +1194,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertTrue(vm.uiState.value.location.searchFailed)
+    assertTrue(vm.uiState.value.media.location.searchFailed)
   }
 
   @Test
@@ -1205,7 +1206,7 @@ class UploadPictureViewModelTest {
     coEvery { placeRepo.search(any()) } returns Result.success(emptyList())
     vm.searchPlace("Grandma's house")
 
-    assertFalse(vm.uiState.value.location.searchFailed)
+    assertFalse(vm.uiState.value.media.location.searchFailed)
   }
 
   @Test
@@ -1215,14 +1216,14 @@ class UploadPictureViewModelTest {
     vm.searchPlace("Lausanne")
     vm.selectPlace(lausanne)
 
-    assertFalse(vm.uiState.value.location.searchFailed)
+    assertFalse(vm.uiState.value.media.location.searchFailed)
   }
 
   @Test
   fun uploadReportsTheFirstMissingThing() {
     val vm = createViewModel() // no picture, no description, no date
     vm.uploadPicture()
-    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess, vm.uiState.value.media.errorMsg)
   }
 
   // ---------- saved places ----------
@@ -1264,10 +1265,10 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
 
     val state = vm.uiState.value
-    assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), state.location.pickedPlace)
-    assertEquals("home", state.location.selectedPlaceId)
-    assertEquals("Home", state.location.query)
-    assertTrue(state.location.hasValidPlace)
+    assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), state.media.location.pickedPlace)
+    assertEquals("home", state.media.location.selectedPlaceId)
+    assertEquals("Home", state.media.location.query)
+    assertTrue(state.media.location.hasValidPlace)
   }
 
   @Test
@@ -1278,9 +1279,9 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
 
     val state = vm.uiState.value
-    assertNull(state.location.pickedPlace)
-    assertNull(state.location.selectedPlaceId)
-    assertEquals("", state.location.query)
+    assertNull(state.media.location.pickedPlace)
+    assertNull(state.media.location.selectedPlaceId)
+    assertEquals("", state.media.location.query)
   }
 
   @Test
@@ -1290,8 +1291,8 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace("doctor")
 
-    assertEquals("doctor", vm.uiState.value.location.selectedPlaceId)
-    assertEquals("Dr. Martin", vm.uiState.value.location.pickedPlace?.placeName)
+    assertEquals("doctor", vm.uiState.value.media.location.selectedPlaceId)
+    assertEquals("Dr. Martin", vm.uiState.value.media.location.pickedPlace?.placeName)
   }
 
   @Test
@@ -1311,8 +1312,8 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
     vm.setPlaceQuery("Lau")
 
-    assertNull(vm.uiState.value.location.pickedPlace)
-    assertNull(vm.uiState.value.location.selectedPlaceId)
+    assertNull(vm.uiState.value.media.location.pickedPlace)
+    assertNull(vm.uiState.value.media.location.selectedPlaceId)
   }
 
   @Test
@@ -1322,8 +1323,8 @@ class UploadPictureViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace(lausanne)
 
-    assertNull(vm.uiState.value.location.selectedPlaceId)
-    assertEquals(lausanne, vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.media.location.selectedPlaceId)
+    assertEquals(lausanne, vm.uiState.value.media.location.pickedPlace)
   }
 
   @Test
@@ -1348,12 +1349,14 @@ class UploadPictureViewModelTest {
   }
 
   private val completeState =
-      UploadPictureUIState(
+    UploadPictureUIState(
+      media =
+        UploadMediaUIState(
           description = "A description",
           date = MemoryDate(2024, Month.MAY, 12),
-          pictureFile = File("picture.jpg"),
-      )
-
+        ),
+      pictureFile = File("picture.jpg"),
+    )
   @Test
   fun canUploadIsFalseWithoutPicture() {
     assertTrue(completeState.canUpload)
@@ -1362,12 +1365,12 @@ class UploadPictureViewModelTest {
 
   @Test
   fun canUploadIsFalseWithBlankDescription() {
-    assertFalse(completeState.copy(description = "  ").canUpload)
+    assertFalse(completeState.media.copy(description = "  ").canUpload)
   }
 
   @Test
   fun canUploadIsFalseWhileUploading() {
-    assertFalse(completeState.copy(isUploading = true).canUpload)
+    assertFalse(completeState.media.copy(isUploading = true).canUpload)
   }
 
   @Test
@@ -1377,13 +1380,13 @@ class UploadPictureViewModelTest {
     val vm = readyViewModel()
 
     vm.uploadPicture()
-    assertTrue(vm.uiState.value.isUploading)
+    assertTrue(vm.uiState.value.media.isUploading)
     assertFalse(vm.uiState.value.canUpload)
     vm.uploadPicture()
     coVerify(exactly = 1) { mediaRepo.addMedia(any(), any(), any()) }
 
     uploadReply.complete(Unit)
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.media.isUploading)
   }
 
   // ---------- add person ----------
@@ -1394,7 +1397,7 @@ class UploadPictureViewModelTest {
 
     vm.onAddPerson()
 
-    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertTrue(vm.uiState.value.media.isAddPersonOpen)
   }
 
   @Test
@@ -1407,10 +1410,10 @@ class UploadPictureViewModelTest {
 
     vm.dismissAddPerson()
 
-    assertFalse(vm.uiState.value.isAddPersonOpen)
-    assertEquals("", vm.uiState.value.personFirstName)
-    assertEquals("", vm.uiState.value.personLastName)
-    assertEquals("", vm.uiState.value.personNickname)
+    assertFalse(vm.uiState.value.media.isAddPersonOpen)
+    assertEquals("", vm.uiState.value.media.personFirstName)
+    assertEquals("", vm.uiState.value.media.personLastName)
+    assertEquals("", vm.uiState.value.media.personNickname)
   }
 
   @Test
@@ -1430,9 +1433,9 @@ class UploadPictureViewModelTest {
     }
     assertEquals(saved, vm.careCircle.value?.people?.get("person1"))
     assertEquals("Anne", vm.involvedOptions.value["person1"])
-    assertTrue("person1" in vm.uiState.value.shownIds)
-    assertFalse(vm.uiState.value.isAddPersonOpen)
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertTrue("person1" in vm.uiState.value.media.shownIds)
+    assertFalse(vm.uiState.value.media.isAddPersonOpen)
+    assertFalse(vm.uiState.value.media.isAddingPerson)
   }
 
   @Test
@@ -1444,8 +1447,8 @@ class UploadPictureViewModelTest {
     vm.addPerson()
 
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
-    assertEquals("A first name is required", vm.uiState.value.errorMsg)
-    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertEquals("A first name is required", vm.uiState.value.media.errorMsg)
+    assertTrue(vm.uiState.value.media.isAddPersonOpen)
   }
 
   @Test
@@ -1457,10 +1460,10 @@ class UploadPictureViewModelTest {
 
     vm.addPerson()
 
-    assertEquals("offline", vm.uiState.value.errorMsg)
-    assertEquals("Anne", vm.uiState.value.personFirstName)
-    assertTrue(vm.uiState.value.isAddPersonOpen)
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertEquals("offline", vm.uiState.value.media.errorMsg)
+    assertEquals("Anne", vm.uiState.value.media.personFirstName)
+    assertTrue(vm.uiState.value.media.isAddPersonOpen)
+    assertFalse(vm.uiState.value.media.isAddingPerson)
   }
 
   @Test
@@ -1471,7 +1474,7 @@ class UploadPictureViewModelTest {
 
     vm.addPerson()
 
-    assertEquals(UploadMediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
+    assertEquals(UploadMediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.media.errorMsg)
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
   }
 
@@ -1494,10 +1497,10 @@ class UploadPictureViewModelTest {
           match { it.firstName == "Anne" && it.lastName == "Dupont" && it.nickname == "Nana" },
       )
     }
-    assertEquals("", vm.uiState.value.personFirstName)
-    assertEquals("", vm.uiState.value.personLastName)
-    assertEquals("", vm.uiState.value.personNickname)
-    assertTrue("person1" in vm.uiState.value.shownIds)
+    assertEquals("", vm.uiState.value.media.personFirstName)
+    assertEquals("", vm.uiState.value.media.personLastName)
+    assertEquals("", vm.uiState.value.media.personNickname)
+    assertTrue("person1" in vm.uiState.value.media.shownIds)
   }
 
   @Test
@@ -1510,16 +1513,16 @@ class UploadPictureViewModelTest {
     vm.setPersonFirstName("Anne")
 
     vm.addPerson()
-    assertTrue(vm.uiState.value.isAddingPerson)
+    assertTrue(vm.uiState.value.media.isAddingPerson)
     vm.dismissAddPerson()
-    assertTrue(vm.uiState.value.isAddPersonOpen)
-    assertEquals("Anne", vm.uiState.value.personFirstName)
+    assertTrue(vm.uiState.value.media.isAddPersonOpen)
+    assertEquals("Anne", vm.uiState.value.media.personFirstName)
     vm.addPerson()
     coVerify(exactly = 1) { circleRepo.addPerson(any(), any()) }
 
     personReply.complete(Result.success(Person(id = "person1", firstName = "Anne")))
-    assertFalse(vm.uiState.value.isAddingPerson)
-    assertFalse(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.media.isAddingPerson)
+    assertFalse(vm.uiState.value.media.isAddPersonOpen)
   }
 
   @Test
@@ -1532,9 +1535,9 @@ class UploadPictureViewModelTest {
 
     assertEquals(
         UploadMediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.media.errorMsg,
     )
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertFalse(vm.uiState.value.media.isAddingPerson)
   }
 
   @Test
@@ -1546,9 +1549,9 @@ class UploadPictureViewModelTest {
 
     vm.addPerson()
 
-    assertEquals("broken", vm.uiState.value.errorMsg)
-    assertEquals("Anne", vm.uiState.value.personFirstName)
-    assertTrue(vm.uiState.value.isAddPersonOpen)
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertEquals("broken", vm.uiState.value.media.errorMsg)
+    assertEquals("Anne", vm.uiState.value.media.personFirstName)
+    assertTrue(vm.uiState.value.media.isAddPersonOpen)
+    assertFalse(vm.uiState.value.media.isAddingPerson)
   }
 }
