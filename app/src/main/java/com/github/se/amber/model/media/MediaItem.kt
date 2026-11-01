@@ -86,6 +86,9 @@ sealed interface MediaItem {
       override val status: MediaStatus = MediaStatus.APPROVED,
       val durationMs: Long = 0L,
       val transcript: String? = null, // filled later by the AI
+      // how loud it is along its length, for drawing it: values from 0 to 1 in playback order;
+      // empty = unknown (e.g. a picked file), and the screen shows a progress bar instead
+      val waveform: List<Float> = emptyList(),
   ) : MediaItem
 }
 

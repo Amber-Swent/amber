@@ -34,6 +34,7 @@ class FakeAudioRecorderTest {
     assertTrue(recorded.file.name.endsWith(".m4a"))
     assertEquals(folder.root, recorded.file.parentFile)
     assertEquals(4_000L, recorded.durationMs)
+    assertEquals(List(WAVEFORM_BARS) { 0.5f }, recorded.waveform)
   }
 
   @Test

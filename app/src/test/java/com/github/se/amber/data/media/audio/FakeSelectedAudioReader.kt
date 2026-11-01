@@ -7,7 +7,7 @@ import java.io.File
 /**
  * A [SelectedAudioReader] for the ViewModel tests, with no real file picker. Each read is recorded
  * in [reads] and returns a new .m4a file in [directory] that lasts [durationMs] and contains "audio
- * from {uri}".
+ * from {uri}". Its waveform is [waveform], empty by default like the real reader's.
  *
  * To test the error cases, set [error] (e.g. an `IllegalArgumentException` for a file that isn't an
  * .m4a).
@@ -21,11 +21,14 @@ class FakeSelectedAudioReader(private val directory: File, var durationMs: Long 
   /** The URIs read so far, in order. */
   val reads: MutableList<String> = mutableListOf()
 
+  /** The waveform [read] returns; set it to test a picked file that has one. */
+  var waveform: List<Float> = emptyList()
+
   override suspend fun read(uri: String): LocalAudio {
     reads += uri
     error?.let { throw it }
     val file = File.createTempFile("picked_", ".m4a", directory)
     file.writeText("audio from $uri")
-    return LocalAudio(file, durationMs)
+    return LocalAudio(file, durationMs, waveform)
   }
 }

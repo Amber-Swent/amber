@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 /**
  * An [AudioRecorder] for the ViewModel tests, with no microphone. It follows the same rules as the
  * real recorder: calling [start] twice, or [stop] without a recording, throws. [stop] returns a
- * real .m4a file in [directory] that lasts [durationMs].
+ * real .m4a file in [directory] that lasts [durationMs], with [waveform] as its waveform.
  *
  * It also has helpers that a real recorder doesn't, to make ViewModel tests easier, like a mock
  * would: [startError] and [stopError] make [start] and [stop] throw (e.g. a `SecurityException` for
@@ -23,6 +23,12 @@ class FakeAudioRecorder(private val directory: File, var durationMs: Long = 3_00
 
   /** Set it to test a waveform. It goes back to 0 when the recording stops, like the real one. */
   override val amplitude = MutableStateFlow(0f)
+
+  /**
+   * The waveform [stop] returns: [WAVEFORM_BARS] values at half loudness, until a test sets
+   * another.
+   */
+  var waveform: List<Float> = List(WAVEFORM_BARS) { 0.5f }
 
   /** Thrown by every [start] while it is set, before anything is recorded. */
   var startError: Exception? = null
@@ -70,7 +76,7 @@ class FakeAudioRecorder(private val directory: File, var durationMs: Long = 3_00
       throw it
     }
     recorded.writeText("fake audio")
-    return LocalAudio(recorded, durationMs)
+    return LocalAudio(recorded, durationMs, waveform)
   }
 
   override fun cancel() {

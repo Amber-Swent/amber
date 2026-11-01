@@ -14,5 +14,16 @@ import java.io.File
  *
  * @property file the .m4a file that holds the audio.
  * @property durationMs how long it lasts, for `MediaItem.Audio.durationMs`.
+ * @property waveform how loud the audio is along its length, for `MediaItem.Audio.waveform`, so the
+ *   listening screen can draw it. It holds [WAVEFORM_BARS] values from 0 (silence) to 1 (the
+ *   loudest), in playback order, each the loudest point of its part of the audio. It is empty when
+ *   it isn't known (e.g. for a picked file), and the screen then shows a plain progress bar.
  */
-data class LocalAudio(val file: File, val durationMs: Long)
+data class LocalAudio(
+    val file: File,
+    val durationMs: Long,
+    val waveform: List<Float> = emptyList(),
+)
+
+/** How many values a known [LocalAudio.waveform] has; the screen draws one bar per value. */
+const val WAVEFORM_BARS = 64

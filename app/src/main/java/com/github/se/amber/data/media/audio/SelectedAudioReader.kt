@@ -16,7 +16,8 @@ fun interface SelectedAudioReader {
    * Copies the picked audio into a new .m4a file in the app's cache, and reads how long it lasts.
    *
    * @param uri the content URI of the audio, as given by the system file picker.
-   * @return the copied audio. Its file now belongs to the caller.
+   * @return the copied audio. Its file now belongs to the caller. Its waveform is empty for now,
+   *   since there is no amplitude to read for a picked file, so the screen shows a progress bar.
    * @throws IllegalArgumentException if the audio isn't an .m4a (`audio/mp4`), can't be read, has
    *   no duration, or is bigger than [MAX_FILE_BYTES]. No file is left behind in that case.
    */

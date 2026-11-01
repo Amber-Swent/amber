@@ -35,6 +35,16 @@ class FakeSelectedAudioReaderTest {
   }
 
   @Test
+  fun theWaveformIsEmptyUnlessTheTestSetsOne() = runTest {
+    assertEquals(emptyList<Float>(), reader.read("content://audio/1").waveform)
+
+    val waveform = List(WAVEFORM_BARS) { it / (WAVEFORM_BARS - 1f) }
+    reader.waveform = waveform
+
+    assertEquals(waveform, reader.read("content://audio/2").waveform)
+  }
+
+  @Test
   fun readThrowsTheErrorItIsGiven() = runTest {
     val notM4a = IllegalArgumentException("not an .m4a")
     reader.error = notM4a
