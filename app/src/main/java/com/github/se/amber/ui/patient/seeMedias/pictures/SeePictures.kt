@@ -46,12 +46,12 @@ import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
 object SeePicturesTestTags {
-  const val NO_PICTURES_SEE_PICTURES = "no_pictures_see_pictures"
-  const val ERROR_SEE_PICTURES = "pictures_error_see_pictures"
+  const val NO_PICTURES = "see_pictures_no_pictures"
+  const val ERROR = "see_pictures_error"
 
-  const val TITLE_SEE_PICTURES = "title_see_pictures"
+  const val TITLE = "see_pictures_title"
 
-  fun picture(id: String = "") = "picture_$id"
+  fun picture(id: String = "") = "see_pictures_picture_$id"
 }
 
 @Composable
@@ -91,7 +91,7 @@ fun SeePicturesScreen(
           )
           DisplayPatientTitle(
               title = "See Pictures",
-              testTag = SeePicturesTestTags.TITLE_SEE_PICTURES,
+              testTag = SeePicturesTestTags.TITLE,
           )
         }
       },
@@ -126,7 +126,7 @@ fun SeePicturesScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
-                  modifier = Modifier.testTag(SeePicturesTestTags.ERROR_SEE_PICTURES),
+                  modifier = Modifier.testTag(SeePicturesTestTags.ERROR),
                   text = actualState.message,
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.error,
@@ -134,7 +134,7 @@ fun SeePicturesScreen(
               )
               DisplayPatientButton(
                   text = "Retry",
-                  onClick = { pictureViewModel.retry() },
+                  onClick = pictureViewModel::retry,
               )
             }
           }
@@ -146,7 +146,7 @@ fun SeePicturesScreen(
                 contentAlignment = Alignment.Center,
             ) {
               Text(
-                  modifier = Modifier.testTag(SeePicturesTestTags.NO_PICTURES_SEE_PICTURES),
+                  modifier = Modifier.testTag(SeePicturesTestTags.NO_PICTURES),
                   text = "There are no pictures yet.",
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.onBackground,

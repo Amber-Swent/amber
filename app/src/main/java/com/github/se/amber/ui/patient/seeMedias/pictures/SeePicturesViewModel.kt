@@ -15,6 +15,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.UserProfile
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -107,10 +108,10 @@ class SeePicturesViewModel(
             setBlockingErrorMsg("Failed to load the profile: ${e.message}")
             return@launch
           }
-      if (profile == null) {
-        setBlockingErrorMsg("No profile found.")
-        return@launch
-      }
+              ?: run {
+                setBlockingErrorMsg("No profile found.")
+                return@launch
+              }
 
       // 2. Circle id (explicit error if missing)
       val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
@@ -128,8 +129,8 @@ class SeePicturesViewModel(
           }
 
       // 4. Media (live flow)
-      mediaRepository
-          .observeApprovedMedia(circleId)
+      val mediaFlow: Flow<List<MediaItem>> = mediaRepository.observeApprovedMedia(circleId)
+      mediaFlow
           .catch { e ->
             Log.e(TAG, "Error observing media", e)
             setNonBlockingErrorMsg("Failed to load media: ${e.message}")
