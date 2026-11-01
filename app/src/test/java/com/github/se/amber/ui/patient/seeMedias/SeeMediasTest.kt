@@ -34,21 +34,21 @@ class SeeMediasScreenTest {
     composeTestRule.setContent { SeeMediasScreen(viewModel = viewModel) }
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.TITLE_SEE_MEDIAS)
+        .onNodeWithTag(SeeMediasTestTags.TITLE)
         .assertIsDisplayed() // Title is at the top so we don't scroll
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS)
+        .onNodeWithTag(SeeMediasTestTags.PICTURES_BUTTON)
         .performScrollTo()
         .assertIsDisplayed()
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS)
+        .onNodeWithTag(SeeMediasTestTags.TEXTS_BUTTON)
         .performScrollTo()
         .assertIsDisplayed()
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS)
+        .onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON)
         .performScrollTo()
         .assertIsDisplayed()
 
@@ -73,21 +73,15 @@ class SeeMediasScreenTest {
     }
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS)
+        .onNodeWithTag(SeeMediasTestTags.PICTURES_BUTTON)
         .performScrollTo()
         .performClick()
     assertEquals(listOf(1, 0, 0), listOf(pictureClicks, textClicks, audioClicks))
 
-    composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS)
-        .performScrollTo()
-        .performClick()
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.TEXTS_BUTTON).performScrollTo().performClick()
     assertEquals(listOf(1, 1, 0), listOf(pictureClicks, textClicks, audioClicks))
 
-    composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS)
-        .performScrollTo()
-        .performClick()
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON).performScrollTo().performClick()
     assertEquals(listOf(1, 1, 1), listOf(pictureClicks, textClicks, audioClicks))
   }
 
@@ -115,18 +109,12 @@ class SeeMediasScreenTest {
     composeTestRule.setContent { SeeMediasScreen() }
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS)
+        .onNodeWithTag(SeeMediasTestTags.PICTURES_BUTTON)
         .performScrollTo()
         .performClick()
-    composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS)
-        .performScrollTo()
-        .performClick()
-    composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS)
-        .performScrollTo()
-        .performClick()
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.TEXTS_BUTTON).performScrollTo().performClick()
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON).performScrollTo().performClick()
 
-    composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE_SEE_MEDIAS).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE).assertIsDisplayed()
   }
 }
