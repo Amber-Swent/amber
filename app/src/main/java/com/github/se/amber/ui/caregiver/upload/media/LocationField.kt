@@ -22,8 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_PLACE_SEARCH
@@ -47,7 +49,7 @@ internal const val NO_PLACE_FOUND_HINT =
 
 /** Shown while the typed place is too short to be searched: the upload is blocked until then. */
 internal const val PLACE_QUERY_TOO_SHORT_HINT =
-    "Type at least ${MIN_PLACE_QUERY_LENGTH} letters to search, or clear the field."
+    "Type at least $MIN_PLACE_QUERY_LENGTH letters to search, or clear the field."
 
 /** Shown when the search itself failed, e.g. offline: the toast with the error is gone by then. */
 internal const val PLACE_SEARCH_FAILED_HINT =
@@ -185,4 +187,12 @@ internal fun DisplayLocationHint(text: String = "", tag: String = "") {
       style = MaterialTheme.typography.bodySmall,
       modifier = Modifier.padding(CAREGIVER_PADDING_SMALL).testTag(tag),
   )
+}
+
+/** Preview of [DisplayLocation] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun DisplayLocationPreview() {
+
+    AmberAppTheme(dynamicColor = false) { DisplayLocation() }
 }

@@ -167,8 +167,9 @@ protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScop
           .map { circle -> circle?.pickablePlaces().orEmpty().mapValues { it.value.name } }
           .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
-// --------------------------------------
-  init {
+// --------------- Init ------------------
+
+    init {
     loadCircle()
   }
 
@@ -279,7 +280,7 @@ protected val picker = locationPicker ?: LocationPicker(placeRepo, viewModelScop
     it.location.lat != null && it.location.lng != null
   }
 // ----------------- Location ---------------------
-    // délégations, pour ne pas changer l'API côté UI
+    // Delegation to avoid making the UI complex
     fun setPlaceQuery(query: String) = picker.setQuery(query)
     fun retryPlaceSearch() = picker.retrySearch()
     fun selectPlace(place: GeoLocation) = picker.selectPlace(place)
