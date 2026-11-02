@@ -54,6 +54,7 @@ data class UploadAudioUIState(
   val canUpload: Boolean
     get() =
         audioFile != null &&
+            recordingState == AudioRecordingState.RECORDED &&
             description.isNotBlank() &&
             date != null &&
             location.hasValidPlace &&
@@ -68,7 +69,6 @@ data class UploadAudioUIState(
  * @param profileRepo The repository used to load the authenticated user's profile.
  * @param circleRepo The repository used to load the user's care circle.
  * @param placeRepo The repository used to find real places from what the user types.
- * @param pictureReader The reader used to copy selected pictures and read their dimensions.
  */
 class UploadAudioViewModel(
     private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
