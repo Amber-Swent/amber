@@ -31,9 +31,8 @@ private class FakeDateSelectionListener {
 }
 
 /**
- * UI tests for [DisplayScrollableDatePicker].
- * Everything is located through test tags, and expected values are derived from the date under test
- * (never from displayed strings).
+ * UI tests for [DisplayScrollableDatePicker]. Everything is located through test tags, and expected
+ * values are derived from the date under test (never from displayed strings).
  */
 class CaregiverUtilsAndroidTest {
 

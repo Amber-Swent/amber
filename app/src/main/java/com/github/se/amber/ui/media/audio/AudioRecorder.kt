@@ -1,7 +1,7 @@
 /* Written by LaMaier, with assistance from
  * Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload.audios
+package com.github.se.amber.ui.media.audio
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -47,7 +47,7 @@ object AudioRecorderTestTags {
 }
 
 /**
- * Displays an audio being recorded, or the audio that was recorded.
+ * Displays an audio being recorded, or the audio that was recorded. Use by the caregiver screen.
  *
  * The delete button is on the left, then comes the waveform, then the stop button on the right. The
  * stop button is only there while recording. While recording, [waveform] grows as the microphone
@@ -73,7 +73,7 @@ fun DisplayAudioRecorder(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = MaterialTheme.colorScheme.tertiary,
+                  color = MaterialTheme.colorScheme.outline,
                   shape = RoundedCornerShape(ROUND_CORNER),
               )
               .clip(RoundedCornerShape(ROUND_CORNER))
@@ -81,6 +81,8 @@ fun DisplayAudioRecorder(
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
   ) {
+    // FIXME : This helper function will be removed and use a more General Helper Function.
+    //  Ledit helper function is currently being implemented; so I put a placeholder.
     DisplayAudioIconButton(
         modifier = Modifier.testTag(AudioRecorderTestTags.DELETE_BUTTON),
         icon = Icons.Outlined.Delete,
@@ -92,6 +94,8 @@ fun DisplayAudioRecorder(
         waveform = waveform,
     )
     if (isRecording) {
+      // FIXME : This helper function will be removed and use a more General Helper Function.
+      //  Ledit helper function is currently being implemented; so I put a placeholder.
       DisplayAudioIconButton(
           modifier = Modifier.testTag(AudioRecorderTestTags.STOP_BUTTON),
           icon = Icons.Outlined.Stop,
@@ -102,7 +106,11 @@ fun DisplayAudioRecorder(
   }
 }
 
-/** Circular icon button with the caregiver button colors, used by [DisplayAudioRecorder]. */
+/**
+ * Circular icon button with the caregiver button colors, used by [DisplayAudioRecorder].
+ *
+ * WILL BE DELETED
+ */
 @Composable
 private fun DisplayAudioIconButton(
     modifier: Modifier = Modifier,
@@ -140,12 +148,24 @@ fun DisplayAudioWaveform(
     modifier: Modifier = Modifier,
     waveform: List<Float> = emptyList(),
 ) {
-  val color = MaterialTheme.colorScheme.secondary
+  val color = MaterialTheme.colorScheme.outline
+
+  // Draw the waveform inside a canvas.
+  // Fills the available width and uses a fixed height.
   Canvas(modifier = modifier.fillMaxWidth().height(AUDIO_WAVEFORM_HEIGHT)) {
+    // Divide the canvas width into equal slots, one per possible bar.
     val slotWidth = size.width / WAVEFORM_BARS
+
+    // Only render up to the maximum number of bars supported.
     waveform.take(WAVEFORM_BARS).forEachIndexed { index, level ->
+      // Center each bar within its slot.
       val x = (index + HALF) * slotWidth
+
+      // Clamp very small levels so bars always remain visible.
+      // Bar height is drawn symmetrically around the vertical center.
       val halfBarHeight = size.height * level.coerceAtLeast(AUDIO_WAVEFORM_MIN_LEVEL) * HALF
+
+      // Draw a vertical line for each waveform bar.
       drawLine(
           color = color,
           start = Offset(x, size.height * HALF - halfBarHeight),

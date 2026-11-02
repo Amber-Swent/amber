@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
@@ -40,6 +41,7 @@ import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreenTestTags.
 import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialog
 import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolved
+import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -88,12 +90,15 @@ fun UploadAudioScreen(
     }
   }
 
+  // FIXME : will be unExtract once the global ViewModel is implemented.
+  //  for the moment, I let it to avoid forgetting
+
   //    // The upload is over: leave the screen only once it really succeeded
   //    val currentOnUpload by rememberUpdatedState(onUpload)
   //    LaunchedEffect(Unit) {
   //        viewModel.events.collect { event ->
   //            when (event) {
-  //                UploadPictureEvent.Uploaded -> currentOnUpload()
+  //                UploadAudioEvent.Uploaded -> currentOnUpload()
   //            }
   //        }
   //    }
@@ -101,10 +106,16 @@ fun UploadAudioScreen(
   Scaffold(
       topBar = {
         Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-          TopAppBar(title = { TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack) })
-          DisplayCaregiverTitle(
-              Modifier.testTag(UploadAudioScreenTestTags.TITLE),
-              "Upload Audio",
+          TopAppBar(
+              title = {
+                Column {
+                  TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                  DisplayCaregiverTitle(
+                      Modifier.testTag(UploadAudioScreenTestTags.TITLE),
+                      "Upload Audio",
+                  )
+                }
+              }
           )
         }
       },
@@ -120,8 +131,8 @@ fun UploadAudioScreen(
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
           // Record button, then the recording in progress, then the recorded audio
-          when {
-            uiState.isRecording ->
+          when (uiState.recordingState) {
+            AudioRecordingState.RECORDING ->
                 DisplayAudioRecorder(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING),
                     isRecording = true,
@@ -129,13 +140,13 @@ fun UploadAudioScreen(
                     onDelete = viewModel::deleteRecording,
                     onStop = viewModel::stopRecording, // must update uiState.audioFile
                 )
-            uiState.audioFile != null ->
+            AudioRecordingState.RECORDED ->
                 DisplayAudioRecorder(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
                     waveform = uiState.waveform,
                     onDelete = viewModel::deleteRecording,
                 )
-            else ->
+            AudioRecordingState.IDLE ->
                 DisplayBoxWithIconText(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
                     icon = Icons.Outlined.Mic,
@@ -164,14 +175,18 @@ fun UploadAudioScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-//          DisplayLocation(
-//              savedPlaceNamesById = placeOptions,
-//              state = uiState.location,
-//              onSavedPlaceClick = viewModel::selectPlace,
-//              onQueryChange = viewModel::setPlaceQuery,
-//              onSuggestionClick = viewModel::selectPlace,
-//              onRetrySearch = viewModel::retryPlaceSearch,
-//          )
+          // FIXME: will be unExtract once the global ViewModel is implemented.
+          //  I don't want to create a new UploadAudioLocation file that duplicate the
+          // UploadPictureLocation.
+
+          //          DisplayLocation(
+          //              savedPlaceNamesById = placeOptions,
+          //              state = uiState.location,
+          //              onSavedPlaceClick = viewModel::selectPlace,
+          //              onQueryChange = viewModel::setPlaceQuery,
+          //              onSuggestionClick = viewModel::selectPlace,
+          //              onRetrySearch = viewModel::retryPlaceSearch,
+          //          )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),

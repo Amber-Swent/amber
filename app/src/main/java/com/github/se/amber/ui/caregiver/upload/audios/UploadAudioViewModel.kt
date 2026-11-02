@@ -1,7 +1,6 @@
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -11,22 +10,17 @@ import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.circle.displayNameOf
-import com.github.se.amber.model.circle.taggableIds
+import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.ui.caregiver.upload.pictures.PictureLocationUIState
-import com.github.se.amber.ui.caregiver.upload.pictures.unknownMemberLabel
 import java.io.File
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 
 /**
  * Represents the state displayed by the picture upload screen.
@@ -37,7 +31,7 @@ import kotlinx.coroutines.flow.stateIn
  * @param shownIds The IDs of the people tagged in the picture.
  * @param audioFile The recorded audio, once the recording is over.
  * @param waveform The levels of the audio so far (while recording) or in full (once recorded).
- * @param isRecording Whether a recording is in progress.
+ * @param recordingState Whether the audio is not yet recorded, being recorded, or recorded.
  * @param isUploading Whether an upload is currently in progress.
  * @param errorMsg The error message to display, if any.
  */
@@ -49,7 +43,7 @@ data class UploadAudioUIState(
     val audioFile: File? = null,
     val waveform: List<Float> = emptyList(),
     val isUploading: Boolean = false,
-    val isRecording: Boolean = false,
+    val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
     val errorMsg: String? = null,
     val isAddPersonOpen: Boolean = false,
     val isAddingPerson: Boolean = false,
@@ -91,18 +85,7 @@ class UploadAudioViewModel(
 
   private val _members = MutableStateFlow<Map<String, Person>?>(null)
   // people saved by the add-person dialog before the circle arrived, keyed by id
-  val involvedOptions: StateFlow<Map<String, String>> =
-      combine(careCircle, _members) { circle, members ->
-            if (circle == null || members == null) emptyMap()
-            else {
-              val viewerUid = authRepo.currentUser?.uid
-              var unknownCount = 0
-              circle.taggableIds().associateWith { id ->
-                circle.displayNameOf(id, viewerUid, members) ?: unknownMemberLabel(++unknownCount)
-              }
-            }
-          }
-          .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+  val involvedOptions: StateFlow<Map<String, String>> = MutableStateFlow(emptyMap<String, String>())
 
   fun clearErrorMsg() {}
 

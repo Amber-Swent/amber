@@ -77,8 +77,8 @@ class UploadPictureLocationTest {
   fun withDefaultCallbacksTappingAndTypingChangeNothing() {
     composeTestRule.setContent {
       DisplayLocation(
-        savedPlaceNamesById = mapOf("home" to "Home"),
-        state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
+          savedPlaceNamesById = mapOf("home" to "Home"),
+          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
       )
     }
 
@@ -97,8 +97,8 @@ class UploadPictureLocationTest {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
       DisplayLocation(
-        state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
-        onSuggestionClick = { picked += it },
+          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
+          onSuggestionClick = { picked += it },
       )
     }
 

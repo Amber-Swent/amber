@@ -46,6 +46,7 @@ object DisplayWhoIsInvolvedTestTags {
   const val ADD_PERSON = "display_who_is_involved_add_person"
   const val NO_PERSON_INVOLVED = "display_who_is_involved_no_person_involved"
   private const val PERSON_INVOLVED = "display_who_is_involved_person_involved"
+
   fun personInvolved(id: String): String = "${PERSON_INVOLVED}_$id"
 }
 
@@ -159,5 +160,5 @@ internal fun selectableChipColors(): SelectableChipColors =
 @Composable
 private fun DisplayWhoIsInvolvedPreview() {
 
-    AmberAppTheme(dynamicColor = false) { DisplayWhoIsInvolved() }
+  AmberAppTheme(dynamicColor = false) { DisplayWhoIsInvolved() }
 }
