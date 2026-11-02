@@ -353,15 +353,92 @@ class AndroidAudioRecorderTest {
     assertFalse(file.exists())
     assertFalse(queued.isRecording.value)
   }
+
+  @Test
+  fun cancelDeletesTheFileEvenIfTheRecorderFailsToStop() = test {
+    recorder.start()
+    val file = recordedDir.listFiles()!!.single()
+    stopFails = true
+
+    recorder.cancel()
+
+    assertFalse(file.exists())
+    verify { mediaRecorders.single().release() }
+  }
+
+  @Test
+  fun anIOExceptionWhileOpeningTheMicrophoneIsKeptAsItIs() = test {
+    val error = IOException("microphone busy")
+    val busy = mockk<MediaRecorder>(relaxed = true)
+    every { busy.prepare() } throws error
+    val failing =
+        AndroidAudioRecorder(context, StandardTestDispatcher(testScheduler), { busy }) {
+          now.inWholeMilliseconds
+        }
+
+    val thrown = assertFails<IOException> { failing.start() }
+
+    // not wrapped into "Couldn't open the microphone"; coroutines may copy it, so not the same
+    // instance
+    assertEquals(error.message, thrown.message)
+    assertTrue(recordedDir.listFiles().isNullOrEmpty())
+  }
+
+  @Test
+  fun aSecurityExceptionWhileOpeningTheMicrophoneIsKeptAsItIs() = test {
+    val error = SecurityException("microphone blocked")
+    val blocked = mockk<MediaRecorder>(relaxed = true)
+    every { blocked.start() } throws error
+    val failing =
+        AndroidAudioRecorder(context, StandardTestDispatcher(testScheduler), { blocked }) {
+          now.inWholeMilliseconds
+        }
+
+    val thrown = assertFails<SecurityException> { failing.start() }
+
+    // not wrapped into "Couldn't open the microphone"; coroutines may copy it, so not the same
+    // instance
+    assertEquals(error.message, thrown.message)
+    verify { blocked.release() }
+  }
+
+  @Test
+  fun aFolderThatCantBeCreatedFailsAndReleasesTheRecorder() = test {
+    // a file where the folder should be, so no recording can be created in it
+    recordedDir.parentFile!!.mkdirs()
+    recordedDir.writeText("not a folder")
+
+    assertFails<IOException> { recorder.start() }
+
+    assertFalse(recorder.isRecording.value)
+    verify { mediaRecorders.single().release() }
+  }
+
+  @Test
+  fun theDefaultRecorderUsesAndroidsMediaRecorder() = test {
+    val default = AndroidAudioRecorder(context, StandardTestDispatcher(testScheduler))
+
+    default.start()
+    assertTrue(default.isRecording.value)
+    default.cancel()
+
+    assertFalse(default.isRecording.value)
+    assertTrue(recordedDir.listFiles().isNullOrEmpty())
+  }
 }
 
-/** Like `assertThrows`, for a block that suspends, so it runs on the test's dispatcher. */
-private suspend inline fun <reified T : Throwable> assertFails(block: suspend () -> Unit) {
+/**
+ * Like `assertThrows`, for a block that suspends, so it runs on the test's dispatcher.
+ *
+ * @return the exception thrown.
+ */
+private suspend inline fun <reified T : Throwable> assertFails(block: suspend () -> Unit): T {
   try {
     block()
   } catch (e: Throwable) {
-    if (e is T) return
+    if (e is T) return e
     throw e
   }
   fail("Expected ${T::class.simpleName}")
+  throw AssertionError()
 }

@@ -128,7 +128,7 @@ class AndroidAudioRecorder(
             }
           } catch (e: Exception) {
             recorder.release()
-            output.delete()
+            output.delete() // NOSONAR: a leftover is removed at the next start
             throw e
           }
           mediaRecorder = recorder
@@ -151,7 +151,7 @@ class AndroidAudioRecorder(
     try {
       return withContext(ioDispatcher) { stopNow().also { audio = it } }
     } catch (e: CancellationException) {
-      audio?.file?.delete()
+      audio?.file?.delete() // NOSONAR: a leftover is removed at the next start
       throw e
     }
   }
@@ -175,14 +175,14 @@ class AndroidAudioRecorder(
           // after a limit, the recorder may have stopped by itself already, and the file is
           // complete; otherwise, nothing was recorded
           if (!reachedLimit) {
-            output.delete()
+            output.delete() // NOSONAR: a leftover is removed at the next start
             throw IllegalStateException("The recording is empty or too short to be kept", e)
           }
         } finally {
           recorder.release()
         }
         if (output.length() == 0L) {
-          output.delete()
+          output.delete() // NOSONAR: a leftover is removed at the next start
           throw IllegalStateException("The recording is empty")
         }
         LocalAudio(output, durationMs, waveform)
@@ -192,19 +192,17 @@ class AndroidAudioRecorder(
   override fun cancel() {
     synchronized(lock) {
       val output = file ?: return
-      // kept, as clear() forgets it
-      val recorder = mediaRecorder
+      // kept, as clear() forgets it; there is always one with a file
+      val recorder = checkNotNull(mediaRecorder)
       clear()
-      if (recorder != null) {
-        try {
-          recorder.stop()
-        } catch (_: RuntimeException) {
-          // nothing recorded, or already stopped at a limit: the file is deleted anyway
-        } finally {
-          recorder.release()
-        }
+      try {
+        recorder.stop()
+      } catch (_: RuntimeException) {
+        // nothing recorded, or already stopped at a limit: the file is deleted anyway
+      } finally {
+        recorder.release()
       }
-      output.delete()
+      output.delete() // NOSONAR: a leftover is removed at the next start
     }
   }
 
@@ -297,7 +295,7 @@ class AndroidAudioRecorder(
    */
   private fun deleteLeftovers() {
     if (!leftoversDeleted) {
-      directory.listFiles()?.forEach { it.delete() }
+      directory.listFiles()?.forEach { it.delete() } // NOSONAR: retried at the next start
       leftoversDeleted = true
     }
     directory.mkdirs()
