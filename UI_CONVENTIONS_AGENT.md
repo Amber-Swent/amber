@@ -58,12 +58,12 @@ Preview note: the top bar looks purple in `@Preview`. This is expected. Do not "
 
 Replace `Name` with the screen name.
 
-| Thing     | File               | Identifier                                                                                |
-|-----------|--------------------|-------------------------------------------------------------------------------------------|
-| Screen    | `Name.kt`          | `fun NameScreen(...)`                                                                     |
-| ViewModel | `NameViewModel.kt` | `class NameViewModel(...)`                                                                |
-| UI state  | `NameViewModel.kt` | `data class NameUIState(...)`                                                             |
-| Test tags | in the screen file | `object NameOfTheScreenTestTags { const val NAME = "Name_of_the_screen_test_tag_name"  }` |
+| Thing     | File               | Identifier                                                                                         |
+|-----------|--------------------|----------------------------------------------------------------------------------------------------|
+| Screen    | `Name.kt`          | `fun NameScreen(...)`                                                                              |
+| ViewModel | `NameViewModel.kt` | `class NameViewModel(...)`                                                                         |
+| UI state  | `NameViewModel.kt` | `data class NameUIState(...)`                                                                      |
+| Test tags | in the screen file | `object NameOfTheScreenTestTags { const val TEST_TAG_NAME = "Name_of_the_screen_test_tag_name"  }` |
 
 - Screens shared by caregiver and patient and needing separate versions: `CaregiverNameScreen` / `PatientNameScreen`.
 - Every screen MUST have a ViewModel with the basic layout (UI state + class), even if empty at first. It simplifies later implementation.
