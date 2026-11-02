@@ -19,6 +19,8 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
@@ -109,6 +111,20 @@ class InvitationRedemptionUITests {
     assertEquals(1, backCount)
     assertEquals(0, redeemSuccessCount)
     assertNull(lastRedemptionResult)
+  }
+
+  @Test
+  fun cancelButton_isShownAndDoesNothing() {
+    setScreen()
+
+    composeTestRule
+        .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
+        .assertTextEquals(TopNavigationAction.CANCEL.label)
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(0, backCount)
+    assertEquals(0, redeemSuccessCount)
   }
 
   // ---------- Validation ----------
@@ -209,6 +225,9 @@ class InvitationRedemptionUITests {
 
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(0, backCount)
 
     pending.complete(
         Result.success(

@@ -7,16 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,11 +26,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.ROUND_CORNER
-import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Stable tags for locating the invite form controls and validation message in UI tests. */
 object InvitationRedemptionTestTags {
@@ -43,8 +42,9 @@ object InvitationRedemptionTestTags {
   const val BACK_BUTTON = "InvitationRedemption_test_tag_back_button"
 }
 
-internal const val TITLE_LABEL = "Enter your invite link"
-internal const val CODE_PLACEHOLDER_LABEL = "Enter your invitation Code"
+internal const val TITLE_LABEL = "Enter your invitation code"
+internal const val CODE_LABEL = "Invitation code"
+internal const val CODE_PLACEHOLDER_LABEL = "Enter your invitation code"
 internal const val SUBMIT_LABEL = "Submit"
 internal const val BACK_LABEL = "Back"
 
@@ -52,13 +52,14 @@ internal const val BACK_LABEL = "Back"
  * Screen where a patient or caregiver enters an invitation code to join an existing care circle.
  *
  * Validation and the repository call live in [viewModel]. [onRedeemSuccess] should navigate to the
- * home graph for the redeemed role. [onBack] returns to the previous step.
+ * home graph for the redeemed role. The top-bar Cancel is visible and does nothing for now; profile
+ * removal will call the shared delete flow once that exists. [onBack] is the bottom Back button.
  *
  * @param modifier Modifier applied to the root invitation layout.
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
  *   composition; tests can pass a custom instance with a fake repository.
  * @param onRedeemSuccess called with the redeemed circle and role after a successful redeem.
- * @param onBack called when the user leaves this step.
+ * @param onBack called when the user taps the bottom Back button.
  */
 @Composable
 fun InvitationRedemptionScreen(
@@ -69,26 +70,31 @@ fun InvitationRedemptionScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-  Surface(
+  Scaffold(
       modifier = modifier.fillMaxSize(),
-      color = MaterialTheme.colorScheme.background,
+      containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
-  ) {
+      topBar = {
+        TopNavigationMenu(
+            action = TopNavigationAction.CANCEL,
+            onBackClick = {},
+        )
+      },
+  ) { innerPadding ->
     Column(
         modifier =
             Modifier.fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = CAREGIVER_PADDING_BIG, vertical = CAREGIVER_PADDING_BIG),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
     ) {
-      AmberHeader()
+      AmberHeader(horizontalAlignment = Alignment.CenterHorizontally)
 
       Text(
           text = TITLE_LABEL,
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
+          modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.headlineSmall,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.primary,
@@ -97,11 +103,8 @@ fun InvitationRedemptionScreen(
       OutlinedTextField(
           value = uiState.inviteCode,
           onValueChange = viewModel::onInviteCodeChange,
-          modifier =
-              Modifier.fillMaxWidth(WEIGHT_ONE).testTag(InvitationRedemptionTestTags.CODE_INPUT),
-          label = {
-            Text(text = CODE_PLACEHOLDER_LABEL, style = MaterialTheme.typography.labelMedium)
-          },
+          modifier = Modifier.fillMaxWidth().testTag(InvitationRedemptionTestTags.CODE_INPUT),
+          label = { Text(text = CODE_LABEL, style = MaterialTheme.typography.labelMedium) },
           placeholder = {
             Text(
                 text = CODE_PLACEHOLDER_LABEL,
@@ -115,7 +118,6 @@ fun InvitationRedemptionScreen(
                   Text(
                       text = error,
                       style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.error,
                       modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_ERROR),
                   )
                 }
