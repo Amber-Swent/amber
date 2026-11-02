@@ -20,7 +20,6 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,6 +55,7 @@ import java.time.LocalDate
 object UploadAudioScreenTestTags {
   const val TITLE = "upload_audio_title"
   const val RECORD_AUDIO = "upload_audio_record"
+  const val RECORDING = "upload_audio_recording"
   const val AUDIO_RECORDED = "upload_audio_recorded"
   const val SELECT_DATE = "upload_audio_selected_date"
   const val UPLOAD_BUTTON = "upload_audio_button"
@@ -80,11 +80,6 @@ fun UploadAudioScreen(
   //    val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
   val errorMessage = uiState.errorMsg
   val context = LocalContext.current
-
-  //    val galleryLauncher =
-  //        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-  //            uri?.let { viewModel.selectPicture(it.toString()) }
-  //        }
 
   LaunchedEffect(errorMessage) {
     if (errorMessage != null) {
@@ -124,22 +119,30 @@ fun UploadAudioScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
-          // Display the "Micro waves"
-          DisplayBoxWithIconText(
-              modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
-              icon = Icons.Outlined.Mic,
-              contentDescription = "Micro",
-              label = "Click to record an Audio",
-              onClick = {},
-          )
-
-          if (uiState.audioFile != null) {
-            Text(
-                "Audio recorded",
-                modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+          // Record button, then the recording in progress, then the recorded audio
+          when {
+            uiState.isRecording ->
+                DisplayAudioRecorder(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING),
+                    isRecording = true,
+                    waveform = uiState.waveform,
+                    onDelete = viewModel::deleteRecording,
+                    onStop = viewModel::stopRecording, // must update uiState.audioFile
+                )
+            uiState.audioFile != null ->
+                DisplayAudioRecorder(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
+                    waveform = uiState.waveform,
+                    onDelete = viewModel::deleteRecording,
+                )
+            else ->
+                DisplayBoxWithIconText(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
+                    icon = Icons.Outlined.Mic,
+                    contentDescription = "Micro",
+                    label = "Click to record an Audio",
+                    onClick = viewModel::startRecording,
+                )
           }
 
           // Display the Description field
@@ -161,14 +164,14 @@ fun UploadAudioScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-          //                DisplayLocation(
-          //                    savedPlaceNamesById = placeOptions,
-          //                    state = uiState.location,
-          //                    onSavedPlaceClick = viewModel::selectPlace,
-          //                    onQueryChange = viewModel::setPlaceQuery,
-          //                    onSuggestionClick = viewModel::selectPlace,
-          //                    onRetrySearch = viewModel::retryPlaceSearch,
-          //                )
+//          DisplayLocation(
+//              savedPlaceNamesById = placeOptions,
+//              state = uiState.location,
+//              onSavedPlaceClick = viewModel::selectPlace,
+//              onQueryChange = viewModel::setPlaceQuery,
+//              onSuggestionClick = viewModel::selectPlace,
+//              onRetrySearch = viewModel::retryPlaceSearch,
+//          )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
@@ -186,7 +189,7 @@ fun UploadAudioScreen(
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.isUploading) "Uploading…" else "Upload Text",
+            text = if (uiState.isUploading) "Uploading…" else "Upload Audio",
             widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
         )
       },

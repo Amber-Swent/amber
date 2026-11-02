@@ -27,7 +27,6 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
 import io.mockk.every

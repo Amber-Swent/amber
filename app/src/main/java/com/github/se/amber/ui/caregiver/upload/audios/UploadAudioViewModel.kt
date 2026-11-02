@@ -35,6 +35,9 @@ import kotlinx.coroutines.flow.stateIn
  * @param date The date associated with the picture, if one was selected.
  * @param location Where the picture was taken: the place search and the picked place.
  * @param shownIds The IDs of the people tagged in the picture.
+ * @param audioFile The recorded audio, once the recording is over.
+ * @param waveform The levels of the audio so far (while recording) or in full (once recorded).
+ * @param isRecording Whether a recording is in progress.
  * @param isUploading Whether an upload is currently in progress.
  * @param errorMsg The error message to display, if any.
  */
@@ -44,7 +47,9 @@ data class UploadAudioUIState(
     val location: PictureLocationUIState = PictureLocationUIState(),
     val shownIds: Set<String> = emptySet(),
     val audioFile: File? = null,
+    val waveform: List<Float> = emptyList(),
     val isUploading: Boolean = false,
+    val isRecording: Boolean = false,
     val errorMsg: String? = null,
     val isAddPersonOpen: Boolean = false,
     val isAddingPerson: Boolean = false,
@@ -120,6 +125,15 @@ class UploadAudioViewModel(
   fun dismissAddPerson() {}
 
   fun addPerson() {}
+
+  /** Starts recording; [UploadAudioUIState.waveform] then grows with the microphone level. */
+  fun startRecording() {}
+
+  /** Stops the recording and keeps it: [UploadAudioUIState.waveform] then holds the full audio. */
+  fun stopRecording() {}
+
+  /** Throws away the recording in progress, or the one that was recorded. */
+  fun deleteRecording() {}
 
   fun uploadAudio() {}
 }

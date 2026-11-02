@@ -25,7 +25,14 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocation
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocationHint
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayPlaceSuggestion
+import com.github.se.amber.ui.caregiver.upload.pictures.NO_PLACE_FOUND_HINT
+import com.github.se.amber.ui.caregiver.upload.pictures.PLACE_QUERY_TOO_SHORT_HINT
+import com.github.se.amber.ui.caregiver.upload.pictures.PLACE_SEARCH_FAILED_HINT
 import com.github.se.amber.ui.caregiver.upload.pictures.PictureLocationUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureLocationTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -70,8 +77,8 @@ class UploadPictureLocationTest {
   fun withDefaultCallbacksTappingAndTypingChangeNothing() {
     composeTestRule.setContent {
       DisplayLocation(
-          savedPlaceNamesById = mapOf("home" to "Home"),
-          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
+        savedPlaceNamesById = mapOf("home" to "Home"),
+        state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
       )
     }
 
@@ -90,8 +97,8 @@ class UploadPictureLocationTest {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
       DisplayLocation(
-          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
-          onSuggestionClick = { picked += it },
+        state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
+        onSuggestionClick = { picked += it },
       )
     }
 

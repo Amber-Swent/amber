@@ -1,5 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,8 +24,6 @@ import androidx.compose.ui.platform.testTag
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.media.selectableChipColors
-import com.github.se.amber.ui.caregiver.upload.pictures.MIN_PLACE_QUERY_LENGTH
-import com.github.se.amber.ui.caregiver.upload.pictures.PictureLocationUIState
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_PLACE_SEARCH

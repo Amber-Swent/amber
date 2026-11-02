@@ -47,6 +47,7 @@ import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolved
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.UPLOAD_BUTTON
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocation
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureEvent
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import com.github.se.amber.ui.navigation.TopNavigationAction
@@ -186,14 +187,14 @@ fun UploadPictureScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-          DisplayLocation(
-              savedPlaceNamesById = placeOptions,
-              state = uiState.location,
-              onSavedPlaceClick = viewModel::selectPlace,
-              onQueryChange = viewModel::setPlaceQuery,
-              onSuggestionClick = viewModel::selectPlace,
-              onRetrySearch = viewModel::retryPlaceSearch,
-          )
+            DisplayLocation(
+                savedPlaceNamesById = placeOptions,
+                state = uiState.location,
+                onSavedPlaceClick = viewModel::selectPlace,
+                onQueryChange = viewModel::setPlaceQuery,
+                onSuggestionClick = viewModel::selectPlace,
+                onRetrySearch = viewModel::retryPlaceSearch,
+            )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
