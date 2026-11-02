@@ -27,8 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH
-import com.github.se.amber.ui.theme.PATIENT_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
@@ -62,7 +62,7 @@ fun DisplayPatientTitle(
       modifier =
           modifier
               .fillMaxWidth()
-              .padding(top = PATIENT_PADDING_ENORMOUS, bottom = PATIENT_PADDING_MEDIUM)
+              .padding(top = PATIENT_PADDING_SMALL, bottom = PATIENT_PADDING_MEDIUM)
               .testTag(testTag),
       textAlign = TextAlign.Center,
   )
