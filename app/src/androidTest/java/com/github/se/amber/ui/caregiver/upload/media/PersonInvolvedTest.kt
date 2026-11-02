@@ -70,23 +70,23 @@ class PersonInvolvedTest {
     composeTestRule
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
         .assertIsDisplayed()
-      composeTestRule
-          .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
-          .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
+        .assertIsDisplayed()
   }
 
   @Test
   fun withoutOptionsNoPersonChipIsDisplayed() {
     launch(noOptions)
-      personChips.assertCountEquals(0)
+    personChips.assertCountEquals(0)
   }
 
   @Test
   fun withoutOptionsTheAddPersonButtonIsDisplayed_andNotifiesOnce() {
     launch(noOptions)
     composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).assertIsDisplayed()
-      composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).performClick()
-      assertEquals(1, addPersonCount)
+    composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).performClick()
+    assertEquals(1, addPersonCount)
   }
 
   // ---------- people in the care circle ----------
@@ -97,9 +97,9 @@ class PersonInvolvedTest {
     composeTestRule
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
         .assertIsDisplayed()
-      composeTestRule
-          .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
-          .assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
+        .assertDoesNotExist()
   }
 
   @Test
@@ -112,8 +112,8 @@ class PersonInvolvedTest {
   fun withOptionsTheAddPersonButtonIsDisplayed() {
     launch(options)
     composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).assertIsDisplayed()
-      composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).performClick()
-      assertEquals(1, addPersonCount)
+    composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).performClick()
+    assertEquals(1, addPersonCount)
   }
 
   // ---------- selection ----------

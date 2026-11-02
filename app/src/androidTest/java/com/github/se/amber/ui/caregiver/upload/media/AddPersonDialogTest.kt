@@ -42,8 +42,7 @@ import org.junit.Test
  * [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen].
  */
 class AddPersonDialogTest {
-  @get:Rule
-  val composeTestRule = createComposeRule()
+  @get:Rule val composeTestRule = createComposeRule()
 
   private lateinit var viewModel: UploadPictureViewModel
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
@@ -82,7 +81,7 @@ class AddPersonDialogTest {
         .performClick()
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertIsDisplayed()
-      verify(exactly = 1) { viewModel.onAddPerson() }
+    verify(exactly = 1) { viewModel.onAddPerson() }
   }
 
   @Test
@@ -97,7 +96,7 @@ class AddPersonDialogTest {
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.CLOSE).performClick()
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertDoesNotExist()
-      verify(exactly = 1) { viewModel.dismissAddPerson() }
+    verify(exactly = 1) { viewModel.dismissAddPerson() }
   }
 
   @Test
@@ -107,7 +106,7 @@ class AddPersonDialogTest {
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-      verify(exactly = 1) { viewModel.addPerson() }
+    verify(exactly = 1) { viewModel.addPerson() }
   }
 
   @Test
@@ -123,10 +122,10 @@ class AddPersonDialogTest {
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-      verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
-      verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
-      verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
-      verify(exactly = 1) { viewModel.addPerson() }
+    verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
+    verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
+    verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
+    verify(exactly = 1) { viewModel.addPerson() }
   }
 
   @Test
@@ -196,7 +195,7 @@ class AddPersonDialogTest {
     composeTestRule
         .onAllNodes(
             hasTestTag(DisplayTextFieldTestTags.TEXT) and
-                    hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
+                hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
         )[0]
         .performTextInput("Anne")
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
