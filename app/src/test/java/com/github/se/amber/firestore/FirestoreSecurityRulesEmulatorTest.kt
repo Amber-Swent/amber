@@ -522,6 +522,13 @@ class FirestoreSecurityRulesEmulatorTest {
     fun newMediaFor(uid: String, id: String) =
         fs.set("careCircles/$circleId/media/$id", text(id, uid))
 
+    fs.assertFails(
+        gone,
+        fs.set(
+            "users/$gone",
+            user(gone, "CAREGIVER", listOf(circleId), "Renamed") + ("deletionRequested" to true),
+        ),
+    )
     fs.assertFails(gone, newMediaFor(gone, "m2"))
     fs.assertFails(gone, fs.delete("careCircles/$circleId/media/m1"))
     fs.assertFails(
@@ -537,6 +544,10 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertSucceeds(gone, fs.get("careCircles/$circleId"))
     fs.assertSucceeds(gone, fs.get("careCircles/$circleId/media/m1"))
     fs.assertSucceeds(other, newMediaFor(other, "m3"))
+    fs.assertSucceeds(
+        other,
+        fs.set("users/$other", user(other, "CAREGIVER", listOf(circleId), "Renamed")),
+    )
   }
 
   @Test
