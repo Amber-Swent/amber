@@ -44,6 +44,7 @@ class DeviceLocalAccountDataTest {
   private lateinit var localData: DeviceLocalAccountData
   private val firestore: FirebaseFirestore = mockk()
   private val calls = mutableListOf<String>()
+  private var markerFailure: IOException? = null
   private val marker =
       object : DeletionMarker {
         override val isSet = true
@@ -51,6 +52,7 @@ class DeviceLocalAccountDataTest {
         override fun set() = Unit
 
         override fun remove() {
+          markerFailure?.let { throw it }
           calls += "removeMarker"
         }
       }
@@ -169,6 +171,15 @@ class DeviceLocalAccountDataTest {
     assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
 
     assertEquals(listOf("terminate", "stop"), calls)
+  }
+
+  @Test
+  fun aMarkerThatCannotBeRemovedStopsWithoutRelaunching() {
+    markerFailure = IOException("Marker left")
+
+    assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
+
+    assertEquals(listOf("terminate", "clearPersistence", "stop"), calls)
   }
 
   @Test
