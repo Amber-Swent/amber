@@ -1,5 +1,4 @@
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -25,8 +24,6 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
-import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialogTestTags
-import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
@@ -45,7 +42,8 @@ import org.junit.Test
  * [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen].
  */
 class AddPersonDialogTest {
-  @get:Rule val composeTestRule = createComposeRule()
+  @get:Rule
+  val composeTestRule = createComposeRule()
 
   private lateinit var viewModel: UploadPictureViewModel
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
@@ -84,7 +82,7 @@ class AddPersonDialogTest {
         .performClick()
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertIsDisplayed()
-    verify(exactly = 1) { viewModel.onAddPerson() }
+      verify(exactly = 1) { viewModel.onAddPerson() }
   }
 
   @Test
@@ -99,7 +97,7 @@ class AddPersonDialogTest {
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.CLOSE).performClick()
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertDoesNotExist()
-    verify(exactly = 1) { viewModel.dismissAddPerson() }
+      verify(exactly = 1) { viewModel.dismissAddPerson() }
   }
 
   @Test
@@ -109,7 +107,7 @@ class AddPersonDialogTest {
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-    verify(exactly = 1) { viewModel.addPerson() }
+      verify(exactly = 1) { viewModel.addPerson() }
   }
 
   @Test
@@ -125,10 +123,10 @@ class AddPersonDialogTest {
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-    verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
-    verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
-    verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
-    verify(exactly = 1) { viewModel.addPerson() }
+      verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
+      verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
+      verify(exactly = 1) { viewModel.setPersonNickname("Nana") }
+      verify(exactly = 1) { viewModel.addPerson() }
   }
 
   @Test
@@ -198,7 +196,7 @@ class AddPersonDialogTest {
     composeTestRule
         .onAllNodes(
             hasTestTag(DisplayTextFieldTestTags.TEXT) and
-                hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
+                    hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
         )[0]
         .performTextInput("Anne")
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()

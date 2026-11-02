@@ -2,7 +2,7 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -13,9 +13,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.media.DateField
-import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags
-import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.time.Month
 import java.time.format.TextStyle
@@ -34,7 +31,7 @@ private class FakeDateSelectionListener {
 }
 
 /**
- * UI tests for [com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker].
+ * UI tests for [DisplayScrollableDatePicker].
  * Everything is located through test tags, and expected values are derived from the date under test
  * (never from displayed strings).
  */
