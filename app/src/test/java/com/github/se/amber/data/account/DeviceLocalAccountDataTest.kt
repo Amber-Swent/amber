@@ -10,10 +10,8 @@ import com.github.se.amber.model.media.MediaRepository
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
@@ -42,6 +40,10 @@ class DeviceLocalAccountDataTest {
   private lateinit var recorded: File
   private lateinit var pickedMemo: File
   private lateinit var localData: DeviceLocalAccountData
+  private val everyStepBeforeFirestore =
+      listOf("clearMedia", "clearMemory", "temporaryFilesDeleted", "signOut")
+  private val everyStep =
+      everyStepBeforeFirestore + listOf("terminate", "clearPersistence", "removeMarker", "restart")
   private val firestore: FirebaseFirestore = mockk()
   private val calls = mutableListOf<String>()
   private var markerFailure: IOException? = null
@@ -59,7 +61,17 @@ class DeviceLocalAccountDataTest {
 
   @Before
   fun setUp() {
-    coEvery { authRepository.signOut() } returns Result.success(Unit)
+    coEvery { mediaRepository.clearLocalMedia() } answers { calls += "clearMedia" }
+    every { memoryCache.clear() } answers { calls += "clearMemory" }
+    // deleting files calls no mock: sign-out is what must come after it
+    coEvery { authRepository.signOut() } answers
+        {
+          if (listOf(picked, captured, recorded, pickedMemo).none { it.exists() }) {
+            calls += "temporaryFilesDeleted"
+          }
+          calls += "signOut"
+          Result.success(Unit)
+        }
     val imageLoader =
         mockk<ImageLoader> {
           every { memoryCache } returns this@DeviceLocalAccountDataTest.memoryCache
@@ -106,18 +118,15 @@ class DeviceLocalAccountDataTest {
   }
 
   @Test
-  fun clearRemovesEverythingOfTheUserAndSignsOut() = runBlocking {
+  fun clearRemovesEverythingOfTheUserAndSignsOutInOrder() = runBlocking {
     localData.clear()
 
-    coVerify(exactly = 1) { mediaRepository.clearLocalMedia() }
-    verify(exactly = 1) { memoryCache.clear() }
     assertFalse(picked.exists())
     assertFalse(captured.parentFile!!.exists())
     assertFalse(recorded.exists())
     assertFalse(pickedMemo.exists())
     assertTrue(otherFile.exists())
-    coVerify(exactly = 1) { authRepository.signOut() }
-    assertEquals(listOf("terminate", "clearPersistence", "removeMarker", "restart"), calls)
+    assertEquals(everyStep, calls)
   }
 
   @Test
@@ -127,7 +136,7 @@ class DeviceLocalAccountDataTest {
 
     localData.clear()
 
-    coVerify(exactly = 1) { authRepository.signOut() }
+    assertEquals(everyStep, calls)
   }
 
   @Test
@@ -144,10 +153,9 @@ class DeviceLocalAccountDataTest {
     val suppressed =
         generateSequence<Throwable>(error) { it.cause }.flatMap { it.suppressed.asList() }
     assertEquals(listOf(signOutFailure.message), suppressed.map { it.message }.toList())
-    verify(exactly = 1) { memoryCache.clear() }
     assertFalse(picked.exists())
     // Firestore stays usable, and the app open, so that clearing can run again
-    assertEquals(emptyList<String>(), calls)
+    assertEquals(listOf("clearMemory"), calls)
   }
 
   @Test
@@ -170,7 +178,7 @@ class DeviceLocalAccountDataTest {
 
     assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
 
-    assertEquals(listOf("terminate", "stop"), calls)
+    assertEquals(everyStepBeforeFirestore + listOf("terminate", "stop"), calls)
   }
 
   @Test
@@ -179,7 +187,7 @@ class DeviceLocalAccountDataTest {
 
     assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
 
-    assertEquals(listOf("terminate", "clearPersistence", "stop"), calls)
+    assertEquals(everyStepBeforeFirestore + listOf("terminate", "clearPersistence", "stop"), calls)
   }
 
   @Test
@@ -190,6 +198,7 @@ class DeviceLocalAccountDataTest {
         {
           clearing.complete(Unit)
           mayFinish.await()
+          calls += "clearMedia"
         }
     val job = launch(Dispatchers.Default) { localData.clear() }
 
@@ -198,6 +207,6 @@ class DeviceLocalAccountDataTest {
     mayFinish.complete(Unit)
     job.join()
 
-    assertEquals(listOf("terminate", "clearPersistence", "removeMarker", "restart"), calls)
+    assertEquals(everyStep, calls)
   }
 }
