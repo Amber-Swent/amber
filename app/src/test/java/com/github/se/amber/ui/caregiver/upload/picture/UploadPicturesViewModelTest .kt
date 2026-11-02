@@ -18,6 +18,11 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureEvent
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModelErrorMessage
+import com.github.se.amber.ui.caregiver.upload.pictures.unknownMemberLabel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -49,9 +54,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [UploadPictureViewModel]. All repositories are mocked, nothing touches the
- * network. The care circle is loaded in `init`, so each test configures the repositories BEFORE
- * calling [createViewModel].
+ * Unit tests for [com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel]. All
+ * repositories are mocked, nothing touches the network. The care circle is loaded in `init`, so
+ * each test configures the repositories BEFORE calling [createViewModel].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {

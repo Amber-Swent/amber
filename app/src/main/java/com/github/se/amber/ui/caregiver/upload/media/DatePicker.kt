@@ -2,7 +2,7 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,10 +44,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.CANCEL_BUTTON
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
+import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags.CANCEL_BUTTON
+import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags.DIALOG
+import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags.DIALOG_LIST
+import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM

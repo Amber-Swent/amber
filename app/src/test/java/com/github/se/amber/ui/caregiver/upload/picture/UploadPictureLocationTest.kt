@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.ui.caregiver.upload.pictures.PictureLocationUIState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

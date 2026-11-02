@@ -3,7 +3,7 @@
  * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,6 +27,8 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
+import com.github.se.amber.ui.caregiver.upload.picture.reader
 import java.io.File
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
