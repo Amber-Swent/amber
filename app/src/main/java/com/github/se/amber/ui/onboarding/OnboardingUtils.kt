@@ -111,6 +111,7 @@ fun OnboardingOutlinedTextField(
       colors = onboardingOutlinedTextFieldColors(),
   )
 }
+
 /**
  * Displays two horizontal dividers separated by a centered text label.
  *
