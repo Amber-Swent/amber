@@ -11,11 +11,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,11 +25,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.onboarding.AmberHeader
+import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
-import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** Stable tags for locating the form controls and validation messages in UI tests. */
 object CreateProfileTestTags {
@@ -169,41 +166,12 @@ private fun ProfileNameField(
     error: String? = null,
     errorTag: String = "",
 ) {
-  OutlinedTextField(
+  OnboardingOutlinedTextField(
       value = value,
       onValueChange = onValueChange,
-      modifier = Modifier.fillMaxWidth().testTag(fieldTag),
-      label = { Text(text = label, style = MaterialTheme.typography.labelMedium) },
-      placeholder = { Text(text = label, style = MaterialTheme.typography.labelMedium) },
-      supportingText =
-          error?.let { message ->
-            {
-              Text(
-                  text = message,
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.error,
-                  modifier = Modifier.testTag(errorTag),
-              )
-            }
-          },
-      isError = error != null,
-      singleLine = true,
-      shape = RoundedCornerShape(ROUND_CORNER),
-      // Move these colors into a shared utils helper later.
-      // Doing that now would conflict with other open changes.
-      colors =
-          OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = MaterialTheme.colorScheme.outline,
-              unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-              focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-              unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
-              cursorColor = MaterialTheme.colorScheme.onSurface,
-              focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
-              unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
-              errorBorderColor = MaterialTheme.colorScheme.error,
-              errorLabelColor = MaterialTheme.colorScheme.error,
-              errorCursorColor = MaterialTheme.colorScheme.error,
-              errorSupportingTextColor = MaterialTheme.colorScheme.error,
-          ),
+      label = label,
+      modifier = Modifier.testTag(fieldTag),
+      error = error,
+      errorTestTag = errorTag,
   )
 }

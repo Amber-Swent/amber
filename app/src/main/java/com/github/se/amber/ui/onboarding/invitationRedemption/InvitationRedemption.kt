@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,9 +26,9 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
+import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** Stable tags for locating the invite form controls and validation message in UI tests. */
 object InvitationRedemptionTestTags {
@@ -100,48 +97,16 @@ fun InvitationRedemptionScreen(
           color = MaterialTheme.colorScheme.primary,
       )
 
-      OutlinedTextField(
+      OnboardingOutlinedTextField(
           value = uiState.inviteCode,
           onValueChange = viewModel::onInviteCodeChange,
-          modifier = Modifier.fillMaxWidth().testTag(InvitationRedemptionTestTags.CODE_INPUT),
-          label = { Text(text = CODE_LABEL, style = MaterialTheme.typography.labelMedium) },
-          placeholder = {
-            Text(
-                text = CODE_PLACEHOLDER_LABEL,
-                modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_PLACEHOLDER),
-                style = MaterialTheme.typography.labelMedium,
-            )
-          },
-          supportingText =
-              uiState.errorMessage?.let { error ->
-                {
-                  Text(
-                      text = error,
-                      style = MaterialTheme.typography.bodySmall,
-                      modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_ERROR),
-                  )
-                }
-              },
-          isError = uiState.errorMessage != null,
+          label = CODE_LABEL,
+          modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_INPUT),
+          placeholder = CODE_PLACEHOLDER_LABEL,
+          placeholderTestTag = InvitationRedemptionTestTags.CODE_PLACEHOLDER,
+          error = uiState.errorMessage,
+          errorTestTag = InvitationRedemptionTestTags.CODE_ERROR,
           enabled = !uiState.isRedeeming,
-          singleLine = true,
-          shape = RoundedCornerShape(ROUND_CORNER),
-          // Move these colors into a shared utils helper later.
-          // Doing that now would conflict with other open changes.
-          colors =
-              OutlinedTextFieldDefaults.colors(
-                  focusedBorderColor = MaterialTheme.colorScheme.outline,
-                  unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                  focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                  unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                  cursorColor = MaterialTheme.colorScheme.onSurface,
-                  focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
-                  unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
-                  errorBorderColor = MaterialTheme.colorScheme.error,
-                  errorLabelColor = MaterialTheme.colorScheme.error,
-                  errorCursorColor = MaterialTheme.colorScheme.error,
-                  errorSupportingTextColor = MaterialTheme.colorScheme.error,
-              ),
       )
 
       DisplayCaregiverButton(
