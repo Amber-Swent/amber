@@ -58,20 +58,18 @@ Preview note: the top bar looks purple in `@Preview`. This is expected. Do not "
 
 Replace `Name` with the screen name.
 
-| Thing     | File               | Identifier                                                      |
-|-----------|--------------------|-----------------------------------------------------------------|
-| Screen    | `Name.kt`          | `fun NameScreen(...)`                                           |
-| ViewModel | `NameViewModel.kt` | `class NameViewModel(...)`                                      |
-| UI state  | `NameViewModel.kt` | `data class NameUIState(...)`                                   |
-| Test tags | in the screen file | `object NameTestTags { const val NAME = "Name_test_tag_name" }` |
+| Thing     | File               | Identifier                                                                                |
+|-----------|--------------------|-------------------------------------------------------------------------------------------|
+| Screen    | `Name.kt`          | `fun NameScreen(...)`                                                                     |
+| ViewModel | `NameViewModel.kt` | `class NameViewModel(...)`                                                                |
+| UI state  | `NameViewModel.kt` | `data class NameUIState(...)`                                                             |
+| Test tags | in the screen file | `object NameOfTheScreenTestTags { const val NAME = "Name_of_the_screen_test_tag_name"  }` |
 
 - Screens shared by caregiver and patient and needing separate versions: `CaregiverNameScreen` / `PatientNameScreen`.
-- Helper functions own their own test tag (do not reuse the screen's).
 - Every screen MUST have a ViewModel with the basic layout (UI state + class), even if empty at first. It simplifies later implementation.
 - Do NOT split a screen into a "Screen" (calls the ViewModel) and a "Content" part. One composable `NameScreen`.
 
-[//]: # (Remove from convention because it can indeed be made to work)
-[//]: # (- Previews: because there is no Content split, previews of screens that need a ViewModel do not work. Do not add broken previews. Preview screens with the emulator. A `@Preview` is fine on helper components and constants that do render.)
+- Preview: even if there is no Content split, add a preview. They can be run through the emulator. All screens and all helper function place inside a *Utils.kt must have a preview.
 - Collect ViewModel state with `collectAsStateWithLifecycle()`, NEVER `collectAsState()`.
 - ALL functions (composables and helpers) MUST have default values for every parameter.
 - Apply MVVM principle. The UI is never in charge of the logic. 
@@ -79,6 +77,7 @@ Replace `Name` with the screen name.
 ## Helpers and reuse
 
 - Extract repeated UI into helper composables. MUST NOT copy-paste styling between screens.
+- MUST use the helper function already implemented in the *Utils.kt file
 - Code reusable across screens goes into `<NameForAllScreensUsingIt>Utils.kt` (for example `CaregiverUtils.kt`). Screens MUST use those functions instead of rebuilding them.
 
 ## Figma
