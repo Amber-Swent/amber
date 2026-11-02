@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +60,7 @@ object PatientHomeTestTags {
  * @param homeViewModel ViewModel providing the patient profile displayed on the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
@@ -75,7 +78,7 @@ fun PatientHomeScreen(
   }
 
   Scaffold(
-      topBar = { DisplayPatientTitle(title = "Home") },
+      topBar = { TopAppBar(title = { DisplayPatientTitle(title = "Home") }) },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = PatientTab.Home,
