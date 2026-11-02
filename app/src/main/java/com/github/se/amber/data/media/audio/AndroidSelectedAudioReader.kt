@@ -51,7 +51,7 @@ class AndroidSelectedAudioReader(
     try {
       return withContext(ioDispatcher) { readNow(uri.toUri()).also { audio = it } }
     } catch (e: CancellationException) {
-      audio?.file?.delete()
+      audio?.file?.delete() // NOSONAR: a leftover is removed at the next start
       throw e
     }
   }
@@ -71,7 +71,7 @@ class AndroidSelectedAudioReader(
       copy(resolver, uri, file)
       return LocalAudio(file, readDurationMs(file))
     } catch (e: Exception) {
-      file?.delete()
+      file?.delete() // NOSONAR: a leftover is removed at the next start
       throw when (e) {
         is CancellationException,
         is IllegalArgumentException -> e
@@ -143,7 +143,7 @@ class AndroidSelectedAudioReader(
   private fun prepareDirectory(): File =
       synchronized(lock) {
         if (!leftoversDeleted) {
-          directory.listFiles()?.forEach { it.delete() }
+          directory.listFiles()?.forEach { it.delete() } // NOSONAR: retried at the next start
           leftoversDeleted = true
         }
         directory.apply { mkdirs() }
