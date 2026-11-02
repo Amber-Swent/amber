@@ -26,7 +26,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialogTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
+import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState

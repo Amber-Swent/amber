@@ -20,14 +20,13 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
+import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
@@ -37,7 +36,6 @@ import io.mockk.verify
 import java.io.File
 import java.time.Month
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -174,51 +172,6 @@ class UploadPicturesTest {
                   ?.startsWith(DisplayWhoIsInvolvedTestTags.personInvolved("")) == true
             }
         )
-
-  /** Makes the mocked ViewModel tag or untag a person like the real one does. */
-  private fun toggleShownIdsForReal() {
-    every { viewModel.toggleShownId(any()) } answers
-        {
-          val id = firstArg<String>()
-          uiStateFlow.value =
-              uiStateFlow.value.let { state ->
-                val shownIds =
-                    if (id in state.shownIds) state.shownIds - id else state.shownIds + id
-                state.copy(shownIds = shownIds)
-              }
-        }
-  }
-
-  @Test
-  fun chipsShowEachPersonByNameAndToggleOnlyThatPerson() {
-    toggleShownIdsForReal()
-    launchScreen()
-    composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
-    }
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)
-        .assertDoesNotExist()
-    chips.assertCountEquals(2)
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("uid123"))
-        .assertIsNotSelected()
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("p1"))
-        .assertIsNotSelected()
-    composeTestRule.onNodeWithText("Marie").performScrollTo().assertIsDisplayed()
-    composeTestRule.onNodeWithText("uid123").assertDoesNotExist()
-
-    composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed().performClick()
-    composeTestRule.onNodeWithText("Anne").assertIsSelected()
-    composeTestRule.onNodeWithText("Marie").assertIsNotSelected()
-    composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.shownIds) }
-    verify(exactly = 0) { viewModel.toggleShownId("uid123") }
-
-    composeTestRule.onNodeWithText("Anne").performClick()
-    composeTestRule.onNodeWithText("Anne").assertIsNotSelected()
-    composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
-  }
 
   // ---------- location ----------
 

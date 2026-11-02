@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.media.selectableChipColors
 import com.github.se.amber.ui.caregiver.upload.pictures.MIN_PLACE_QUERY_LENGTH
 import com.github.se.amber.ui.caregiver.upload.pictures.PictureLocationUIState
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
