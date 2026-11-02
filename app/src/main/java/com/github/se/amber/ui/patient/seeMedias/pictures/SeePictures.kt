@@ -15,9 +15,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +56,7 @@ object SeePicturesTestTags {
   fun picture(id: String = "") = "see_pictures_picture_$id"
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeePicturesScreen(
     pictureViewModel: SeePicturesViewModel = viewModel(),
@@ -83,17 +86,21 @@ fun SeePicturesScreen(
 
   Scaffold(
       topBar = {
-        Column {
-          TopNavigationMenu(
-              modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
-              action = TopNavigationAction.CANCEL,
-              onBackClick = onBackClick,
-          )
-          DisplayPatientTitle(
-              title = "See Pictures",
-              testTag = SeePicturesTestTags.TITLE,
-          )
-        }
+        TopAppBar(
+            title = {
+              Column {
+                TopNavigationMenu(
+                    modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+                    action = TopNavigationAction.CANCEL,
+                    onBackClick = onBackClick,
+                )
+                DisplayPatientTitle(
+                    title = "See Pictures",
+                    testTag = SeePicturesTestTags.TITLE,
+                )
+              }
+            }
+        )
       },
       bottomBar = {
         BottomNavigationMenu(
