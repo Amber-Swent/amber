@@ -1,3 +1,6 @@
+/* Written by Lou-Anne Maier, with assistance from
+ * Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import androidx.lifecycle.ViewModel
@@ -85,38 +88,106 @@ class UploadAudioViewModel(
 
   private val _members = MutableStateFlow<Map<String, Person>?>(null)
   // people saved by the add-person dialog before the circle arrived, keyed by id
-  val involvedOptions: StateFlow<Map<String, String>> = MutableStateFlow(emptyMap<String, String>())
+  val involvedOptions: StateFlow<Map<String, String>> = MutableStateFlow(emptyMap())
 
-  fun clearErrorMsg() {}
+  /** Clears the current error message from the UI state. */
+  fun clearErrorMsg() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  internal fun setErrorMsg(errorMsg: String) {}
+  /**
+   * Sets the error message shown by the audio upload screen.
+   *
+   * @param errorMsg The error message to display.
+   */
+  internal fun setErrorMsg(errorMsg: String) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun setDescription(description: String) {}
+  /**
+   * Updates the audio description in the UI state.
+   *
+   * @param description The new audio description.
+   */
+  fun setDescription(description: String) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun setDate(date: MemoryDate?) {}
+  /**
+   * Updates the audio date in the UI state.
+   *
+   * @param date The date associated with the audio.
+   */
+  fun setDate(date: MemoryDate?) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun toggleShownId(id: String) {}
+  /**
+   * Adds a person to the tagged people, or removes them if already tagged.
+   *
+   * @param id The ID of the person to select or deselect.
+   */
+  fun toggleShownId(id: String) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun onAddPerson() {}
+  /** Opens the add-person dialog. */
+  fun onAddPerson() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun setPersonFirstName(firstName: String) {}
+  /**
+   * Updates the first name typed in the add-person dialog.
+   *
+   * @param firstName The new first name.
+   */
+  fun setPersonFirstName(firstName: String) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun setPersonLastName(lastName: String) {}
+  /**
+   * Updates the last name typed in the add-person dialog.
+   *
+   * @param lastName The new last name.
+   */
+  fun setPersonLastName(lastName: String) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun setPersonNickname(nickName: String) {}
+  /**
+   * Updates the nickname typed in the add-person dialog.
+   *
+   * @param nickName The new nickname.
+   */
+  fun setPersonNickname(nickName: String) {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun dismissAddPerson() {}
+  /** Closes the add-person dialog and clears its fields, unless a person is being saved. */
+  fun dismissAddPerson() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun addPerson() {}
+  fun addPerson() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
   /** Starts recording; [UploadAudioUIState.waveform] then grows with the microphone level. */
-  fun startRecording() {}
+  fun startRecording() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
   /** Stops the recording and keeps it: [UploadAudioUIState.waveform] then holds the full audio. */
-  fun stopRecording() {}
+  fun stopRecording() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
   /** Throws away the recording in progress, or the one that was recorded. */
-  fun deleteRecording() {}
+  fun deleteRecording() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 
-  fun uploadAudio() {}
+  fun uploadAudio() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
 }
