@@ -76,10 +76,10 @@ class UploadPictureLocationTest {
   @Test
   fun withDefaultCallbacksTappingAndTypingChangeNothing() {
     composeTestRule.setContent {
-        DisplayLocation(
-            savedPlaceNamesById = mapOf("home" to "Home"),
-            state = MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
-        )
+      DisplayLocation(
+          savedPlaceNamesById = mapOf("home" to "Home"),
+          state = MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
+      )
     }
 
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SAVED_PLACE).performClick()
@@ -96,10 +96,10 @@ class UploadPictureLocationTest {
   fun eachSuggestionIsShownAndPickedWithItsOwnPlace() {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
-        DisplayLocation(
-            state = MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
-            onSuggestionClick = { picked += it },
-        )
+      DisplayLocation(
+          state = MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
+          onSuggestionClick = { picked += it },
+      )
     }
 
     val suggestions = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION)
@@ -159,7 +159,7 @@ class UploadPictureLocationTest {
   fun pressingEnterInTheSearchFieldDoesNotAddANewLine() {
     var query by mutableStateOf("Lausanne")
     composeTestRule.setContent {
-        DisplayLocation(state = MediaLocationUIState(query = query), onQueryChange = { query = it })
+      DisplayLocation(state = MediaLocationUIState(query = query), onQueryChange = { query = it })
     }
 
     composeTestRule.onNode(searchField).performClick().performKeyInput { pressKey(Key.Enter) }
@@ -172,8 +172,8 @@ class UploadPictureLocationTest {
     composeTestRule.setContent {
       Column {
         DisplayPlaceSuggestion() // default place: no name
-          DisplayLocationHint(text = "Searching…", tag = HINT_TAG)
-          DisplayLocationHint()
+        DisplayLocationHint(text = "Searching…", tag = HINT_TAG)
+        DisplayLocationHint()
       }
     }
 
@@ -189,8 +189,7 @@ class UploadPictureLocationTest {
 
   @Test
   fun suggestionsGoAwayOnceAPlaceIsPicked() {
-    var state by
-        mutableStateOf(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
+    var state by mutableStateOf(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule.setContent { DisplayLocation(state = state) }
     composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
 

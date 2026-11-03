@@ -214,8 +214,7 @@ private sealed interface UploadCheck {
  *
  * A subclass supplies what depends on the kind of media: its initial state ([initialState]), what
  * its content must contain ([checkContent]), its file ([fileOf]) and its [MediaItem]
- * ([createItem]).
- * It adds its own functions and state fields (e.g. selecting a picture).
+ * ([createItem]). It adds its own functions and state fields (e.g. selecting a picture).
  *
  * @param S The state type of the screen.
  * @param initialState The state the screen starts with.

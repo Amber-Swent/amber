@@ -55,9 +55,9 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Unit tests for [com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel]. All repositories are mocked, nothing touches the
- * network. The care circle is loaded in `init`, so each test configures the repositories BEFORE
- * calling [createViewModel].
+ * Unit tests for [com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel]. All
+ * repositories are mocked, nothing touches the network. The care circle is loaded in `init`, so
+ * each test configures the repositories BEFORE calling [createViewModel].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UploadPictureViewModelTest {

@@ -4,6 +4,7 @@
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  * Modified by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified with assistance from GitHub Copilot.
  */
 package com.github.se.amber.ui.caregiver.upload.pictures
 
@@ -35,8 +36,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Error messages specific to the caregiver Upload Picture ViewModel; the ones shared with the other
- * upload screens are in
- * [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelErrorMessage].
+ * upload screens are in [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelErrorMessage].
  */
 enum class UploadPictureViewModelErrorMessage(val mess: String) {
   SELECT_PICTURE(mess = "Please select a picture first"),
@@ -46,15 +46,9 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
 /**
  * Represents the state displayed by the picture upload screen.
  *
- * @param description The description entered for the picture.
- * @param date The date associated with the picture, if one was selected.
- * @param location Where the picture was taken: the place search and the picked place.
- * @param shownIds The IDs of the people tagged in the picture.
  * @param pictureFile The local picture file selected for upload.
  * @param pictureWidth The width of the selected picture in pixels.
  * @param pictureHeight The height of the selected picture in pixels.
- * @param isUploading Whether an upload is currently in progress.
- * @param errorMsg The error message to display, if any.
  */
 data class UploadPictureUIState(
     override val description: String = "",
@@ -136,12 +130,35 @@ class UploadPictureViewModel(
         placeRepo = placeRepo,
     ) {
 
+  /**
+   * Checks whether a picture has been selected for upload.
+   *
+   * @param state The current picture upload UI state.
+   * @return The error message to show if no picture is selected, or null if a picture is selected.
+   */
   override fun checkContent(state: UploadPictureUIState): String? =
       if (state.pictureFile == null) UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess
       else null
 
+  /**
+   * Gets the picture file selected for upload.
+   *
+   * @param state The current picture upload UI state.
+   * @return The selected picture file, or null if no picture is selected.
+   */
   override fun fileOf(state: UploadPictureUIState): File? = state.pictureFile
 
+  /**
+   * Creates a media item containing the selected picture and its upload metadata.
+   *
+   * @param id The unique identifier assigned to the media item.
+   * @param state The current picture upload UI state.
+   * @param authorId The identifier of the user who uploaded the picture.
+   * @param circle The care circle associated with the picture.
+   * @param date The date associated with the picture.
+   * @param shownIds The identifiers of people shown in the picture.
+   * @return The picture media item to save and upload.
+   */
   override fun createItem(
       id: String,
       state: UploadPictureUIState,

@@ -212,14 +212,14 @@ fun UploadPictureScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-            DisplayLocation(
-                savedPlaceNamesById = placeOptions,
-                state = uiState.location,
-                onSavedPlaceClick = viewModel::selectPlace,
-                onQueryChange = viewModel::setPlaceQuery,
-                onSuggestionClick = viewModel::selectPlace,
-                onRetrySearch = viewModel::retryPlaceSearch,
-            )
+          DisplayLocation(
+              savedPlaceNamesById = placeOptions,
+              state = uiState.location,
+              onSavedPlaceClick = viewModel::selectPlace,
+              onQueryChange = viewModel::setPlaceQuery,
+              onSuggestionClick = viewModel::selectPlace,
+              onRetrySearch = viewModel::retryPlaceSearch,
+          )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
