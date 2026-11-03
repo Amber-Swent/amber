@@ -13,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
@@ -26,7 +27,12 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(RobolectricTestRunner::class)
 class AccountDeletionRepositoryProviderTest {
   private val fake: AccountDeletionRepository = mockk(relaxUnitFun = true)
-  private val rightHere = CoroutineScope(Dispatchers.Unconfined)
+  // a failure in a launched coroutine never reaches the test by itself: it is only logged
+  private val uncaught = mutableListOf<Throwable>()
+  private val rightHere =
+      CoroutineScope(
+          Dispatchers.Unconfined + CoroutineExceptionHandler { _, error -> uncaught += error }
+      )
 
   private fun marker(set: Boolean) =
       object : DeletionMarker {
@@ -66,16 +72,23 @@ class AccountDeletionRepositoryProviderTest {
   }
 
   @Test
-  fun aMarkerResumesTheDeletionAndNoFailureStopsTheAppFromOpening() {
+  fun aMarkerResumesTheDeletion() {
     AccountDeletionRepositoryProvider { fake }
         .resumeInterruptedDeletion(marker(set = true), rightHere)
-    coVerify(exactly = 1) { fake.finishInterruptedDeletion() }
 
+    coVerify(exactly = 1) { fake.finishInterruptedDeletion() }
+  }
+
+  @Test
+  fun aResumeThatFailsDoesNotStopTheAppFromOpening() {
     coEvery { fake.finishInterruptedDeletion() } throws IllegalStateException("Boom")
     AccountDeletionRepositoryProvider { fake }
         .resumeInterruptedDeletion(marker(set = true), rightHere)
     AccountDeletionRepositoryProvider { throw IllegalStateException("Firebase not initialized") }
         .resumeInterruptedDeletion(marker(set = true), rightHere)
+
+    coVerify(exactly = 1) { fake.finishInterruptedDeletion() }
+    assertEquals(emptyList<Throwable>(), uncaught)
   }
 
   @Test
