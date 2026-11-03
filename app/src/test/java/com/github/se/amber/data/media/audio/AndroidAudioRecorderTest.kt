@@ -4,6 +4,7 @@ package com.github.se.amber.data.media.audio
 import android.Manifest
 import android.app.Application
 import android.media.MediaRecorder
+import android.util.Log
 import com.github.se.amber.data.media.MAX_FILE_BYTES
 import io.mockk.every
 import io.mockk.mockk
@@ -12,6 +13,7 @@ import java.io.File
 import java.io.IOException
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -29,6 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowLog
 
 /**
  * Checks [AndroidAudioRecorder] with a mocked [MediaRecorder], since Robolectric's shadow writes no
@@ -120,6 +123,9 @@ class AndroidAudioRecorderTest {
       mock.setAudioSource(MediaRecorder.AudioSource.MIC)
       mock.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
       mock.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+      mock.setAudioChannels(1)
+      mock.setAudioSamplingRate(44_100)
+      mock.setAudioEncodingBitRate(64_000)
       mock.setMaxDuration(MAX_RECORDING_MS.toInt())
       mock.setMaxFileSize(match { it in 1 until MAX_FILE_BYTES })
     }
@@ -203,6 +209,71 @@ class AndroidAudioRecorderTest {
   }
 
   @Test
+  fun theFileSizeLimitAlsoEndsTheRecording() = test {
+    recorder.start()
+
+    infoListener!!.onInfo(
+        mediaRecorders.single(),
+        MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED,
+        0,
+    )
+
+    assertFalse(recorder.isRecording.value)
+    assertTrue(recorder.stop().file.exists())
+  }
+
+  @Test
+  fun anInfoThatIsntALimitDoesntEndTheRecording() = test {
+    recorder.start()
+
+    // sent by Android before the size limit is reached
+    infoListener!!.onInfo(
+        mediaRecorders.single(),
+        MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_APPROACHING,
+        0,
+    )
+
+    assertTrue(recorder.isRecording.value)
+  }
+
+  @Test
+  fun aLimitSetsTheLevelBackToZero() = test {
+    recorder.start()
+    level = 16_384
+    advanceTimeBy(150.milliseconds)
+    runCurrent()
+
+    infoListener!!.onInfo(
+        mediaRecorders.single(),
+        MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED,
+        0,
+    )
+
+    assertEquals(0f, recorder.amplitude.value)
+  }
+
+  @Test
+  fun aSecondLimitKeepsTheTimeOfTheFirst() = test {
+    recorder.start()
+    now += 1.seconds
+    stopFails = true
+    infoListener!!.onInfo(
+        mediaRecorders.single(),
+        MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED,
+        0,
+    )
+    now += 2.seconds
+
+    infoListener!!.onInfo(
+        mediaRecorders.single(),
+        MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED,
+        0,
+    )
+
+    assertEquals(1_000L, recorder.stop().durationMs)
+  }
+
+  @Test
   fun aFailingStopDeletesTheFile() = test {
     recorder.start()
     val file = recordedDir.listFiles()!!.single()
@@ -231,6 +302,16 @@ class AndroidAudioRecorderTest {
 
     recorder.stop()
     assertEquals(0f, recorder.amplitude.value)
+  }
+
+  @Test
+  fun theLoudestNegativeSampleGivesALevelOf1() = test {
+    recorder.start()
+    level = 32_768
+    advanceTimeBy(150.milliseconds)
+    runCurrent()
+
+    assertEquals(1f, recorder.amplitude.value)
   }
 
   @Test
@@ -264,6 +345,22 @@ class AndroidAudioRecorderTest {
     assertTrue(picked.exists())
     // only the first start cleans the folder, so a returned recording isn't deleted
     assertTrue(kept.file.exists())
+  }
+
+  @Test
+  fun aLeftoverThatCantBeDeletedIsLoggedAndDoesntStopTheRecording() = test {
+    // a folder that isn't empty can't be deleted like a file
+    File(recordedDir, "stuck/inner.m4a").apply {
+      parentFile!!.mkdirs()
+      writeText("old")
+    }
+
+    recorder.start()
+
+    assertTrue(recorder.isRecording.value)
+    val warning = ShadowLog.getLogsForTag(AndroidAudioRecorder.TAG).single()
+    assertEquals(Log.WARN, warning.type)
+    assertTrue(warning.msg.contains("stuck"))
   }
 
   @Test
@@ -352,6 +449,39 @@ class AndroidAudioRecorderTest {
 
     assertFalse(file.exists())
     assertFalse(queued.isRecording.value)
+  }
+
+  @Test
+  fun aStartWhoseCallerIsCancelledLeavesNoRecording() = test {
+    val io = QueuedDispatcher()
+    val queued = AndroidAudioRecorder(context, io, ::newMockRecorder) { now.inWholeMilliseconds }
+    val starting = launch { queued.start() }
+    runCurrent()
+    // the recording starts, but the caller leaves before start() returns
+    io.runAll()
+    starting.cancel()
+    runCurrent()
+
+    assertFalse(queued.isRecording.value)
+    assertTrue(recordedDir.listFiles().isNullOrEmpty())
+  }
+
+  @Test
+  fun aStartWhoseCallerIsCancelledLeavesANewerRecordingAlone() = test {
+    val io = QueuedDispatcher()
+    val queued = AndroidAudioRecorder(context, io, ::newMockRecorder) { now.inWholeMilliseconds }
+    val starting = launch { queued.start() }
+    runCurrent()
+    io.runAll()
+    starting.cancel()
+    // before that caller resumes, its recording is cancelled and another one starts
+    queued.cancel()
+    CoroutineScope(io).launch { queued.start() }
+    io.runAll()
+    runCurrent()
+
+    assertTrue(queued.isRecording.value)
+    queued.cancel()
   }
 
   @Test

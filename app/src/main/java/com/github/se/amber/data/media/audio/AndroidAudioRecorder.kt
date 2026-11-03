@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.SystemClock
+import android.util.Log
 import com.github.se.amber.data.media.MAX_FILE_BYTES
 import java.io.File
 import java.io.IOException
@@ -97,61 +98,81 @@ class AndroidAudioRecorder(
   override val amplitude: StateFlow<Float> = _amplitude.asStateFlow()
 
   /**
-   * Checks the permission, then builds and starts a new [MediaRecorder] into a new file, under the
-   * lock. The recorder and the file are only kept once it has started, so a failure leaves nothing.
+   * Starts recording on [ioDispatcher] (see [startNow]).
+   *
+   * If the caller is cancelled while the recording starts, `withContext` throws instead of
+   * returning, and nobody would ever stop that recording. So it is cancelled here, but only if it
+   * is still the current one. A newer recording, started after this one was ended, is left alone.
    */
-  override suspend fun start(): Unit =
-      withContext(ioDispatcher) {
-        if (
-            appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) !=
-                PackageManager.PERMISSION_GRANTED
-        ) {
-          throw SecurityException("The microphone permission isn't granted")
-        }
-        synchronized(lock) {
-          check(file == null) { "A recording is in progress or waiting to be taken with stop()" }
-          deleteLeftovers()
-          // built before the file, so a failure here leaves no file behind
-          val recorder = openingMicrophone { createMediaRecorder() }
-          val output =
-              try {
-                File.createTempFile("recorded_", ".m4a", directory)
-              } catch (e: IOException) {
-                recorder.release()
-                throw e
-              }
-          try {
-            openingMicrophone {
-              configure(recorder, output)
-              recorder.prepare()
-              recorder.start()
-            }
-          } catch (e: Exception) {
-            recorder.release()
-            output.delete() // NOSONAR: a leftover is removed at the next start
-            throw e
-          }
-          mediaRecorder = recorder
-          file = output
-          startedAt = clock()
-          stoppedAt = null
-          samples.clear()
-          _isRecording.value = true
-          amplitudeJob = scope.launch { readAmplitude(recorder) }
-        }
-      }
+  override suspend fun start() {
+    var started: File? = null
+    try {
+      withContext(ioDispatcher) { started = startNow() }
+    } catch (e: CancellationException) {
+      started?.let(::cancelIfCurrent)
+      throw e
+    }
+  }
 
   /**
-   * Stops the recording on [ioDispatcher] (see [stopNow]). If the caller is cancelled meanwhile,
-   * `withContext` throws instead of returning the recording, so nobody would ever take its file: it
-   * is deleted then.
+   * Checks the permission, then builds and starts a new [MediaRecorder] into a new file, under the
+   * lock. The recorder and the file are only kept once it has started, so a failure leaves nothing.
+   *
+   * @return the file of the recording started.
+   */
+  private fun startNow(): File {
+    if (
+        appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) !=
+            PackageManager.PERMISSION_GRANTED
+    ) {
+      throw SecurityException("The microphone permission isn't granted")
+    }
+    synchronized(lock) {
+      check(file == null) { "A recording is in progress or waiting to be taken with stop()" }
+      deleteLeftovers()
+      // built before the file, so a failure here leaves no file behind
+      val recorder = openingMicrophone { createMediaRecorder() }
+      val output =
+          try {
+            File.createTempFile("recorded_", ".m4a", directory)
+          } catch (e: IOException) {
+            recorder.release()
+            throw e
+          }
+      try {
+        openingMicrophone {
+          configure(recorder, output)
+          recorder.prepare()
+          recorder.start()
+        }
+      } catch (e: Exception) {
+        recorder.release()
+        deleteOrWarn(output)
+        throw e
+      }
+      mediaRecorder = recorder
+      file = output
+      startedAt = clock()
+      stoppedAt = null
+      samples.clear()
+      _isRecording.value = true
+      amplitudeJob = scope.launch { readAmplitude(recorder) }
+      return output
+    }
+  }
+
+  /**
+   * Stops the recording on [ioDispatcher] (see [stopNow]).
+   *
+   * If the caller is cancelled while the recording stops, `withContext` throws instead of returning
+   * it, and nobody would ever take its file. So the file is deleted here.
    */
   override suspend fun stop(): LocalAudio {
     var audio: LocalAudio? = null
     try {
       return withContext(ioDispatcher) { stopNow().also { audio = it } }
     } catch (e: CancellationException) {
-      audio?.file?.delete() // NOSONAR: a leftover is removed at the next start
+      audio?.file?.let(::deleteOrWarn)
       throw e
     }
   }
@@ -175,14 +196,14 @@ class AndroidAudioRecorder(
           // after a limit, the recorder may have stopped by itself already, and the file is
           // complete; otherwise, nothing was recorded
           if (!reachedLimit) {
-            output.delete() // NOSONAR: a leftover is removed at the next start
+            deleteOrWarn(output)
             throw IllegalStateException("The recording is empty or too short to be kept", e)
           }
         } finally {
           recorder.release()
         }
         if (output.length() == 0L) {
-          output.delete() // NOSONAR: a leftover is removed at the next start
+          deleteOrWarn(output)
           throw IllegalStateException("The recording is empty")
         }
         LocalAudio(output, durationMs, waveform)
@@ -190,20 +211,30 @@ class AndroidAudioRecorder(
 
   /** Stops and releases the recorder, if any, and deletes its file, under the lock. */
   override fun cancel() {
-    synchronized(lock) {
-      val output = file ?: return
-      // kept, as clear() forgets it; there is always one with a file
-      val recorder = checkNotNull(mediaRecorder)
-      clear()
-      try {
-        recorder.stop()
-      } catch (_: RuntimeException) {
-        // nothing recorded, or already stopped at a limit: the file is deleted anyway
-      } finally {
-        recorder.release()
-      }
-      output.delete() // NOSONAR: a leftover is removed at the next start
+    synchronized(lock) { discard(file ?: return) }
+  }
+
+  /** Cancels the recording into [output], if it is still the current one, under the lock. */
+  private fun cancelIfCurrent(output: File) {
+    synchronized(lock) { if (file === output) discard(output) }
+  }
+
+  /**
+   * Stops and releases the recorder, and deletes [output], the current recording's file. Called
+   * with the lock held.
+   */
+  private fun discard(output: File) {
+    // kept, as clear() forgets it; there is always one with a file
+    val recorder = checkNotNull(mediaRecorder)
+    clear()
+    try {
+      recorder.stop()
+    } catch (_: RuntimeException) {
+      // nothing recorded, or already stopped at a limit: the file is deleted anyway
+    } finally {
+      recorder.release()
     }
+    deleteOrWarn(output)
   }
 
   /**
@@ -295,25 +326,36 @@ class AndroidAudioRecorder(
    */
   private fun deleteLeftovers() {
     if (!leftoversDeleted) {
-      directory.listFiles()?.forEach { it.delete() } // NOSONAR: retried at the next start
+      directory.listFiles()?.forEach(::deleteOrWarn)
       leftoversDeleted = true
     }
     directory.mkdirs()
   }
 
-  private companion object {
-    const val RECORDED_DIR = "audio/recorded"
-    const val MONO = 1
-    const val SAMPLING_RATE_HZ = 44_100
-    const val BIT_RATE = 64_000
-    const val FILE_SIZE_MARGIN_BYTES = 256L * 1024
-    const val AMPLITUDE_INTERVAL_MS = 100L
+  /**
+   * Deletes [file], and logs a warning if it is still there. A file left behind only wastes space,
+   * and the first [start] after the next launch of the app deletes it.
+   */
+  private fun deleteOrWarn(file: File) {
+    if (!file.delete() && file.exists()) {
+      Log.w(TAG, "Couldn't delete ${file.name}; it is deleted at the next launch")
+    }
+  }
+
+  internal companion object {
+    const val TAG = "AndroidAudioRecorder"
+    private const val RECORDED_DIR = "audio/recorded"
+    private const val MONO = 1
+    private const val SAMPLING_RATE_HZ = 44_100
+    private const val BIT_RATE = 64_000
+    private const val FILE_SIZE_MARGIN_BYTES = 256L * 1024
+    private const val AMPLITUDE_INTERVAL_MS = 100L
 
     /** The highest value [MediaRecorder.getMaxAmplitude] returns. */
-    const val MAX_AMPLITUDE = 32_767f
+    private const val MAX_AMPLITUDE = 32_767f
 
     /** Builds a [MediaRecorder] with the constructor of this Android version. */
-    fun newMediaRecorder(context: Context): MediaRecorder =
+    private fun newMediaRecorder(context: Context): MediaRecorder =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
           MediaRecorder(context.applicationContext)
         } else {
