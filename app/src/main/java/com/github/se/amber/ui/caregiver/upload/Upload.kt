@@ -23,7 +23,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -35,7 +34,6 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.PICTURE_BUTTON
-import com.github.se.amber.ui.caregiver.upload.UploadTestTags.TEXT_BUTTON
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
@@ -53,7 +51,8 @@ object UploadTestTags {
 }
 
 /**
- * Displays the caregiver upload menu for text, picture, and audio stories along with bottom navigation.
+ * Displays the caregiver upload menu for text, picture, and audio stories along with bottom
+ * navigation.
  *
  * @param viewModel view model that stores the upload screen state.
  * @param onUploadTextClick callback invoked when text upload is selected.
@@ -83,14 +82,14 @@ fun UploadScreen(
 
   Scaffold(
       topBar = {
-          TopAppBar(
+        TopAppBar(
             title = {
               DisplayCaregiverTitle(
                   modifier = Modifier.testTag(UploadTestTags.TITLE),
-                  title = "Upload Medias"
+                  title = "Upload Medias",
               )
-          }
-          )
+            }
+        )
       },
       bottomBar = {
         BottomNavigationMenu(

@@ -43,7 +43,6 @@ class UploadTest {
     fun onUploadAudioClick() {
       calls.add("audio")
     }
-
   }
 
   // ---------- Setup helpers ----------
