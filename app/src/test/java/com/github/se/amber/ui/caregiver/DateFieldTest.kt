@@ -5,7 +5,7 @@
 package com.github.se.amber.ui.caregiver
 
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.DateField
+import com.github.se.amber.ui.caregiver.upload.media.DateField
 import java.time.Month
 import java.util.Locale
 import org.junit.Assert.assertEquals
