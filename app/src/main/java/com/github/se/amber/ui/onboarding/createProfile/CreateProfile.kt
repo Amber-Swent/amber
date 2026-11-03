@@ -152,7 +152,7 @@ fun CreateProfileScreen(
  *
  * @param value current text.
  * @param onValueChange called when the text changes.
- * @param label label and placeholder shown for the field.
+ * @param label label shown on the field.
  * @param fieldTag test tag of the field.
  * @param error supporting error text, or null when the field is valid.
  * @param errorTag test tag of the supporting error text.

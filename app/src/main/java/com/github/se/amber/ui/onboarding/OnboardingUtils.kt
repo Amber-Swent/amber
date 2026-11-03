@@ -64,7 +64,7 @@ fun onboardingOutlinedTextFieldColors(): TextFieldColors =
  * @param onValueChange called when the text changes.
  * @param label border label shown above the field.
  * @param modifier modifier applied to the text field.
- * @param placeholder hint shown inside an empty field. Defaults to [label].
+ * @param placeholder hint shown inside an empty focused field, or null when the label is enough.
  * @param placeholderTestTag optional test tag on the placeholder text.
  * @param error supporting error text, or null when the field is valid.
  * @param errorTestTag optional test tag on the supporting error text.
@@ -72,11 +72,11 @@ fun onboardingOutlinedTextFieldColors(): TextFieldColors =
  */
 @Composable
 fun OnboardingOutlinedTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
+    value: String = "",
+    onValueChange: (String) -> Unit = {},
+    label: String = "",
     modifier: Modifier = Modifier,
-    placeholder: String = label,
+    placeholder: String? = null,
     placeholderTestTag: String? = null,
     error: String? = null,
     errorTestTag: String? = null,
@@ -88,13 +88,16 @@ fun OnboardingOutlinedTextField(
       modifier = modifier.fillMaxWidth(),
       enabled = enabled,
       label = { Text(text = label, style = MaterialTheme.typography.labelMedium) },
-      placeholder = {
-        Text(
-            text = placeholder,
-            modifier = placeholderTestTag?.let { Modifier.testTag(it) } ?: Modifier,
-            style = MaterialTheme.typography.labelMedium,
-        )
-      },
+      placeholder =
+          placeholder?.let { hint ->
+            {
+              Text(
+                  text = hint,
+                  modifier = placeholderTestTag?.let { Modifier.testTag(it) } ?: Modifier,
+                  style = MaterialTheme.typography.labelMedium,
+              )
+            }
+          },
       supportingText =
           error?.let { message ->
             {

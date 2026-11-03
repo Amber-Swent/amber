@@ -102,19 +102,7 @@ class InvitationRedemptionUITests {
   // ---------- Back navigation ----------
 
   @Test
-  fun backButton_click_invokesOnBackOnly() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON).performClick()
-    composeTestRule.waitForIdle()
-
-    assertEquals(1, backCount)
-    assertEquals(0, redeemSuccessCount)
-    assertNull(lastRedemptionResult)
-  }
-
-  @Test
-  fun cancelButton_isShownAndDoesNothing() {
+  fun cancelButton_showsCancelAndLeaves() {
     setScreen()
 
     composeTestRule
@@ -123,8 +111,9 @@ class InvitationRedemptionUITests {
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
-    assertEquals(0, backCount)
+    assertEquals(1, backCount)
     assertEquals(0, redeemSuccessCount)
+    assertNull(lastRedemptionResult)
   }
 
   // ---------- Validation ----------
@@ -224,7 +213,6 @@ class InvitationRedemptionUITests {
     composeTestRule.waitUntil(timeoutMillis = 3_000) { viewModel.uiState.value.isRedeeming }
 
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON).assertIsNotEnabled()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
     assertEquals(0, backCount)

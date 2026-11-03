@@ -36,27 +36,25 @@ object InvitationRedemptionTestTags {
   const val CODE_PLACEHOLDER = "InvitationRedemption_test_tag_code_placeholder"
   const val CODE_ERROR = "InvitationRedemption_test_tag_code_error"
   const val SUBMIT_BUTTON = "InvitationRedemption_test_tag_submit_button"
-  const val BACK_BUTTON = "InvitationRedemption_test_tag_back_button"
 }
 
 internal const val TITLE_LABEL = "Enter your invitation code"
 internal const val CODE_LABEL = "Invitation code"
-internal const val CODE_PLACEHOLDER_LABEL = "Enter your invitation code"
+internal const val CODE_PLACEHOLDER_LABEL = "Your code"
 internal const val SUBMIT_LABEL = "Submit"
-internal const val BACK_LABEL = "Back"
 
 /**
  * Screen where a patient or caregiver enters an invitation code to join an existing care circle.
  *
  * Validation and the repository call live in [viewModel]. [onRedeemSuccess] should navigate to the
- * home graph for the redeemed role. The top-bar Cancel is visible and does nothing for now; profile
- * removal will call the shared delete flow once that exists. [onBack] is the bottom Back button.
+ * home graph for the redeemed role. The top-bar Cancel calls [onBack] and leaves this step. It does
+ * not remove a profile.
  *
  * @param modifier Modifier applied to the root invitation layout.
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
  *   composition; tests can pass a custom instance with a fake repository.
  * @param onRedeemSuccess called with the redeemed circle and role after a successful redeem.
- * @param onBack called when the user taps the bottom Back button.
+ * @param onBack called when the user taps Cancel.
  */
 @Composable
 fun InvitationRedemptionScreen(
@@ -74,7 +72,7 @@ fun InvitationRedemptionScreen(
       topBar = {
         TopNavigationMenu(
             action = TopNavigationAction.CANCEL,
-            onBackClick = {},
+            onBackClick = { if (!uiState.isRedeeming) onBack() },
         )
       },
   ) { innerPadding ->
@@ -114,12 +112,6 @@ fun InvitationRedemptionScreen(
           text = SUBMIT_LABEL,
           enabled = !uiState.isRedeeming,
           onClick = { viewModel.onSubmit(onRedeemSuccess) },
-      )
-      DisplayCaregiverButton(
-          modifier = Modifier.testTag(InvitationRedemptionTestTags.BACK_BUTTON),
-          text = BACK_LABEL,
-          enabled = !uiState.isRedeeming,
-          onClick = onBack,
       )
     }
   }

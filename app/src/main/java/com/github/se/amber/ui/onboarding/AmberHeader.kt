@@ -47,6 +47,7 @@ fun AmberHeader(
     )
     Text(
         text = "Amber",
+        // Same width as the logo, so the word sits under the icon rather than the parent.
         modifier = Modifier.width(SURFACE_BIG),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
