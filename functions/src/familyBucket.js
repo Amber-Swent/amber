@@ -10,6 +10,7 @@ const { defineString } = require("firebase-functions/params");
 const { app } = require("./firebase");
 
 const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
+const STORAGE_NOT_FOUND = 404;
 
 /**
  * Derives the name of a circle's bucket from a hash of the project and circle ids.
@@ -158,8 +159,8 @@ async function deleteBucket(bucketName) {
   try {
     await bucket.deleteFiles({ force: true });
   } catch (error) {
-    // 404: deleted by an earlier, retried run
-    if (error.code !== 404) {
+    // deleted by an earlier, retried run
+    if (error.code !== STORAGE_NOT_FOUND) {
       throw error;
     }
   }

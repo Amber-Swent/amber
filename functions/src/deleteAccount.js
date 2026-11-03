@@ -8,6 +8,9 @@ const { db } = require("./firebase");
 
 const RECENT_SIGN_IN_SECONDS = 5 * 60;
 const FIRESTORE_NOT_FOUND = 5;
+// The app waits a little longer for the answer: see CALL_TIMEOUT_SECONDS in
+// FirebaseAccountDeletionRepository
+const DELETE_ACCOUNT_TIMEOUT_SECONDS = 540;
 
 /**
  * Refuses a sign-in older than RECENT_SIGN_IN_SECONDS. The Admin SDK's deleteUser doesn't check
@@ -98,7 +101,7 @@ async function deleteAuthUser(uid) {
  * @throws {HttpsError} unauthenticated without a signed-in caller, or failed-precondition
  *   (RECENT_SIGN_IN_REQUIRED) for an old sign-in, before anything is written
  */
-const deleteAccount = onCall({ timeoutSeconds: 540 }, async (request) => {
+const deleteAccount = onCall({ timeoutSeconds: DELETE_ACCOUNT_TIMEOUT_SECONDS }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in before deleting your account");
   }
