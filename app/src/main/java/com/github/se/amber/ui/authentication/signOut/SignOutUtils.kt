@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.authentication.signOut
 
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +32,9 @@ internal object PreviewSignOutAuthRepository : AuthRepository {
   override val currentUser: AuthUser? = null
 
   override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+      Result.failure(UnsupportedOperationException("Preview auth repository"))
+
+  override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
       Result.failure(UnsupportedOperationException("Preview auth repository"))
 
   override suspend fun signOut(): Result<Unit> = Result.success(Unit)
