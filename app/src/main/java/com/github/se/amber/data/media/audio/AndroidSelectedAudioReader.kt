@@ -6,6 +6,7 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.core.net.toUri
 import com.github.se.amber.data.media.MAX_FILE_BYTES
 import java.io.File
@@ -42,16 +43,17 @@ class AndroidSelectedAudioReader(
   private var leftoversDeleted = false
 
   /**
-   * Reads the audio on [ioDispatcher] (see [readNow]). If the caller is cancelled once the copy is
-   * done, `withContext` throws instead of returning it, so nobody would ever take the file: it is
-   * deleted then.
+   * Reads the audio on [ioDispatcher] (see [readNow]).
+   *
+   * If the caller is cancelled once the copy is done, `withContext` throws instead of returning it,
+   * and nobody would ever take the file. So the file is deleted here.
    */
   override suspend fun read(uri: String): LocalAudio {
     var audio: LocalAudio? = null
     try {
       return withContext(ioDispatcher) { readNow(uri.toUri()).also { audio = it } }
     } catch (e: CancellationException) {
-      audio?.file?.delete() // NOSONAR: a leftover is removed at the next start
+      audio?.file?.let(::deleteOrWarn)
       throw e
     }
   }
@@ -71,7 +73,7 @@ class AndroidSelectedAudioReader(
       copy(resolver, uri, file)
       return LocalAudio(file, readDurationMs(file))
     } catch (e: Exception) {
-      file?.delete() // NOSONAR: a leftover is removed at the next start
+      file?.let(::deleteOrWarn)
       throw when (e) {
         is CancellationException,
         is IllegalArgumentException -> e
@@ -143,20 +145,31 @@ class AndroidSelectedAudioReader(
   private fun prepareDirectory(): File =
       synchronized(lock) {
         if (!leftoversDeleted) {
-          directory.listFiles()?.forEach { it.delete() } // NOSONAR: retried at the next start
+          directory.listFiles()?.forEach(::deleteOrWarn)
           leftoversDeleted = true
         }
         directory.apply { mkdirs() }
       }
 
-  private companion object {
-    const val PICKED_DIR = "audio/picked"
-    const val BUFFER_BYTES = 64 * 1024
+  /**
+   * Deletes [file], and logs a warning if it is still there. A file left behind only wastes space,
+   * and the first [read] after the next launch of the app deletes it.
+   */
+  private fun deleteOrWarn(file: File) {
+    if (!file.delete() && file.exists()) {
+      Log.w(TAG, "Couldn't delete ${file.name}; it is deleted at the next launch")
+    }
+  }
+
+  internal companion object {
+    const val TAG = "AndroidSelectedAudioReader"
+    private const val PICKED_DIR = "audio/picked"
+    private const val BUFFER_BYTES = 64 * 1024
 
     /** The type an app gives when it doesn't know the file's type. */
-    const val UNKNOWN_TYPE = "application/octet-stream"
+    private const val UNKNOWN_TYPE = "application/octet-stream"
 
     /** The MIME types .m4a files are given, depending on the app that provides them. */
-    val M4A_TYPES = setOf("audio/mp4", "audio/x-m4a", "audio/m4a")
+    private val M4A_TYPES = setOf("audio/mp4", "audio/x-m4a", "audio/m4a")
   }
 }

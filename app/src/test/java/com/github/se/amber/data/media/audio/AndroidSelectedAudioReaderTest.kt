@@ -6,6 +6,7 @@ import android.content.Context
 import android.database.MatrixCursor
 import android.media.MediaMetadataRetriever
 import android.provider.OpenableColumns
+import android.util.Log
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -36,6 +37,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 /**
  * Checks [AndroidSelectedAudioReader] with a mocked content resolver, as for the picture reader,
@@ -111,6 +113,22 @@ class AndroidSelectedAudioReaderTest {
     assertEquals(3_000L, audio.durationMs)
     assertTrue(audio.waveform.isEmpty())
     verify { anyConstructed<MediaMetadataRetriever>().release() }
+  }
+
+  @Test
+  fun aLeftoverThatCantBeDeletedIsLoggedAndDoesntStopTheRead() = testScope.runTest {
+    // a folder that isn't empty can't be deleted like a file
+    File(pickedDir, "stuck/inner.m4a").apply {
+      parentFile!!.mkdirs()
+      writeText("old")
+    }
+
+    val audio = reader().read(uri)
+
+    assertTrue(audio.file.exists())
+    val warning = ShadowLog.getLogsForTag(AndroidSelectedAudioReader.TAG).single()
+    assertEquals(Log.WARN, warning.type)
+    assertTrue(warning.msg.contains("stuck"))
   }
 
   @Test
