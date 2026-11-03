@@ -11,7 +11,7 @@ data class MediaCardUIState(
     val isLoading: Boolean = false,
 )
 
-class MediaCardViewModel(): ViewModel() {
-    private val _uiState = MutableStateFlow(MediaCardUIState())
-    val uiState: StateFlow<MediaCardUIState> = _uiState.asStateFlow()
+class MediaCardViewModel() : ViewModel() {
+  private val _uiState = MutableStateFlow(MediaCardUIState())
+  val uiState: StateFlow<MediaCardUIState> = _uiState.asStateFlow()
 }

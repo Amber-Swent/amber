@@ -9,8 +9,8 @@ import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 
 /**
- * Displays the card related to the Media, including the date, the description, the location
- * and the persons related to it
+ * Displays the card related to the Media, including the date, the description, the location and the
+ * persons related to it
  *
  * This functions must only be used on scrollable screens.
  *
@@ -25,5 +25,5 @@ fun DisplayMediaCard(
     testTag: String = PatientUtilsTestTags.TITLE,
     mediaCardViewModel: MediaCardViewModel = viewModel(),
 ) {
-    val uiState by mediaCardViewModel.uiState.collectAsStateWithLifecycle()
+  val uiState by mediaCardViewModel.uiState.collectAsStateWithLifecycle()
 }
