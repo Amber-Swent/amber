@@ -40,6 +40,9 @@ function validUser(userSnapshot) {
   if (!VALID_ROLES.includes(user.role)) {
     throw redemptionFailed("PROFILE_INVALID", "User profile has an invalid role");
   }
+  if (user.deletionRequested === true) {
+    throw redemptionFailed("PROFILE_INVALID", "User is being deleted");
+  }
   return user;
 }
 
