@@ -190,6 +190,20 @@ class DeviceLocalAccountDataTest {
     assertEquals(everyStepBeforeFirestore + listOf("terminate", "clearPersistence", "stop"), calls)
   }
 
+  /** The next launch still sees the marker and clears again, with nothing left to clear. */
+  @Test
+  fun clearingAgainAfterTheMarkerCouldNotBeRemovedFinishesTheJob() = runBlocking {
+    markerFailure = IOException("Marker left")
+    assertThrows(IOException::class.java) { runBlocking { localData.clear() } }
+    calls.clear()
+    markerFailure = null
+
+    localData.clear()
+
+    assertTrue(otherFile.exists())
+    assertEquals(everyStep, calls)
+  }
+
   @Test
   fun leavingTheScreenDoesNotInterruptClearing() = runBlocking {
     val clearing = CompletableDeferred<Unit>()
