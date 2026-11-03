@@ -19,7 +19,7 @@ import com.github.se.amber.ui.patient.PatientUtilsTestTags
  * @param testTag test tag of the card
  */
 @Composable
-fun DisplayMediaCard(
+fun MediaCard(
     modifier: Modifier = Modifier,
     media: MediaItem = MediaItem.Picture(),
     testTag: String = PatientUtilsTestTags.TITLE,
