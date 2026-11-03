@@ -2,7 +2,6 @@
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
