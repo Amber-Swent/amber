@@ -54,9 +54,8 @@ val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
 val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 
-// FIXME open a PR for renaming all the caregiver button width to small, medium, etc
-const val CAREGIVER_BUTTON_WIDTH = 0.5f
-const val CAREGIVER_BUTTON_WIDTH_BIG = 1f
+const val CAREGIVER_BUTTON_WIDTH_MEDIUM = 0.5f
+const val CAREGIVER_BUTTON_WIDTH_ENORMOUS = 1f
 
 // ------- PATIENT BUTTON -------
 val PATIENT_BUTTON_HEIGHT_SMALL = 52.dp

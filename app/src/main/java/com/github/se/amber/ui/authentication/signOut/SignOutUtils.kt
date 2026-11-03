@@ -24,7 +24,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** No-op [AuthRepository] used by Compose previews (and preview-driven tests). */
@@ -64,7 +64,7 @@ fun SignOutButton(
     modifier: Modifier = Modifier,
     text: String = "Sign out",
     buttonHeight: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
-    buttonWidth: Float = CAREGIVER_BUTTON_WIDTH,
+    buttonWidth: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
     testTag: String = SignOutButtonTestTags.BUTTON,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()

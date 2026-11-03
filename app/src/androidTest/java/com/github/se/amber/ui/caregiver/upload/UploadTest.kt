@@ -1,3 +1,6 @@
+/* Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
+ */
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.material.icons.Icons
@@ -9,13 +12,11 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
-import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -43,9 +44,6 @@ class UploadTest {
       calls.add("audio")
     }
 
-    fun checkout() {
-      calls.add("checkout")
-    }
   }
 
   // ---------- Setup helpers ----------
@@ -59,7 +57,6 @@ class UploadTest {
           onUploadTextClick = actions::onUploadTextClick,
           onUploadPictureClick = actions::onUploadPictureClick,
           onUploadAudioClick = actions::onUploadAudioClick,
-          checkout = actions::checkout,
       )
     }
   }
@@ -85,12 +82,6 @@ class UploadTest {
 
   // ---------- Upload: display ----------
   @Test
-  fun topNavigationMenuIsDisplayed() {
-    setUpload()
-    checkIsDisplayed(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU)
-  }
-
-  @Test
   fun bottomNavigationMenuIsDisplayed() {
     setUpload()
     checkIsDisplayed(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
@@ -102,11 +93,13 @@ class UploadTest {
     composeTestRule.onNodeWithTag(UploadTestTags.TITLE).assertIsDisplayed()
   }
 
+  /* Text upload is planned for a later sprint.
   @Test
   fun textButtonIsDisplayed() {
     setUpload()
     checkIsDisplayed(UploadTestTags.TEXT_BUTTON)
   }
+  */
 
   @Test
   fun pictureButtonIsDisplayed() {
@@ -120,22 +113,17 @@ class UploadTest {
     checkIsDisplayed(UploadTestTags.AUDIO_BUTTON)
   }
 
-  @Test
-  fun topBarShowsCheckoutAction() {
-    setUpload()
-    node(TopNavigationMenuTestTags.TITLE).assertTextEquals("Checkout")
-  }
-
   // ---------- Upload: accessibility ----------
   @Test
   fun buttonHaveClickAction() {
     setUpload()
-    node(UploadTestTags.TEXT_BUTTON).assertHasClickAction()
+    // node(UploadTestTags.TEXT_BUTTON).assertHasClickAction() // Later sprint.
     node(UploadTestTags.PICTURE_BUTTON).assertHasClickAction()
     node(UploadTestTags.AUDIO_BUTTON).assertHasClickAction()
   }
 
   // ---------- Upload: callbacks ----------
+  /* Text upload is planned for a later sprint.
   @Test
   fun clickingTextButtonInvokesOnlyTextCallback() {
     val actions = FakeUploadActions()
@@ -143,6 +131,7 @@ class UploadTest {
     node(UploadTestTags.TEXT_BUTTON).performClick()
     assertEquals(listOf("text"), actions.calls)
   }
+  */
 
   @Test
   fun clickingPictureButtonInvokesOnlyPictureCallback() {
@@ -158,14 +147,6 @@ class UploadTest {
     setUpload(actions = actions)
     node(UploadTestTags.AUDIO_BUTTON).performClick()
     assertEquals(listOf("audio"), actions.calls)
-  }
-
-  @Test
-  fun clickingTopBarBackInvokesOnlyCheckoutCallback() {
-    val actions = FakeUploadActions()
-    setUpload(actions = actions)
-    node(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-    assertEquals(listOf("checkout"), actions.calls)
   }
 
   // ---------- Upload: error handling ----------
