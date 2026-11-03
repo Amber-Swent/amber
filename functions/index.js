@@ -236,7 +236,13 @@ exports.redeemInvitation = onCall(async (request) => {
   });
 });
 
-// The Admin SDK's deleteUser doesn't check this itself. Clients map failures on `details.reason`.
+/**
+ * Refuses a sign-in older than RECENT_SIGN_IN_SECONDS. The Admin SDK's deleteUser doesn't check
+ * this itself.
+ * @param {object | undefined} token the caller's decoded ID token, from request.auth.token
+ * @throws {HttpsError} failed-precondition with `details.reason` RECENT_SIGN_IN_REQUIRED, which
+ *   clients map, if auth_time is missing, malformed or too old
+ */
 function requireRecentSignIn(token) {
   const signedInSeconds = token?.auth_time;
   if (
@@ -249,6 +255,12 @@ function requireRecentSignIn(token) {
   }
 }
 
+/**
+ * Writes one item after another in batches of BATCH_SIZE, committed in order. A failure stops at
+ * that batch: the earlier ones stay written.
+ * @param {Array} items what to write, one write per item
+ * @param {(batch: WriteBatch, item: *) => void} write adds the write of one item to a batch
+ */
 async function writeInBatches(items, write) {
   for (let start = 0; start < items.length; start += BATCH_SIZE) {
     const batch = db.batch();
@@ -257,13 +269,22 @@ async function writeInBatches(items, write) {
   }
 }
 
+/**
+ * Deletes documents in batches, see writeInBatches.
+ * @param {DocumentSnapshot[]} snapshots the documents to delete
+ */
 async function deleteDocuments(snapshots) {
   await writeInBatches(snapshots, (batch, snapshot) => batch.delete(snapshot.ref));
 }
 
-// Comes first: redeemInvitation reads the profile in its transaction, so once this is written no
-// redemption can add a circle that the query in deleteAccount would miss. Stays set after a partial
-// failure, as the account is then half deleted. The profile is already gone on some retries.
+/**
+ * Marks the profile as being deleted, which makes redeemInvitation refuse this user.
+ *
+ * Comes first: redeemInvitation reads the profile in its transaction, so once this is written no
+ * redemption can add a circle that the query in deleteAccount would miss. Stays set after a partial
+ * failure, as the account is then half deleted. The profile is already gone on some retries.
+ * @param {string} uid the user being deleted
+ */
 async function markDeletionRequested(uid) {
   try {
     await db.doc(`users/${uid}`).update({ deletionRequested: true });
@@ -274,6 +295,10 @@ async function markDeletionRequested(uid) {
   }
 }
 
+/**
+ * Deletes the invitations the user created or redeemed.
+ * @param {string} uid the user being deleted
+ */
 async function deleteInvitations(uid) {
   const invitations = db.collection("invitations");
   const [created, used] = await Promise.all([
@@ -283,13 +308,26 @@ async function deleteInvitations(uid) {
   await deleteDocuments([...created.docs, ...used.docs]);
 }
 
-// Without a bucket no file can have been stored. The emulators don't provision buckets, and this
-// would reach the real Cloud Storage.
+/**
+ * Tells whether a circle's files are to be deleted from Cloud Storage. Without a bucket no file
+ * can have been stored. The emulators don't provision buckets, and this would reach the real Cloud
+ * Storage.
+ * @param {string | undefined} bucketName the circle's storageBucket
+ * @returns {boolean} true if there is a bucket and this isn't the emulator
+ */
 function usesStorage(bucketName) {
   return Boolean(bucketName) && process.env.FUNCTIONS_EMULATOR !== "true";
 }
 
-// Stories go first: the ids to remove are only known while the media documents still exist.
+/**
+ * Deletes the media the user authored in a circle, with their files, and the user's stories.
+ * Removes those media from the stories of the other members.
+ *
+ * Stories go first: the ids to remove are only known while the media documents still exist.
+ * @param {string} uid the user being deleted
+ * @param {DocumentReference} circleRef the circle to clean up
+ * @param {string | undefined} bucketName the circle's storageBucket
+ */
 async function deleteAuthoredMedia(uid, circleRef, bucketName) {
   const media = await circleRef.collection("media").where("authorId", "==", uid).get();
   const stories = await circleRef.collection("stories").get();
@@ -320,6 +358,11 @@ async function deleteAuthoredMedia(uid, circleRef, bucketName) {
   await deleteDocuments(media.docs);
 }
 
+/**
+ * Removes the user from the people shown in, and allowed to see, the media of the other members.
+ * @param {string} uid the user being deleted
+ * @param {DocumentReference} circleRef the circle to clean up
+ */
 async function removeFromRemainingMedia(uid, circleRef) {
   const media = circleRef.collection("media");
   const [shown, authorized] = await Promise.all([
@@ -337,6 +380,12 @@ async function removeFromRemainingMedia(uid, circleRef) {
   });
 }
 
+/**
+ * Removes the user from the attendees of a circle's appointments. The appointments they created
+ * stay for the others, with an empty creator.
+ * @param {string} uid the user being deleted
+ * @param {DocumentReference} circleRef the circle to clean up
+ */
 async function removeFromAppointments(uid, circleRef) {
   const appointments = circleRef.collection("appointments");
   const [attending, created] = await Promise.all([
@@ -349,6 +398,12 @@ async function removeFromAppointments(uid, circleRef) {
     batch.update(appointment.ref, { createdBy: "" }));
 }
 
+/**
+ * Removes a user from a circle's nicknames: the ones they gave, and the ones given to them.
+ * @param {string} uid the user being deleted
+ * @param {Object<string, Object<string, string>>} nicknames by viewer, then by member nicknamed
+ * @returns {Object<string, Object<string, string>>} the nicknames without the user
+ */
 function nicknamesWithout(uid, nicknames) {
   return Object.fromEntries(
     Object.entries(nicknames)
@@ -360,8 +415,13 @@ function nicknamesWithout(uid, nicknames) {
   );
 }
 
-// Removes the membership, unless it's the last one: the circle is then deleted as a whole.
-// Returns whether it was the last one.
+/**
+ * Removes the user from a circle's members, nicknames, patient and creator, in one transaction.
+ * Leaves the circle as it is if they are its last member: it is then deleted as a whole.
+ * @param {string} uid the user being deleted
+ * @param {DocumentReference} circleRef the circle to leave
+ * @returns {Promise<boolean>} whether they were its last member
+ */
 async function leaveCircle(uid, circleRef) {
   return db.runTransaction(async (transaction) => {
     const circleSnapshot = await transaction.get(circleRef);
@@ -383,6 +443,10 @@ async function leaveCircle(uid, circleRef) {
   });
 }
 
+/**
+ * Deletes a circle's bucket with all its files. Does nothing when usesStorage is false.
+ * @param {string | undefined} bucketName the circle's storageBucket
+ */
 async function deleteBucket(bucketName) {
   if (!usesStorage(bucketName)) {
     return;
@@ -399,9 +463,16 @@ async function deleteBucket(bucketName) {
   await bucket.delete({ ignoreNotFound: true });
 }
 
-// Rules are only released when a bucket is created, so an older bucket may let the user being
-// deleted add files. Deletion carries on without it: a late upload is less serious than an account
-// that can't be deleted.
+/**
+ * Releases the current Storage rules on a circle's bucket, which refuse files from a user being
+ * deleted. Does nothing when usesStorage is false.
+ *
+ * Rules are only released when a bucket is created, so an older bucket may let the user being
+ * deleted add files. Deletion carries on without it: a late upload is less serious than an account
+ * that can't be deleted.
+ * @param {string} circleId the circle, for the log
+ * @param {string | undefined} bucketName the circle's storageBucket
+ */
 async function refreshBucketRules(circleId, bucketName) {
   if (!usesStorage(bucketName)) {
     return;
@@ -413,8 +484,12 @@ async function refreshBucketRules(circleId, bucketName) {
   }
 }
 
-// A retry finds the circle through memberIds, so the uid must leave it last. The bucket goes before
-// the circle for the same reason: its name would be lost with the document.
+/**
+ * Removes every trace of the user from one circle, and deletes the circle with its bucket if they
+ * were its last member. Step 3 of deleteAccount, which explains the order.
+ * @param {string} uid the user being deleted
+ * @param {DocumentSnapshot} circleSnapshot a circle that still lists them in memberIds
+ */
 async function removeFromCircle(uid, circleSnapshot) {
   const circleRef = circleSnapshot.ref;
   const bucketName = circleSnapshot.get("storageBucket");
@@ -431,6 +506,10 @@ async function removeFromCircle(uid, circleSnapshot) {
   }
 }
 
+/**
+ * Deletes the user from Firebase Authentication. A user already deleted counts as done.
+ * @param {string} uid the user being deleted
+ */
 async function deleteAuthUser(uid) {
   try {
     await getAuth().deleteUser(uid);
@@ -442,8 +521,30 @@ async function deleteAuthUser(uid) {
   }
 }
 
-// Permanently deletes the caller's account and personal data. Every step can run again, so a client
-// can simply retry after a failure. Only ever acts on request.auth.uid: the request data is ignored.
+/**
+ * Permanently deletes the caller's account and personal data. Every step can run again, so a client
+ * can simply retry after a failure. Only ever acts on request.auth.uid: the request data is ignored.
+ *
+ * 1. Mark the profile: from then on redeemInvitation refuses this user, so no circle is missed.
+ * 2. Delete their invitations, so nobody joins a circle that is about to be deleted.
+ * 3. For each circle they are a member of:
+ *    a. If others stay, refresh the bucket's Storage rules, so the user can't add files meanwhile.
+ *       Alone in the circle, the whole bucket is about to go.
+ *    b. Delete their media with its files, and their stories. Their media is removed from the
+ *       other stories first: its ids are only known while its documents exist. The files go
+ *       before their documents, the only record of where they are.
+ *    c. Remove them from what stays: the other media and the appointments.
+ *    d. Only then remove them from memberIds. A retry finds the circles to clean through
+ *       memberIds: had they left a circle first and a later step failed, the retry would never
+ *       come back to it.
+ *    e. If they were its last member, delete the bucket, then the circle. The bucket goes first,
+ *       as its name would be lost with the circle.
+ * 4. Delete the profile, then the Auth user.
+ * @param {CallableRequest} request needs a recent sign-in, see requireRecentSignIn
+ * @returns {Promise<{deleted: true}>} once everything is deleted
+ * @throws {HttpsError} unauthenticated without a signed-in caller, or failed-precondition
+ *   (RECENT_SIGN_IN_REQUIRED) for an old sign-in, before anything is written
+ */
 exports.deleteAccount = onCall({ timeoutSeconds: 540 }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in before deleting your account");
@@ -452,7 +553,6 @@ exports.deleteAccount = onCall({ timeoutSeconds: 540 }, async (request) => {
 
   const uid = request.auth.uid;
   await markDeletionRequested(uid);
-  // Before the circles, so nobody joins a circle that is about to be deleted
   await deleteInvitations(uid);
   const circles = await db.collection("careCircles").where("memberIds", "array-contains", uid).get();
   for (const circle of circles.docs) {
