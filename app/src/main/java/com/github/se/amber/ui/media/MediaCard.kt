@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -23,11 +24,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
@@ -70,9 +74,15 @@ fun DisplayMediaCard(
                     contentColor = MaterialTheme.colorScheme.onTertiary,
                 ),
             ){
-                Text(text = if (expanded) "- see less" else "+ see more")
+                Text(
+                    text = if (expanded) "- see less" else "+ see more",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
-            Text(text = memoryDateIntoString(media.date))
+            Text(
+                text = memoryDateIntoString(media.date),
+                style = MaterialTheme.typography.titleMedium
+            )
         }
         // content that pop when the user click on the "- see more" button
         AnimatedVisibility(visible = expanded){
@@ -81,19 +91,34 @@ fun DisplayMediaCard(
                 modifier = Modifier.padding(PATIENT_PADDING_SMALL)
             ){
                 // to display the description and name of the people who wrote it
-                composableBox() {
+                OrangeBox() {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
                         modifier = Modifier.fillMaxWidth()
                     ){
                         Text(media.description)
-                        Text("Added by " + uiState.addedByNickname)
+                        Text(
+                            text = "Added by " + uiState.addedByNickname,
+                            modifier = Modifier.align(Alignment.End)
+                        )
                     }
                 }
-                // to display the persons related to this media
-                composableBox() {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL)){
-                        // TODO add the name of the related person for now
+                // to display the persons related to this media if there are any
+                if (uiState.relatedNicknames.isNotEmpty()){
+                    OrangeBox() {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL)){
+                            items(uiState.relatedNicknames){ nickname ->
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(nickname)
+                                }
+                            }
+                        }
+                    }
+                }
+                // to display the location if it is not null
+                media.location?.let { location ->
+                    OrangeBox{
+                        Text(geoLocationIntoString(location))
                     }
                 }
             }
@@ -110,9 +135,15 @@ private fun memoryDateIntoString(date: MemoryDate?): String {
     return "%02d/%02d/%04d".format(day, month, date.year)
 }
 
+/** transform a GeoLocation into a string */
+private fun geoLocationIntoString(location: GeoLocation?): String{
+    // TODO implement
+    return "pas finito"
+}
+
 /** create the box composable with visible outlines */
 @Composable
-private fun composableBox(
+private fun OrangeBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ){
@@ -124,5 +155,13 @@ private fun composableBox(
         Box(Modifier.padding(PADDING_MINI)){
             content()
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DisplayMediaCardPreview() {
+    AmberAppTheme {
+        DisplayMediaCard()
     }
 }
