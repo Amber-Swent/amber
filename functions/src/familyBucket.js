@@ -1,8 +1,6 @@
 // Written by GitHub Copilot.
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
-// Modified by Neha Chakraborty, with assistance from
-// Claude (Anthropic) via Claude Code.
 const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -13,6 +11,12 @@ const { app } = require("./firebase");
 
 const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
 
+/**
+ * Derives the name of a circle's bucket from a hash of the project and circle ids.
+ * @param {string} projectId
+ * @param {string} circleId
+ * @returns {{name: string, circleHash: string}} the bucket name, and the hash it is labelled with
+ */
 function bucketDetails(projectId, circleId) {
   const circleHash = createHash("sha256")
     .update(`${projectId}:${circleId}`)
@@ -25,6 +29,13 @@ function bucketDetails(projectId, circleId) {
   };
 }
 
+/**
+ * Creates a circle's bucket, private and with uniform access, or reuses it if an earlier run
+ * created it. Refuses a bucket of that name that Amber doesn't own.
+ * @param {string} projectId
+ * @param {string} circleId
+ * @returns {Promise<string>} the bucket name
+ */
 async function ensureFamilyBucket(projectId, circleId) {
   const { name, circleHash } = bucketDetails(projectId, circleId);
   const bucket = getStorage().bucket(name);
@@ -69,8 +80,13 @@ async function ensureFamilyBucket(projectId, circleId) {
   return name;
 }
 
-// The app reaches a bucket through Firebase Storage, which only serves the buckets linked to the
-// project: a bucket just created in Cloud Storage isn't, until this links it.
+/**
+ * Links a bucket to Firebase Storage. The app reaches a bucket through Firebase Storage, which only
+ * serves the buckets linked to the project: a bucket just created in Cloud Storage isn't, until
+ * this links it.
+ * @param {string} projectId
+ * @param {string} bucketName
+ */
 async function ensureFirebaseLinkedBucket(projectId, bucketName) {
   const { access_token: accessToken } = await app.options.credential.getAccessToken();
   const response = await fetch(
@@ -89,6 +105,10 @@ async function ensureFirebaseLinkedBucket(projectId, bucketName) {
   }
 }
 
+/**
+ * Releases storage.rules on a bucket, creating a new ruleset only if the bucket's differs.
+ * @param {string} bucketName
+ */
 async function ensureFamilyBucketRules(bucketName) {
   const securityRules = getSecurityRules();
   const source = fs.readFileSync(path.join(__dirname, "..", "storage.rules"), "utf8");

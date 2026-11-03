@@ -1,19 +1,27 @@
 // Written by GitHub Copilot.
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
-// Modified by Neha Chakraborty, with assistance from
-// Claude (Anthropic) via Claude Code.
 const { FieldValue } = require("firebase-admin/firestore");
 const { HttpsError, onCall } = require("firebase-functions/v2/https");
 const { db } = require("./firebase");
 
 const VALID_ROLES = ["CAREGIVER", "PATIENT"];
 
-// Clients map redemption failures on `details.reason`; messages are for logs only.
+/**
+ * A refused redemption. Clients map it on `details.reason`; the message is for logs only.
+ * @param {string} reason what went wrong, such as INVITATION_EXPIRED
+ * @param {string} message
+ * @returns {HttpsError} a failed-precondition error
+ */
 function redemptionFailed(reason, message) {
   return new HttpsError("failed-precondition", message, { reason });
 }
 
+/**
+ * @param {object} invitation the invitation document
+ * @returns {string} the id of the circle it invites to
+ * @throws {HttpsError} CIRCLE_UNAVAILABLE if it names no circle
+ */
 function validInvitationCircleId(invitation) {
   if (typeof invitation.circleId !== "string" || invitation.circleId.length === 0) {
     throw redemptionFailed("CIRCLE_UNAVAILABLE", "Invitation has an invalid circle");
@@ -21,6 +29,12 @@ function validInvitationCircleId(invitation) {
   return invitation.circleId;
 }
 
+/**
+ * Checks that a profile can join a circle: it exists, has a known role and isn't being deleted.
+ * @param {DocumentSnapshot} userSnapshot the caller's profile
+ * @returns {object} the profile
+ * @throws {HttpsError} PROFILE_INVALID otherwise
+ */
 function validUser(userSnapshot) {
   if (!userSnapshot.exists) {
     throw redemptionFailed("PROFILE_INVALID", "User profile was not found");
@@ -35,10 +49,27 @@ function validUser(userSnapshot) {
   return user;
 }
 
+/**
+ * Reads the caller's profile in the transaction, see validUser.
+ * @param {Transaction} transaction
+ * @param {DocumentReference} userRef the caller's profile
+ * @returns {Promise<object>} the profile
+ */
 async function readValidUser(transaction, userRef) {
   return validUser(await transaction.get(userRef));
 }
 
+/**
+ * Adds the caller to the circle of an invitation, as a caregiver or as its patient depending on
+ * their profile's role. The invitation, the circle and the profile change in one transaction.
+ *
+ * Redeeming one's own invitation again returns the same result without writing, so a client can
+ * retry. Clients map failures on `details.reason`.
+ * @param {CallableRequest} request whose data is exactly `{code}`
+ * @returns {Promise<{circleId: string, role: string}>} the circle joined, and the caller's role
+ * @throws {HttpsError} unauthenticated, invalid-argument for any other data, not-found for an
+ *   unknown code, or failed-precondition for an invitation or profile that can't be used
+ */
 const redeemInvitation = onCall(async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Sign in before redeeming an invitation");

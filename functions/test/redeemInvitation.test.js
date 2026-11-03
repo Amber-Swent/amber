@@ -1,7 +1,6 @@
 // Written by GitHub Copilot.
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {callableModule, resetState, state} = require("./support/fakes");

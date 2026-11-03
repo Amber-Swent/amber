@@ -11,6 +11,11 @@ const {
   ensureFirebaseLinkedBucket,
 } = require("./familyBucket");
 
+/**
+ * Gives a new circle its own bucket: creates it, links it to Firebase Storage, releases its rules,
+ * then records its name in the circle's storageBucket. Retried on failure, so every step can run
+ * again. If the circle was deleted meanwhile, its new bucket is deleted too.
+ */
 const provisionCareCircleBucket = onDocumentCreated(
   {
     document: "careCircles/{circleId}",
