@@ -34,11 +34,13 @@ class FirebaseAccountDeletionRepositoryTest {
   private lateinit var repository: FirebaseAccountDeletionRepository
   private var clears = 0
   private var clearLocalData: suspend () -> Unit = {}
+  private var markerSaves = true
   private val marker =
       object : DeletionMarker {
         override var isSet = false
 
         override fun set() {
+          if (!markerSaves) throw IOException("Disk full")
           isSet = true
         }
 
@@ -170,6 +172,17 @@ class FirebaseAccountDeletionRepositoryTest {
 
     assertTrue(markedWhenCalled)
     assertTrue(marker.isSet)
+  }
+
+  @Test
+  fun aMarkerThatCouldNotBeSavedStopsTheDeletionBeforeTheBackend() = runBlocking {
+    markerSaves = false
+
+    val error = repository.deleteAccount().exceptionOrNull() as AccountDeletionError.Unknown
+
+    assertEquals("Disk full", error.source.message)
+    verifyNoInteractions(callable)
+    assertEquals(0, clears)
   }
 
   @Test

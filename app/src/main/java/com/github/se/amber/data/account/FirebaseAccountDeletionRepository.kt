@@ -15,7 +15,8 @@ import kotlinx.coroutines.tasks.await
  * Firebase Functions-backed implementation of [AccountDeletionRepository].
  *
  * @param localData What is cleared from the device once the backend confirms the deletion.
- * @param marker Set before calling the backend, as the app can die before hearing its answer.
+ * @param marker Set before calling the backend, as the app can die before hearing its answer. If it
+ *   can't be saved, the backend isn't called.
  * @param functions The Firebase Functions instance.
  * @param auth The Firebase Authentication instance.
  */
@@ -27,7 +28,12 @@ class FirebaseAccountDeletionRepository(
 ) : AccountDeletionRepository {
 
   override suspend fun deleteAccount(): Result<Unit> {
-    marker.set()
+    try {
+      marker.set()
+    } catch (exception: IOException) {
+      // Without the marker, an app killed mid-deletion would never finish clearing the device
+      return Result.failure(AccountDeletionError.Unknown(exception))
+    }
     val deletion = requestDeletion()
     return if (deletion.isSuccess) clearLocalData() else deletion
   }
