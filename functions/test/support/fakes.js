@@ -17,7 +17,7 @@ class MockHttpsError extends Error {
 /**
  * What the fakes read and record, reset before each test by resetState. The redemption and
  * provisioning tests use documents, circleSnapshots, updates and creates; the deleteAccount tests
- * use store, buckets, authUsers, failWrite and batchWrites.
+ * use store, buckets, authUsers, beforeWrite, failWrite and batchWrites.
  */
 const state = {
   documents: new Map(),
@@ -33,6 +33,7 @@ const state = {
   store: null,
   buckets: null,
   authUsers: null,
+  beforeWrite: null,
   failWrite: null,
   batchWrites: [],
 };
@@ -65,6 +66,7 @@ function resetState() {
   state.store = null;
   state.buckets = null;
   state.authUsers = null;
+  state.beforeWrite = null;
   state.failWrite = null;
   state.batchWrites = [];
   state.storage = {
@@ -91,12 +93,21 @@ function applyField(current, value) {
 }
 
 /**
- * Applies one write to state.store. Throws first if state.failWrite returns true for it, and, like
- * Firestore, when updating a missing document.
+ * Throws `Failed <action> <target>` if state.failWrite returns true for this write, so a test can
+ * match the failure it injected.
+ */
+function failIfAsked(action, target) {
+  if (state.failWrite?.(action, target)) throw new Error(`Failed ${action} ${target}`);
+}
+
+/**
+ * Applies one write to state.store. Calls state.beforeWrite first, then throws if failIfAsked does,
+ * and, like Firestore, when updating a missing document.
  * @param {"update" | "delete"} action
  */
 function write(action, documentPath, data) {
-  if (state.failWrite?.(action, documentPath)) throw new Error(`Failed ${action} ${documentPath}`);
+  state.beforeWrite?.(action, documentPath);
+  failIfAsked(action, documentPath);
   if (action === "delete") {
     state.store.delete(documentPath);
     return;
@@ -148,8 +159,9 @@ function storedDocument(documentPath) {
 }
 
 /**
- * The Firestore that deleteAccount sees when state.store is set. Batches are atomic and limited to
- * 500 writes like the real ones, and record their writes in state.batchWrites.
+ * An in-memory Firestore over state.store, for deleteAccount, which needs real queries and writes.
+ * Batches are atomic and limited to 500 writes like the real ones, and record their writes in
+ * state.batchWrites.
  */
 function storedFirestore() {
   return {
@@ -184,11 +196,36 @@ function storedFirestore() {
       return result;
     },
     recursiveDelete: async (reference) => {
-      if (state.failWrite?.("recursiveDelete", reference.path)) throw new Error("Failed recursive delete");
+      failIfAsked("recursiveDelete", reference.path);
       for (const key of [...state.store.keys()]) {
         if (key === reference.path || key.startsWith(`${reference.path}/`)) state.store.delete(key);
       }
     },
+  };
+}
+
+/**
+ * The Firestore of the redemption and provisioning tests, which records writes rather than storing
+ * them: transactions read state.documents and record in state.updates and state.creates, and a
+ * document read outside them returns the next of state.circleSnapshots.
+ */
+function recordingFirestore() {
+  return {
+    doc: (documentPath) => ({
+      path: documentPath,
+      get: async () => {
+        const circle = state.circleSnapshots[state.circleReadIndex];
+        state.circleReadIndex += 1;
+        return snapshot(circle);
+      },
+      update: async (data) => state.updates.push({reference: "circle", data}),
+    }),
+    runTransaction: async (callback) =>
+      callback({
+        get: async (reference) => snapshot(state.documents.get(reference.path)),
+        update: (reference, data) => state.updates.push({reference: {path: reference.path}, data}),
+        create: (reference, data) => state.creates.push({reference: {path: reference.path}, data}),
+      }),
   };
 }
 
@@ -198,7 +235,7 @@ function storedBucket(name) {
   return {
     file: (filePath) => ({
       delete: async ({ignoreNotFound}) => {
-        if (state.failWrite?.("deleteFile", filePath)) throw new Error(`Failed to delete ${filePath}`);
+        failIfAsked("deleteFile", filePath);
         if (!state.buckets.get(name)?.delete(filePath) && !ignoreNotFound) throw notFound();
       },
     }),
@@ -208,7 +245,7 @@ function storedBucket(name) {
       state.buckets.get(name).clear();
     },
     delete: async ({ignoreNotFound}) => {
-      if (state.failWrite?.("deleteBucket", name)) throw new Error(`Failed to delete ${name}`);
+      failIfAsked("deleteBucket", name);
       if (!state.buckets.delete(name) && !ignoreNotFound) throw notFound();
     },
   };
@@ -216,11 +253,13 @@ function storedBucket(name) {
 
 /**
  * Loads index.js afresh with every Firebase module replaced by the fakes above, so it uses the
- * state of the current test. Firestore is the in-memory one if state.store is set at this point,
- * and otherwise the older recording fake of the redemption and provisioning tests.
+ * state of the current test.
+ * @param {object} [options]
+ * @param {object} [options.firestore] the Firestore the functions get: recordingFirestore() unless
+ *   given, storedFirestore() for deleteAccount
  * @returns the exported functions, each being its bare handler
  */
-function callableModule() {
+function callableModule({firestore = recordingFirestore()} = {}) {
   const originalLoad = Module._load;
   Module._load = function mockModuleLoad(request, parent, isMain) {
     if (request === "firebase-admin/app") {
@@ -234,7 +273,7 @@ function callableModule() {
       return {
         getAuth: () => ({
           deleteUser: async (uid) => {
-            if (state.failWrite?.("deleteUser", uid)) throw new Error("Failed to delete the user");
+            failIfAsked("deleteUser", uid);
             if (!state.authUsers.delete(uid)) {
               throw Object.assign(new Error("No user"), {code: "auth/user-not-found"});
             }
@@ -248,23 +287,7 @@ function callableModule() {
           arrayUnion: (value) => ({arrayUnion: value}),
           arrayRemove: (...values) => ({arrayRemove: values}),
         },
-        getFirestore: () => (state.store ? storedFirestore() : {
-          doc: (documentPath) => ({
-            path: documentPath,
-            get: async () => {
-              const circle = state.circleSnapshots[state.circleReadIndex];
-              state.circleReadIndex += 1;
-              return snapshot(circle);
-            },
-            update: async (data) => state.updates.push({reference: "circle", data}),
-          }),
-          runTransaction: async (callback) =>
-            callback({
-              get: async (reference) => snapshot(state.documents.get(reference.path)),
-              update: (reference, data) => state.updates.push({reference: {path: reference.path}, data}),
-              create: (reference, data) => state.creates.push({reference: {path: reference.path}, data}),
-            }),
-        }),
+        getFirestore: () => firestore,
       };
     }
     if (request === "firebase-admin/storage") return {getStorage: () => state.storage};
@@ -300,4 +323,4 @@ function callableModule() {
   }
 }
 
-module.exports = {MockHttpsError, state, resetState, storedBucket, callableModule};
+module.exports = {MockHttpsError, state, resetState, storedBucket, storedFirestore, callableModule};

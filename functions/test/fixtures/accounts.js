@@ -78,4 +78,14 @@ function setupAccounts() {
   state.authUsers = new Set(["gone", "other", "patient"]);
 }
 
-module.exports = {BUCKET, EMPTY_BUCKET, freshAuth, storedMedia, setupAccounts};
+/**
+ * Makes circlePath disappear just before documentPath is written, as when a concurrent
+ * deleteAccount call deletes the circle first.
+ */
+function deleteCircleBeforeWriting(documentPath, circlePath) {
+  state.beforeWrite = (_action, target) => {
+    if (target === documentPath) state.store.delete(circlePath);
+  };
+}
+
+module.exports = {BUCKET, EMPTY_BUCKET, deleteCircleBeforeWriting, freshAuth, storedMedia, setupAccounts};

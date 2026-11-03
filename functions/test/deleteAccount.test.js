@@ -2,9 +2,16 @@
 // Claude (Anthropic) via Claude Code.
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const {callableModule, resetState, state} = require("./support/fakes");
+const {callableModule, resetState, state, storedFirestore} = require("./support/fakes");
 const {assertNoReferenceTo, expectHttpsError} = require("./support/assertions");
-const {BUCKET, EMPTY_BUCKET, freshAuth, setupAccounts, storedMedia} = require("./fixtures/accounts");
+const {
+  BUCKET,
+  EMPTY_BUCKET,
+  deleteCircleBeforeWriting,
+  freshAuth,
+  setupAccounts,
+  storedMedia,
+} = require("./fixtures/accounts");
 
 test.beforeEach(resetState);
 
@@ -24,7 +31,7 @@ test("deleteAccount rejects anonymous callers and stale sign-ins without writing
     await t.test(`rejects ${name}`, async () => {
       setupAccounts();
       const before = new Map(state.store);
-      const {deleteAccount} = callableModule();
+      const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
       await expectHttpsError(deleteAccount({auth, data: {}}), ...expected);
 
@@ -36,7 +43,7 @@ test("deleteAccount rejects anonymous callers and stale sign-ins without writing
 
 test("deleteAccount only deletes the caller's account, whatever uid the request names, and can run again", async () => {
   setupAccounts();
-  const {deleteAccount} = callableModule();
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
   assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {uid: "other"}}), {deleted: true});
 
@@ -53,11 +60,8 @@ test("deleteAccount only deletes the caller's account, whatever uid the request 
 
 test("deleteAccount finishes when a concurrent call deletes a circle first", async () => {
   setupAccounts();
-  const {deleteAccount} = callableModule();
-  state.failWrite = (_action, target) => {
-    if (target === "careCircles/alone/media/photo") state.store.delete("careCircles/alone");
-    return false;
-  };
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
+  deleteCircleBeforeWriting("careCircles/alone/media/photo", "careCircles/alone");
 
   assert.deepEqual(await deleteAccount({auth: freshAuth(), data: {}}), {deleted: true});
 
@@ -72,7 +76,7 @@ test("deleteAccount splits a large circle over several batches", async () => {
       shownIds: ["gone"],
     }));
   }
-  const {deleteAccount} = callableModule();
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
   await deleteAccount({auth: freshAuth(), data: {}});
 
@@ -94,7 +98,7 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
       released.push(bucketName);
       filesWhenReleased.push(state.buckets.get(bucketName).size);
     };
-    const {deleteAccount} = callableModule();
+    const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
     await deleteAccount({auth: freshAuth(), data: {}});
 
@@ -110,7 +114,7 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
       throw new Error("Rules API unavailable");
     };
     t.mock.method(console, "warn", () => {});
-    const {deleteAccount} = callableModule();
+    const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
     await deleteAccount({auth: freshAuth(), data: {}});
 
@@ -120,9 +124,9 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
 
 test("deleteAccount marks the profile as being deleted before anything else", async () => {
   setupAccounts();
-  const {deleteAccount} = callableModule();
-  state.failWrite = (action, target) => target === "invitations/used";
-  await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}));
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
+  state.failWrite = (action, target) => action === "delete" && target === "invitations/used";
+  await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}), {message: "Failed delete invitations/used"});
 
   assert.equal(state.store.get("users/gone").deletionRequested, true);
 });
@@ -138,7 +142,7 @@ test("deleteAccount leaves no trace of a caregiver in their circles and changes 
     "invitations/unrelated",
   ];
   const before = untouched.map((documentPath) => state.store.get(documentPath));
-  const {deleteAccount} = callableModule();
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
   await deleteAccount({auth: freshAuth(), data: {}});
 
@@ -176,7 +180,7 @@ test("deleteAccount leaves no trace of a caregiver in their circles and changes 
 
 test("deleteAccount frees the patient slot when the patient is deleted", async () => {
   setupAccounts();
-  const {deleteAccount} = callableModule();
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
   await deleteAccount({auth: freshAuth("patient"), data: {}});
 
@@ -191,7 +195,7 @@ test("deleteAccount keeps the circle of a last caregiver while its patient remai
   setupAccounts();
   const {nicknames: _nicknames, ...circle} = state.store.get("careCircles/shared");
   state.store.set("careCircles/shared", {...circle, memberIds: ["gone", "patient"]});
-  const {deleteAccount} = callableModule();
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
   await deleteAccount({auth: freshAuth(), data: {}});
 
@@ -209,7 +213,7 @@ test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
   };
   process.env.FUNCTIONS_EMULATOR = "true";
   t.after(() => delete process.env.FUNCTIONS_EMULATOR);
-  const {deleteAccount} = callableModule();
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
   await deleteAccount({auth: freshAuth(), data: {}});
 
@@ -237,9 +241,12 @@ test("deleteAccount finishes the job when retried after any partial failure", as
   for (const [name, failingAction, failingPath] of failures) {
     await t.test(`after failing on ${name}`, async () => {
       setupAccounts();
-      const {deleteAccount} = callableModule();
+      const {deleteAccount} = callableModule({firestore: storedFirestore()});
       state.failWrite = (action, target) => action === failingAction && target === failingPath;
-      await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}));
+      await assert.rejects(
+        deleteAccount({auth: freshAuth(), data: {}}),
+        {message: `Failed ${failingAction} ${failingPath}`},
+      );
 
       state.failWrite = null;
       await deleteAccount({auth: freshAuth(), data: {}});
