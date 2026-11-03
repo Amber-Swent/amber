@@ -65,7 +65,6 @@ import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_MEDIUM
-import java.nio.file.WatchEvent
 
 /**
  * Displays a title shared by caregiver screens.
@@ -263,8 +262,8 @@ fun DisplayTextField(
 /** Test tags owned by [DisplayBoxWithIconText]. */
 object DisplayBoxWithIconTextTestTags {
   const val ICON = "box_with_icon_text_icon_"
-    const val TEXT = "box_with_icon_text_text"
-    const val BOX = "box_with_icon_text_box"
+  const val TEXT = "box_with_icon_text_text"
+  const val BOX = "box_with_icon_text_box"
 }
 
 /**
@@ -300,8 +299,8 @@ fun DisplayBoxWithIconText(
       horizontalArrangement = Arrangement.spacedBy(PADDING_BIG),
   ) {
     Box(
-        modifier = Modifier
-                .size(SURFACE_MEDIUM)
+        modifier =
+            Modifier.size(SURFACE_MEDIUM)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.tertiary)
                 .testTag(BOX),
@@ -328,7 +327,7 @@ fun DisplayBoxWithIconText(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun DisplayBoxWithIconTextPreview() {
-    AmberAppTheme { DisplayBoxWithIconText() }
+  AmberAppTheme { DisplayBoxWithIconText() }
 }
 
 /** Preview of [DisplayCaregiverButton] using the Amber application theme. */

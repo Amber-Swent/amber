@@ -356,7 +356,9 @@ class DisplayBoxWithIconTextTest {
   fun elements_areDisplayed() {
     setBox()
     composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
+        .assertIsDisplayed()
     composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
   }
 
