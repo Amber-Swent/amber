@@ -164,7 +164,7 @@ fun UploadPictureScreen(
               modifier = Modifier.testTag(UploadPictureScreenTestTags.TAKE_PICTURE),
               icon = Icons.Outlined.PhotoCamera,
               contentDescription = "Photo",
-              label = "Take a new Picture",
+              text = "Take a new Picture",
               onClick = {},
               // TODO: implement the Take a Picture function,
               //  once the Backend as been set up for it - M2
@@ -175,7 +175,7 @@ fun UploadPictureScreen(
               modifier = Modifier.testTag(UploadPictureScreenTestTags.SELECT_PICTURE),
               icon = Icons.Outlined.Photo,
               contentDescription = "Photo",
-              label = "Click to choose an existing Picture",
+              text = "Click to choose an existing Picture",
               onClick = {
                 galleryLauncher.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)

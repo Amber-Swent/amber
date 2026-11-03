@@ -346,7 +346,7 @@ class DisplayBoxWithIconTextTest {
           modifier = Modifier.testTag(containerTag),
           icon = Icons.Default.Add,
           contentDescription = iconDescription,
-          label = "Box label",
+          text = "Box label",
           onClick = onClick,
       )
     }

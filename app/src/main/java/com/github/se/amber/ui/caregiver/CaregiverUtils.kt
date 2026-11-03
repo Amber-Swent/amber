@@ -4,9 +4,6 @@
  */
 package com.github.se.amber.ui.caregiver
 
-import android.R.attr.contentDescription
-import android.R.attr.label
-import android.R.attr.onClick
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -272,7 +269,7 @@ object DisplayBoxWithIconTextTestTags {
  * @param modifier The modifier applied to the action container.
  * @param icon The icon shown inside the button.
  * @param contentDescription The accessibility description of the icon.
- * @param label The text displayed next to the button.
+ * @param text The text displayed next to the button.
  * @param onClick The callback invoked when the box is pressed.
  */
 @Composable
@@ -280,7 +277,8 @@ fun DisplayBoxWithIconText(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Outlined.BlurOn, // chose BlurOn for aesthetic reason.
     contentDescription: String = "",
-    label: String = "",
+    text: String = "",
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
     onClick: () -> Unit = {},
 ) {
   Row(
@@ -289,7 +287,7 @@ fun DisplayBoxWithIconText(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = MaterialTheme.colorScheme.tertiary,
+                  color = MaterialTheme.colorScheme.outline,
                   shape = RoundedCornerShape(ROUND_CORNER),
               )
               .clip(RoundedCornerShape(ROUND_CORNER))
@@ -316,9 +314,9 @@ fun DisplayBoxWithIconText(
 
     Text(
         modifier = Modifier.testTag(DisplayBoxWithIconTextTestTags.TEXT),
-        text = label,
+        text = text,
         color = MaterialTheme.colorScheme.onSurface,
-        style = MaterialTheme.typography.bodyMedium,
+        style = style,
     )
   }
 }
@@ -327,7 +325,7 @@ fun DisplayBoxWithIconText(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun DisplayBoxWithIconTextPreview() {
-  AmberAppTheme { DisplayBoxWithIconText() }
+  AmberAppTheme(darkTheme = true) { DisplayBoxWithIconText(text = "text") }
 }
 
 /** Preview of [DisplayCaregiverButton] using the Amber application theme. */
