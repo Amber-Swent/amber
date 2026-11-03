@@ -53,7 +53,7 @@ object UploadTestTags {
 }
 
 /**
- * Displays the upload menu for text, picture, and audio stories.
+ * Displays the caregiver upload menu for text, picture, and audio stories along with bottom navigation.
  *
  * @param viewModel view model that stores the upload screen state.
  * @param onUploadTextClick callback invoked when text upload is selected.
@@ -110,7 +110,7 @@ fun UploadScreen(
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
 
-          /* Will be treated in subsequent sprints
+          /* Text upload is planned for a later sprint.
           DisplayCaregiverButton(
               modifier = Modifier.testTag(TEXT_BUTTON),
               widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
@@ -143,7 +143,16 @@ fun UploadScreen(
   )
 }
 
-/** Kept for existing callers outside the upload screen so that main does not break. Will be removed when no more screens use it */
+/**
+ * Compatibility wrapper for screens that still call [DisplayButton]. New caregiver buttons should
+ * use [DisplayCaregiverButton] directly. To be removed when no more screens use it.
+ *
+ * @param modifier modifier applied to the button.
+ * @param icon icon displayed beside the label.
+ * @param text button label.
+ * @param description accessibility description for [icon].
+ * @param onClick callback invoked when the button is pressed.
+ */
 @Composable
 fun DisplayButton(
     modifier: Modifier = Modifier,
