@@ -82,7 +82,7 @@ class CaregiverHomeScreenTest {
     setScreen()
     composeTestRule
         .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
-        .assertTextEquals("Welcome ! You are with Arthur!")
+        .assertTextEquals("Welcome! You are with Arthur!")
   }
 
   @Test

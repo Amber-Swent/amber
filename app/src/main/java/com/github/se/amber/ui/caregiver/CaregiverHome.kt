@@ -99,7 +99,7 @@ fun CaregiverHomeScreen(
           Text(
               text =
                   if (uiState.patient.uid.isNotBlank()) {
-                    "Welcome ! You are with " + uiState.patient.person.firstName + "!"
+                    "Welcome! You are with " + uiState.patient.person.firstName + "!"
                   } else {
                     "Welcome! There is no patient linked to this care circle yet."
                   },
