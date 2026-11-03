@@ -27,19 +27,12 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
 import java.time.Month
-import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -228,7 +221,7 @@ class UploadPicturesTest {
 
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
 
-  private fun setLocation(location: PictureLocationUIState) {
+  private fun setLocation(location: MediaLocationUIState) {
     composeTestRule.runOnIdle { uiStateFlow.value = UploadPictureUIState(location = location) }
   }
 
@@ -267,20 +260,20 @@ class UploadPicturesTest {
         .performTextInput("Lausanne")
     verify { viewModel.setPlaceQuery("Lausanne") }
 
-    setLocation(PictureLocationUIState(query = "Lau", isSearching = true))
+    setLocation(MediaLocationUIState(query = "Lau", isSearching = true))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
         .performScrollTo()
         .assertIsDisplayed()
 
-    setLocation(PictureLocationUIState(query = "Grandma's house"))
+    setLocation(MediaLocationUIState(query = "Grandma's house"))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
         .performScrollTo()
         .assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCHING).assertDoesNotExist()
 
-    setLocation(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
+    setLocation(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
         .performScrollTo()
@@ -288,7 +281,7 @@ class UploadPicturesTest {
     verify { viewModel.selectPlace(lausanne) }
 
     setLocation(
-        PictureLocationUIState(
+        MediaLocationUIState(
             query = lausanne.placeName!!,
             suggestions = listOf(lausanne),
             pickedPlace = lausanne,

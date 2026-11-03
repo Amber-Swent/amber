@@ -25,11 +25,11 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -41,7 +41,7 @@ import org.junit.Test
 
 /**
  * Compose tests for the add-person flow on
- * [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen].
+ * [UploadPictureScreen].
  */
 class AddPersonDialogTest {
   @get:Rule val composeTestRule = createComposeRule()

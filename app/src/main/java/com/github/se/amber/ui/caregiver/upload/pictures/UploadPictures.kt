@@ -3,7 +3,7 @@
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -58,9 +58,10 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.AddPersonDialog
-import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.UPLOAD_BUTTON
+import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
+import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.SELECT_DATE
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -133,7 +134,7 @@ fun UploadPictureScreen(
   LaunchedEffect(Unit) {
     viewModel.events.collect { event ->
       when (event) {
-        UploadPictureEvent.Uploaded -> currentOnUpload()
+        MediaEvent.Uploaded -> currentOnUpload()
       }
     }
   }
@@ -211,14 +212,14 @@ fun UploadPictureScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-          DisplayLocation(
-              savedPlaceNamesById = placeOptions,
-              state = uiState.location,
-              onSavedPlaceClick = viewModel::selectPlace,
-              onQueryChange = viewModel::setPlaceQuery,
-              onSuggestionClick = viewModel::selectPlace,
-              onRetrySearch = viewModel::retryPlaceSearch,
-          )
+            DisplayLocation(
+                savedPlaceNamesById = placeOptions,
+                state = uiState.location,
+                onSavedPlaceClick = viewModel::selectPlace,
+                onQueryChange = viewModel::setPlaceQuery,
+                onSuggestionClick = viewModel::selectPlace,
+                onRetrySearch = viewModel::retryPlaceSearch,
+            )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
@@ -230,7 +231,7 @@ fun UploadPictureScreen(
       // Pinned below the form so it stays reachable however long the form grows
       bottomBar = {
         DisplayCaregiverButton(
-            onClick = { viewModel.uploadPicture() },
+            onClick = { viewModel.uploadMedia() },
             modifier =
                 Modifier.navigationBarsPadding()
                     .padding(CAREGIVER_PADDING_MEDIUM)
