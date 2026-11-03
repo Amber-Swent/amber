@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Neha Chakraborty and Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
@@ -41,6 +42,18 @@ class FirestoreSecurityRulesEmulatorTest {
     val peer = "peer"
     val stranger = "stranger"
 
+    // Only the backend assigns a circle's Storage bucket: onboarding can't pick one.
+    fs.assertFails(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, care, listOf(care), patientId = "") +
+                    ("storageBucket" to "other-family-bucket"),
+            ),
+        ),
+    )
     // Caregiver onboarding: profile + first circle in one commit (isCaregiverAfter / getAfter).
     fs.assertSucceeds(
         care,
@@ -487,6 +500,53 @@ class FirestoreSecurityRulesEmulatorTest {
         fs.patch(picture, mapOf("storagePath" to "careCircles/$circleId/media/other.jpg")),
     )
     fs.assertFails(pat, fs.patch(picture, mapOf("authorId" to "someone")))
+  }
+
+  @Test
+  fun aUserBeingDeleted_canReadButNoLongerWriteOrCreateAnything_enforcedByEmulator() {
+    val circleId = "c-deleting"
+    val gone = "gone"
+    val other = "other"
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, gone, listOf(gone, other), patientId = ""),
+    )
+    fs.adminSet(
+        "users/$gone",
+        user(gone, "CAREGIVER", listOf(circleId), "Ada") + ("deletionRequested" to true),
+    )
+    fs.adminSet("users/$other", user(other, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.adminSet("careCircles/$circleId/media/m1", text("m1", gone))
+
+    fun newMediaFor(uid: String, id: String) =
+        fs.set("careCircles/$circleId/media/$id", text(id, uid))
+
+    fs.assertFails(
+        gone,
+        fs.set(
+            "users/$gone",
+            user(gone, "CAREGIVER", listOf(circleId), "Renamed") + ("deletionRequested" to true),
+        ),
+    )
+    fs.assertFails(gone, newMediaFor(gone, "m2"))
+    fs.assertFails(gone, fs.delete("careCircles/$circleId/media/m1"))
+    fs.assertFails(
+        gone,
+        fs.set("careCircles/c-new", circle("c-new", gone, listOf(gone), patientId = "")),
+    )
+    fs.assertFails(
+        gone,
+        fs.set("invitations/code", invite("code", circleId, gone, expiresAt = 4_000_000_000_000L)),
+    )
+    // a failed deletion must not lock the user out of their data, and the others aren't affected
+    fs.assertSucceeds(gone, fs.get("users/$gone"))
+    fs.assertSucceeds(gone, fs.get("careCircles/$circleId"))
+    fs.assertSucceeds(gone, fs.get("careCircles/$circleId/media/m1"))
+    fs.assertSucceeds(other, newMediaFor(other, "m3"))
+    fs.assertSucceeds(
+        other,
+        fs.set("users/$other", user(other, "CAREGIVER", listOf(circleId), "Renamed")),
+    )
   }
 
   /** The reads behind CareCircleRepository.getCircle(circleId). */

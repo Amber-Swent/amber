@@ -1,16 +1,21 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
+import java.time.DateTimeException
+import java.time.Month
 
 /*
  * How a MediaItem is stored, in its Firestore document and in the outbox (MediaOutbox): a map of
- * plain values (strings, numbers, lists of strings, nested maps), with a "type" field telling which
- * subclass it is. The id isn't in the map: it is the document's id, or the outbox file's name.
+ * plain values (strings, numbers, lists of strings or numbers, nested maps), with a "type" field
+ * telling which subclass it is. The id isn't in the map: it is the document's id, or the outbox
+ * file's name.
  *
  * Reading accepts any kind of number for a number field: Firestore gives integers as Long, and
  * JSON gives back a whole Double (e.g. a latitude of 46.0) as an integer.
@@ -23,7 +28,8 @@ private const val TYPE_TEXT = "text"
 
 /**
  * This media's stored fields, as a map of plain values; its [MediaItem.id] isn't included. A null
- * [MediaItem.date] or [MediaItem.location] is stored as null.
+ * [MediaItem.date] or [MediaItem.location] is stored as null, and so are the coordinates of a
+ * location known only by its typed place name.
  */
 fun MediaItem.toMap(): Map<String, Any?> {
   val common =
@@ -32,7 +38,8 @@ fun MediaItem.toMap(): Map<String, Any?> {
           "storagePath" to storagePath,
           "createdAt" to createdAt,
           "description" to description,
-          "date" to date?.let { mapOf("year" to it.year, "month" to it.month, "day" to it.day) },
+          "date" to
+              date?.let { mapOf("year" to it.year, "month" to it.month?.value, "day" to it.day) },
           "location" to
               location?.let {
                 mapOf("lat" to it.lat, "lng" to it.lng, "placeName" to it.placeName)
@@ -45,7 +52,12 @@ fun MediaItem.toMap(): Map<String, Any?> {
       when (this) {
         is MediaItem.Picture -> mapOf(TYPE to TYPE_PICTURE, "width" to width, "height" to height)
         is MediaItem.Audio ->
-            mapOf(TYPE to TYPE_AUDIO, "durationMs" to durationMs, "transcript" to transcript)
+            mapOf(
+                TYPE to TYPE_AUDIO,
+                "durationMs" to durationMs,
+                "transcript" to transcript,
+                "waveform" to waveform,
+            )
         is MediaItem.Text -> mapOf(TYPE to TYPE_TEXT, "text" to text)
       }
   return common + own
@@ -112,6 +124,7 @@ private class Fields(private val map: Map<String, Any?>) {
               status = status,
               durationMs = long("durationMs"),
               transcript = stringOrNull("transcript"),
+              waveform = floats("waveform"),
           )
       TYPE_TEXT ->
           MediaItem.Text(
@@ -135,7 +148,14 @@ private class Fields(private val map: Map<String, Any?>) {
     val date = nested("date") ?: return null
     return MemoryDate(
         year = date.int("year"),
-        month = date.intOrNull("month"),
+        month =
+            date.intOrNull("month")?.let { value ->
+              try {
+                Month.of(value)
+              } catch (_: DateTimeException) {
+                throw BadFieldException("month")
+              }
+            },
         day = date.intOrNull("day"),
     )
   }
@@ -143,8 +163,8 @@ private class Fields(private val map: Map<String, Any?>) {
   private fun location(): GeoLocation? {
     val location = nested("location") ?: return null
     return GeoLocation(
-        lat = location.double("lat"),
-        lng = location.double("lng"),
+        lat = location.doubleOrNull("lat"),
+        lng = location.doubleOrNull("lng"),
         placeName = location.stringOrNull("placeName"),
     )
   }
@@ -189,9 +209,9 @@ private class Fields(private val map: Map<String, Any?>) {
     return whole ?: throw BadFieldException(key)
   }
 
-  fun double(key: String): Double =
+  fun doubleOrNull(key: String): Double? =
       when (val value = map[key]) {
-        null -> 0.0
+        null -> null
         is Number -> value.toDouble()
         else -> throw BadFieldException(key)
       }
@@ -200,6 +220,14 @@ private class Fields(private val map: Map<String, Any?>) {
       when (val value = map[key]) {
         null -> emptyList()
         is List<*> -> value.map { it as? String ?: throw BadFieldException(key) }
+        else -> throw BadFieldException(key)
+      }
+
+  /** A list of numbers, given as any kind of number; empty if absent. */
+  fun floats(key: String): List<Float> =
+      when (val value = map[key]) {
+        null -> emptyList()
+        is List<*> -> value.map { (it as? Number)?.toFloat() ?: throw BadFieldException(key) }
         else -> throw BadFieldException(key)
       }
 

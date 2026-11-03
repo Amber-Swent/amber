@@ -50,8 +50,9 @@ enum class TopNavigationAction(val label: String) {
 /**
  * Top bar with a back arrow, an action label, and a divider.
  *
- * The bar uses `primary` with `onPrimary` text and icon. Callers on a top-level destination should
- * not show this bar; the back action there is easy to confuse with leaving the app.
+ * The bar background is `background`. The title and back icon use `secondary`. Callers on a
+ * top-level destination should not show this bar; the back action there is easy to confuse with
+ * leaving the app.
  *
  * @param modifier Modifier applied to the column that holds the bar and the divider.
  * @param action Label displayed in the bar.
@@ -72,8 +73,7 @@ fun TopNavigationMenu(
           Text(
               text = action.label,
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TITLE),
-              style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.onPrimary,
+              style = MaterialTheme.typography.titleLarge,
           )
         },
         navigationIcon = {
@@ -84,15 +84,14 @@ fun TopNavigationMenu(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = BACK_CONTENT_DESCRIPTION,
-                tint = MaterialTheme.colorScheme.onPrimary,
             )
           }
         },
         colors =
             TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                containerColor = MaterialTheme.colorScheme.background,
+                titleContentColor = MaterialTheme.colorScheme.secondary,
+                navigationIconContentColor = MaterialTheme.colorScheme.secondary,
             ),
     )
     HorizontalDivider(

@@ -2,6 +2,7 @@
 // Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 rules_version = '2';
 
 service cloud.firestore {
@@ -35,6 +36,13 @@ service cloud.firestore {
       return getAfter(circlePath(circleId)).data;
     }
 
+    // Set by deleteAccount, before it looks for what the user has: anything written after that
+    // would be left behind. Reads stay allowed, as a failed deletion can leave this set.
+    function isBeingDeleted() {
+      return exists(userPath(request.auth.uid))
+        && userDoc(request.auth.uid).get('deletionRequested', false) == true;
+    }
+
     function isMember(circleId) {
       return isSignedIn()
         && exists(circlePath(circleId))
@@ -42,6 +50,10 @@ service cloud.firestore {
         && exists(userPath(request.auth.uid))
         && circleId in userDoc(request.auth.uid).circleIds
         && request.auth.uid in circleDoc(circleId).memberIds;
+    }
+
+    function canWriteTo(circleId) {
+      return isMember(circleId) && !isBeingDeleted();
     }
 
     function isCaregiver() {
@@ -75,7 +87,7 @@ service cloud.firestore {
 
     // Membership / invite redeem is backend-only (Admin SDK / Cloud Functions).
     function memberCircleFieldEdit(circleId) {
-      return isMember(circleId)
+      return canWriteTo(circleId)
         && request.resource.data.id == resource.data.id
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdAt == resource.data.createdAt
@@ -134,6 +146,7 @@ service cloud.firestore {
         );
 
       allow update: if isSelf(uid)
+        && !isBeingDeleted()
         && request.resource.data.uid == uid
         && request.resource.data.role == resource.data.role
         && (
@@ -157,11 +170,14 @@ service cloud.firestore {
       allow read: if isMember(circleId);
 
       allow create: if isSignedIn()
+        && !isBeingDeleted()
         && (isCaregiver() || isCaregiverAfter())
         && request.resource.data.id == circleId
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.memberIds == [request.auth.uid]
         && request.resource.data.patientId == ''
+        // the bucket is assigned by the backend only: the app writes it empty
+        && request.resource.data.get('storageBucket', '') == ''
         && request.resource.data.createdAt is int;
 
       allow update: if memberCircleFieldEdit(circleId);
@@ -171,40 +187,40 @@ service cloud.firestore {
       match /media/{mediaId} {
         allow read: if isMember(circleId);
 
-        allow create: if isMember(circleId)
+        allow create: if canWriteTo(circleId)
           && request.resource.data.id == mediaId
           && request.resource.data.authorId == request.auth.uid
           && mediaStoragePathMatches(circleId);
 
-        allow update: if isMember(circleId)
+        allow update: if canWriteTo(circleId)
           && resource.data.authorId == request.auth.uid
           && onlyEditableMediaFieldsChanged();
 
-        allow delete: if isMember(circleId)
+        allow delete: if canWriteTo(circleId)
           && resource.data.authorId == request.auth.uid;
       }
 
       match /stories/{storyId} {
         allow read: if isMember(circleId);
 
-        allow create, update: if isMember(circleId)
+        allow create, update: if canWriteTo(circleId)
           && request.resource.data.id == storyId;
 
-        allow delete: if isMember(circleId);
+        allow delete: if canWriteTo(circleId);
       }
 
       match /appointments/{appointmentId} {
         allow read: if isMember(circleId);
 
-        allow create: if isMember(circleId)
+        allow create: if canWriteTo(circleId)
           && isCaregiver()
           && request.resource.data.id == appointmentId;
 
-        allow update: if isMember(circleId)
+        allow update: if canWriteTo(circleId)
           && isCaregiver()
           && request.resource.data.id == appointmentId;
 
-        allow delete: if isMember(circleId) && isCaregiver();
+        allow delete: if canWriteTo(circleId) && isCaregiver();
       }
     }
 
@@ -215,7 +231,7 @@ service cloud.firestore {
         && isMember(resource.data.circleId);
 
       allow create: if isCaregiver()
-        && isMember(request.resource.data.circleId)
+        && canWriteTo(request.resource.data.circleId)
         && request.resource.data.code == code
         && request.resource.data.createdBy == request.auth.uid
         && !request.resource.data.keys().hasAny(['role'])
