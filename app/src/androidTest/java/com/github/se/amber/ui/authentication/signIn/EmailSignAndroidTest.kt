@@ -1,4 +1,5 @@
 // This file was written with the aid of AI
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.authentication
 
 import androidx.activity.ComponentActivity
@@ -32,6 +33,9 @@ class EmailSignInInstrumentedTest {
 
         override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
             error("Google sign-in is outside this test")
+
+        override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
+            error("Re-authentication is outside this test")
 
         override suspend fun signOut(): Result<Unit> = error("Sign-out is outside this test")
       }
