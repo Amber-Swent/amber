@@ -325,7 +325,7 @@ fun DisplayBoxWithIconText(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun DisplayBoxWithIconTextPreview() {
-  AmberAppTheme(darkTheme = true) { DisplayBoxWithIconText(text = "text") }
+  AmberAppTheme( ) { DisplayBoxWithIconText() }
 }
 
 /** Preview of [DisplayCaregiverButton] using the Amber application theme. */
