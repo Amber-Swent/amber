@@ -9,6 +9,7 @@ const Module = require("node:module");
 const path = require("node:path");
 const test = require("node:test");
 
+/** Stands in for the HttpsError of firebase-functions, keeping what the clients read. */
 class MockHttpsError extends Error {
   constructor(code, message, details) {
     super(message);
@@ -17,6 +18,11 @@ class MockHttpsError extends Error {
   }
 }
 
+/**
+ * What the fakes read and record, reset before each test by resetState. The redemption and
+ * provisioning tests use documents, circleSnapshots, updates and creates; the deleteAccount tests
+ * use store, buckets, authUsers, failWrite and batchWrites.
+ */
 const state = {
   documents: new Map(),
   storage: null,
@@ -32,7 +38,7 @@ const state = {
   buckets: null,
   authUsers: null,
   failWrite: null,
-  batches: 0,
+  batchWrites: [],
 };
 
 // the only HTTP call the functions make: linking a bucket to Firebase Storage
@@ -42,6 +48,7 @@ globalThis.fetch = async (url, init) => {
   return {ok: state.linkStatus >= 200 && state.linkStatus < 300, status: state.linkStatus, text: async () => "link refused"};
 };
 
+/** A document snapshot holding value, missing when value is undefined. */
 function snapshot(value) {
   return {
     exists: value !== undefined,
@@ -50,6 +57,7 @@ function snapshot(value) {
   };
 }
 
+/** Empties state, with a Storage that has no bucket and Security Rules with no ruleset yet. */
 function resetState() {
   state.documents = new Map();
   state.updates = [];
@@ -62,7 +70,7 @@ function resetState() {
   state.buckets = null;
   state.authUsers = null;
   state.failWrite = null;
-  state.batches = 0;
+  state.batchWrites = [];
   state.storage = {
     bucket: () => {
       throw new Error("Storage bucket was not configured");
@@ -79,11 +87,18 @@ function resetState() {
 }
 
 // An in-memory Firestore for deleteAccount, which needs real queries and writes.
+
+/** The new value of a field: arrayRemove is applied to the current one, any other value replaces it. */
 function applyField(current, value) {
   if (value?.arrayRemove) return (current ?? []).filter((item) => !value.arrayRemove.includes(item));
   return value;
 }
 
+/**
+ * Applies one write to state.store. Throws first if state.failWrite returns true for it, and, like
+ * Firestore, when updating a missing document.
+ * @param {"update" | "delete"} action
+ */
 function write(action, documentPath, data) {
   if (state.failWrite?.(action, documentPath)) throw new Error(`Failed ${action} ${documentPath}`);
   if (action === "delete") {
@@ -97,6 +112,7 @@ function write(action, documentPath, data) {
   state.store.set(documentPath, updated);
 }
 
+/** A snapshot of the stored document, with its id and ref like a real query result. */
 function storedSnapshot(documentPath) {
   return {
     ...snapshot(state.store.get(documentPath)),
@@ -105,6 +121,10 @@ function storedSnapshot(documentPath) {
   };
 }
 
+/**
+ * A collection of state.store whose where() supports "==" and "array-contains", the only operators
+ * deleteAccount uses. Only lists direct children, like Firestore.
+ */
 function storedCollection(collectionPath, filters = []) {
   return {
     where: (field, operator, value) => storedCollection(
@@ -120,6 +140,7 @@ function storedCollection(collectionPath, filters = []) {
   };
 }
 
+/** A reference to a document of state.store. */
 function storedDocument(documentPath) {
   return {
     path: documentPath,
@@ -130,6 +151,10 @@ function storedDocument(documentPath) {
   };
 }
 
+/**
+ * The Firestore that deleteAccount sees when state.store is set. Batches are atomic and limited to
+ * 500 writes like the real ones, and record their writes in state.batchWrites.
+ */
 function storedFirestore() {
   return {
     doc: storedDocument,
@@ -142,7 +167,7 @@ function storedFirestore() {
         delete: (reference) => writes.push(["delete", reference.path]),
         commit: async () => {
           assert.ok(writes.length <= 500, "Firestore refuses a batch above 500 writes");
-          state.batches += 1;
+          state.batchWrites.push(writes.map(([, documentPath]) => documentPath));
           const before = new Map(state.store);
           try {
             writes.forEach((entry) => write(...entry));
@@ -171,6 +196,7 @@ function storedFirestore() {
   };
 }
 
+/** A Cloud Storage bucket whose files are the paths in state.buckets.get(name). */
 function storedBucket(name) {
   const notFound = () => Object.assign(new Error(`No bucket ${name}`), {code: 404});
   return {
@@ -192,6 +218,12 @@ function storedBucket(name) {
   };
 }
 
+/**
+ * Loads index.js afresh with every Firebase module replaced by the fakes above, so it uses the
+ * state of the current test. Firestore is the in-memory one if state.store is set at this point,
+ * and otherwise the older recording fake of the redemption and provisioning tests.
+ * @returns the exported functions, each being its bare handler
+ */
 function callableModule() {
   const originalLoad = Module._load;
   Module._load = function mockModuleLoad(request, parent, isMain) {
@@ -265,6 +297,7 @@ function callableModule() {
   }
 }
 
+/** An unused invitation to circle-1 that expires in a minute. */
 function invitation(overrides = {}) {
   return {
     circleId: "circle-1",
@@ -274,10 +307,15 @@ function invitation(overrides = {}) {
   };
 }
 
+/** A circle with one caregiver and no patient. */
 function validCircle(overrides = {}) {
   return {memberIds: ["caregiver-1"], patientId: "", ...overrides};
 }
 
+/**
+ * Stores invitations/code-1, careCircles/circle-1 and users/user-1 for redeemInvitation. Each can be
+ * overridden in options, or left out by passing undefined.
+ */
 function setupRedeem(options = {}) {
   const invitationData = "invitationData" in options ? options.invitationData : invitation();
   const circle = "circle" in options ? options.circle : validCircle();
@@ -287,6 +325,7 @@ function setupRedeem(options = {}) {
   if (user !== undefined) state.documents.set("users/user-1", user);
 }
 
+/** Asserts that promise rejects with exactly this HttpsError code, message and details.reason. */
 async function expectHttpsError(promise, code, message, reason) {
   await assert.rejects(promise, (error) => error instanceof MockHttpsError
     && error.code === code && error.message === message && error.details?.reason === reason);
@@ -463,6 +502,7 @@ test("accepts only the invitation code", async (t) => {
   }
 });
 
+/** A bucket for provisioning, owned by Amber unless metadata says otherwise. Each call can be overridden. */
 function configuredBucket({create, metadata, onSetMetadata, onDelete} = {}) {
   return {
     create: create ?? (async () => {}),
@@ -472,6 +512,10 @@ function configuredBucket({create, metadata, onSetMetadata, onDelete} = {}) {
   };
 }
 
+/**
+ * Sets what provisioning reads: circle, then latestCircle when it reads the circle again (circle by
+ * default), the bucket, and optionally the Security Rules.
+ */
 function provisionSetup(options = {}) {
   const {circle, bucket, securityRules} = options;
   const latestCircle = "latestCircle" in options ? options.latestCircle : circle;
@@ -730,10 +774,12 @@ test("does not redeem an invitation for a user being deleted", async (t) => {
 const BUCKET = "amber-family-test";
 const EMPTY_BUCKET = "amber-family-alone";
 
+/** The auth of a request from uid, signed in just now. */
 function freshAuth(uid = "gone") {
   return {uid, token: {auth_time: Math.floor(Date.now() / 1000)}};
 }
 
+/** A photo by "other" in the shared circle, visible to everyone and showing nobody. */
 function storedMedia(id, overrides = {}) {
   return {
     authorId: "other",
@@ -744,7 +790,11 @@ function storedMedia(id, overrides = {}) {
   };
 }
 
-// "gone" is deleted; "other" and "patient" stay, in a circle shared with them and one of their own
+/**
+ * Fills the in-memory Firestore, the buckets and Auth for deleteAccount. "gone" is deleted; "other"
+ * and "patient" stay. "shared" is the circle of all three, "alone" has only "gone", and
+ * "unrelated" only "other".
+ */
 function setupAccounts() {
   state.store = new Map(Object.entries({
     "users/gone": {uid: "gone", role: "CAREGIVER", circleIds: ["shared", "alone"]},
@@ -797,6 +847,7 @@ function setupAccounts() {
   state.authUsers = new Set(["gone", "other", "patient"]);
 }
 
+/** Asserts that no stored document mentions uid, and that uid is no Auth user any more. */
 function assertNoReferenceTo(uid) {
   const stored = JSON.stringify([...state.store.entries()]);
   assert.equal(stored.includes(`"${uid}"`), false, stored);
@@ -873,7 +924,12 @@ test("deleteAccount splits a large circle over several batches", async () => {
   await deleteAccount({auth: freshAuth(), data: {}});
 
   assertNoReferenceTo("gone");
-  assert.ok(state.batches >= 3, `${state.batches} batches`);
+  // the fake refuses a batch above 500 writes: this checks the media are split, not just that they fit
+  const manyPerBatch = state.batchWrites
+    .map((paths) => paths.filter((documentPath) => documentPath.includes("/media/many-")).length)
+    .filter((written) => written > 0);
+  assert.equal(manyPerBatch.reduce((sum, written) => sum + written, 0), count);
+  assert.ok(manyPerBatch.length > 1, `${manyPerBatch} writes per batch`);
 });
 
 test("deleteAccount refreshes the Storage rules of the buckets it goes through", async (t) => {
@@ -891,7 +947,8 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
 
     // not the bucket of the circle they are alone in: it is deleted anyway
     assert.deepEqual(released, [BUCKET]);
-    assert.ok(filesWhenReleased.every((size) => size > 0));
+    // all 3 files of the shared bucket are still there
+    assert.deepEqual(filesWhenReleased, [3]);
   });
 
   await t.test("without letting a failure stop the deletion", async () => {
@@ -908,7 +965,7 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
   });
 });
 
-test("deleteAccount blocks new redemptions from the moment it starts", async () => {
+test("deleteAccount marks the profile as being deleted before anything else", async () => {
   setupAccounts();
   const {deleteAccount} = callableModule();
   state.failWrite = (action, target) => target === "invitations/used";
