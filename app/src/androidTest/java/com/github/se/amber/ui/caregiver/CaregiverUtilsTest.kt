@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -34,6 +36,7 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
@@ -339,42 +342,97 @@ class DisplayBoxWithIconTextTest {
 
   private val containerTag = "box_container"
   private val iconDescription = "Add icon"
+  private val label = "Box label"
 
-  private fun setBox(onClick: () -> Unit = {}) {
+  private fun setBox(
+      onClick: () -> Unit = {},
+  ) {
     composeTestRule.setContent {
-      DisplayBoxWithIconText(
-          modifier = Modifier.testTag(containerTag),
-          icon = Icons.Default.Add,
-          contentDescription = iconDescription,
-          text = "Box label",
-          onClick = onClick,
-      )
+      AmberAppTheme {
+        DisplayBoxWithIconText(
+            modifier = Modifier.testTag(containerTag),
+            icon = Icons.Default.Add,
+            contentDescription = iconDescription,
+            text = label,
+            onClick = onClick,
+        )
+      }
     }
   }
 
+  // ----- Display -----
   @Test
   fun elements_areDisplayed() {
     setBox()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
     composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
         .assertIsDisplayed()
-    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
   }
 
   @Test
-  fun onClick_isInvoked_whenIconButtonIsPressed() {
+  fun text_showsGivenLabel() {
+    setBox()
+    composeTestRule
+        .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
+        .assertTextEquals(label)
+  }
+
+  @Test
+  fun icon_usesGivenContentDescription() {
+    setBox()
+    composeTestRule
+        .onNodeWithTag(ICON, useUnmergedTree = true)
+        .assertContentDescriptionEquals(iconDescription)
+  }
+
+  // ----- Default values (what the preview renders) -----
+
+  private fun setPreviewLikeBox() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayBoxWithIconText(modifier = Modifier.testTag(containerTag)) }
+    }
+  }
+
+  @Test
+  fun preview_elementAreDisplayed() {
+    setPreviewLikeBox()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
+  }
+
+  // ----- Click -----
+
+  @Test
+  fun container_hasClickAction() {
+    setBox()
+    composeTestRule.onNodeWithTag(containerTag).assertHasClickAction()
+  }
+
+  @Test
+  fun onClick_isInvokedOnce_whenContainerIsPressed() {
+    var callCount = 0
+    setBox(onClick = { callCount++ })
+    composeTestRule.onNodeWithTag(containerTag).performClick()
+    assertEquals(1, callCount)
+  }
+
+  @Test
+  fun onClick_isInvoked_whenIconIsPressed() {
     var clicked = false
     setBox(onClick = { clicked = true })
-    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).performClick()
+    composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).performClick()
     assertTrue(clicked)
   }
 
   @Test
-  fun onClick_isInvokedOnce_whenIconButtonIsPressedOnce() {
-    var callCount = 0
-    setBox(onClick = { callCount++ })
-    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).performClick()
-    assertEquals(1, callCount)
+  fun onClick_isInvoked_whenTextIsPressed() {
+    var clicked = false
+    setBox(onClick = { clicked = true })
+    composeTestRule
+        .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
+        .performClick()
+    assertTrue(clicked)
   }
 }
