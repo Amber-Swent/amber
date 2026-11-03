@@ -288,10 +288,16 @@ function callableModule() {
     return originalLoad.call(this, request, parent, isMain);
   };
 
-  const modulePath = path.join(__dirname, "..", "index.js");
-  delete require.cache[modulePath];
+  // every module of the functions, not only index.js: each would otherwise keep the fakes it first
+  // got, such as the db of src/firebase.js
+  const functionsDirectory = path.join(__dirname, "..") + path.sep;
+  for (const cachedPath of Object.keys(require.cache)) {
+    if (cachedPath.startsWith(functionsDirectory) && !cachedPath.includes(`${path.sep}node_modules${path.sep}`)) {
+      delete require.cache[cachedPath];
+    }
+  }
   try {
-    return require(modulePath);
+    return require(path.join(functionsDirectory, "index.js"));
   } finally {
     Module._load = originalLoad;
   }
