@@ -180,7 +180,7 @@ fun DisplayAudioWaveform(
 /** Preview of [DisplayAudioRecorder] while recording. */
 @Preview(showBackground = true)
 @Composable
-private fun DisplayAudioRecorderRecordingPreview() {
+internal fun DisplayAudioRecorderRecordingPreview() {
   AmberAppTheme(dynamicColor = false) {
     DisplayAudioRecorder(isRecording = true, waveform = List(WAVEFORM_BARS / 2) { it / 32f })
   }
@@ -189,7 +189,7 @@ private fun DisplayAudioRecorderRecordingPreview() {
 /** Preview of [DisplayAudioRecorder] once the recording is over. */
 @Preview(showBackground = true)
 @Composable
-private fun DisplayAudioRecorderRecordedPreview() {
+internal fun DisplayAudioRecorderRecordedPreview() {
   AmberAppTheme(dynamicColor = false) {
     DisplayAudioRecorder(waveform = List(WAVEFORM_BARS) { (it % 8) / 8f })
   }

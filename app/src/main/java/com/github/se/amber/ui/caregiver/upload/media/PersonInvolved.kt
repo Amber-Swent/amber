@@ -158,7 +158,7 @@ internal fun selectableChipColors(): SelectableChipColors =
 /** Preview of [DisplayWhoIsInvolved] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun DisplayWhoIsInvolvedPreview() {
+internal fun DisplayWhoIsInvolvedPreview() {
 
   AmberAppTheme(dynamicColor = false) { DisplayWhoIsInvolved() }
 }

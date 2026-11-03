@@ -147,4 +147,15 @@ class PersonInvolvedTest {
     composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.personInvolved("p1")).performClick()
     assertEquals(0, addPersonCount)
   }
+
+  // ---------- preview ----------
+
+  @Test
+  fun preview_displaySelector_andAddButton() {
+    composeTestRule.setContent { DisplayWhoIsInvolvedPreview() }
+    composeTestRule
+        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.SELECT_PERSON_INVOLVED)
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).assertIsDisplayed()
+  }
 }

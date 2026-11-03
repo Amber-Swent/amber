@@ -3,6 +3,7 @@
  */
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -10,6 +11,12 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags
@@ -158,5 +165,38 @@ class UploadAudiosTest {
     launchScreen(recorded)
     setState(UploadAudioUIState())
     tagged(UploadAudioScreenTestTags.RECORD_AUDIO).assertIsDisplayed()
+  }
+
+  // ---------- preview ----------
+
+  /** A ViewModel owner whose `viewModel()` returns [mockedViewModel], not the Firebase-backed one. */
+  private class FakeViewModelStoreOwner(private val mockedViewModel: ViewModel) :
+      ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
+    override val viewModelStore = ViewModelStore()
+    override val defaultViewModelProviderFactory =
+        object : ViewModelProvider.Factory {
+          @Suppress("UNCHECKED_CAST")
+          override fun <T : ViewModel> create(modelClass: Class<T>): T = mockedViewModel as T
+        }
+  }
+
+  // The preview calls UploadAudioScreen() with its default viewModel(), which would build the real
+  // repositories: it receives the mocked ViewModel instead, so nothing touches the network.
+  private fun launchPreview() {
+    composeTestRule.setContent {
+      CompositionLocalProvider(
+          LocalViewModelStoreOwner provides FakeViewModelStoreOwner(viewModel)
+      ) {
+        UploadAudioScreenPreview()
+      }
+    }
+  }
+
+  @Test
+  fun preview_showsTitle_andRecordButton_andUploadButton() {
+    launchPreview()
+    tagged(UploadAudioScreenTestTags.TITLE).assertIsDisplayed()
+    tagged(UploadAudioScreenTestTags.RECORD_AUDIO).assertIsDisplayed()
+    tagged(UploadAudioScreenTestTags.UPLOAD_BUTTON).assertIsDisplayed()
   }
 }

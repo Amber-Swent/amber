@@ -88,4 +88,24 @@ class AudioRecorderTest {
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).performClick()
     Assert.assertEquals(1, deleteCount)
   }
+
+  // ---------- previews ----------
+
+  @Test
+  fun recordingPreview_showsButtons_andWaveform() {
+    composeTestRule.setContent { DisplayAudioRecorderRecordingPreview() }
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
+
+  }
+
+  @Test
+  fun recordedPreview_showsButton_andWaveform() {
+    composeTestRule.setContent { DisplayAudioRecorderRecordedPreview() }
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertDoesNotExist()
+
+  }
 }

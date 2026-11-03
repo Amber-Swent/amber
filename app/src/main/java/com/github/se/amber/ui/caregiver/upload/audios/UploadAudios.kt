@@ -227,7 +227,7 @@ fun UploadAudioScreen(
 /** Preview of [UploadAudioScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun UploadAudioScreenPreview() {
+internal fun UploadAudioScreenPreview() {
 
   AmberAppTheme(dynamicColor = false) { UploadAudioScreen() }
 }
