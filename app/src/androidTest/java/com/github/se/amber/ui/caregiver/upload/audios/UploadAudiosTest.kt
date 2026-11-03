@@ -169,7 +169,9 @@ class UploadAudiosTest {
 
   // ---------- preview ----------
 
-  /** A ViewModel owner whose `viewModel()` returns [mockedViewModel], not the Firebase-backed one. */
+  /**
+   * A ViewModel owner whose `viewModel()` returns [mockedViewModel], not the Firebase-backed one.
+   */
   private class FakeViewModelStoreOwner(private val mockedViewModel: ViewModel) :
       ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
     override val viewModelStore = ViewModelStore()
