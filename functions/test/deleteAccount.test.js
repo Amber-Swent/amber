@@ -131,7 +131,14 @@ test("deleteAccount marks the profile as being deleted before anything else", as
   assert.equal(state.store.get("users/gone").deletionRequested, true);
 });
 
-test("deleteAccount leaves no trace of a caregiver in their circles and changes nobody else's data", async () => {
+/** Deletes "gone", set up by setupAccounts, and returns how to read what stays of "shared". */
+async function deleteTheSharedCaregiver() {
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
+  await deleteAccount({auth: freshAuth(), data: {}});
+  return (documentPath) => state.store.get(`careCircles/shared/${documentPath}`);
+}
+
+test("deleteAccount leaves no trace of a caregiver and changes nobody else's data", async () => {
   setupAccounts();
   const untouched = [
     "users/other",
@@ -142,35 +149,63 @@ test("deleteAccount leaves no trace of a caregiver in their circles and changes 
     "invitations/unrelated",
   ];
   const before = untouched.map((documentPath) => state.store.get(documentPath));
-  const {deleteAccount} = callableModule({firestore: storedFirestore()});
 
-  await deleteAccount({auth: freshAuth(), data: {}});
+  await deleteTheSharedCaregiver();
 
   assertNoReferenceTo("gone");
   assert.deepEqual(untouched.map((documentPath) => state.store.get(documentPath)), before);
   assert.equal(state.buckets.get("amber-other").size, 1);
+});
 
-  // the circle they shared
+test("deleteAccount removes a caregiver from a circle that stays, with their nicknames", async () => {
+  setupAccounts();
+
+  await deleteTheSharedCaregiver();
+
   const circle = state.store.get("careCircles/shared");
   assert.deepEqual(circle.memberIds, ["other", "patient"]);
   assert.equal(circle.patientId, "patient");
   assert.equal(circle.createdBy, "");
   assert.deepEqual(circle.nicknames, {other: {patient: "Mum"}, patient: {}});
-  assert.deepEqual(state.buckets.get(BUCKET), new Set(["careCircles/shared/media/tagged.jpg"]));
+});
 
-  const stored = (documentPath) => state.store.get(`careCircles/shared/${documentPath}`);
+test("deleteAccount deletes a caregiver's media with their files, and their stories", async () => {
+  setupAccounts();
+
+  const stored = await deleteTheSharedCaregiver();
+
   assert.equal(stored("media/own-photo"), undefined);
   assert.equal(stored("media/own-memo"), undefined);
   assert.equal(stored("media/own-text"), undefined);
-  assert.deepEqual(stored("media/tagged").shownIds, ["patient"]);
-  assert.deepEqual(stored("media/two-allowed").authorizedIds, ["patient"]);
-  // an empty list would show it to the whole circle
-  assert.deepEqual(stored("media/restricted").authorizedIds, ["other"]);
+  assert.deepEqual(state.buckets.get(BUCKET), new Set(["careCircles/shared/media/tagged.jpg"]));
   assert.equal(stored("stories/own-story"), undefined);
   assert.deepEqual(stored("stories/other-story").mediaIds, ["tagged"]);
-  assert.deepEqual(stored("appointments/doctor"), {createdBy: "", attendeeIds: ["other"]});
+});
 
-  // the circle they were the last member of
+test("deleteAccount removes a caregiver from the others' media and appointments", async () => {
+  setupAccounts();
+
+  const stored = await deleteTheSharedCaregiver();
+
+  assert.deepEqual(stored("media/tagged").shownIds, ["patient"]);
+  assert.deepEqual(stored("media/two-allowed").authorizedIds, ["patient"]);
+  assert.deepEqual(stored("appointments/doctor"), {createdBy: "", attendeeIds: ["other"]});
+});
+
+test("deleteAccount keeps a media restricted to the deleted user visible to its author only", async () => {
+  setupAccounts();
+
+  const stored = await deleteTheSharedCaregiver();
+
+  // an empty list would show it to the whole circle
+  assert.deepEqual(stored("media/restricted").authorizedIds, ["other"]);
+});
+
+test("deleteAccount deletes the circle and the bucket of a last member", async () => {
+  setupAccounts();
+
+  await deleteTheSharedCaregiver();
+
   assert.deepEqual(
     [...state.store.keys()].filter((key) => key.startsWith("careCircles/alone")),
     [],
