@@ -23,13 +23,13 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.BOX
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
@@ -332,7 +332,7 @@ class DisplayCaregiverButtonTest {
   }
 }
 
-// --------------------- TEST DisplayBoxWithIcon -------------------
+// --------------------- TEST DisplayBoxWithIconAndText -------------------
 class DisplayBoxWithIconTextTest {
 
   @get:Rule val composeTestRule = createComposeRule()
@@ -353,28 +353,18 @@ class DisplayBoxWithIconTextTest {
   }
 
   @Test
-  fun icon_isDisplayed() {
+  fun elements_areDisplayed() {
     setBox()
-    composeTestRule.onNodeWithContentDescription(iconDescription).assertIsDisplayed()
-  }
-
-  @Test
-  fun label_isDisplayed() {
-    setBox()
-    composeTestRule.onNodeWithText("Box label").assertIsDisplayed()
-  }
-
-  @Test
-  fun button_isDisplayed() {
-    setBox()
-    composeTestRule.onNodeWithTag(ICON_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
   }
 
   @Test
   fun onClick_isInvoked_whenIconButtonIsPressed() {
     var clicked = false
     setBox(onClick = { clicked = true })
-    composeTestRule.onNodeWithTag(ICON_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).performClick()
     assertTrue(clicked)
   }
 
@@ -382,7 +372,7 @@ class DisplayBoxWithIconTextTest {
   fun onClick_isInvokedOnce_whenIconButtonIsPressedOnce() {
     var callCount = 0
     setBox(onClick = { callCount++ })
-    composeTestRule.onNodeWithTag(ICON_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).performClick()
     assertEquals(1, callCount)
   }
 }
