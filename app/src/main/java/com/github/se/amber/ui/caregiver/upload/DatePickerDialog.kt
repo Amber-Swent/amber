@@ -33,7 +33,18 @@ import com.github.se.amber.ui.theme.MAX_VISIBLE_ITEM
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.utils.PopupDialog
 
-/** Displays one date field's scrollable choices in the shared popup frame. */
+/**
+ * Displays the choices for one [DateField] in a snap-scrolling popup.
+ *
+ * The first visible row is the current selection. Tapping a row selects it immediately; the Done
+ * action selects the first visible row. The caller handles closing the popup after selection.
+ *
+ * @param field date component being edited; its label appears in the popup title.
+ * @param items choices displayed in list order.
+ * @param initialIndex index shown when the popup opens.
+ * @param onDismiss called when the popup is dismissed or its close button is pressed.
+ * @param onSelected called with the selected index, either from a row tap or Done.
+ */
 @Composable
 internal fun ScrollablePickerDialog(
     field: DateField,

@@ -14,7 +14,23 @@ object AddPersonDialogTestTags {
   const val CLOSE = "add_person_dialog_close"
 }
 
-/** Displays the add-person form in the shared popup frame. */
+/**
+ * Displays a controlled add-person form inside [PopupDialog] when [isOpen] is true.
+ *
+ * The action is enabled only when the first name is nonblank and no add operation is in progress.
+ * On action, trimmed field values are sent through their change callbacks before [onSave] runs.
+ *
+ * @param isOpen whether the dialog is visible.
+ * @param isAddingPerson whether an add operation is in progress.
+ * @param firstName current required first name.
+ * @param lastName current optional surname.
+ * @param nickname current optional nickname.
+ * @param onFirstNameChange receives first name edits and its trimmed value on save.
+ * @param onLastNameChange receives surname edits and its trimmed value on save.
+ * @param onNicknameChange receives nickname edits and its trimmed value on save.
+ * @param onDismiss called when the dialog is dismissed or closed.
+ * @param onSave called after the trimmed values have been sent to their callbacks.
+ */
 @Composable
 fun AddPersonDialog(
     isOpen: Boolean = false,

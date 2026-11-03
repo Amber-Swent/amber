@@ -26,21 +26,39 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.DIALOG_WIDTH
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
-/** A common popup shell with a title, close button, content, and one bottom action. */
+/**
+ * Shared popup frame with a title, close button, caller content, and one bottom action.
+ *
+ * The surface uses the theme colors and applies IME padding so form content remains accessible
+ * while the keyboard is open. Dismissal and action callbacks are owned by the caller.
+ *
+ * @param modifier modifier applied to the popup surface.
+ * @param title text shown in the popup header.
+ * @param onDismiss called by the close button and system dismissal.
+ * @param actionText label for the bottom action button.
+ * @param onAction called when the enabled action button is pressed.
+ * @param actionEnabled whether the bottom action can be pressed.
+ * @param properties platform dialog behavior.
+ * @param dialogTestTag test tag for the popup surface.
+ * @param titleTestTag test tag for the title.
+ * @param dismissTestTag test tag for the close button.
+ * @param actionTestTag test tag for the bottom action button.
+ * @param content caller-provided body between the header and action button.
+ */
 @Composable
 fun PopupDialog(
-    title: String,
-    onDismiss: () -> Unit,
-    actionText: String,
-    onAction: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = "",
+    onDismiss: () -> Unit = {},
+    actionText: String = "",
+    onAction: () -> Unit = {},
     actionEnabled: Boolean = true,
     properties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     dialogTestTag: String = "",
     titleTestTag: String = "",
     dismissTestTag: String = "",
     actionTestTag: String = "",
-    content: @Composable () -> Unit,
+    content: @Composable () -> Unit = {},
 ) {
   Dialog(onDismissRequest = onDismiss, properties = properties) {
     Surface(
