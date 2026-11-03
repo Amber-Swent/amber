@@ -502,7 +502,6 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(pat, fs.patch(picture, mapOf("authorId" to "someone")))
   }
 
-  /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
   fun aUserBeingDeleted_canReadButNoLongerWriteOrCreateAnything_enforcedByEmulator() {
     val circleId = "c-deleting"
@@ -550,6 +549,7 @@ class FirestoreSecurityRulesEmulatorTest {
     )
   }
 
+  /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
   fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
     val circleId = "c-read"
