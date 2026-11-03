@@ -162,50 +162,50 @@ fun DisplayScrollableDatePicker(
   var showMonthRequiredError by remember { mutableStateOf(false) }
 
   // Displays the date field (c.f year, month, and day)
-    Column(modifier = modifier) {
-        Row(
-            modifier =
-                modifier
-                    .fillMaxWidth(DATE_PICKER_WIDTH_FRACTION)
-                    .border(
-                        width = BORDER_THICKNESS,
-                        color = MaterialTheme.colorScheme.tertiary,
-                        shape = RoundedCornerShape(size = ROUND_CORNER),
-                    )
-                    .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-                    .padding(CAREGIVER_PADDING_SMALL),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            DateField.entries.forEach { field ->
-                DateBox(
-                    field = field,
-                    value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
-                    // Disabling the day button when month is not selected would not detect tentative clicks
-                    // On the day button, so we use onClick to show an error instead
-                    onClick = {
-                        if (field == DateField.DAY && date.month == null) {
-                            showMonthRequiredError = true
-                        } else {
-                            openField = field
-                        }
-                    },
-                    modifier = Modifier.weight(WEIGHT_ONE).testTag(DatePickerTestTags.box(field)),
+  Column(modifier = modifier) {
+    Row(
+        modifier =
+            modifier
+                .fillMaxWidth(DATE_PICKER_WIDTH_FRACTION)
+                .border(
+                    width = BORDER_THICKNESS,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    shape = RoundedCornerShape(size = ROUND_CORNER),
                 )
-            }
-        }
-        // Day cannot be selected before the month is
-        if (showMonthRequiredError) {
-            Text(
-                modifier = Modifier
-                    .padding(top = CAREGIVER_PADDING_SMALL)
-                    .testTag(DatePickerTestTags.MONTH_REQUIRED_ERROR),
-                text = "Select a month before selecting a day.",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
+                .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
+                .padding(CAREGIVER_PADDING_SMALL),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+      DateField.entries.forEach { field ->
+        DateBox(
+            field = field,
+            value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
+            // Disabling the day button when month is not selected would not detect tentative clicks
+            // On the day button, so we use onClick to show an error instead
+            onClick = {
+              if (field == DateField.DAY && date.month == null) {
+                showMonthRequiredError = true
+              } else {
+                openField = field
+              }
+            },
+            modifier = Modifier.weight(WEIGHT_ONE).testTag(DatePickerTestTags.box(field)),
+        )
+      }
     }
+    // Day cannot be selected before the month is
+    if (showMonthRequiredError) {
+      Text(
+          modifier =
+              Modifier.padding(top = CAREGIVER_PADDING_SMALL)
+                  .testTag(DatePickerTestTags.MONTH_REQUIRED_ERROR),
+          text = "Select a month before selecting a day.",
+          color = MaterialTheme.colorScheme.error,
+          style = MaterialTheme.typography.bodySmall,
+      )
+    }
+  }
 
   // Displayed a window when a date field is clicked.
   // This window allows you to select a value for the field in question
@@ -228,7 +228,7 @@ fun DisplayScrollableDatePicker(
 
           // Clear error state
           if (date.month != null) {
-              showMonthRequiredError = false
+            showMonthRequiredError = false
           }
           onDateSelected(date)
           openField = null

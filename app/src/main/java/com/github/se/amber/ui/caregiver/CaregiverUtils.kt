@@ -67,10 +67,12 @@ import com.github.se.amber.ui.theme.ROUND_CORNER
 @Composable
 fun DisplayCaregiverTitle(modifier: Modifier = Modifier, title: String) {
   Text(
-      modifier = modifier
-          // FIXME remove the enormous padding and replace it with a small one when fixing the padding in other screens
-          .padding(top = CAREGIVER_PADDING_ENORMOUS, bottom = CAREGIVER_PADDING_MEDIUM)
-          .fillMaxWidth(CAREGIVER_TITLE_WIDTH),
+      modifier =
+          modifier
+              // FIXME remove the enormous padding and replace it with a small one when fixing the
+              // padding in other screens
+              .padding(top = CAREGIVER_PADDING_ENORMOUS, bottom = CAREGIVER_PADDING_MEDIUM)
+              .fillMaxWidth(CAREGIVER_TITLE_WIDTH),
       text = title,
       textAlign = TextAlign.Center,
       color = MaterialTheme.colorScheme.primary,
@@ -327,5 +329,5 @@ private fun DisplayCaregiverButtonPreview() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun DisplayCaregiverTitlePreview() {
-    AmberAppTheme { DisplayCaregiverTitle(title ="Title") }
+  AmberAppTheme { DisplayCaregiverTitle(title = "Title") }
 }
