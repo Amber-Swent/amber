@@ -1,5 +1,6 @@
 package com.github.se.amber.ui.media
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -24,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -54,17 +57,25 @@ fun MediaCard(
     modifier: Modifier = Modifier,
     media: MediaItem = MediaItem.Picture(),
     testTag: String = PatientUtilsTestTags.TITLE,
-    mediaCardViewModel: MediaCardViewModel = viewModel(),
+    mediaCardViewModel: MediaCardViewModel = viewModel(key = media.id),
 ) {
   var expanded by rememberSaveable { mutableStateOf(false) }
   val uiState by mediaCardViewModel.uiState.collectAsStateWithLifecycle()
+  val context = LocalContext.current
 
   LaunchedEffect(media) { mediaCardViewModel.load(media) }
+
+  LaunchedEffect(uiState.errorMsg) {
+    uiState.errorMsg?.let {
+      Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+      mediaCardViewModel.clearErrorMsg()
+    }
+  }
 
   Column(modifier = modifier.fillMaxWidth()) {
     // see+/- button and date
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -76,6 +87,7 @@ fun MediaCard(
                   containerColor = MaterialTheme.colorScheme.tertiary,
                   contentColor = MaterialTheme.colorScheme.onTertiary,
               ),
+          modifier = Modifier.padding(start = PATIENT_PADDING_MINI),
       ) {
         Text(
             text = if (expanded) "- see less" else "+ see more",
@@ -90,35 +102,40 @@ fun MediaCard(
     }
     // content that pop when the user click on the "- see more" button
     AnimatedVisibility(visible = expanded) {
-      Column(
-          verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-          modifier = Modifier.padding(PATIENT_PADDING_SMALL),
-      ) {
-        // to display the description and name of the people who wrote it
-        OrangeBox() {
+      when {
+        uiState.isLoading -> CircularProgressIndicator()
+        else -> {
           Column(
               verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-              modifier = Modifier.fillMaxWidth(),
+              modifier = Modifier.padding(PATIENT_PADDING_SMALL),
           ) {
-            Text(media.description)
-            Text(
-                text = "Added by " + uiState.addedByNickname,
-                modifier = Modifier.align(Alignment.End),
-            )
-          }
-        }
-        // to display the persons related to this media if there are any
-        if (uiState.relatedNicknames.isNotEmpty()) {
-          OrangeBox() {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL)) {
-              items(uiState.relatedNicknames) { nickname ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(nickname) }
+            // to display the description and name of the people who wrote it
+            OrangeBox() {
+              Column(
+                  verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+                  modifier = Modifier.fillMaxWidth(),
+              ) {
+                Text(media.description)
+                Text(
+                    text = "Added by " + uiState.addedByNickname,
+                    modifier = Modifier.align(Alignment.End),
+                )
               }
             }
+            // to display the persons related to this media if there are any
+            if (uiState.relatedNicknames.isNotEmpty()) {
+              OrangeBox() {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL)) {
+                  items(uiState.relatedNicknames) { nickname ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(nickname) }
+                  }
+                }
+              }
+            }
+            // to display the location if it is not null
+            media.location?.let { location -> OrangeBox { Text(geoLocationIntoString(location)) } }
           }
         }
-        // to display the location if it is not null
-        media.location?.let { location -> OrangeBox { Text(geoLocationIntoString(location)) } }
       }
     }
   }
