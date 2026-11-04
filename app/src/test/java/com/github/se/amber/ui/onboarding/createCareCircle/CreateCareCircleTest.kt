@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -39,15 +40,17 @@ class CreateCareCircleScreenTest {
 
   private lateinit var repository: FakeOnboardingRepository
   private lateinit var viewModel: CreateCareCircleViewModel
+  private var backCount = 0
 
   @Before
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     repository = FakeOnboardingRepository()
     viewModel = CreateCareCircleViewModel(repository)
+    backCount = 0
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleScreen(viewModel = viewModel)
+        CreateCareCircleScreen(viewModel = viewModel, onBack = { backCount++ })
       }
     }
   }
@@ -108,6 +111,23 @@ class CreateCareCircleScreenTest {
     viewModel.onNameChange("Family")
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.onNodeWithText("Creation...").assertExists()
+  }
+
+  @Test
+  fun cancelReturnsToThePreviousStep() {
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(1, backCount)
+  }
+
+  @Test
+  fun cancelDoesNothingWhileTheCircleIsBeingCreated() {
+    repository.gate = CompletableDeferred()
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(0, backCount)
   }
 
   @Test

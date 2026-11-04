@@ -165,6 +165,9 @@ class AddPersonDialogTest {
 
           override suspend fun getProfile(uid: String): Result<UserProfile?> =
               Result.success(UserProfile(uid = uid, circleIds = listOf(circleId)))
+
+          override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+              error("Not used by this test")
         }
     val fakeCircleRepo =
         object : CareCircleRepository {

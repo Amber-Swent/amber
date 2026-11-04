@@ -22,6 +22,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionPreview
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
@@ -223,6 +224,22 @@ class InvitationRedemptionUITests {
         ),
     )
     composeTestRule.waitUntil(timeoutMillis = 3_000) { redeemSuccessCount == 1 }
+  }
+
+  @Test
+  fun previewShowsTheInvitationForm() {
+    composeTestRule.setContent { InvitationRedemptionPreview() }
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
+
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
+        .performTextInput(VALID_CODE)
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR).assertCountEquals(0)
   }
 
   private companion object {

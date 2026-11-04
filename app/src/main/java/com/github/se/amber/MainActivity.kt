@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
@@ -132,6 +133,7 @@ fun AmberApp(
                 Role.CAREGIVER -> navigationActions.navigateTo(OnboardingScreen.CaregiverChoice)
               }
             },
+            onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
         )
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
@@ -143,7 +145,8 @@ fun AmberApp(
       }
       composable(route = OnboardingScreen.CreateCareCircle.route) {
         CreateCareCircleScreen(
-            onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) }
+            onCreated = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            onBack = { navigationActions.goBack() },
         )
       }
       composable(route = OnboardingScreen.EnterInvitation.route) {

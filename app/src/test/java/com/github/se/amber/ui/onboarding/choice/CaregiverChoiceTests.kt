@@ -1,8 +1,10 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -10,7 +12,10 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +43,9 @@ class CaregiverChoiceUITests {
             )
 
         override suspend fun getProfile(uid: String) = Result.success(null)
+
+        override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+            Result.success(Unit)
       }
 
   private fun setScreen(
@@ -62,10 +70,10 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun backButton_click_invokesOnBackOnly() {
+  fun cancelButton_click_invokesOnBackOnly() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -128,10 +136,11 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun backButton_isDisplay() {
+  fun cancelButton_isDisplay() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
   }
 
   @Test
@@ -139,5 +148,24 @@ class CaregiverChoiceUITests {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.INFORMATION).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewRepositoryReturnsSafeResults() = runBlocking {
+    val person = Person(firstName = "Ada", lastName = "Lovelace")
+
+    assertTrue(PreviewChoiceProfileRepository.createProfile(person, Role.CAREGIVER).isSuccess)
+    assertTrue(
+        PreviewChoiceProfileRepository.updateOnboardingProfile(person, Role.PATIENT).isSuccess,
+    )
+    assertEquals(null, PreviewChoiceProfileRepository.getProfile("preview").getOrNull())
+  }
+
+  @Test
+  fun previewShowsTheChoiceScreen() {
+    composeTestRule.setContent { CaregiverChoicePreview() }
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
   }
 }

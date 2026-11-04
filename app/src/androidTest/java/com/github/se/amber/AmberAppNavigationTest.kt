@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
@@ -53,7 +54,7 @@ class AmberAppNavigationTest {
     // Onboarding
     val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
     val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
-    val CHOICE_BACK = CaregiverChoiceTestTags.BACK_BUTTON
+    val CHOICE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     val INVITATION_REDEMPTION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Caregiver
@@ -104,15 +105,26 @@ class AmberAppNavigationTest {
     composeRule.waitForIdle()
   }
 
-  /** Programmatically moves to [route] (used to reach a nested screen before clicking). */
+  /**
+   * Programmatically moves to [route] (used to reach a nested screen before clicking).
+   *
+   * Waits until that destination is at least created. Navigating again before then makes Navigation
+   * destroy a back-stack entry that has not reached [Lifecycle.State.CREATED].
+   */
   private fun goTo(route: String) {
-    composeRule.runOnUiThread { navController.navigate(route) }
+    composeRule.runOnIdle { navController.navigate(route) }
+    composeRule.waitUntil(timeoutMillis = 15_000) {
+      val entry = navController.currentBackStackEntry
+      entry?.destination?.route == route &&
+          entry.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)
+    }
     composeRule.waitForIdle()
   }
 
   private fun click(tag: String) {
     // The screen can still be composing after a navigation, so the click target is not there yet.
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    // A cold emulator can take longer than five seconds to publish that first frame.
+    composeRule.waitUntil(timeoutMillis = 15_000) {
       try {
         composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
       } catch (_: IllegalStateException) {
@@ -195,6 +207,17 @@ class AmberAppNavigationTest {
 
     // goBack() pops once: we come back to CreateProfile
     assertRoute(OnboardingScreen.CreateProfile.route)
+  }
+
+  @Test
+  fun createCareCircle_cancel_returnsToCaregiverChoice() {
+    launch(NavGraphs.ONBOARDING)
+    goTo(OnboardingScreen.CaregiverChoice.route)
+    goTo(OnboardingScreen.CreateCareCircle.route)
+
+    click(Tags.CHOICE_BACK)
+
+    assertRoute(OnboardingScreen.CaregiverChoice.route)
   }
 
   @Test
@@ -390,7 +413,8 @@ class AmberAppNavigationTest {
   @Test
   fun createInvitation_homeTab_navigatesToCaregiverHome() {
     launch(NavGraphs.CAREGIVER)
-    goTo(CaregiverScreen.CreateInvitationCode.route)
+    click(Tags.CAREGIVER_TAB_PARAMETERS)
+    click(Tags.CREATE_INVITATION_BUTTON)
 
     click(Tags.CAREGIVER_TAB_HOME)
 

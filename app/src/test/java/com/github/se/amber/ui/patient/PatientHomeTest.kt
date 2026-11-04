@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
 import androidx.compose.ui.test.assertCountEquals
@@ -23,6 +24,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -253,6 +255,17 @@ class PatientHomeScreenTest {
   }
 
   // ---------- Preview ----------
+
+  @Test
+  fun previewRepositoryAcceptsAnOnboardingUpdate() = runBlocking {
+    assertTrue(
+        PreviewPatientHomeProfileRepository.updateOnboardingProfile(
+                Person(firstName = "Ada", lastName = "Lovelace"),
+                Role.PATIENT,
+            )
+            .isSuccess,
+    )
+  }
 
   @Test
   fun previewRendersWithoutCrashing() {
