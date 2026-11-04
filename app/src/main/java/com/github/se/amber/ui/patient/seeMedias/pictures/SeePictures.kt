@@ -79,7 +79,7 @@ fun SeePicturesScreen(
         is SeePicturesUIState.BlockingError -> null
       }
 
-  // Show error message if fetching todos fails
+  // Show error message if fetching pictures fails
   LaunchedEffect(errorMsg) {
     errorMsg?.let { message ->
       Toast.makeText(context, message, Toast.LENGTH_LONG).show()
