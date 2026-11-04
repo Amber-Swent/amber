@@ -19,7 +19,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.media.AudioRecordingState
-import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON
 import com.github.se.amber.ui.media.audio.AudioRecorderTestTags
 import io.mockk.every
 import io.mockk.mockk
@@ -84,8 +84,7 @@ class UploadAudiosTest {
     launchScreen()
     composeTestRule
         .onNode(
-            hasTestTag(DisplayBoxWithIconTextTestTags.ICON_BUTTON) and
-                hasAnyAncestor(hasTestTag(UploadAudioScreenTestTags.RECORD_AUDIO))
+            hasTestTag(ICON) and hasAnyAncestor(hasTestTag(UploadAudioScreenTestTags.RECORD_AUDIO))
         )
         .performScrollTo()
         .performClick()
