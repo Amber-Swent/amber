@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,6 +42,24 @@ import com.github.se.amber.ui.theme.PATIENT_PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import java.util.Locale
+
+object MediaCardTestTags {
+  fun toggleButton(id: String) = "media_card_toggle_button_$id"
+
+  fun date(id: String) = "media_card_date_$id"
+
+  fun loading(id: String) = "media_card_loading_$id"
+
+  fun description(id: String) = "media_card_description_$id"
+
+  fun addedBy(id: String) = "media_card_added_by_$id"
+
+  fun relatedList(id: String) = "media_card_related_list_$id"
+
+  fun relatedItem(id: String, index: Int) = "media_card_related_item_${id}_$index"
+
+  fun location(id: String) = "media_card_location_$id"
+}
 
 /**
  * Displays the card related to the Media, including the date, the description, the location and the
@@ -72,7 +91,7 @@ fun MediaCard(
     }
   }
 
-  Column(modifier = modifier.fillMaxWidth()) {
+  Column(modifier = modifier.fillMaxWidth().testTag(testTag)) {
     // see+/- button and date
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -87,7 +106,9 @@ fun MediaCard(
                   containerColor = MaterialTheme.colorScheme.tertiary,
                   contentColor = MaterialTheme.colorScheme.onTertiary,
               ),
-          modifier = Modifier.padding(start = PATIENT_PADDING_MINI),
+          modifier =
+              Modifier.padding(start = PATIENT_PADDING_MINI)
+                  .testTag(MediaCardTestTags.toggleButton(media.id)),
       ) {
         Text(
             text = if (expanded) "- see less" else "+ see more",
@@ -97,13 +118,19 @@ fun MediaCard(
       Text(
           text = memoryDateIntoString(media.date),
           style = MaterialTheme.typography.titleMedium,
-          modifier = Modifier.align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+          modifier =
+              Modifier.align(Alignment.Top)
+                  .padding(end = PATIENT_PADDING_MINI)
+                  .testTag(MediaCardTestTags.date(media.id)),
       )
     }
     // content that pop when the user click on the "- see more" button
     AnimatedVisibility(visible = expanded) {
       when {
-        uiState.isLoading -> CircularProgressIndicator()
+        uiState.isLoading ->
+            CircularProgressIndicator(
+                modifier = Modifier.testTag(MediaCardTestTags.loading(media.id))
+            )
         else -> {
           Column(
               verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
@@ -115,25 +142,45 @@ fun MediaCard(
                   verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
                   modifier = Modifier.fillMaxWidth(),
               ) {
-                Text(media.description)
+                Text(
+                    text = media.description,
+                    modifier = Modifier.testTag(MediaCardTestTags.description(media.id)),
+                )
                 Text(
                     text = "Added by " + uiState.addedByNickname,
-                    modifier = Modifier.align(Alignment.End),
+                    modifier =
+                        Modifier.align(Alignment.End).testTag(MediaCardTestTags.addedBy(media.id)),
                 )
               }
             }
             // to display the persons related to this media if there are any
             if (uiState.relatedNicknames.isNotEmpty()) {
               OrangeBox() {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL)) {
-                  items(uiState.relatedNicknames) { nickname ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(nickname) }
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+                    modifier = Modifier.testTag(MediaCardTestTags.relatedList(media.id)),
+                ) {
+                  itemsIndexed(uiState.relatedNicknames) { index, nickname ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                      Text(
+                          text = nickname,
+                          modifier =
+                              Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index)),
+                      )
+                    }
                   }
                 }
               }
             }
             // to display the location if it is not null
-            media.location?.let { location -> OrangeBox { Text(geoLocationIntoString(location)) } }
+            media.location?.let { location ->
+              OrangeBox {
+                Text(
+                    text = geoLocationIntoString(location),
+                    modifier = Modifier.testTag(MediaCardTestTags.location(media.id)),
+                )
+              }
+            }
           }
         }
       }
