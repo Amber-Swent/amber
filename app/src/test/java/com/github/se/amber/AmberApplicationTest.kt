@@ -42,6 +42,23 @@ class AmberApplicationTest {
   private val app: AmberApplication
     get() = context as AmberApplication
 
+  private val deletion: AccountDeletionRepository = mockk(relaxUnitFun = true)
+  // a failure in a launched coroutine never reaches the test by itself: it is only logged
+  private val uncaught = mutableListOf<Throwable>()
+  private val rightHere =
+      CoroutineScope(
+          Dispatchers.Unconfined + CoroutineExceptionHandler { _, error -> uncaught += error }
+      )
+
+  private fun marker(set: Boolean) =
+      object : DeletionMarker {
+        override val isSet = set
+
+        override fun set() = Unit
+
+        override fun remove() = Unit
+      }
+
   @Test
   fun theManifestRunsTheApp() {
     // Without android:name in the manifest, Android would run a plain Application instead.
@@ -83,23 +100,6 @@ class AmberApplicationTest {
     // private photos are kept on disk only by the media repository's cache
     assertNull(app.newImageLoader(context).diskCache)
   }
-
-  private val deletion: AccountDeletionRepository = mockk(relaxUnitFun = true)
-  // a failure in a launched coroutine never reaches the test by itself: it is only logged
-  private val uncaught = mutableListOf<Throwable>()
-  private val rightHere =
-      CoroutineScope(
-          Dispatchers.Unconfined + CoroutineExceptionHandler { _, error -> uncaught += error }
-      )
-
-  private fun marker(set: Boolean) =
-      object : DeletionMarker {
-        override val isSet = set
-
-        override fun set() = Unit
-
-        override fun remove() = Unit
-      }
 
   @Test
   fun aLaunchWithoutAMarkerBuildsNoDeletionRepository() {
