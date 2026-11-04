@@ -16,6 +16,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.media.picture.SelectedPictureReader
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -26,7 +27,6 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
