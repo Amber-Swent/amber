@@ -146,4 +146,12 @@ class CaregiverChoiceUITests {
 
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.INFORMATION).assertIsDisplayed()
   }
+
+  @Test
+  fun previewShowsTheChoiceScreen() {
+    composeTestRule.setContent { CaregiverChoicePreview() }
+
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
+  }
 }

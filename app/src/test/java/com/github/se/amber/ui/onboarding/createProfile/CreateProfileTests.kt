@@ -22,6 +22,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
+import com.github.se.amber.ui.onboarding.createProfile.CreateProfilePreview
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
@@ -35,6 +36,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
+import org.robolectric.shadows.ShadowToast
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -72,11 +74,9 @@ class CreateProfileUITests {
                   },
           ),
   ) {
+    val signOutViewModel = SignOutViewModel(idleAuthRepository())
     composeTestRule.setContent {
-      CreateProfileScreen(
-          viewModel = viewModel,
-          signOutViewModel = SignOutViewModel(idleAuthRepository()),
-      )
+      CreateProfileScreen(viewModel = viewModel, signOutViewModel = signOutViewModel)
     }
   }
 
@@ -157,24 +157,26 @@ class CreateProfileUITests {
   @Test
   fun signOutButton_signsOutAndNotifiesTheCaller() {
     var signedOutCount = 0
+    val profileViewModel =
+        CreateProfileViewModel(
+            profileRepository =
+                object : ProfileRepository {
+                  override suspend fun createProfile(person: Person, role: Role) =
+                      Result.success(Unit)
+
+                  override suspend fun getCurrentProfile() = Result.success(null)
+
+                  override suspend fun getProfile(uid: String) = Result.success(null)
+
+                  override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                      Result.success(Unit)
+                },
+        )
+    val signOutViewModel = SignOutViewModel(idleAuthRepository())
     composeTestRule.setContent {
       CreateProfileScreen(
-          viewModel =
-              CreateProfileViewModel(
-                  profileRepository =
-                      object : ProfileRepository {
-                        override suspend fun createProfile(person: Person, role: Role) =
-                            Result.success(Unit)
-
-                        override suspend fun getCurrentProfile() = Result.success(null)
-
-                        override suspend fun getProfile(uid: String) = Result.success(null)
-
-                        override suspend fun updateOnboardingProfile(person: Person, role: Role) =
-                            Result.success(Unit)
-                      },
-              ),
-          signOutViewModel = SignOutViewModel(idleAuthRepository()),
+          viewModel = profileViewModel,
+          signOutViewModel = signOutViewModel,
           onSignedOut = { signedOutCount++ },
       )
     }
@@ -183,6 +185,64 @@ class CreateProfileUITests {
     composeTestRule.waitForIdle()
 
     assertEquals(1, signedOutCount)
+  }
+
+  @Test
+  fun signOutFailure_showsTheErrorAndDoesNotLeave() {
+    var signedOutCount = 0
+    val profileViewModel =
+        CreateProfileViewModel(
+            profileRepository =
+                object : ProfileRepository {
+                  override suspend fun createProfile(person: Person, role: Role) =
+                      Result.success(Unit)
+
+                  override suspend fun getCurrentProfile() = Result.success(null)
+
+                  override suspend fun getProfile(uid: String) = Result.success(null)
+
+                  override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                      Result.success(Unit)
+                },
+        )
+    val signOutViewModel =
+        SignOutViewModel(
+            object : AuthRepository {
+              override val currentUser: AuthUser? = AuthUser("uid")
+
+              override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+                  error("unused")
+
+              override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
+                  error("unused")
+
+              override suspend fun signOut(): Result<Unit> =
+                  Result.failure(IllegalStateException("offline"))
+            },
+        )
+    composeTestRule.setContent {
+      CreateProfileScreen(
+          viewModel = profileViewModel,
+          signOutViewModel = signOutViewModel,
+          onSignedOut = { signedOutCount++ },
+      )
+    }
+
+    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(0, signedOutCount)
+    assertEquals("Could not sign out. Please try again.", ShadowToast.getTextOfLatestToast())
+  }
+
+  @Test
+  fun previewShowsTheSignOutButton() {
+    composeTestRule.setContent { CreateProfilePreview() }
+
+    composeTestRule
+        .onNodeWithTag(SignOutButtonTestTags.BUTTON)
+        .performScrollTo()
+        .assertIsDisplayed()
   }
 
   // ---------- Validation when role is chosen with empty fields ----------

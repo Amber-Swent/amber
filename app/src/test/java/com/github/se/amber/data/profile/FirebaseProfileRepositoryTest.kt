@@ -320,6 +320,74 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
+  fun updateOnboardingProfile_rethrowsCancellationException() = runTest {
+    val cancellation = CancellationException("profile update cancelled")
+    stubFailedTransaction(cancellation)
+
+    try {
+      repository.updateOnboardingProfile(
+          Person(firstName = "Ada", lastName = "Lovelace"),
+          Role.PATIENT,
+      )
+      fail("Expected cancellation to be rethrown")
+    } catch (thrown: CancellationException) {
+      assertSame(cancellation, thrown)
+    }
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsUnauthenticatedFirestoreFailure() = runTest {
+    stubFailedTransaction(firestoreFailure(FirebaseFirestoreException.Code.UNAUTHENTICATED))
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.NotAuthenticated>(result)
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsAbortedFirestoreFailureToNetwork() = runTest {
+    stubFailedTransaction(firestoreFailure(FirebaseFirestoreException.Code.ABORTED))
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.Network>(result)
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsUnknownFirestoreFailure() = runTest {
+    stubFailedTransaction(firestoreFailure(FirebaseFirestoreException.Code.NOT_FOUND))
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.Unknown>(result)
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsNonFirestoreFailure() = runTest {
+    stubFailedTransaction(IllegalStateException("boom"))
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.Unknown>(result)
+  }
+
+  @Test
   fun getCurrentProfile_returnsProfileOfAuthenticatedUser() = runTest {
     val profile =
         UserProfile(

@@ -18,6 +18,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -25,6 +26,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -36,6 +41,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_MINI
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Test tags for [CaregiverChoiceScreen]. */
 object CaregiverChoiceTestTags {
@@ -95,7 +101,7 @@ fun CaregiverChoiceScreen(
       AmberHeader()
 
       Column(
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE),
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
       ) {
@@ -171,5 +177,27 @@ fun CaregiverChoiceScreen(
 @Preview(showBackground = true)
 @Composable
 fun CaregiverChoicePreview() {
-  AmberAppTheme(darkTheme = false) { CaregiverChoiceScreen() }
+  val viewModel = remember {
+    CaregiverChoiceViewModel(profileRepository = PreviewChoiceProfileRepository)
+  }
+  AmberAppTheme { CaregiverChoiceScreen(viewModel = viewModel) }
+}
+
+private object PreviewChoiceProfileRepository : ProfileRepository {
+  override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun getCurrentProfile(): Result<UserProfile?> =
+      Result.success(
+          UserProfile(
+              uid = "preview",
+              role = Role.CAREGIVER,
+              person = Person(id = "preview", firstName = "Ada", lastName = "Lovelace"),
+          ),
+      )
+
+  override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
 }

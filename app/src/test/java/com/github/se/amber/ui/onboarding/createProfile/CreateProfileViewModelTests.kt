@@ -4,7 +4,9 @@
 package com.github.se.amber.ui.createProfile
 
 import com.github.se.amber.data.profile.ProfileCreationError
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -426,6 +428,74 @@ class CreateProfileViewModelTests {
     assertEquals(2, successCount)
     assertEquals(Role.CAREGIVER, lastSuccessRole)
     assertNull(viewModel.uiState.value.submitError)
+  }
+
+  @Test
+  fun onRoleSelected_existingProfileUnreadable_showsTheReadFailure() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.failure(ProfileReadError.Network)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(0, successCount)
+    assertEquals(
+        "You're offline. Check your connection and try again.",
+        viewModel.uiState.value.submitError,
+    )
+    coVerify(exactly = 0) { profileRepository.updateOnboardingProfile(any(), any()) }
+  }
+
+  @Test
+  fun onRoleSelected_existingProfileAlreadyMatches_navigatesWithoutUpdating() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(
+            UserProfile(
+                uid = "uid",
+                role = Role.PATIENT,
+                person = Person(id = "uid", firstName = "Ada", lastName = "Lovelace"),
+            ),
+        )
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
+    assertNull(viewModel.uiState.value.submitError)
+    coVerify(exactly = 0) { profileRepository.updateOnboardingProfile(any(), any()) }
+  }
+
+  @Test
+  fun onRoleSelected_existingProfileUpdateFails_showsTheUpdateFailure() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(
+            UserProfile(
+                uid = "uid",
+                role = Role.PATIENT,
+                person = Person(id = "uid", firstName = "Ada", lastName = "Lovelace"),
+            ),
+        )
+    coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns
+        Result.failure(ProfileUpdateError.PermissionDenied)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(0, successCount)
+    assertEquals(
+        "You don't have permission to create a profile.",
+        viewModel.uiState.value.submitError,
+    )
   }
 
   private fun fillValidNameAndSurname() {

@@ -19,22 +19,32 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.authentication.signOut.SignOutButton
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Stable tags for locating the form controls and validation messages in UI tests. */
 object CreateProfileTestTags {
@@ -102,14 +112,14 @@ fun CreateProfileScreen(
 
       Text(
           text = "Create an account",
-          modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.headlineMedium,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.primary,
       )
       Text(
           text = "What should we call you?",
-          modifier = Modifier.fillMaxWidth(),
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE),
           style = MaterialTheme.typography.titleMedium,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.secondary,
@@ -134,7 +144,7 @@ fun CreateProfileScreen(
 
       Text(
           text = "Please select your role",
-          modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
+          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.titleMedium,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.secondary,
@@ -158,7 +168,7 @@ fun CreateProfileScreen(
         Text(
             text = errorMessage,
             modifier =
-                Modifier.fillMaxWidth()
+                Modifier.fillMaxWidth(WEIGHT_ONE)
                     .padding(top = CAREGIVER_PADDING_SMALL)
                     .testTag(CreateProfileTestTags.SUBMIT_ERROR),
             style = MaterialTheme.typography.bodySmall,
@@ -197,4 +207,38 @@ private fun ProfileNameField(
       error = error,
       errorTestTag = errorTag,
   )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CreateProfilePreview() {
+  val profileViewModel = remember { CreateProfileViewModel(PreviewProfileRepository) }
+  val signOutViewModel = remember { SignOutViewModel(PreviewSignOutAuthRepository) }
+  AmberAppTheme {
+    CreateProfileScreen(viewModel = profileViewModel, signOutViewModel = signOutViewModel)
+  }
+}
+
+private object PreviewProfileRepository : ProfileRepository {
+  override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
+
+  override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
+}
+
+private object PreviewSignOutAuthRepository : AuthRepository {
+  override val currentUser: AuthUser? = null
+
+  override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+      Result.failure(UnsupportedOperationException("Preview auth repository"))
+
+  override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
+      Result.failure(UnsupportedOperationException("Preview auth repository"))
+
+  override suspend fun signOut(): Result<Unit> = Result.success(Unit)
 }
