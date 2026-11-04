@@ -24,10 +24,12 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.BOX
@@ -432,5 +434,19 @@ class DisplayBoxWithIconTextTest {
         .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
         .performClick()
     assertTrue(clicked)
+  }
+
+  @Test
+  fun onClick_isInvoked_whenEmptyAreaIsPressed() {
+    val arbitraryOffsetX = 0.95f
+    val arbitraryOffsetY = 0.5f
+    var callCount = 0
+    setBox(onClick = { callCount++ })
+
+    composeTestRule.onNodeWithTag(containerTag).performTouchInput {
+      click(percentOffset(arbitraryOffsetX, arbitraryOffsetY))
+    }
+
+    assertEquals(1, callCount)
   }
 }
