@@ -2,6 +2,8 @@
 
 package com.github.se.amber.ui.patient
 
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,7 +34,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.DISABLED_ALPHA
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
@@ -268,45 +272,60 @@ fun DisplayPatientIconButton(
   }
 }
 
-// @Preview(showBackground = true)
-// @Composable
-// private fun DisplayPatientTitlePreview() {
-//  AmberAppTheme(dynamicColor = false) {
-//    DisplayPatientTitle(title = "Title Example", modifier = Modifier)
-//  }
-// }
-//
-// @Preview(showBackground = true)
-// @Composable
-// private fun DisplayButtonWithIconPreview() {
-//    AmberAppTheme(dynamicColor = false) {
-//        Column(
-//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//            horizontalAlignment = Alignment.CenterHorizontally,
-//        ) {
-//            DisplayPatientButtonWithIcon(
-//                icon = Icons.Default.Add,
-//                text = "Button with icon example",
-//                description = "click on the button",
-//                onClick = {},
-//            )
-//        }
-//    }
-// }
-//
-// @Preview(showBackground = true)
-// @Composable
-// private fun DisplayButtonPreview() {
-//  AmberAppTheme(dynamicColor = false) {
-//    Column(
-//        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//    ){
-//        DisplayPatientButton(
-//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//            text = "Button example",
-//            onClick = {},
-//        )
-//    }
-//  }
-// }
+@Preview(showBackground = true, name = "Patient utils light")
+@Composable
+private fun DisplayPatientButtonsPreview() {
+  AmberAppTheme(darkTheme = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      DisplayPatientButton(
+          text = "Button",
+          onClick = {},
+          modifier = Modifier.weight(WEIGHT_ONE),
+      )
+      DisplayPatientButtonWithIcon(
+          text = "Add",
+          description = "Add patient",
+          onClick = {},
+      )
+      DisplayPatientIconButton(
+          description = "Add patient",
+          onClick = {},
+      )
+    }
+  }
+}
+
+@Preview(
+    showBackground = true,
+    name = "Patient utils dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun DisplayPatientButtonsDarkPreview() {
+  AmberAppTheme(darkTheme = true) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      DisplayPatientButton(
+          text = "Button",
+          onClick = {},
+          modifier = Modifier.weight(WEIGHT_ONE),
+      )
+      DisplayPatientButtonWithIcon(
+          text = "Add",
+          description = "Add patient",
+          onClick = {},
+      )
+      DisplayPatientIconButton(
+          description = "Add patient",
+          onClick = {},
+      )
+    }
+  }
+}

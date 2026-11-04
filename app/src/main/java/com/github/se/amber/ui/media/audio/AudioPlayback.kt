@@ -1,6 +1,7 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.media.audio
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -282,10 +283,42 @@ internal fun PlaybackProgress(positionMs: Long = ZERO_MS, durationMs: Long = ZER
 }
 
 /** Preview of [DisplayAudioPlayback] in each state. */
-@Preview(showBackground = true)
+@Preview(showBackground = true, name = "Audio playback light")
 @Composable
 internal fun AudioPlaybackPreview() {
-  AmberAppTheme(dynamicColor = false) {
+  AmberAppTheme(dynamicColor = false, darkTheme = false) {
+    Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
+      DisplayAudioPlayback(state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS))
+      DisplayAudioPlayback(
+          state =
+              AudioPlaybackState.Playing(
+                  positionMs = PREVIEW_PLAYING_POSITION_MS,
+                  durationMs = PREVIEW_DURATION_MS,
+              )
+      )
+      DisplayAudioPlayback(
+          state =
+              AudioPlaybackState.Paused(
+                  positionMs = PREVIEW_PAUSED_POSITION_MS,
+                  durationMs = PREVIEW_DURATION_MS,
+              )
+      )
+      DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS))
+      DisplayAudioPlayback(
+          state = AudioPlaybackState.Error(message = "This memo could not be played.")
+      )
+    }
+  }
+}
+
+@Preview(
+    showBackground = true,
+    name = "Audio playback dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+internal fun AudioPlaybackDarkPreview() {
+  AmberAppTheme(dynamicColor = false, darkTheme = true) {
     Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
       DisplayAudioPlayback(state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS))
       DisplayAudioPlayback(
