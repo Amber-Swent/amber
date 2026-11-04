@@ -25,6 +25,14 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocation
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocationHint
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayPlaceSuggestion
+import com.github.se.amber.ui.caregiver.upload.pictures.NO_PLACE_FOUND_HINT
+import com.github.se.amber.ui.caregiver.upload.pictures.PLACE_QUERY_TOO_SHORT_HINT
+import com.github.se.amber.ui.caregiver.upload.pictures.PLACE_SEARCH_FAILED_HINT
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureLocationTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -70,7 +78,7 @@ class UploadPictureLocationTest {
     composeTestRule.setContent {
       DisplayLocation(
           savedPlaceNamesById = mapOf("home" to "Home"),
-          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
+          state = MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)),
       )
     }
 
@@ -89,7 +97,7 @@ class UploadPictureLocationTest {
     val picked = mutableListOf<GeoLocation>()
     composeTestRule.setContent {
       DisplayLocation(
-          state = PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
+          state = MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne, unnamed)),
           onSuggestionClick = { picked += it },
       )
     }
@@ -104,7 +112,7 @@ class UploadPictureLocationTest {
 
   @Test
   fun eachSearchStateShowsOnlyItsOwnHint() {
-    var state by mutableStateOf(PictureLocationUIState(query = "Grandma's house"))
+    var state by mutableStateOf(MediaLocationUIState(query = "Grandma's house"))
     var retries = 0
     composeTestRule.setContent { DisplayLocation(state = state, onRetrySearch = { retries++ }) }
 
@@ -118,7 +126,7 @@ class UploadPictureLocationTest {
 
     // a failed search is not shown as no places found
     composeTestRule.runOnIdle {
-      state = PictureLocationUIState(query = "Lausanne", searchFailed = true)
+      state = MediaLocationUIState(query = "Lausanne", searchFailed = true)
     }
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED)
@@ -130,7 +138,7 @@ class UploadPictureLocationTest {
     assertEquals(1, retries)
 
     // a place too short to search says how many letters are needed
-    composeTestRule.runOnIdle { state = PictureLocationUIState(query = "La") }
+    composeTestRule.runOnIdle { state = MediaLocationUIState(query = "La") }
     composeTestRule
         .onNodeWithTag(UploadPictureLocationTestTags.TOO_SHORT)
         .assertIsDisplayed()
@@ -139,7 +147,7 @@ class UploadPictureLocationTest {
 
     // a search still running only shows searching
     composeTestRule.runOnIdle {
-      state = PictureLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
+      state = MediaLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
     }
     composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
@@ -151,7 +159,7 @@ class UploadPictureLocationTest {
   fun pressingEnterInTheSearchFieldDoesNotAddANewLine() {
     var query by mutableStateOf("Lausanne")
     composeTestRule.setContent {
-      DisplayLocation(state = PictureLocationUIState(query = query), onQueryChange = { query = it })
+      DisplayLocation(state = MediaLocationUIState(query = query), onQueryChange = { query = it })
     }
 
     composeTestRule.onNode(searchField).performClick().performKeyInput { pressKey(Key.Enter) }
@@ -181,8 +189,7 @@ class UploadPictureLocationTest {
 
   @Test
   fun suggestionsGoAwayOnceAPlaceIsPicked() {
-    var state by
-        mutableStateOf(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
+    var state by mutableStateOf(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule.setContent { DisplayLocation(state = state) }
     composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
 

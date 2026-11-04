@@ -34,7 +34,7 @@ import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
