@@ -4,20 +4,24 @@
  */
 package com.github.se.amber.ui.caregiver
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BlurOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -33,11 +37,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.BOX
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags.BUTTON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
@@ -55,6 +61,7 @@ import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.SURFACE_MEDIUM
 
 /**
  * Displays a title shared by caregiver screens.
@@ -251,24 +258,27 @@ fun DisplayTextField(
 
 /** Test tags owned by [DisplayBoxWithIconText]. */
 object DisplayBoxWithIconTextTestTags {
-  const val ICON_BUTTON = "box_with_icon_text_icon_button"
+  const val ICON = "box_with_icon_text_icon_"
+  const val TEXT = "box_with_icon_text_text"
+  const val BOX = "box_with_icon_text_box"
 }
 
 /**
- * Displays a bordered row with a circular icon button and a label.
+ * Displays a bordered, fully clickable row with a circular icon and a label.
  *
  * @param modifier The modifier applied to the action container.
  * @param icon The icon shown inside the button.
  * @param contentDescription The accessibility description of the icon.
- * @param label The text displayed next to the button.
- * @param onClick The callback invoked when the button is pressed.
+ * @param text The text displayed next to the button.
+ * @param onClick The callback invoked when the box is pressed.
  */
 @Composable
 fun DisplayBoxWithIconText(
     modifier: Modifier = Modifier,
-    icon: ImageVector, // No built-in default value
+    icon: ImageVector = Icons.Outlined.BlurOn, // chose BlurOn for aesthetic reason.
     contentDescription: String = "",
-    label: String = "",
+    text: String = "",
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
     onClick: () -> Unit = {},
 ) {
   Row(
@@ -277,25 +287,25 @@ fun DisplayBoxWithIconText(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = MaterialTheme.colorScheme.tertiary,
+                  color = MaterialTheme.colorScheme.outline,
                   shape = RoundedCornerShape(ROUND_CORNER),
               )
               .clip(RoundedCornerShape(ROUND_CORNER))
+              .clickable(role = Role.Button, onClick = onClick)
               .padding(PADDING_MEDIUM),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(PADDING_BIG),
   ) {
-    FilledIconButton(
-        modifier = Modifier.testTag(ICON_BUTTON),
-        onClick = onClick,
-        shape = CircleShape,
-        colors =
-            IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.tertiary,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
-            ),
+    Box(
+        modifier =
+            Modifier.size(SURFACE_MEDIUM)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.tertiary)
+                .testTag(BOX),
+        contentAlignment = Alignment.Center,
     ) {
       Icon(
+          modifier = Modifier.testTag(ICON),
           imageVector = icon,
           contentDescription = contentDescription,
           tint = MaterialTheme.colorScheme.onTertiary,
@@ -303,11 +313,19 @@ fun DisplayBoxWithIconText(
     }
 
     Text(
-        text = label,
+        modifier = Modifier.testTag(DisplayBoxWithIconTextTestTags.TEXT),
+        text = text,
         color = MaterialTheme.colorScheme.onSurface,
-        style = MaterialTheme.typography.bodyMedium,
+        style = style,
     )
   }
+}
+
+/** Preview of [DisplayBoxWithIconText] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+internal fun DisplayBoxWithIconTextPreview() {
+  AmberAppTheme { DisplayBoxWithIconText() }
 }
 
 /** Preview of [DisplayCaregiverButton] using the Amber application theme. */

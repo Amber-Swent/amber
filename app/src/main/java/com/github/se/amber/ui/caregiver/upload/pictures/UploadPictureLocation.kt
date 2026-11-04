@@ -1,5 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.media.MIN_PLACE_QUERY_LENGTH
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_PLACE_SEARCH
@@ -68,7 +70,7 @@ internal const val PLACE_SEARCH_FAILED_HINT =
 @Composable
 internal fun DisplayLocation(
     savedPlaceNamesById: Map<String, String> = emptyMap(),
-    state: PictureLocationUIState = PictureLocationUIState(),
+    state: MediaLocationUIState = MediaLocationUIState(),
     onSavedPlaceClick: (String) -> Unit = {},
     onQueryChange: (String) -> Unit = {},
     onSuggestionClick: (GeoLocation) -> Unit = {},

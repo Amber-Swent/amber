@@ -161,6 +161,13 @@ class SeePicturesScreenTest {
   }
 
   @Test
+  fun no_media_card_is_displayed_when_there_are_no_pictures() {
+    setContent()
+
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.pictureCard("1")).assertDoesNotExist()
+  }
+
+  @Test
   fun pictures_are_displayed_when_there_are_pictures() {
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
         flowOf(
@@ -175,6 +182,7 @@ class SeePicturesScreenTest {
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("1")).assertExists()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("2")).assertExists()
+    // TODO check that the MediaCard exist once they are fully implemented
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
