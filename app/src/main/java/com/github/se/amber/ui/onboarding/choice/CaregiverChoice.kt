@@ -1,5 +1,6 @@
 /* Written by Alaabrine with the aid of AI coding agent.
- * Modify by LaMaier, with the assistance of Claude Code.
+ * Modified by LaMaier, with the assistance of Claude Code.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.onboarding.choice
 

@@ -1,5 +1,7 @@
-// this code was written with the aid of AI
-// Modified by Yuhan YANG, with assistance from Cursor.
+/* this code was written with the aid of AI
+ * Modified by Yuhan YANG, with assistance from Cursor.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
+ */
 
 package com.github.se.amber
 

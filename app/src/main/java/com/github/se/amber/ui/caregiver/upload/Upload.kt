@@ -86,7 +86,7 @@ fun UploadScreen(
             title = {
               DisplayCaregiverTitle(
                   modifier = Modifier.testTag(UploadTestTags.TITLE),
-                  title = "Upload Medias",
+                  title = "Upload Media",
               )
             }
         )

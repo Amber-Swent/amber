@@ -1,5 +1,7 @@
-// Written by Alaabrine, with assistance from Cursor.
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+/* Written by Alaabrine, with assistance from Cursor.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
+ */
 package com.github.se.amber.ui.authentication.signOut
 
 import androidx.compose.foundation.layout.fillMaxWidth
