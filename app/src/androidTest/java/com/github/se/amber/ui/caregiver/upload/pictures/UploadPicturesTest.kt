@@ -29,6 +29,7 @@ import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.UploadMediaLocationTestTags
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -122,11 +123,11 @@ class UploadPicturesTest {
         .assertIsDisplayed()
     chips.assertCountEquals(0)
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
+        .onNodeWithTag(UploadMediaLocationTestTags.SECTION)
         .performScrollTo()
         .assertIsDisplayed()
     composeTestRule
-        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+        .onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE)
         .assertCountEquals(0)
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
@@ -250,7 +251,7 @@ class UploadPicturesTest {
     composeTestRule.runOnIdle {
       placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")
     }
-    val chips = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+    val chips = composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE)
     chips.assertCountEquals(2)
 
     chips[0].performScrollTo().assertIsNotSelected().performClick()
@@ -266,7 +267,7 @@ class UploadPicturesTest {
     composeTestRule
         .onNode(
             hasSetTextAction() and
-                hasAnyAncestor(hasTestTag(UploadPictureLocationTestTags.SEARCH_FIELD))
+                hasAnyAncestor(hasTestTag(UploadMediaLocationTestTags.SEARCH_FIELD))
         )
         .performScrollTo()
         .performTextInput("Lausanne")
@@ -274,20 +275,20 @@ class UploadPicturesTest {
 
     setLocation(MediaLocationUIState(query = "Lau", isSearching = true))
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
+        .onNodeWithTag(UploadMediaLocationTestTags.SEARCHING)
         .performScrollTo()
         .assertIsDisplayed()
 
     setLocation(MediaLocationUIState(query = "Grandma's house"))
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
+        .onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT)
         .performScrollTo()
         .assertIsDisplayed()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCHING).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SEARCHING).assertDoesNotExist()
 
     setLocation(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
+        .onNodeWithTag(UploadMediaLocationTestTags.SUGGESTION)
         .performScrollTo()
         .performClick()
     verify { viewModel.selectPlace(lausanne) }
@@ -299,7 +300,7 @@ class UploadPicturesTest {
             pickedPlace = lausanne,
         )
     )
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SUGGESTION).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 }

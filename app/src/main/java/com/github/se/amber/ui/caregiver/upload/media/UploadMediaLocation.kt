@@ -1,5 +1,7 @@
-// Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.caregiver.upload.pictures
+/* Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+* Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+*/
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,23 +25,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
-import com.github.se.amber.ui.caregiver.upload.media.MIN_PLACE_QUERY_LENGTH
-import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.selectableChipColors
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_PLACE_SEARCH
 
-/** Test tags used by the "Location - optional" section of the Upload Picture screen. */
-object UploadPictureLocationTestTags {
-  const val SECTION = "UploadPictureLocation_test_tag_section"
-  const val SAVED_PLACE = "UploadPictureLocation_test_tag_saved_place"
-  const val SEARCH_FIELD = "UploadPictureLocation_test_tag_search_field"
-  const val SUGGESTION = "UploadPictureLocation_test_tag_suggestion"
-  const val SEARCHING = "UploadPictureLocation_test_tag_searching"
-  const val NO_RESULT = "UploadPictureLocation_test_tag_no_result"
-  const val TOO_SHORT = "UploadPictureLocation_test_tag_too_short"
-  const val SEARCH_FAILED = "UploadPictureLocation_test_tag_search_failed"
-  const val RETRY_SEARCH = "UploadPictureLocation_test_tag_retry_search"
+/** Test tags used by the "Location - optional" section of the upload screens. */
+object UploadMediaLocationTestTags {
+  const val SECTION = "upload_media_location_section"
+  const val SAVED_PLACE = "upload_media_location_saved_place"
+  const val SEARCH_FIELD = "upload_media_location_search_field"
+  const val SUGGESTION = "upload_media_location_suggestion"
+  const val SEARCHING = "upload_media_location_searching"
+  const val NO_RESULT = "upload_media_location_no_result"
+  const val TOO_SHORT = "upload_media_location_too_short"
+  const val SEARCH_FAILED = "upload_media_location_search_failed"
+  const val RETRY_SEARCH = "upload_media_location_retry_search"
 }
 
 /** Shown when a typed place matches nothing: the upload stays blocked until the user acts. */
@@ -55,7 +56,7 @@ internal const val PLACE_SEARCH_FAILED_HINT =
     "Couldn't search places. Check your connection and try again, or clear the field to upload without a location."
 
 /**
- * Displays where the picture was taken: chips for the circle's saved places, and a field to search
+ * Displays where the media was captured: chips for the circle's saved places, and a field to search
  * any other real place, with the matching suggestions to pick from.
  *
  * @param savedPlaceNamesById The circle's saved places: each saved place's ID mapped to its display
@@ -77,7 +78,7 @@ internal fun DisplayLocation(
     onRetrySearch: () -> Unit = {},
 ) {
   Column(
-      modifier = Modifier.fillMaxWidth().testTag(UploadPictureLocationTestTags.SECTION),
+      modifier = Modifier.fillMaxWidth().testTag(UploadMediaLocationTestTags.SECTION),
       verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
   ) {
     Text(
@@ -93,12 +94,12 @@ internal fun DisplayLocation(
               onClick = { onSavedPlaceClick(id) },
               label = { Text(name) },
               colors = selectableChipColors(),
-              modifier = Modifier.testTag(UploadPictureLocationTestTags.SAVED_PLACE),
+              modifier = Modifier.testTag(UploadMediaLocationTestTags.SAVED_PLACE),
           )
         }
       }
     }
-    Column(modifier = Modifier.testTag(UploadPictureLocationTestTags.SEARCH_FIELD)) {
+    Column(modifier = Modifier.testTag(UploadMediaLocationTestTags.SEARCH_FIELD)) {
       DisplayTextField(
           value = state.query,
           onValueChange = onQueryChange,
@@ -112,24 +113,24 @@ internal fun DisplayLocation(
     if (state.pickedPlace == null && state.query.isNotBlank()) {
       when {
         state.isSearching ->
-            DisplayLocationHint("Searching…", UploadPictureLocationTestTags.SEARCHING)
+            DisplayLocationHint("Searching…", UploadMediaLocationTestTags.SEARCHING)
         !state.isLongEnoughToSearch ->
-            DisplayLocationHint(PLACE_QUERY_TOO_SHORT_HINT, UploadPictureLocationTestTags.TOO_SHORT)
+            DisplayLocationHint(PLACE_QUERY_TOO_SHORT_HINT, UploadMediaLocationTestTags.TOO_SHORT)
         state.searchFailed ->
             Column {
               DisplayLocationHint(
                   PLACE_SEARCH_FAILED_HINT,
-                  UploadPictureLocationTestTags.SEARCH_FAILED,
+                  UploadMediaLocationTestTags.SEARCH_FAILED,
               )
               TextButton(
                   onClick = onRetrySearch,
-                  modifier = Modifier.testTag(UploadPictureLocationTestTags.RETRY_SEARCH),
+                  modifier = Modifier.testTag(UploadMediaLocationTestTags.RETRY_SEARCH),
               ) {
                 Text("Try again")
               }
             }
         state.suggestions.isEmpty() ->
-            DisplayLocationHint(NO_PLACE_FOUND_HINT, UploadPictureLocationTestTags.NO_RESULT)
+            DisplayLocationHint(NO_PLACE_FOUND_HINT, UploadMediaLocationTestTags.NO_RESULT)
         else ->
             Column {
               state.suggestions.forEachIndexed { index, place ->
@@ -155,7 +156,7 @@ internal fun DisplayPlaceSuggestion(place: GeoLocation = GeoLocation(), onClick:
           Modifier.fillMaxWidth()
               .clickable(onClick = onClick)
               .padding(CAREGIVER_PADDING_SMALL)
-              .testTag(UploadPictureLocationTestTags.SUGGESTION),
+              .testTag(UploadMediaLocationTestTags.SUGGESTION),
       horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
       verticalAlignment = Alignment.CenterVertically,
   ) {
