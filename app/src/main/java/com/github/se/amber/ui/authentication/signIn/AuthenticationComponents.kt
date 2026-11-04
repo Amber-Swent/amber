@@ -1,6 +1,7 @@
 /* This file was written with the aid of AI.
  * Modified by nehachak1, with assistance from
  * Claude Code
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.authentication.signIn
 
@@ -29,28 +30,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import com.github.se.amber.R
+import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.ROUND_CORNER
-import com.github.se.amber.ui.theme.SURFACE_BIG
 import com.github.se.amber.ui.theme.SURFACE_SMALL
 import com.github.se.amber.ui.theme.TEXT_FIELD_SMALL
 
 /** Test tags of the components shared by the authentication screens. */
 internal object AuthenticationComponentTestTags {
-  const val HEADER = "authentication_header"
   const val TERMS_FOOTER = "authentication_terms_footer"
 }
 
@@ -84,8 +82,9 @@ internal fun AuthenticationLayout(
                 .navigationBarsPadding() // Avoid drawing underneath navigation area at the bottom
                 .padding(horizontal = CAREGIVER_PADDING_BIG),
     ) {
-      AuthenticationHeader(
+      AmberHeader(
           modifier = Modifier.align(Alignment.TopCenter).padding(top = CAREGIVER_PADDING_ENORMOUS),
+          horizontalAlignment = Alignment.CenterHorizontally,
       )
 
       Column(
@@ -99,35 +98,6 @@ internal fun AuthenticationLayout(
           modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = PADDING_MINI),
       )
     }
-  }
-}
-
-/**
- * Displays the common header used by the authentication screens.
- *
- * The header contains the Amber application logo and application name.
- *
- * @param modifier Modifier applied to the header container.
- */
-@Composable
-internal fun AuthenticationHeader(
-    modifier: Modifier = Modifier,
-) {
-  Column(
-      modifier = modifier.testTag(AuthenticationComponentTestTags.HEADER),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_REGULAR),
-  ) {
-    Image(
-        painter = painterResource(R.drawable.amber_icon),
-        contentDescription = "Amber logo",
-        modifier = Modifier.size(SURFACE_BIG),
-    )
-
-    AuthenticationText(
-        text = "Amber",
-        style = MaterialTheme.typography.titleLarge,
-    )
   }
 }
 
@@ -191,7 +161,7 @@ internal fun AuthenticationButton(
   Button(
       onClick = onClick,
       enabled = enabled,
-      modifier = modifier.fillMaxWidth().height(CAREGIVER_BUTTON_HEIGHT_MEDIUM),
+      modifier = modifier.fillMaxWidth().height(CAREGIVER_BUTTON_HEIGHT_BIG),
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
           ButtonDefaults.buttonColors(
@@ -251,7 +221,7 @@ internal fun TermsFooter(
     modifier: Modifier = Modifier,
 ) {
   AuthenticationText(
-      text = "By clicking continue, you agree to our Terms of Service and Privacy Policy",
+      text = "By signing in, you agree to our Terms of Service and Privacy Policy",
       textAlign = TextAlign.Center,
       modifier = modifier.fillMaxWidth().testTag(AuthenticationComponentTestTags.TERMS_FOOTER),
       style = MaterialTheme.typography.bodySmall,
