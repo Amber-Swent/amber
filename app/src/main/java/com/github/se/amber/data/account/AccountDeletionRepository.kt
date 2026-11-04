@@ -12,7 +12,12 @@ interface AccountDeletionRepository {
    * backend fails, nothing changes on the device and the user stays signed in, so they can try
    * again: deletion is safe to repeat.
    *
-   * @return An [AccountDeletionError]; success can only be seen with a fake [LocalAccountData].
+   * The backend needs a sign-in from the last 5 minutes, which most users won't have: call
+   * [com.github.se.amber.model.authentication.AuthRepository.reauthenticateWithGoogle] right before
+   * this, rather than waiting for [AccountDeletionError.ReauthenticationRequired].
+   *
+   * @return Only a failure, as an [AccountDeletionError]: on success the app restarts before this
+   *   returns.
    */
   suspend fun deleteAccount(): Result<Unit>
 
@@ -24,8 +29,8 @@ interface AccountDeletionRepository {
    *
    * Like [deleteAccount], this restarts the app once the device is cleared.
    *
-   * @return [AccountDeletionError.LocalDataNotCleared]; success can only be seen with a fake
-   *   [LocalAccountData].
+   * @return Only a failure, as [AccountDeletionError.LocalDataNotCleared]: on success the app
+   *   restarts before this returns.
    */
   suspend fun clearLocalData(): Result<Unit>
 
@@ -33,7 +38,9 @@ interface AccountDeletionRepository {
    * Finishes a deletion the app couldn't: it may have died during the call to the backend, or
    * before the device was cleared. If one was started and the account is gone, the device is
    * cleared and the app restarts. If the account still exists, or that can't be told offline,
-   * nothing happens and a later launch checks again: the backend may still be working on it.
+   * nothing happens and a later launch checks again: the backend may still be working on it. If
+   * clearing the device fails, the marker stays, so the next launch tries again; nothing is
+   * reported, as nobody is waiting for the result.
    */
   suspend fun finishInterruptedDeletion()
 }
