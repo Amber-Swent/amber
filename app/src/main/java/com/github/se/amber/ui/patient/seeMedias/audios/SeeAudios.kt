@@ -31,11 +31,19 @@ import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
+/** Test tags for the title and empty message on [SeeAudiosScreen]. */
 object SeeAudiosTestTags {
   const val NO_AUDIOS = "see_audios_no_audios"
   const val TITLE = "see_audios_title"
 }
 
+/**
+ * Displays the patient's audio screen. Only the empty state is available for now.
+ *
+ * @param audioViewModel provides the screen's UI state.
+ * @param onBackClick called when the top navigation action is selected.
+ * @param onTabSelected called when a bottom navigation tab is selected.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeeAudiosScreen(
@@ -93,6 +101,7 @@ fun SeeAudiosScreen(
   )
 }
 
+/** Preview of the empty audio screen using the Amber theme. */
 @Preview(showBackground = true)
 @Composable
 fun SeeAudiosScreenPreview() {
