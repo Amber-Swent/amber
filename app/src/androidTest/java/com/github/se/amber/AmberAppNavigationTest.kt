@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -112,9 +113,10 @@ class AmberAppNavigationTest {
 
   private fun click(tag: String) {
     // The screen can still be composing after a navigation, so the click target is not there yet.
+    // During the screen transition both screens show their own bottom bar, so wait for exactly one.
     composeRule.waitUntil(timeoutMillis = 5_000) {
       try {
-        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size == 1
       } catch (_: IllegalStateException) {
         false
       }
@@ -480,9 +482,9 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_TAB_PARAMETERS)
 
     Espresso.pressBack()
-    composeRule.waitForIdle()
 
-    // Home -> Upload -> Parameters -> back: we expect to land on Upload
-    assertRoute(CaregiverScreen.Upload.route)
+    // Home -> Upload -> Parameters -> back: we expect to land on Upload. System back is handled
+    // in a coroutine, so the pop can land after waitForIdle().
+    waitForRoute(CaregiverScreen.Upload.route)
   }
 }
