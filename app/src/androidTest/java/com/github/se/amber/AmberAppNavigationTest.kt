@@ -112,7 +112,8 @@ class AmberAppNavigationTest {
 
   private fun click(tag: String) {
     // The screen can still be composing after a navigation, so the click target is not there yet.
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    // A cold emulator can take longer than five seconds to publish that first frame.
+    composeRule.waitUntil(timeoutMillis = 15_000) {
       try {
         composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
       } catch (_: IllegalStateException) {
@@ -401,6 +402,7 @@ class AmberAppNavigationTest {
   @Test
   fun createInvitation_homeTab_navigatesToCaregiverHome() {
     launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
     goTo(CaregiverScreen.CreateInvitationCode.route)
 
     click(Tags.CAREGIVER_TAB_HOME)
