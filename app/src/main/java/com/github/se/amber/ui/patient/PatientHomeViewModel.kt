@@ -10,6 +10,7 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.offline.toLoadErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,7 +72,12 @@ class PatientHomeViewModel(
               },
               onFailure = { e ->
                 Log.e("PatientHomeViewModel", "Error fetching profile", e)
-                setErrorMsg("Failed to load the profile: ${e.message ?: "unknown error"}")
+                setErrorMsg(
+                    e.toLoadErrorMessage(
+                        "Failed to load the profile: ${e.message ?: "unknown error"}",
+                        showingSaved = _uiState.value.patientProfile.uid.isNotBlank(),
+                    )
+                )
               },
           )
     }

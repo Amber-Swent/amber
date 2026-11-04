@@ -105,6 +105,7 @@ class UploadPictureViewModelTest {
           circleRepo = circleRepo,
           pictureReader = pictureReader,
           placeRepo = placeRepo,
+          isOnline = { true },
       )
 
   private fun readyViewModel(): UploadPictureViewModel {

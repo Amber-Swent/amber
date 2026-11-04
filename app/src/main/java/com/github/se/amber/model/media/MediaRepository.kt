@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.model.media
 
 import com.github.se.amber.model.circle.CareCircle
@@ -102,6 +103,12 @@ interface MediaRepository {
    * whenever one is added, changes [SendState] or leaves the outbox (once sent or discarded).
    */
   fun observeOutbox(circleId: String): Flow<List<OutboxEntry>>
+
+  /**
+   * Whether any circle still has media on this phone that has not been sent. Emits again when that
+   * changes. Sign-out uses it to warn before [clearLocalMedia] deletes those media.
+   */
+  fun observeHasUnsent(): Flow<Boolean>
 
   /**
    * Puts the media [mediaId] of [circleId] whose send failed ([SendState.FAILED]) back to

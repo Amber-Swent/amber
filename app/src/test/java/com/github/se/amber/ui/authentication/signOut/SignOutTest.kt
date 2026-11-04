@@ -59,6 +59,16 @@ class SignOutScreenTest {
     composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SignOutTestTags.EXPLANATION).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SignOutTestTags.UNSENT_WARNING).assertDoesNotExist()
+  }
+
+  @Test
+  fun unsentMediaWarningIsDisplayedWhenTheOutboxIsNotEmpty() {
+    stateFlow.value = SignOutUIState(hasUnsentMedia = true)
+    setScreen()
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.UNSENT_WARNING).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SignOutTestTags.EXPLANATION).assertIsDisplayed()
   }
 
   @Test

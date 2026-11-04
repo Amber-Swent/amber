@@ -95,7 +95,7 @@ class MediaViewModelTest {
 
   // ---------- helpers ----------
 
-  private fun createViewModel(requiresContent: Boolean = true) =
+  private fun createViewModel(requiresContent: Boolean = true, isOnline: () -> Boolean = { true }) =
       FakeMediaViewModel(
           mediaRepo = mediaRepo,
           authRepo = authRepo,
@@ -103,6 +103,7 @@ class MediaViewModelTest {
           circleRepo = circleRepo,
           requiresContent = requiresContent,
           placeRepo = placeRepo,
+          isOnline = isOnline,
       )
 
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
@@ -116,8 +117,10 @@ class MediaViewModelTest {
   private fun readyViewModel(
       description: String = "A description",
       date: MemoryDate? = MemoryDate(2024, Month.MAY, 12),
+      isOnline: () -> Boolean = { true },
   ): FakeMediaViewModel {
-    val vm = createViewModel() // init loads the circle (Unconfined dispatcher: runs immediately)
+    val vm =
+        createViewModel(isOnline = isOnline) // init loads the circle (Unconfined: runs immediately)
     vm.setContent(contentFile)
     vm.setDescription(description)
     vm.setDate(date)
@@ -596,7 +599,16 @@ class MediaViewModelTest {
 
     vm.uploadMedia()
 
-    assertEquals(MediaEvent.Uploaded, vm.events.first())
+    assertEquals(MediaEvent.Uploaded(savedOffline = false), vm.events.first())
+  }
+
+  @Test
+  fun offlineUploadSaysItWillBeSharedLater() = runTest {
+    val vm = readyViewModel(isOnline = { false })
+
+    vm.uploadMedia()
+
+    assertEquals(MediaEvent.Uploaded(savedOffline = true), vm.events.first())
   }
 
   @Test
@@ -1455,6 +1467,7 @@ private class FakeMediaViewModel(
     profileRepo: ProfileRepository,
     circleRepo: CareCircleRepository,
     placeRepo: PlaceSearchRepository,
+    isOnline: () -> Boolean = { true },
     private val requiresContent: Boolean = true,
 ) :
     MediaViewModel<FakeMediaUIState>(
@@ -1464,6 +1477,7 @@ private class FakeMediaViewModel(
         profileRepo = profileRepo,
         circleRepo = circleRepo,
         placeRepo = placeRepo,
+        isOnline = isOnline,
     ) {
 
   fun setContent(file: File) {

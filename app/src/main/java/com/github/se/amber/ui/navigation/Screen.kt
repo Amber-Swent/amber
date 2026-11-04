@@ -114,6 +114,12 @@ sealed class CaregiverScreen(
           name = "Upload Audio",
       )
 
+  data object PendingUploads :
+      CaregiverScreen(
+          route = "caregiver_pending_uploads",
+          name = "Pending uploads",
+      )
+
   data object Parameters :
       CaregiverScreen(
           route = "parameters",

@@ -1,7 +1,9 @@
 // This code was written with the aid of AI
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
+import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
@@ -9,6 +11,8 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.offline.OFFLINE_SHOWING_SAVED
+import com.github.se.amber.ui.offline.OFFLINE_TRY_AGAIN
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -212,6 +216,43 @@ class SeePicturesViewModelTest {
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
     assertEquals("Failed to load the care circle: circle error", state.message)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
+  }
+
+  @Test
+  fun `network failure before anything is displayed asks to try again`() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.failure(ProfileReadError.Network)
+
+    val viewModel = createViewModel()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals(OFFLINE_TRY_AGAIN, state.message)
+  }
+
+  @Test
+  fun `network failure of the care circle asks to try again`() {
+    coEvery { circleRepository.getCircle("circle1") } returns
+        Result.failure(CareCircleError.Network)
+
+    val viewModel = createViewModel()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    assertEquals(OFFLINE_TRY_AGAIN, state.message)
+  }
+
+  @Test
+  fun `network failure after pictures are shown keeps them`() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(listOf(picture1))
+          throw ProfileReadError.Network
+        }
+
+    val viewModel = createViewModel()
+
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(listOf(picture1), state.allPictures)
+    assertEquals(OFFLINE_SHOWING_SAVED, state.errorMsg)
   }
 
   @Test

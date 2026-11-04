@@ -289,6 +289,8 @@ class MediaImageInstrumentedTest {
 
     override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = unused()
 
+    override fun observeHasUnsent(): Flow<Boolean> = unused()
+
     override suspend fun retrySend(circleId: String, mediaId: String) = unused()
 
     override suspend fun discardUnsent(circleId: String, mediaId: String) = unused()

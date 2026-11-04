@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -61,6 +62,7 @@ object UploadTestTags {
   const val TEXT_BUTTON = "upload_text_button"
   const val PICTURE_BUTTON = "upload_picture_button"
   const val AUDIO_BUTTON = "upload_audio_button"
+  const val PENDING_UPLOADS_BUTTON = "upload_pending_uploads_button"
 }
 
 /**
@@ -82,6 +84,7 @@ fun UploadScreen(
     onUploadTextClick: () -> Unit = {},
     onUploadPictureClick: () -> Unit = {},
     onUploadAudioClick: () -> Unit = {},
+    onPendingUploadsClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = { tab -> },
     checkout: () -> Unit = {},
 ) {
@@ -146,6 +149,14 @@ fun UploadScreen(
               text = "Upload Audio",
               description = "Audio",
               onClick = { onUploadAudioClick() },
+          )
+
+          DisplayButton(
+              modifier = Modifier.testTag(UploadTestTags.PENDING_UPLOADS_BUTTON),
+              icon = Icons.Outlined.CloudUpload,
+              text = "Pending uploads",
+              description = "Pending uploads",
+              onClick = { onPendingUploadsClick() },
           )
         }
       },

@@ -63,6 +63,7 @@ import com.github.se.amber.ui.caregiver.upload.AddPersonDialog
 import com.github.se.amber.ui.caregiver.upload.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.media.DisplayLocation
 import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
+import com.github.se.amber.ui.caregiver.upload.media.SAVED_OFFLINE_MESSAGE
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.navigation.TopNavigationAction
@@ -137,7 +138,12 @@ fun UploadPictureScreen(
   LaunchedEffect(Unit) {
     viewModel.events.collect { event ->
       when (event) {
-        MediaEvent.Uploaded -> currentOnUpload()
+        is MediaEvent.Uploaded -> {
+          if (event.savedOffline) {
+            Toast.makeText(context, SAVED_OFFLINE_MESSAGE, Toast.LENGTH_LONG).show()
+          }
+          currentOnUpload()
+        }
       }
     }
   }

@@ -207,6 +207,22 @@ class MediaRepositoryFirebaseTest {
   }
 
   @Test
+  fun observeHasUnsentFollowsEntriesOfEveryCircle() = runTest {
+    val repository = newRepository()
+    assertFalse(repository.observeHasUnsent().first())
+
+    repository.addMedia(c1, picture("c1", "m1"), source())
+    assertTrue(repository.observeHasUnsent().first())
+
+    repository.addMedia(c2, text.copy(id = "t2"), null)
+    repository.discardUnsent("c1", "m1")
+    assertTrue(repository.observeHasUnsent().first())
+
+    repository.discardUnsent("c2", "t2")
+    assertFalse(repository.observeHasUnsent().first())
+  }
+
+  @Test
   fun discardUnsentCancelsItsSendAndRemovesItAndItsFile() = runTest {
     val repository = newRepository()
     repository.addMedia(c1, picture("c1", "m1"), source())

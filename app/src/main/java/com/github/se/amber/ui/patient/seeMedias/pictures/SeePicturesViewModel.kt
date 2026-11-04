@@ -14,6 +14,7 @@ import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.offline.toLoadErrorMessage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -105,7 +106,12 @@ class SeePicturesViewModel(
       val profile =
           profileRepository.getCurrentProfile().getOrElse { e ->
             Log.e(TAG, "Error fetching profile", e)
-            setBlockingErrorMsg("Failed to load the profile: ${e.message}")
+            setBlockingErrorMsg(
+                e.toLoadErrorMessage(
+                    "Failed to load the profile: ${e.message}",
+                    showingSaved = false,
+                )
+            )
             return@launch
           }
               ?: run {
@@ -124,7 +130,12 @@ class SeePicturesViewModel(
       val circle =
           circleRepository.getCircle(circleId).getOrElse { e ->
             Log.e(TAG, "Error fetching care circle", e)
-            setBlockingErrorMsg("Failed to load the care circle: ${e.message}")
+            setBlockingErrorMsg(
+                e.toLoadErrorMessage(
+                    "Failed to load the care circle: ${e.message}",
+                    showingSaved = false,
+                )
+            )
             return@launch
           }
 
@@ -133,7 +144,14 @@ class SeePicturesViewModel(
       mediaFlow
           .catch { e ->
             Log.e(TAG, "Error observing media", e)
-            setNonBlockingErrorMsg("Failed to load media: ${e.message}")
+            setNonBlockingErrorMsg(
+                e.toLoadErrorMessage(
+                    "Failed to load media: ${e.message}",
+                    showingSaved =
+                        _uiState.value is SeePicturesUIState.Content ||
+                            _uiState.value is SeePicturesUIState.Empty,
+                )
+            )
           }
           .collect { medias ->
             val pictures = medias.filterIsInstance<MediaItem.Picture>()
