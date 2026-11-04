@@ -5,7 +5,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.net.toUri
 import com.github.se.amber.data.media.MAX_FILE_BYTES
@@ -21,6 +20,12 @@ import kotlinx.coroutines.withContext
  * Reads the audio files the user picks, through Android's content resolver. Each one is copied into
  * an `audio/picked` folder of the app's cache, and its duration is read with
  * [MediaMetadataRetriever].
+ *
+ * Whether it is an .m4a: a known type can refuse early, and the content is then checked in every
+ * case. The type the providing app gives is checked before the copy, so a file it says isn't an
+ * .m4a (e.g. an MP3) isn't copied for nothing. Then [MediaMetadataRetriever] reads the type from
+ * the file's content, which doesn't depend on its name or on the app, so an MP3 renamed `.m4a` is
+ * refused even when the app gives no type.
  *
  * The files left in that folder by a previous run of the app are deleted on the first [read]. It
  * uses its own folder, so this can't delete a recording waiting to be uploaded.
@@ -59,19 +64,22 @@ class AndroidSelectedAudioReader(
   }
 
   /**
-   * Checks the type, copies the audio into a new file of the folder and reads its duration. On any
-   * failure, the file is deleted and the error becomes an [IllegalArgumentException], as the
-   * contract promises (a cancellation stays one). This includes the content resolver's own errors,
-   * e.g. a [SecurityException] when the app may no longer read the file.
+   * Checks the type the providing app gives, copies the audio into a new file of the folder, then
+   * checks its content and reads its duration (see the class documentation). On any failure, the
+   * file is deleted and the error becomes an [IllegalArgumentException], as the contract promises
+   * (a cancellation stays one). This includes the content resolver's own errors, e.g. a
+   * [SecurityException] when the app may no longer read the file.
    */
   private suspend fun readNow(uri: Uri): LocalAudio {
     var file: File? = null
     try {
       val resolver = appContext.contentResolver
-      require(isM4a(resolver, uri)) { "The picked audio isn't an .m4a file" }
+      val type = resolver.getType(uri)
+      // null or UNKNOWN_TYPE means the app doesn't know the type, so only the content decides
+      require(type == null || type == UNKNOWN_TYPE || type in M4A_TYPES) { NOT_M4A }
       file = File.createTempFile("picked_", ".m4a", prepareDirectory())
       copy(resolver, uri, file)
-      return LocalAudio(file, readDurationMs(file))
+      return LocalAudio(file, readM4aDurationMs(file))
     } catch (e: Exception) {
       file?.let(::deleteOrWarn)
       throw when (e) {
@@ -81,22 +89,6 @@ class AndroidSelectedAudioReader(
       }
     }
   }
-
-  /**
-   * Whether the audio is an .m4a: by its MIME type, or by its name only when the app that provides
-   * it gives no real type. A known type wins, so an MP3 named .m4a is refused.
-   */
-  private fun isM4a(resolver: ContentResolver, uri: Uri): Boolean {
-    val type = resolver.getType(uri)
-    if (type != null && type != UNKNOWN_TYPE) return type in M4A_TYPES
-    return displayName(resolver, uri).orEmpty().endsWith(".m4a", ignoreCase = true)
-  }
-
-  /** The file name the providing app shows for the audio, or null if it gives none. */
-  private fun displayName(resolver: ContentResolver, uri: Uri): String? =
-      resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-        if (cursor.moveToFirst()) cursor.getString(0) else null
-      }
 
   /**
    * Copies the audio into [file], giving up as soon as it is bigger than [maxBytes], or when the
@@ -121,14 +113,17 @@ class AndroidSelectedAudioReader(
   }
 
   /**
-   * Reads how long [file] lasts from its metadata.
+   * Checks from its content that [file] is an .m4a, and reads how long it lasts from its metadata.
    *
-   * @throws IllegalArgumentException if it has no duration, or a zero one: it isn't playable audio.
+   * @throws IllegalArgumentException if its content isn't an .m4a, or it has no duration or a zero
+   *   one: it isn't playable audio.
    */
-  private fun readDurationMs(file: File): Long {
+  private fun readM4aDurationMs(file: File): Long {
     val retriever = MediaMetadataRetriever()
     try {
       retriever.setDataSource(file.path)
+      val contentType = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
+      require(contentType in M4A_TYPES) { NOT_M4A }
       val durationMs =
           retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
       require(durationMs != null && durationMs > 0) { "The picked audio has no duration" }
@@ -166,10 +161,9 @@ class AndroidSelectedAudioReader(
     private const val PICKED_DIR = "audio/picked"
     private const val BUFFER_BYTES = 64 * 1024
 
+    private const val NOT_M4A = "The picked audio isn't an .m4a file"
+
     /** The type an app gives when it doesn't know the file's type. */
     private const val UNKNOWN_TYPE = "application/octet-stream"
-
-    /** The MIME types .m4a files are given, depending on the app that provides them. */
-    private val M4A_TYPES = setOf("audio/mp4", "audio/x-m4a", "audio/m4a")
   }
 }

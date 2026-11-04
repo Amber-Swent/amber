@@ -3,10 +3,9 @@ package com.github.se.amber.data.media.audio
 
 import android.content.ContentResolver
 import android.content.Context
-import android.database.MatrixCursor
 import android.media.MediaMetadataRetriever
-import android.provider.OpenableColumns
 import android.util.Log
+import com.github.se.amber.data.media.MAX_FILE_BYTES
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -60,6 +59,9 @@ class AndroidSelectedAudioReaderTest {
   /** What the mocked retriever reads as the duration. */
   private var duration: String? = "3000"
 
+  /** What the mocked retriever reads as the type, from the file's content. */
+  private var contentType: String? = "audio/mp4"
+
   private val testScope = TestScope()
 
   @Before
@@ -69,7 +71,6 @@ class AndroidSelectedAudioReaderTest {
 
     resolver = mockk()
     every { resolver.getType(any()) } returns "audio/mp4"
-    every { resolver.query(any(), any(), any(), any(), any()) } returns null
     every { resolver.openInputStream(any()) } answers { ByteArrayInputStream(audioBytes) }
 
     val appContext = mockk<Context>()
@@ -84,6 +85,10 @@ class AndroidSelectedAudioReaderTest {
       anyConstructed<MediaMetadataRetriever>()
           .extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
     } answers { duration }
+    every {
+      anyConstructed<MediaMetadataRetriever>()
+          .extractMetadata(MediaMetadataRetriever.METADATA_KEY_MIMETYPE)
+    } answers { contentType }
     every { anyConstructed<MediaMetadataRetriever>().release() } just runs
   }
 
@@ -94,6 +99,26 @@ class AndroidSelectedAudioReaderTest {
 
   private fun reader(maxBytes: Long = 10_000) =
       AndroidSelectedAudioReader(context, StandardTestDispatcher(testScope.testScheduler), maxBytes)
+
+  /** The reader the app uses, with the real limit. */
+  private fun defaultReader() =
+      AndroidSelectedAudioReader(context, StandardTestDispatcher(testScope.testScheduler))
+
+  /** A stream of exactly [byteCount] zeros, served without holding them in memory. */
+  private fun zeros(byteCount: Long): InputStream =
+      object : InputStream() {
+        private var left = byteCount
+
+        override fun read(): Int = if (left-- > 0) 0 else -1
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+          if (left == 0L) return -1
+          val served = minOf(len.toLong(), left).toInt()
+          b.fill(0, off, off + served)
+          left -= served
+          return served
+        }
+      }
 
   private fun assertRejected(reader: AndroidSelectedAudioReader = reader()) = testScope.runTest {
     try {
@@ -132,30 +157,50 @@ class AndroidSelectedAudioReaderTest {
   }
 
   @Test
-  fun acceptsAnM4aFileByItsNameWhenTheTypeIsUnknown() = testScope.runTest {
-    every { resolver.getType(any()) } returns null
-    every { resolver.query(any(), any(), any(), any(), any()) } answers
-        {
-          MatrixCursor(arrayOf(OpenableColumns.DISPLAY_NAME)).apply { addRow(arrayOf("a.M4A")) }
-        }
+  fun acceptsEachM4aType() = testScope.runTest {
+    for (type in listOf("audio/mp4", "audio/x-m4a", "audio/m4a")) {
+      every { resolver.getType(any()) } returns type
 
-    assertEquals(3_000L, reader().read(uri).durationMs)
+      assertEquals("for $type", 3_000L, reader().read(uri).durationMs)
+    }
   }
 
   @Test
-  fun acceptsTheOtherM4aType() = testScope.runTest {
-    every { resolver.getType(any()) } returns "audio/x-m4a"
+  fun acceptsAnAudioWithoutATypeWhenItsContentIsM4a() = testScope.runTest {
+    for (type in listOf(null, "application/octet-stream")) {
+      every { resolver.getType(any()) } returns type
 
-    assertEquals(3_000L, reader().read(uri).durationMs)
+      assertEquals("for $type", 3_000L, reader().read(uri).durationMs)
+    }
   }
 
   @Test
-  fun rejectsAnotherType() {
+  fun rejectsAnotherTypeBeforeCopyingIt() {
     every { resolver.getType(any()) } returns "audio/mpeg"
-    every { resolver.query(any(), any(), any(), any(), any()) } answers
-        {
-          MatrixCursor(arrayOf(OpenableColumns.DISPLAY_NAME)).apply { addRow(arrayOf("song.mp3")) }
-        }
+
+    assertRejected()
+    verify(exactly = 0) { resolver.openInputStream(any()) }
+  }
+
+  @Test
+  fun rejectsAnAudioWithoutATypeWhenItsContentIsntM4a() {
+    every { resolver.getType(any()) } returns null
+    // e.g. an MP3 renamed song.m4a
+    contentType = "audio/mpeg"
+
+    assertRejected()
+  }
+
+  @Test
+  fun rejectsAnAudioWhoseTypeSaysM4aButWhoseContentIsnt() {
+    contentType = "audio/mpeg"
+
+    assertRejected()
+  }
+
+  @Test
+  fun rejectsAnAudioWhoseContentHasNoType() {
+    contentType = null
 
     assertRejected()
   }
@@ -217,6 +262,20 @@ class AndroidSelectedAudioReaderTest {
   }
 
   @Test
+  fun acceptsAnAudioOfExactlyTheUploadLimit() = testScope.runTest {
+    every { resolver.openInputStream(any()) } answers { zeros(MAX_FILE_BYTES) }
+
+    assertEquals(MAX_FILE_BYTES, defaultReader().read(uri).file.length())
+  }
+
+  @Test
+  fun rejectsAnAudioOneByteOverTheUploadLimit() {
+    every { resolver.openInputStream(any()) } answers { zeros(MAX_FILE_BYTES + 1) }
+
+    assertRejected(defaultReader())
+  }
+
+  @Test
   fun leftoversAreDeletedOnFirstUseOnly() = testScope.runTest {
     pickedDir.mkdirs()
     val leftover = File(pickedDir, "picked_old.m4a").apply { writeText("old") }
@@ -235,28 +294,6 @@ class AndroidSelectedAudioReaderTest {
     every { resolver.getType(any()) } throws SecurityException("permission revoked")
 
     assertRejected()
-  }
-
-  @Test
-  fun rejectsAnotherTypeEvenWithAnM4aName() {
-    every { resolver.getType(any()) } returns "audio/mpeg"
-    every { resolver.query(any(), any(), any(), any(), any()) } answers
-        {
-          MatrixCursor(arrayOf(OpenableColumns.DISPLAY_NAME)).apply { addRow(arrayOf("song.m4a")) }
-        }
-
-    assertRejected()
-  }
-
-  @Test
-  fun acceptsAnM4aNameWhenTheTypeIsTheUnknownOne() = testScope.runTest {
-    every { resolver.getType(any()) } returns "application/octet-stream"
-    every { resolver.query(any(), any(), any(), any(), any()) } answers
-        {
-          MatrixCursor(arrayOf(OpenableColumns.DISPLAY_NAME)).apply { addRow(arrayOf("a.m4a")) }
-        }
-
-    assertEquals(3_000L, reader().read(uri).durationMs)
   }
 
   @Test
