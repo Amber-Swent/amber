@@ -93,15 +93,15 @@ fun UploadAudioScreen(
   // FIXME : will be unExtract once the ViewModel is implemented.
   //  for the moment, I let it to avoid forgetting
 
-//      // The upload is over: leave the screen only once it really succeeded
-//      val currentOnUpload by rememberUpdatedState(onUpload)
-//      LaunchedEffect(Unit) {
-//          viewModel.events.collect { event ->
-//              when (event) {
-//                  UploadAudioEvent.Uploaded -> currentOnUpload()
-//              }
-//          }
-//      }
+  //      // The upload is over: leave the screen only once it really succeeded
+  //      val currentOnUpload by rememberUpdatedState(onUpload)
+  //      LaunchedEffect(Unit) {
+  //          viewModel.events.collect { event ->
+  //              when (event) {
+  //                  UploadAudioEvent.Uploaded -> currentOnUpload()
+  //              }
+  //          }
+  //      }
 
   Scaffold(
       topBar = {
