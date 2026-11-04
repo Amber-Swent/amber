@@ -324,7 +324,7 @@ fun DisplayBoxWithIconText(
 /** Preview of [DisplayBoxWithIconText] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun DisplayBoxWithIconTextPreview() {
+internal fun DisplayBoxWithIconTextPreview() {
   AmberAppTheme { DisplayBoxWithIconText() }
 }
 

@@ -389,15 +389,15 @@ class DisplayBoxWithIconTextTest {
 
   // ----- Default values (what the preview renders) -----
 
-  private fun setPreviewLikeBox() {
+  private fun setPreviewBox() {
     composeTestRule.setContent {
-      AmberAppTheme { DisplayBoxWithIconText(modifier = Modifier.testTag(containerTag)) }
+      DisplayBoxWithIconTextPreview()
     }
   }
 
   @Test
   fun preview_elementAreDisplayed() {
-    setPreviewLikeBox()
+    setPreviewBox()
     composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
     composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
   }
