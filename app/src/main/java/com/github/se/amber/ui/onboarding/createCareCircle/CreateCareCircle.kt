@@ -12,11 +12,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,10 +33,10 @@ import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.onboarding.AmberHeader
+import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Stable tags for locating the form controls and validation message in UI tests. */
@@ -109,43 +106,15 @@ fun CreateCareCircleScreen(
           color = MaterialTheme.colorScheme.primary,
       )
 
-      OutlinedTextField(
+      OnboardingOutlinedTextField(
           value = uiState.name,
           onValueChange = viewModel::onNameChange,
+          label = "Circle name",
+          modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_FIELD),
+          placeholder = "Name your care circle",
+          error = uiState.nameError,
+          errorTestTag = CreateCareCircleTestTags.NAME_ERROR,
           enabled = !uiState.isLoading && !uiState.isCreated,
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).testTag(CreateCareCircleTestTags.NAME_FIELD),
-          label = { Text("Circle name", style = MaterialTheme.typography.labelMedium) },
-          placeholder = {
-            Text("Name your care circle", style = MaterialTheme.typography.labelMedium)
-          },
-          singleLine = true,
-          supportingText =
-              uiState.nameError?.let { error ->
-                {
-                  Text(
-                      text = error,
-                      style = MaterialTheme.typography.bodySmall,
-                      color = MaterialTheme.colorScheme.error,
-                      modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_ERROR),
-                  )
-                }
-              },
-          isError = uiState.nameError != null,
-          shape = RoundedCornerShape(ROUND_CORNER),
-          colors =
-              OutlinedTextFieldDefaults.colors(
-                  focusedBorderColor = MaterialTheme.colorScheme.outline,
-                  unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                  focusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                  unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
-                  cursorColor = MaterialTheme.colorScheme.onSurface,
-                  focusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
-                  unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurface,
-                  errorBorderColor = MaterialTheme.colorScheme.error,
-                  errorLabelColor = MaterialTheme.colorScheme.error,
-                  errorCursorColor = MaterialTheme.colorScheme.error,
-                  errorSupportingTextColor = MaterialTheme.colorScheme.error,
-              ),
       )
 
       DisplayCaregiverButton(

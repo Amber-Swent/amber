@@ -90,18 +90,18 @@ fun UploadAudioScreen(
     }
   }
 
-  // FIXME : will be unExtract once the global ViewModel is implemented.
+  // FIXME : will be unExtract once the ViewModel is implemented.
   //  for the moment, I let it to avoid forgetting
 
-  //    // The upload is over: leave the screen only once it really succeeded
-  //    val currentOnUpload by rememberUpdatedState(onUpload)
-  //    LaunchedEffect(Unit) {
-  //        viewModel.events.collect { event ->
-  //            when (event) {
-  //                UploadAudioEvent.Uploaded -> currentOnUpload()
-  //            }
-  //        }
-  //    }
+//      // The upload is over: leave the screen only once it really succeeded
+//      val currentOnUpload by rememberUpdatedState(onUpload)
+//      LaunchedEffect(Unit) {
+//          viewModel.events.collect { event ->
+//              when (event) {
+//                  UploadAudioEvent.Uploaded -> currentOnUpload()
+//              }
+//          }
+//      }
 
   Scaffold(
       topBar = {
@@ -151,7 +151,7 @@ fun UploadAudioScreen(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
                     icon = Icons.Outlined.Mic,
                     contentDescription = "Micro",
-                    label = "Click to record an Audio",
+                    text = "Click to record an Audio",
                     onClick = viewModel::startRecording,
                 )
           }
@@ -175,9 +175,10 @@ fun UploadAudioScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-          // FIXME: will be unExtract once the global ViewModel is implemented.
+          // FIXME: will be unExtract once the global Location logic is implemented.
+          //  This will come in another PR.
           //  I don't want to create a new UploadAudioLocation file that duplicate the
-          // UploadPictureLocation.
+          //  UploadPictureLocation.
 
           //          DisplayLocation(
           //              savedPlaceNamesById = placeOptions,

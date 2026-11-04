@@ -24,8 +24,9 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import io.mockk.every
@@ -37,10 +38,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-/**
- * Compose tests for the add-person flow on
- * [com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen].
- */
+/** Compose tests for the add-person flow on [UploadPictureScreen]. */
 class AddPersonDialogTest {
   @get:Rule val composeTestRule = createComposeRule()
 
@@ -65,14 +63,16 @@ class AddPersonDialogTest {
     composeTestRule.setContent { UploadPictureScreen(viewModel = viewModel) }
   }
 
+  /** Changes the fields every upload screen shares, keeping the picture ones. */
+  private fun updateCommon(transform: (CommonMediaUIState) -> CommonMediaUIState) {
+    uiStateFlow.value = uiStateFlow.value.let { it.withCommon(transform(it.common)) }
+  }
+
   // ---------- add person dialog ----------
 
   @Test
   fun addPersonChipOpensDialog() {
-    every { viewModel.onAddPerson() } answers
-        {
-          uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true)
-        }
+    every { viewModel.onAddPerson() } answers { updateCommon { it.copy(isAddPersonOpen = true) } }
     launchScreen()
 
     composeTestRule
@@ -86,10 +86,10 @@ class AddPersonDialogTest {
 
   @Test
   fun closeButtonDismissesAddPersonDialog() {
-    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true)
+    updateCommon { it.copy(isAddPersonOpen = true) }
     every { viewModel.dismissAddPerson() } answers
         {
-          uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = false)
+          updateCommon { it.copy(isAddPersonOpen = false) }
         }
     launchScreen()
 
@@ -101,7 +101,7 @@ class AddPersonDialogTest {
 
   @Test
   fun addPersonSaveButtonCallsViewModelForValidName() {
-    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "Anne")
+    updateCommon { it.copy(isAddPersonOpen = true, personFirstName = "Anne") }
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
@@ -111,13 +111,14 @@ class AddPersonDialogTest {
 
   @Test
   fun addPersonSaveTrimsNames() {
-    uiStateFlow.value =
-        uiStateFlow.value.copy(
-            isAddPersonOpen = true,
-            personFirstName = "  Anne  ",
-            personLastName = "  Dupont  ",
-            personNickname = "  Nana  ",
-        )
+    updateCommon {
+      it.copy(
+          isAddPersonOpen = true,
+          personFirstName = "  Anne  ",
+          personLastName = "  Dupont  ",
+          personNickname = "  Nana  ",
+      )
+    }
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
@@ -130,7 +131,7 @@ class AddPersonDialogTest {
 
   @Test
   fun addPersonSaveButtonIsDisabledForBlankName() {
-    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "  ")
+    updateCommon { it.copy(isAddPersonOpen = true, personFirstName = "  ") }
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
@@ -203,8 +204,8 @@ class AddPersonDialogTest {
         .performTextInput("Anne")
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-    composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
-    val savedId = viewModel.uiState.value.shownIds.single()
+    composeTestRule.waitUntil(10_000) { viewModel.uiState.value.common.shownIds.isNotEmpty() }
+    val savedId = viewModel.uiState.value.common.shownIds.single()
     composeTestRule.onNode(hasText("Anne") and hasClickAction()).assertIsSelected()
     Assert.assertEquals("Anne", fakeCircleRepo.circle.people[savedId]?.firstName)
   }

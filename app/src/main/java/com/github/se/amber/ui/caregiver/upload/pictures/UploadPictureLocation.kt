@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.media.MIN_PLACE_QUERY_LENGTH
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import com.github.se.amber.ui.caregiver.upload.media.selectableChipColors
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
@@ -69,7 +71,7 @@ internal const val PLACE_SEARCH_FAILED_HINT =
 @Composable
 internal fun DisplayLocation(
     savedPlaceNamesById: Map<String, String> = emptyMap(),
-    state: PictureLocationUIState = PictureLocationUIState(),
+    state: MediaLocationUIState = MediaLocationUIState(),
     onSavedPlaceClick: (String) -> Unit = {},
     onQueryChange: (String) -> Unit = {},
     onSuggestionClick: (GeoLocation) -> Unit = {},

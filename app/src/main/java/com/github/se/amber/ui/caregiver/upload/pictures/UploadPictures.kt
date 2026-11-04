@@ -3,7 +3,7 @@
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -42,14 +42,12 @@ import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.SELECT_DATE
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialog
 import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolved
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.SELECT_DATE
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags.UPLOAD_BUTTON
-import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocation
-import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureEvent
-import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -89,7 +87,7 @@ fun UploadPictureScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
   val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
-  val errorMessage = uiState.errorMsg
+  val errorMessage = uiState.common.errorMsg
   val context = LocalContext.current
 
   val galleryLauncher =
@@ -109,7 +107,7 @@ fun UploadPictureScreen(
   LaunchedEffect(Unit) {
     viewModel.events.collect { event ->
       when (event) {
-        UploadPictureEvent.Uploaded -> currentOnUpload()
+        MediaEvent.Uploaded -> currentOnUpload()
       }
     }
   }
@@ -140,7 +138,7 @@ fun UploadPictureScreen(
               modifier = Modifier.testTag(UploadPictureScreenTestTags.TAKE_PICTURE),
               icon = Icons.Outlined.PhotoCamera,
               contentDescription = "Photo",
-              label = "Take a new Picture",
+              text = "Take a new Picture",
               onClick = {},
               // TODO: implement the Take a Picture function,
               //  once the Backend as been set up for it - M2
@@ -151,7 +149,7 @@ fun UploadPictureScreen(
               modifier = Modifier.testTag(UploadPictureScreenTestTags.SELECT_PICTURE),
               icon = Icons.Outlined.Photo,
               contentDescription = "Photo",
-              label = "Click to choose an existing Picture",
+              text = "Click to choose an existing Picture",
               onClick = {
                 galleryLauncher.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -171,7 +169,7 @@ fun UploadPictureScreen(
           // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
-              value = uiState.description,
+              value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
               label = "Description",
               placeholder = "Enter a description of the picture",
@@ -182,14 +180,14 @@ fun UploadPictureScreen(
 
           DisplayWhoIsInvolved(
               options = options,
-              shownIds = uiState.shownIds,
+              shownIds = uiState.common.shownIds,
               toggleShownId = viewModel::toggleShownId,
               onAddPerson = viewModel::onAddPerson,
           )
 
           DisplayLocation(
               savedPlaceNamesById = placeOptions,
-              state = uiState.location,
+              state = uiState.common.location,
               onSavedPlaceClick = viewModel::selectPlace,
               onQueryChange = viewModel::setPlaceQuery,
               onSuggestionClick = viewModel::selectPlace,
@@ -198,7 +196,7 @@ fun UploadPictureScreen(
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
-              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
+              initialDate = uiState.common.date ?: MemoryDate(LocalDate.now().year),
               onDateSelected = viewModel::setDate,
           )
         }
@@ -206,24 +204,24 @@ fun UploadPictureScreen(
       // Pinned below the form so it stays reachable however long the form grows
       bottomBar = {
         DisplayCaregiverButton(
-            onClick = { viewModel.uploadPicture() },
+            onClick = { viewModel.uploadMedia() },
             modifier =
                 Modifier.navigationBarsPadding()
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
+            text = if (uiState.common.isUploading) "Uploading…" else "Upload Picture",
             widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
         )
       },
   )
 
   AddPersonDialog(
-      isOpen = uiState.isAddPersonOpen,
-      isAddingPerson = uiState.isAddingPerson,
-      firstName = uiState.personFirstName,
-      lastName = uiState.personLastName,
-      nickname = uiState.personNickname,
+      isOpen = uiState.common.isAddPersonOpen,
+      isAddingPerson = uiState.common.isAddingPerson,
+      firstName = uiState.common.personFirstName,
+      lastName = uiState.common.personLastName,
+      nickname = uiState.common.personNickname,
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,
