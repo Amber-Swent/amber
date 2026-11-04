@@ -114,7 +114,7 @@ fun UploadPictureScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
   val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
-  val errorMessage = uiState.errorMsg
+  val errorMessage = uiState.common.errorMsg
   val context = LocalContext.current
 
   val galleryLauncher =
@@ -196,7 +196,7 @@ fun UploadPictureScreen(
           // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
-              value = uiState.description,
+              value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
               label = "Description",
               placeholder = "Enter a description of the picture",
@@ -207,14 +207,14 @@ fun UploadPictureScreen(
 
           DisplayWhoIsInvolved(
               options = options,
-              shownIds = uiState.shownIds,
+              shownIds = uiState.common.shownIds,
               toggleShownId = viewModel::toggleShownId,
               onAddPerson = viewModel::onAddPerson,
           )
 
           DisplayLocation(
               savedPlaceNamesById = placeOptions,
-              state = uiState.location,
+              state = uiState.common.location,
               onSavedPlaceClick = viewModel::selectPlace,
               onQueryChange = viewModel::setPlaceQuery,
               onSuggestionClick = viewModel::selectPlace,
@@ -223,7 +223,7 @@ fun UploadPictureScreen(
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
-              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
+              initialDate = uiState.common.date ?: MemoryDate(LocalDate.now().year),
               onDateSelected = viewModel::setDate,
           )
         }
@@ -237,18 +237,18 @@ fun UploadPictureScreen(
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.isUploading) "Uploading…" else "Upload Picture",
+            text = if (uiState.common.isUploading) "Uploading…" else "Upload Picture",
             widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
         )
       },
   )
 
   AddPersonDialog(
-      isOpen = uiState.isAddPersonOpen,
-      isAddingPerson = uiState.isAddingPerson,
-      firstName = uiState.personFirstName,
-      lastName = uiState.personLastName,
-      nickname = uiState.personNickname,
+      isOpen = uiState.common.isAddPersonOpen,
+      isAddingPerson = uiState.common.isAddingPerson,
+      firstName = uiState.common.personFirstName,
+      lastName = uiState.common.personLastName,
+      nickname = uiState.common.personNickname,
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,

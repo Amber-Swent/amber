@@ -126,72 +126,67 @@ data class MediaLocationUIState(
 }
 
 /**
- * What every upload screen state (text, picture, audio) holds. Each screen adds its own fields
- * (e.g. the picture file) in a data class implementing this interface.
+ * What every upload screen state (text, picture, audio) holds. A screen state keeps it in one
+ * property, `common`, next to its own fields (e.g. the picture file).
  *
- * A [MediaViewModel] can't call `copy` on a state it knows only through this interface, so the
- * implementing data class forwards [copyMedia] to its own `copy`:
+ * @param description The description entered for the media.
+ * @param date The date associated with the media, if one was selected.
+ * @param location Where the media was made: the place search and the picked place.
+ * @param shownIds The IDs of the people tagged in the media.
+ * @param isUploading Whether an upload is currently in progress.
+ * @param errorMsg The error message to display, if any.
+ * @param isAddPersonOpen Whether the add-person dialog is open.
+ * @param isAddingPerson Whether the person typed in the add-person dialog is being saved.
+ * @param personFirstName The first name typed in the add-person dialog.
+ * @param personLastName The last name typed in the add-person dialog.
+ * @param personNickname The nickname typed in the add-person dialog.
+ */
+data class CommonMediaUIState(
+    val description: String = "",
+    val date: MemoryDate? = null,
+    val location: MediaLocationUIState = MediaLocationUIState(),
+    val shownIds: Set<String> = emptySet(),
+    val isUploading: Boolean = false,
+    val errorMsg: String? = null,
+    val isAddPersonOpen: Boolean = false,
+    val isAddingPerson: Boolean = false,
+    val personFirstName: String = "",
+    val personLastName: String = "",
+    val personNickname: String = "",
+) {
+  /**
+   * Whether the common fields allow an upload: a description, a date, a valid place, and no upload
+   * already in progress. A screen state adds the check of its own content.
+   */
+  val canUpload: Boolean
+    get() = description.isNotBlank() && date != null && location.hasValidPlace && !isUploading
+}
+
+/**
+ * The state of an upload screen (text, picture, audio): the fields they share, in [common], and the
+ * ones of the kind of media, in the implementing data class.
+ *
+ * A [MediaViewModel] knows its state only through this interface, so it can't call the `copy` of
+ * the data class. The data class forwards [withCommon] to it:
  * ```
- * override fun copyMedia(description: String, date: MemoryDate?, ...) =
- *     copy(description = description, date = date, ...)
+ * override fun withCommon(common: CommonMediaUIState) = copy(common = common)
  * ```
  *
- * @param S The implementing state type, returned by [copyMedia].
+ * @param S The implementing state type, returned by [withCommon].
  */
 interface MediaUIState<S : MediaUIState<S>> {
-  /** The description entered for the media. */
-  val description: String
-
-  /** The date associated with the media, if one was selected. */
-  val date: MemoryDate?
-
-  /** Where the media was made: the place search and the picked place. */
-  val location: MediaLocationUIState
-
-  /** The IDs of the people tagged in the media. */
-  val shownIds: Set<String>
-
-  /** Whether an upload is currently in progress. */
-  val isUploading: Boolean
-
-  /** The error message to display, if any. */
-  val errorMsg: String?
-
-  /** Whether the add-person dialog is open. */
-  val isAddPersonOpen: Boolean
-
-  /** Whether the person typed in the add-person dialog is being saved. */
-  val isAddingPerson: Boolean
-
-  /** The first name typed in the add-person dialog. */
-  val personFirstName: String
-
-  /** The last name typed in the add-person dialog. */
-  val personLastName: String
-
-  /** The nickname typed in the add-person dialog. */
-  val personNickname: String
+  /** The fields shared by every upload screen. */
+  val common: CommonMediaUIState
 
   /** Whether everything needed to upload is there: the media's content and the common fields. */
   val canUpload: Boolean
 
   /**
-   * Copies this state with the given common fields changed, keeping the fields specific to the
-   * media. It is the `copy` of the implementing data class, as seen from [MediaViewModel].
+   * Copies this state with [common] replaced, keeping the fields specific to the media.
+   *
+   * @param common The new common fields.
    */
-  fun copyMedia(
-      description: String = this.description,
-      date: MemoryDate? = this.date,
-      location: MediaLocationUIState = this.location,
-      shownIds: Set<String> = this.shownIds,
-      isUploading: Boolean = this.isUploading,
-      errorMsg: String? = this.errorMsg,
-      isAddPersonOpen: Boolean = this.isAddPersonOpen,
-      isAddingPerson: Boolean = this.isAddingPerson,
-      personFirstName: String = this.personFirstName,
-      personLastName: String = this.personLastName,
-      personNickname: String = this.personNickname,
-  ): S
+  fun withCommon(common: CommonMediaUIState): S
 }
 
 /** The checks [MediaViewModel.uploadMedia] runs before uploading. */
@@ -239,18 +234,22 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   val uiState: StateFlow<S> = _uiState.asStateFlow()
   private val _careCircle = MutableStateFlow<CareCircle?>(null)
   val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
-  // uid -> Person of each circle member whose profile was read; null while the profiles load
+  /** uid -> Person of each circle member whose profile was read; null while the profiles load */
   private val _members = MutableStateFlow<Map<String, Person>?>(null)
-  // people saved by the add-person dialog before the circle arrived, keyed by id
+  /** people saved by the add-person dialog before the circle arrived, keyed by id */
   private val pendingPeople = mutableMapOf<String, Person>()
-  // true once loading the circle has failed for good: nothing will apply pendingPeople
+  /** true once loading the circle has failed for good: nothing will apply pendingPeople */
   private var circleLoadFailed = false
-  // “Upload finished, navigate away” is an event:
-  // it should happen once and then be gone. A Channel is built for that.
+  /**
+   * “Upload finished, navigate away” is an event: it should happen once and then be gone. A Channel
+   * is built for that.
+   */
   private val _events = Channel<MediaEvent>(Channel.BUFFERED)
   val events: Flow<MediaEvent> = _events.receiveAsFlow()
-  // What the user types in the place field, searched once they stop typing. Not a StateFlow: a
-  // retry sends the same text again, and a StateFlow would drop it as unchanged.
+  /**
+   * What the user types in the place field, searched once they stop typing. Not a StateFlow: a
+   * retry sends the same text again, and a StateFlow would drop it as unchanged.
+   */
   private val placeQueries =
       MutableSharedFlow<String>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
@@ -401,7 +400,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   /** Uploads the media currently stored in the UI state. */
   fun uploadMedia() {
     val state = _uiState.value
-    if (state.isUploading) return
+    if (state.common.isUploading) return
     when (val check = checkUpload(state)) {
       is UploadCheck.Blocked -> setErrorMsg(check.errorMsg)
       is UploadCheck.Ready -> upload(state, check)
@@ -417,16 +416,16 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   private fun checkUpload(state: S): UploadCheck {
     val authorId = authRepo.currentUser?.uid
     val circle = _careCircle.value
-    val date = state.date
+    val date = state.common.date
     val contentError = if (authorId != null && circle != null) checkContent(state) else null
     return when {
       authorId == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.UNVERIFIED.mess)
       circle == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.STILL_LOADING.mess)
       contentError != null -> UploadCheck.Blocked(contentError)
-      state.description.isBlank() ->
+      state.common.description.isBlank() ->
           UploadCheck.Blocked(MediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess)
       date == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.SELECT_DATE.mess)
-      !state.location.hasValidPlace ->
+      !state.common.location.hasValidPlace ->
           UploadCheck.Blocked(MediaViewModelErrorMessage.PICK_A_PLACE.mess)
       else -> UploadCheck.Ready(authorId, circle, date)
     }
@@ -442,28 +441,37 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val circle = ready.circle
     // only people still in the circle can be tagged
     val taggableIds = circle.taggableIds()
-    val shownIds = state.shownIds.filter { it in taggableIds }
+    val shownIds = state.common.shownIds.filter { it in taggableIds }
 
-    _uiState.update { it.copyMedia(isUploading = true) }
+    updateCommon { it.copy(isUploading = true) }
     viewModelScope.launch {
       try {
         val id = mediaRepo.newMediaId(circle.id)
         val item = createItem(id, state, ready.authorId, circle, ready.date, shownIds)
         mediaRepo.addMedia(circle, item, fileOf(state))
-        _uiState.update { it.copyMedia(isUploading = false) }
+        updateCommon { it.copy(isUploading = false) }
         _events.send(MediaEvent.Uploaded)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        _uiState.update { it.copyMedia(isUploading = false) }
+        updateCommon { it.copy(isUploading = false) }
         setErrorMsg(MediaViewModelErrorMessage.UNKNOW_ERROR.mess + (e.message ?: ""))
       }
     }
   }
 
+  /**
+   * Updates the fields all upload screens share, keeping those specific to the media.
+   *
+   * @param transform Gives the new common fields from the current ones.
+   */
+  protected fun updateCommon(transform: (CommonMediaUIState) -> CommonMediaUIState) {
+    _uiState.update { it.withCommon(transform(it.common)) }
+  }
+
   /** Clears the current error message from the UI state. */
   fun clearErrorMsg() {
-    _uiState.update { it.copyMedia(errorMsg = null) }
+    updateCommon { it.copy(errorMsg = null) }
   }
 
   /**
@@ -472,7 +480,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * @param errorMsg The error message to display.
    */
   internal fun setErrorMsg(errorMsg: String) {
-    _uiState.update { it.copyMedia(errorMsg = errorMsg) }
+    updateCommon { it.copy(errorMsg = errorMsg) }
   }
 
   /**
@@ -481,7 +489,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * @param description The new media description.
    */
   fun setDescription(description: String) {
-    _uiState.update { it.copyMedia(description = description) }
+    updateCommon { it.copy(description = description) }
   }
 
   /**
@@ -490,7 +498,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * @param date The date associated with the media.
    */
   fun setDate(date: MemoryDate?) {
-    _uiState.update { it.copyMedia(date = date) }
+    updateCommon { it.copy(date = date) }
   }
 
   /**
@@ -501,11 +509,11 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    */
   fun setPlaceQuery(query: String) {
     // Nothing changed: no new search will come, so it mustn't look like one is running
-    if (query == _uiState.value.location.query) return
-    _uiState.update {
+    if (query == _uiState.value.common.location.query) return
+    updateCommon {
       val location = MediaLocationUIState(query = query, suggestions = it.location.suggestions)
       val willSearch = location.isLongEnoughToSearch
-      it.copyMedia(
+      it.copy(
           location =
               location.copy(
                   isSearching = willSearch,
@@ -521,11 +529,9 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * didn't change, so [setPlaceQuery] doesn't search it again.
    */
   fun retryPlaceSearch() {
-    val location = _uiState.value.location
+    val location = _uiState.value.common.location
     if (!location.searchFailed) return
-    _uiState.update {
-      it.copyMedia(location = it.location.copy(isSearching = true, searchFailed = false))
-    }
+    updateCommon { it.copy(location = it.location.copy(isSearching = true, searchFailed = false)) }
     placeQueries.tryEmit(location.query)
   }
 
@@ -552,18 +558,18 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * @param result The places found, or why the search failed.
    */
   private fun showPlaceSearchResult(query: String, result: Result<List<GeoLocation>>) {
-    val current = _uiState.value.location
+    val current = _uiState.value.common.location
     if (current.query != query || current.pickedPlace != null) return
     result
         .onSuccess { places ->
-          _uiState.update {
-            it.copyMedia(location = it.location.copy(suggestions = places, isSearching = false))
+          updateCommon {
+            it.copy(location = it.location.copy(suggestions = places, isSearching = false))
           }
         }
         // Shown inline through searchFailed; errorMsg is left to the upload and the circle
         .onFailure {
-          _uiState.update {
-            it.copyMedia(
+          updateCommon {
+            it.copy(
                 location =
                     it.location.copy(
                         suggestions = emptyList(),
@@ -582,8 +588,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    */
   fun selectPlace(place: GeoLocation) {
     if (place.lat == null || place.lng == null) return // not a point on the map
-    _uiState.update {
-      it.copyMedia(
+    updateCommon {
+      it.copy(
           location = MediaLocationUIState(query = place.placeName.orEmpty(), pickedPlace = place)
       )
     }
@@ -596,13 +602,13 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * @param placeId One of the keys of [placeOptions].
    */
   fun selectPlace(placeId: String) {
-    if (_uiState.value.location.selectedPlaceId == placeId) {
+    if (_uiState.value.common.location.selectedPlaceId == placeId) {
       setPlaceQuery("")
       return
     }
     val place = _careCircle.value?.pickablePlaces()?.get(placeId) ?: return
     selectPlace(place.location.copy(placeName = place.name))
-    _uiState.update { it.copyMedia(location = it.location.copy(selectedPlaceId = placeId)) }
+    updateCommon { it.copy(location = it.location.copy(selectedPlaceId = placeId)) }
   }
 
   /**
@@ -632,7 +638,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         _careCircle.update { circle ->
           circle?.copy(people = circle.people + (person.id to person))
         }
-    _uiState.update { it.copyMedia(shownIds = it.shownIds + person.id) }
+    updateCommon { it.copy(shownIds = it.shownIds + person.id) }
     return Result.success(Unit)
   }
 
@@ -642,20 +648,20 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * @param id The ID of the person to select or deselect.
    */
   fun toggleShownId(id: String) {
-    _uiState.update { state ->
+    updateCommon { state ->
       val updated = if (id in state.shownIds) state.shownIds - id else state.shownIds + id
-      state.copyMedia(shownIds = updated)
+      state.copy(shownIds = updated)
     }
   }
 
   fun onAddPerson() {
-    _uiState.update { it.copyMedia(isAddPersonOpen = true) }
+    updateCommon { it.copy(isAddPersonOpen = true) }
   }
 
   fun dismissAddPerson() {
-    if (_uiState.value.isAddingPerson) return
-    _uiState.update {
-      it.copyMedia(
+    if (_uiState.value.common.isAddingPerson) return
+    updateCommon {
+      it.copy(
           isAddPersonOpen = false,
           personFirstName = "",
           personLastName = "",
@@ -665,15 +671,15 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   }
 
   fun setPersonFirstName(firstName: String) {
-    _uiState.update { it.copyMedia(personFirstName = firstName) }
+    updateCommon { it.copy(personFirstName = firstName) }
   }
 
   fun setPersonLastName(lastName: String) {
-    _uiState.update { it.copyMedia(personLastName = lastName) }
+    updateCommon { it.copy(personLastName = lastName) }
   }
 
   fun setPersonNickname(nickname: String) {
-    _uiState.update { it.copyMedia(personNickname = nickname) }
+    updateCommon { it.copy(personNickname = nickname) }
   }
 
   /** Saves a person in the care circle and makes them available for media tagging. */
@@ -684,13 +690,13 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
               setErrorMsg(MediaViewModelErrorMessage.STILL_LOADING.mess)
               return
             }
-    val state = _uiState.value
+    val state = _uiState.value.common
     if (state.isAddingPerson) return
     if (state.personFirstName.isBlank()) {
       setErrorMsg(MediaViewModelErrorMessage.FIRST_NAME_REQUIRED.mess)
       return
     }
-    _uiState.update { it.copyMedia(isAddingPerson = true) }
+    updateCommon { it.copy(isAddingPerson = true) }
     viewModelScope.launch {
       try {
         circleRepo
@@ -704,8 +710,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             )
             .onSuccess { person ->
               _careCircle.update { it?.copy(people = it.people + (person.id to person)) }
-              _uiState.update {
-                it.copyMedia(
+              updateCommon {
+                it.copy(
                     isAddPersonOpen = false,
                     isAddingPerson = false,
                     personFirstName = "",
@@ -723,7 +729,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       } catch (e: Exception) {
         setErrorMsg(e.message ?: MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess)
       } finally {
-        _uiState.update { it.copyMedia(isAddingPerson = false) }
+        updateCommon { it.copy(isAddingPerson = false) }
       }
     }
   }

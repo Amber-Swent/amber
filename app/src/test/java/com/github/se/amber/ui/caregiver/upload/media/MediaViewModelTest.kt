@@ -176,17 +176,17 @@ class MediaViewModelTest {
 
   @Test
   fun initialDescriptionIsEmpty() {
-    assertEquals("", createViewModel().uiState.value.description)
+    assertEquals("", createViewModel().uiState.value.common.description)
   }
 
   @Test
   fun initialStateIsNotUploading() {
-    assertFalse(createViewModel().uiState.value.isUploading)
+    assertFalse(createViewModel().uiState.value.common.isUploading)
   }
 
   @Test
   fun initialStateHasNoErrorWhenCircleLoads() {
-    assertNull(createViewModel().uiState.value.errorMsg)
+    assertNull(createViewModel().uiState.value.common.errorMsg)
   }
 
   // ---------- circle loading (init) ----------
@@ -221,7 +221,7 @@ class MediaViewModelTest {
     signIn(null)
     assertEquals(
         MediaViewModelErrorMessage.UNVERIFIED.mess,
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.common.errorMsg,
     )
   }
 
@@ -243,7 +243,7 @@ class MediaViewModelTest {
     coEvery { profileRepo.getProfile(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
         MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "boom",
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.common.errorMsg,
     )
   }
 
@@ -259,7 +259,7 @@ class MediaViewModelTest {
     stubProfile(null)
     assertEquals(
         MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.common.errorMsg,
     )
   }
 
@@ -268,7 +268,7 @@ class MediaViewModelTest {
     stubProfile(emptyList())
     assertEquals(
         MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.common.errorMsg,
     )
   }
 
@@ -284,7 +284,7 @@ class MediaViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
         MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "boom",
-        createViewModel().uiState.value.errorMsg,
+        createViewModel().uiState.value.common.errorMsg,
     )
   }
 
@@ -300,7 +300,7 @@ class MediaViewModelTest {
   fun setDescriptionUpdatesState() {
     val vm = createViewModel()
     vm.setDescription("Grandma's birthday")
-    assertEquals("Grandma's birthday", vm.uiState.value.description)
+    assertEquals("Grandma's birthday", vm.uiState.value.common.description)
   }
 
   @Test
@@ -308,14 +308,14 @@ class MediaViewModelTest {
     val vm = createViewModel()
     val date = MemoryDate(2026, Month.OCTOBER, 14)
     vm.setDate(date)
-    assertEquals(date, vm.uiState.value.date)
+    assertEquals(date, vm.uiState.value.common.date)
   }
 
   @Test
   fun setErrorMsgUpdatesState() {
     val vm = createViewModel()
     vm.setErrorMsg("oops")
-    assertEquals("oops", vm.uiState.value.errorMsg)
+    assertEquals("oops", vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -323,7 +323,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.setErrorMsg("oops")
     vm.clearErrorMsg()
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsg)
   }
 
   // ---------- toggleShownId ----------
@@ -332,7 +332,7 @@ class MediaViewModelTest {
   fun toggleShownIdAddsUnknownId() {
     val vm = createViewModel()
     vm.toggleShownId("new_id")
-    assertTrue("new_id" in vm.uiState.value.shownIds)
+    assertTrue("new_id" in vm.uiState.value.common.shownIds)
   }
 
   @Test
@@ -340,7 +340,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.toggleShownId("new_id")
     vm.toggleShownId("new_id")
-    assertFalse("new_id" in vm.uiState.value.shownIds)
+    assertFalse("new_id" in vm.uiState.value.common.shownIds)
   }
 
   // ---------- onPersonAdded ----------
@@ -360,7 +360,7 @@ class MediaViewModelTest {
     loadCircle(CareCircle(id = "circle1"))
     val vm = createViewModel()
     vm.onPersonAdded(bob)
-    assertTrue("bob" in vm.uiState.value.shownIds)
+    assertTrue("bob" in vm.uiState.value.common.shownIds)
   }
 
   @Test
@@ -369,7 +369,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.toggleShownId("p1")
     vm.onPersonAdded(bob)
-    assertEquals(setOf("p1", "bob"), vm.uiState.value.shownIds)
+    assertEquals(setOf("p1", "bob"), vm.uiState.value.common.shownIds)
   }
 
   @Test
@@ -398,7 +398,7 @@ class MediaViewModelTest {
         MediaViewModelErrorMessage.PERSON_WITHOUT_ID.mess,
         result.exceptionOrNull()?.message,
     )
-    assertTrue(vm.uiState.value.shownIds.isEmpty())
+    assertTrue(vm.uiState.value.common.shownIds.isEmpty())
     assertTrue(vm.careCircle.value?.people.orEmpty().isEmpty())
   }
 
@@ -411,7 +411,7 @@ class MediaViewModelTest {
         MediaViewModelErrorMessage.CANNOT_TAG_PERSON.mess,
         result.exceptionOrNull()?.message,
     )
-    assertTrue(vm.uiState.value.shownIds.isEmpty())
+    assertTrue(vm.uiState.value.common.shownIds.isEmpty())
   }
 
   @Test
@@ -564,7 +564,7 @@ class MediaViewModelTest {
     val vm = readyViewModel()
     signIn(null)
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -572,14 +572,14 @@ class MediaViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertEquals("Your care circle is still loading, try again", vm.uiState.value.errorMsg)
+    assertEquals("Your care circle is still loading, try again", vm.uiState.value.common.errorMsg)
   }
 
   @Test
   fun uploadWithoutContentReportsTheContentError() {
     val vm = createViewModel()
     vm.uploadMedia()
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -603,14 +603,14 @@ class MediaViewModelTest {
   fun successfulUploadClearsUploadingFlag() {
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.common.isUploading)
   }
 
   @Test
   fun successfulUploadHasNoError() {
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -697,7 +697,7 @@ class MediaViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException("boom")
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertEquals("Upload failed: boom", vm.uiState.value.errorMsg)
+    assertEquals("Upload failed: boom", vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -705,7 +705,7 @@ class MediaViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException()
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -713,7 +713,7 @@ class MediaViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException("boom")
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.common.isUploading)
   }
 
   @Test
@@ -734,7 +734,7 @@ class MediaViewModelTest {
     vm.uploadMedia()
     assertEquals(
         MediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.common.errorMsg,
     )
   }
 
@@ -748,7 +748,7 @@ class MediaViewModelTest {
   fun missingDateReportsSelectDateError() {
     val vm = readyViewModel(date = null)
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -761,7 +761,7 @@ class MediaViewModelTest {
   fun invalidUploadDoesNotStartUploading() {
     val vm = readyViewModel(description = "   ")
     vm.uploadMedia()
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.common.isUploading)
   }
 
   // ---------- upload: item content ----------
@@ -777,7 +777,7 @@ class MediaViewModelTest {
 
   @Test
   fun initialStateHasNoPlace() {
-    val state = createViewModel().uiState.value
+    val state = createViewModel().uiState.value.common
     assertEquals("", state.location.query)
     assertTrue(state.location.suggestions.isEmpty())
     assertNull(state.location.pickedPlace)
@@ -792,7 +792,7 @@ class MediaViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 1) { placeRepo.search("Lausanne") }
-    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
+    assertEquals(listOf(lausanne), vm.uiState.value.common.location.suggestions)
   }
 
   @Test
@@ -812,7 +812,7 @@ class MediaViewModelTest {
     vm.searchPlace("Lausanne")
     vm.searchPlace("  ")
 
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
     coVerify(exactly = 1) { placeRepo.search(any()) }
   }
 
@@ -822,13 +822,13 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertNull(vm.uiState.value.errorMsg)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertNull(vm.uiState.value.common.errorMsg)
+    assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
 
     // a pending upload error isn't replaced by a search failure
     vm.uploadMedia()
     vm.searchPlace("Geneva")
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
   }
 
   @Test
@@ -837,7 +837,7 @@ class MediaViewModelTest {
     vm.searchPlace("Lausanne")
     vm.selectPlace(lausanne)
 
-    val state = vm.uiState.value
+    val state = vm.uiState.value.common
     assertEquals(lausanne, state.location.pickedPlace)
     assertEquals("Lausanne, Switzerland", state.location.query)
     assertTrue(state.location.suggestions.isEmpty())
@@ -847,14 +847,14 @@ class MediaViewModelTest {
   fun selectPlaceIgnoresAPlaceWithoutCoordinates() {
     val vm = createViewModel()
     vm.selectPlace(GeoLocation(placeName = "Grandma's house"))
-    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.common.location.pickedPlace)
   }
 
   @Test
   fun selectPlaceIgnoresAPlaceWithOnlyALatitude() {
     val vm = createViewModel()
     vm.selectPlace(GeoLocation(lat = 46.52, placeName = "Lausanne"))
-    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.common.location.pickedPlace)
   }
 
   @Test
@@ -863,8 +863,8 @@ class MediaViewModelTest {
     vm.searchPlace("46.52, 6.63")
     vm.selectPlace(GeoLocation(lat = 46.52, lng = 6.63))
 
-    assertEquals("", vm.uiState.value.location.query)
-    assertTrue(vm.uiState.value.location.hasValidPlace)
+    assertEquals("", vm.uiState.value.common.location.query)
+    assertTrue(vm.uiState.value.common.location.hasValidPlace)
   }
 
   @Test
@@ -875,14 +875,14 @@ class MediaViewModelTest {
 
     coEvery { placeRepo.search(any()) } returns Result.success(listOf(lausanne))
     vm.retryPlaceSearch()
-    assertTrue(vm.uiState.value.location.isSearching)
-    assertFalse(vm.uiState.value.location.searchFailed)
+    assertTrue(vm.uiState.value.common.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.searchFailed)
 
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 2) { placeRepo.search("Lausanne") }
-    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertEquals(listOf(lausanne), vm.uiState.value.common.location.suggestions)
+    assertFalse(vm.uiState.value.common.location.isSearching)
   }
 
   @Test
@@ -894,8 +894,8 @@ class MediaViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 2) { placeRepo.search("Lausanne") }
-    assertTrue(vm.uiState.value.location.searchFailed)
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertTrue(vm.uiState.value.common.location.searchFailed)
+    assertFalse(vm.uiState.value.common.location.isSearching)
   }
 
   @Test
@@ -906,7 +906,7 @@ class MediaViewModelTest {
     testDispatcher.scheduler.advanceUntilIdle()
 
     coVerify(exactly = 1) { placeRepo.search(any()) }
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.isSearching)
   }
 
   @Test
@@ -914,18 +914,18 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.selectPlace(lausanne)
     vm.setPlaceQuery("Grandma's house")
-    assertNull(vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.common.location.pickedPlace)
   }
 
   @Test
   fun placeSearchIsInProgressUntilItsResultsArrive() {
     val vm = createViewModel()
     vm.setPlaceQuery("Lausanne")
-    assertTrue(vm.uiState.value.location.isSearching)
+    assertTrue(vm.uiState.value.common.location.isSearching)
 
     testDispatcher.scheduler.advanceUntilIdle()
 
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.isSearching)
   }
 
   @Test
@@ -934,8 +934,8 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Grandma's house")
 
-    assertFalse(vm.uiState.value.location.isSearching)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertFalse(vm.uiState.value.common.location.isSearching)
+    assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
   }
 
   @Test
@@ -943,15 +943,15 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.setPlaceQuery("Lausanne")
     vm.setPlaceQuery("")
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.isSearching)
 
     vm.setPlaceQuery("Lausanne")
     vm.selectPlace(lausanne)
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.isSearching)
 
     coEvery { placeRepo.search(any()) } returns Result.failure(IOException("offline"))
     vm.searchPlace("Geneva")
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.isSearching)
   }
 
   @Test
@@ -976,7 +976,7 @@ class MediaViewModelTest {
 
     vm.uploadMedia()
 
-    assertEquals(MediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.common.errorMsg)
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
@@ -988,8 +988,8 @@ class MediaViewModelTest {
     vm.searchPlace("La")
 
     coVerify(exactly = 0) { placeRepo.search(any()) }
-    assertFalse(vm.uiState.value.location.isSearching)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertFalse(vm.uiState.value.common.location.isSearching)
+    assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
   }
 
   @Test
@@ -998,7 +998,7 @@ class MediaViewModelTest {
     vm.searchPlace("Lausanne")
     vm.searchPlace("La")
 
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
     coVerify(exactly = 1) { placeRepo.search(any()) }
   }
 
@@ -1016,7 +1016,7 @@ class MediaViewModelTest {
 
     vm.searchPlace("Geneva")
 
-    assertEquals(listOf(geneva), vm.uiState.value.location.suggestions)
+    assertEquals(listOf(geneva), vm.uiState.value.common.location.suggestions)
   }
 
   @Test
@@ -1033,8 +1033,8 @@ class MediaViewModelTest {
 
     testDispatcher.scheduler.advanceUntilIdle()
 
-    assertEquals(geneva, vm.uiState.value.location.pickedPlace)
-    assertTrue(vm.uiState.value.location.suggestions.isEmpty())
+    assertEquals(geneva, vm.uiState.value.common.location.pickedPlace)
+    assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
   }
 
   @Test
@@ -1045,8 +1045,8 @@ class MediaViewModelTest {
     vm.searchPlace("Lausanne")
 
     coVerify(exactly = 2) { placeRepo.search("Lausanne") }
-    assertFalse(vm.uiState.value.location.isSearching)
-    assertEquals(listOf(lausanne), vm.uiState.value.location.suggestions)
+    assertFalse(vm.uiState.value.common.location.isSearching)
+    assertEquals(listOf(lausanne), vm.uiState.value.common.location.suggestions)
   }
 
   @Test
@@ -1055,7 +1055,7 @@ class MediaViewModelTest {
     vm.searchPlace("Lausanne")
     vm.setPlaceQuery("Lausanne")
 
-    assertFalse(vm.uiState.value.location.isSearching)
+    assertFalse(vm.uiState.value.common.location.isSearching)
   }
 
   @Test
@@ -1064,7 +1064,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertTrue(vm.uiState.value.location.searchFailed)
+    assertTrue(vm.uiState.value.common.location.searchFailed)
   }
 
   @Test
@@ -1076,7 +1076,7 @@ class MediaViewModelTest {
     coEvery { placeRepo.search(any()) } returns Result.success(emptyList())
     vm.searchPlace("Grandma's house")
 
-    assertFalse(vm.uiState.value.location.searchFailed)
+    assertFalse(vm.uiState.value.common.location.searchFailed)
   }
 
   @Test
@@ -1086,14 +1086,14 @@ class MediaViewModelTest {
     vm.searchPlace("Lausanne")
     vm.selectPlace(lausanne)
 
-    assertFalse(vm.uiState.value.location.searchFailed)
+    assertFalse(vm.uiState.value.common.location.searchFailed)
   }
 
   @Test
   fun uploadReportsTheFirstMissingThing() {
     val vm = createViewModel() // no content, no description, no date
     vm.uploadMedia()
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
   }
 
   // ---------- saved places ----------
@@ -1134,7 +1134,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.selectPlace("home")
 
-    val state = vm.uiState.value
+    val state = vm.uiState.value.common
     assertEquals(GeoLocation(46.5, 6.6, placeName = "Home"), state.location.pickedPlace)
     assertEquals("home", state.location.selectedPlaceId)
     assertEquals("Home", state.location.query)
@@ -1148,7 +1148,7 @@ class MediaViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace("home")
 
-    val state = vm.uiState.value
+    val state = vm.uiState.value.common
     assertNull(state.location.pickedPlace)
     assertNull(state.location.selectedPlaceId)
     assertEquals("", state.location.query)
@@ -1161,8 +1161,8 @@ class MediaViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace("doctor")
 
-    assertEquals("doctor", vm.uiState.value.location.selectedPlaceId)
-    assertEquals("Dr. Martin", vm.uiState.value.location.pickedPlace?.placeName)
+    assertEquals("doctor", vm.uiState.value.common.location.selectedPlaceId)
+    assertEquals("Dr. Martin", vm.uiState.value.common.location.pickedPlace?.placeName)
   }
 
   @Test
@@ -1182,8 +1182,8 @@ class MediaViewModelTest {
     vm.selectPlace("home")
     vm.setPlaceQuery("Lau")
 
-    assertNull(vm.uiState.value.location.pickedPlace)
-    assertNull(vm.uiState.value.location.selectedPlaceId)
+    assertNull(vm.uiState.value.common.location.pickedPlace)
+    assertNull(vm.uiState.value.common.location.selectedPlaceId)
   }
 
   @Test
@@ -1193,8 +1193,8 @@ class MediaViewModelTest {
     vm.selectPlace("home")
     vm.selectPlace(lausanne)
 
-    assertNull(vm.uiState.value.location.selectedPlaceId)
-    assertEquals(lausanne, vm.uiState.value.location.pickedPlace)
+    assertNull(vm.uiState.value.common.location.selectedPlaceId)
+    assertEquals(lausanne, vm.uiState.value.common.location.pickedPlace)
   }
 
   @Test
@@ -1213,12 +1213,12 @@ class MediaViewModelTest {
     val vm = readyViewModel()
 
     vm.uploadMedia()
-    assertTrue(vm.uiState.value.isUploading)
+    assertTrue(vm.uiState.value.common.isUploading)
     vm.uploadMedia()
     coVerify(exactly = 1) { mediaRepo.addMedia(any(), any(), any()) }
 
     uploadReply.complete(Unit)
-    assertFalse(vm.uiState.value.isUploading)
+    assertFalse(vm.uiState.value.common.isUploading)
   }
 
   // ---------- add person ----------
@@ -1229,7 +1229,7 @@ class MediaViewModelTest {
 
     vm.onAddPerson()
 
-    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertTrue(vm.uiState.value.common.isAddPersonOpen)
   }
 
   @Test
@@ -1242,10 +1242,10 @@ class MediaViewModelTest {
 
     vm.dismissAddPerson()
 
-    assertFalse(vm.uiState.value.isAddPersonOpen)
-    assertEquals("", vm.uiState.value.personFirstName)
-    assertEquals("", vm.uiState.value.personLastName)
-    assertEquals("", vm.uiState.value.personNickname)
+    assertFalse(vm.uiState.value.common.isAddPersonOpen)
+    assertEquals("", vm.uiState.value.common.personFirstName)
+    assertEquals("", vm.uiState.value.common.personLastName)
+    assertEquals("", vm.uiState.value.common.personNickname)
   }
 
   @Test
@@ -1265,9 +1265,9 @@ class MediaViewModelTest {
     }
     assertEquals(saved, vm.careCircle.value?.people?.get("person1"))
     assertEquals("Anne", vm.involvedOptions.value["person1"])
-    assertTrue("person1" in vm.uiState.value.shownIds)
-    assertFalse(vm.uiState.value.isAddPersonOpen)
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertTrue("person1" in vm.uiState.value.common.shownIds)
+    assertFalse(vm.uiState.value.common.isAddPersonOpen)
+    assertFalse(vm.uiState.value.common.isAddingPerson)
   }
 
   @Test
@@ -1279,8 +1279,8 @@ class MediaViewModelTest {
     vm.addPerson()
 
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
-    assertEquals("A first name is required", vm.uiState.value.errorMsg)
-    assertTrue(vm.uiState.value.isAddPersonOpen)
+    assertEquals("A first name is required", vm.uiState.value.common.errorMsg)
+    assertTrue(vm.uiState.value.common.isAddPersonOpen)
   }
 
   @Test
@@ -1292,10 +1292,10 @@ class MediaViewModelTest {
 
     vm.addPerson()
 
-    assertEquals("offline", vm.uiState.value.errorMsg)
-    assertEquals("Anne", vm.uiState.value.personFirstName)
-    assertTrue(vm.uiState.value.isAddPersonOpen)
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertEquals("offline", vm.uiState.value.common.errorMsg)
+    assertEquals("Anne", vm.uiState.value.common.personFirstName)
+    assertTrue(vm.uiState.value.common.isAddPersonOpen)
+    assertFalse(vm.uiState.value.common.isAddingPerson)
   }
 
   @Test
@@ -1306,7 +1306,7 @@ class MediaViewModelTest {
 
     vm.addPerson()
 
-    assertEquals(MediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.common.errorMsg)
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
   }
 
@@ -1329,10 +1329,10 @@ class MediaViewModelTest {
           match { it.firstName == "Anne" && it.lastName == "Dupont" && it.nickname == "Nana" },
       )
     }
-    assertEquals("", vm.uiState.value.personFirstName)
-    assertEquals("", vm.uiState.value.personLastName)
-    assertEquals("", vm.uiState.value.personNickname)
-    assertTrue("person1" in vm.uiState.value.shownIds)
+    assertEquals("", vm.uiState.value.common.personFirstName)
+    assertEquals("", vm.uiState.value.common.personLastName)
+    assertEquals("", vm.uiState.value.common.personNickname)
+    assertTrue("person1" in vm.uiState.value.common.shownIds)
   }
 
   @Test
@@ -1345,16 +1345,16 @@ class MediaViewModelTest {
     vm.setPersonFirstName("Anne")
 
     vm.addPerson()
-    assertTrue(vm.uiState.value.isAddingPerson)
+    assertTrue(vm.uiState.value.common.isAddingPerson)
     vm.dismissAddPerson()
-    assertTrue(vm.uiState.value.isAddPersonOpen)
-    assertEquals("Anne", vm.uiState.value.personFirstName)
+    assertTrue(vm.uiState.value.common.isAddPersonOpen)
+    assertEquals("Anne", vm.uiState.value.common.personFirstName)
     vm.addPerson()
     coVerify(exactly = 1) { circleRepo.addPerson(any(), any()) }
 
     personReply.complete(Result.success(Person(id = "person1", firstName = "Anne")))
-    assertFalse(vm.uiState.value.isAddingPerson)
-    assertFalse(vm.uiState.value.isAddPersonOpen)
+    assertFalse(vm.uiState.value.common.isAddingPerson)
+    assertFalse(vm.uiState.value.common.isAddPersonOpen)
   }
 
   @Test
@@ -1367,9 +1367,9 @@ class MediaViewModelTest {
 
     assertEquals(
         MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.common.errorMsg,
     )
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertFalse(vm.uiState.value.common.isAddingPerson)
   }
 
   @Test
@@ -1381,10 +1381,10 @@ class MediaViewModelTest {
 
     vm.addPerson()
 
-    assertEquals("broken", vm.uiState.value.errorMsg)
-    assertEquals("Anne", vm.uiState.value.personFirstName)
-    assertTrue(vm.uiState.value.isAddPersonOpen)
-    assertFalse(vm.uiState.value.isAddingPerson)
+    assertEquals("broken", vm.uiState.value.common.errorMsg)
+    assertEquals("Anne", vm.uiState.value.common.personFirstName)
+    assertTrue(vm.uiState.value.common.isAddPersonOpen)
+    assertFalse(vm.uiState.value.common.isAddingPerson)
   }
 
   // ---------- hooks supplied by the subclass ----------
@@ -1402,7 +1402,7 @@ class MediaViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     val vm = createViewModel()
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.common.errorMsg)
   }
 
   // NEW TEST
@@ -1411,7 +1411,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     signIn(null)
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.errorMsg)
+    assertEquals(MediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.common.errorMsg)
   }
 
   // NEW TEST
@@ -1420,7 +1420,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.setDate(MemoryDate(2024, Month.MAY, 12))
     vm.uploadMedia()
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
   }
 
   // NEW TEST
@@ -1436,48 +1436,13 @@ class MediaViewModelTest {
 
 /** The state of [FakeMediaViewModel]: the common fields, and a file standing for the content. */
 private data class FakeMediaUIState(
-    override val description: String = "",
-    override val date: MemoryDate? = null,
-    override val location: MediaLocationUIState = MediaLocationUIState(),
-    override val shownIds: Set<String> = emptySet(),
-    override val isUploading: Boolean = false,
-    override val errorMsg: String? = null,
-    override val isAddPersonOpen: Boolean = false,
-    override val isAddingPerson: Boolean = false,
-    override val personFirstName: String = "",
-    override val personLastName: String = "",
-    override val personNickname: String = "",
+    override val common: CommonMediaUIState = CommonMediaUIState(),
     val contentFile: File? = null,
 ) : MediaUIState<FakeMediaUIState> {
   override val canUpload: Boolean
     get() = contentFile != null
 
-  override fun copyMedia(
-      description: String,
-      date: MemoryDate?,
-      location: MediaLocationUIState,
-      shownIds: Set<String>,
-      isUploading: Boolean,
-      errorMsg: String?,
-      isAddPersonOpen: Boolean,
-      isAddingPerson: Boolean,
-      personFirstName: String,
-      personLastName: String,
-      personNickname: String,
-  ): FakeMediaUIState =
-      copy(
-          description = description,
-          date = date,
-          location = location,
-          shownIds = shownIds,
-          isUploading = isUploading,
-          errorMsg = errorMsg,
-          isAddPersonOpen = isAddPersonOpen,
-          isAddingPerson = isAddingPerson,
-          personFirstName = personFirstName,
-          personLastName = personLastName,
-          personNickname = personNickname,
-      )
+  override fun withCommon(common: CommonMediaUIState): FakeMediaUIState = copy(common = common)
 }
 
 /**
@@ -1521,9 +1486,9 @@ private class FakeMediaViewModel(
       MediaItem.Text(
           id = id,
           authorId = authorId,
-          description = state.description,
+          description = state.common.description,
           date = date,
-          location = state.location.pickedPlace,
+          location = state.common.location.pickedPlace,
           shownIds = shownIds,
       )
 

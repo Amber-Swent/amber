@@ -27,6 +27,7 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import io.mockk.every
 import io.mockk.mockk
@@ -87,8 +88,11 @@ class UploadPicturesTest {
               pictureFile = File("picture.jpg"),
               pictureWidth = 640,
               pictureHeight = 480,
-              description = "Beach day",
-              date = MemoryDate(2000, Month.OCTOBER, 10),
+              common =
+                  CommonMediaUIState(
+                      description = "Beach day",
+                      date = MemoryDate(2000, Month.OCTOBER, 10),
+                  ),
           )
     }
   }
@@ -138,7 +142,8 @@ class UploadPicturesTest {
     val uploadButton = composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
 
     composeTestRule.runOnIdle {
-      uiStateFlow.value = UploadPictureUIState(description = "Beach day")
+      uiStateFlow.value =
+          UploadPictureUIState(common = CommonMediaUIState(description = "Beach day"))
     }
     uploadButton.assertIsNotEnabled()
 
@@ -180,8 +185,9 @@ class UploadPicturesTest {
           uiStateFlow.value =
               uiStateFlow.value.let { state ->
                 val shownIds =
-                    if (id in state.shownIds) state.shownIds - id else state.shownIds + id
-                state.copy(shownIds = shownIds)
+                    if (id in state.common.shownIds) state.common.shownIds - id
+                    else state.common.shownIds + id
+                state.withCommon(state.common.copy(shownIds = shownIds))
               }
         }
   }
@@ -209,12 +215,12 @@ class UploadPicturesTest {
     composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed().performClick()
     composeTestRule.onNodeWithText("Anne").assertIsSelected()
     composeTestRule.onNodeWithText("Marie").assertIsNotSelected()
-    composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.shownIds) }
+    composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.common.shownIds) }
     verify(exactly = 0) { viewModel.toggleShownId("uid123") }
 
     composeTestRule.onNodeWithText("Anne").performClick()
     composeTestRule.onNodeWithText("Anne").assertIsNotSelected()
-    composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
+    composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.common.shownIds.isEmpty()) }
   }
 
   // ---------- location ----------
@@ -222,7 +228,9 @@ class UploadPicturesTest {
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
 
   private fun setLocation(location: MediaLocationUIState) {
-    composeTestRule.runOnIdle { uiStateFlow.value = UploadPictureUIState(location = location) }
+    composeTestRule.runOnIdle {
+      uiStateFlow.value = UploadPictureUIState(common = CommonMediaUIState(location = location))
+    }
   }
 
   @Test
@@ -231,9 +239,13 @@ class UploadPicturesTest {
     every { viewModel.selectPlace(any<String>()) } answers
         {
           uiStateFlow.value =
-              uiStateFlow.value.copy(
-                  location = uiStateFlow.value.location.copy(selectedPlaceId = firstArg())
-              )
+              uiStateFlow.value.let { state ->
+                state.withCommon(
+                    state.common.copy(
+                        location = state.common.location.copy(selectedPlaceId = firstArg())
+                    )
+                )
+              }
         }
     composeTestRule.runOnIdle {
       placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")

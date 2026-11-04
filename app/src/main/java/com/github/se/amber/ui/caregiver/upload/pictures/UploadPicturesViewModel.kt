@@ -23,7 +23,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
@@ -46,60 +46,22 @@ enum class UploadPictureViewModelErrorMessage(val mess: String) {
 /**
  * Represents the state displayed by the picture upload screen.
  *
+ * @param common The fields shared with the other upload screens: description, date, place, people,
+ *   upload progress and error message.
  * @param pictureFile The local picture file selected for upload.
  * @param pictureWidth The width of the selected picture in pixels.
  * @param pictureHeight The height of the selected picture in pixels.
  */
 data class UploadPictureUIState(
-    override val description: String = "",
-    override val date: MemoryDate? = null,
-    override val location: MediaLocationUIState = MediaLocationUIState(),
-    override val shownIds: Set<String> = emptySet(),
+    override val common: CommonMediaUIState = CommonMediaUIState(),
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
     val pictureHeight: Int = 0,
-    override val isUploading: Boolean = false,
-    override val errorMsg: String? = null,
-    override val isAddPersonOpen: Boolean = false,
-    override val isAddingPerson: Boolean = false,
-    override val personFirstName: String = "",
-    override val personLastName: String = "",
-    override val personNickname: String = "",
 ) : MediaUIState<UploadPictureUIState> {
   override val canUpload: Boolean
-    get() =
-        pictureFile != null &&
-            description.isNotBlank() &&
-            date != null &&
-            location.hasValidPlace &&
-            !isUploading
+    get() = pictureFile != null && common.canUpload
 
-  override fun copyMedia(
-      description: String,
-      date: MemoryDate?,
-      location: MediaLocationUIState,
-      shownIds: Set<String>,
-      isUploading: Boolean,
-      errorMsg: String?,
-      isAddPersonOpen: Boolean,
-      isAddingPerson: Boolean,
-      personFirstName: String,
-      personLastName: String,
-      personNickname: String,
-  ): UploadPictureUIState =
-      copy(
-          description = description,
-          date = date,
-          location = location,
-          shownIds = shownIds,
-          isUploading = isUploading,
-          errorMsg = errorMsg,
-          isAddPersonOpen = isAddPersonOpen,
-          isAddingPerson = isAddingPerson,
-          personFirstName = personFirstName,
-          personLastName = personLastName,
-          personNickname = personNickname,
-      )
+  override fun withCommon(common: CommonMediaUIState): UploadPictureUIState = copy(common = common)
 }
 
 /**
@@ -122,7 +84,10 @@ class UploadPictureViewModel(
     private val pictureReader: SelectedPictureReader = reader,
 ) :
     MediaViewModel<UploadPictureUIState>(
-        initialState = UploadPictureUIState(date = MemoryDate(LocalDate.now().year)),
+        initialState =
+            UploadPictureUIState(
+                common = CommonMediaUIState(date = MemoryDate(LocalDate.now().year))
+            ),
         mediaRepo = mediaRepo,
         authRepo = authRepo,
         profileRepo = profileRepo,
@@ -173,9 +138,9 @@ class UploadPictureViewModel(
           // must start with careCircles/<circleId>/ (see MediaRepositoryFirebase.getFile)
           storagePath = "careCircles/${circle.id}/media/$id.jpg",
           createdAt = System.currentTimeMillis(),
-          description = state.description,
+          description = state.common.description,
           date = date,
-          location = state.location.pickedPlace,
+          location = state.common.location.pickedPlace,
           shownIds = shownIds,
           authorizedIds = emptyList(), // empty = whole circle can see it, for the moment
           status = MediaStatus.APPROVED,

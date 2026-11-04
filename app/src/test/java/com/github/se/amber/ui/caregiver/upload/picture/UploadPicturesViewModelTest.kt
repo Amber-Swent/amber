@@ -12,13 +12,12 @@ import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModelErrorMessage
@@ -124,8 +123,11 @@ class UploadPictureViewModelTest {
 
   private val completeState =
       UploadPictureUIState(
-          description = "A description",
-          date = MemoryDate(2024, Month.MAY, 12),
+          common =
+              CommonMediaUIState(
+                  description = "A description",
+                  date = MemoryDate(2024, Month.MAY, 12),
+              ),
           pictureFile = File("picture.jpg"),
       )
 
@@ -135,7 +137,7 @@ class UploadPictureViewModelTest {
   @Test
   fun initialStateAsNullFile_andCurrentYear() {
     assertNull(createViewModel().uiState.value.pictureFile)
-    assertEquals(MemoryDate(LocalDate.now().year), createViewModel().uiState.value.date)
+    assertEquals(MemoryDate(LocalDate.now().year), createViewModel().uiState.value.common.date)
   }
 
   // ---------- setPicture ----------
@@ -179,7 +181,7 @@ class UploadPictureViewModelTest {
 
     assertEquals(
         UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.common.errorMsg,
     )
   }
 
@@ -200,7 +202,7 @@ class UploadPictureViewModelTest {
     vm.uploadMedia()
     assertEquals(
         UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess,
-        vm.uiState.value.errorMsg,
+        vm.uiState.value.common.errorMsg,
     )
   }
 
@@ -254,37 +256,8 @@ class UploadPictureViewModelTest {
   }
 
   @Test
-  fun canUploadIsFalseWithoutDate() {
-    assertFalse(completeState.copy(date = null).canUpload)
-  }
-
-  @Test
   fun canUploadIsFalseWithoutPicture() {
     assertFalse(completeState.copy(pictureFile = null).canUpload)
-  }
-
-  @Test
-  fun canUploadIsFalseWithBlankDescription() {
-    assertFalse(completeState.copy(description = "  ").canUpload)
-  }
-
-  @Test
-  fun canUploadIsFalseWhileUploading() {
-    assertFalse(completeState.copy(isUploading = true).canUpload)
-  }
-
-  // NEW TEST
-  @Test
-  fun canUploadIsFalseWithATypedButUnpickedPlace() {
-    assertFalse(completeState.copy(location = MediaLocationUIState(query = "Grandma")).canUpload)
-  }
-
-  // NEW TEST
-  @Test
-  fun canUploadIsTrueWithAPickedPlace() {
-    val place = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne")
-    val location = MediaLocationUIState(query = "Lausanne", pickedPlace = place)
-    assertTrue(completeState.copy(location = location).canUpload)
   }
 
   // NEW TEST
@@ -301,66 +274,35 @@ class UploadPictureViewModelTest {
     assertTrue(vm.uiState.value.canUpload)
   }
 
-  // ---------- copyMedia ----------
-
-  // NEW TEST
-  @Test
-  fun copyMediaWithoutArgumentsKeepsTheStateUnchanged() {
-    val state = completeState.copy(pictureWidth = 640, pictureHeight = 480)
-    assertEquals(state, state.copyMedia())
-  }
-
-  // NEW TEST
-  @Test
-  fun copyMediaForwardsEveryCommonField() {
-    val location = MediaLocationUIState(query = "Lausanne")
-    val copied =
-        UploadPictureUIState()
-            .copyMedia(
-                description = "d",
-                date = MemoryDate(2024),
-                location = location,
-                shownIds = setOf("p1"),
-                isUploading = true,
-                errorMsg = "e",
-                isAddPersonOpen = true,
-                isAddingPerson = true,
-                personFirstName = "f",
-                personLastName = "l",
-                personNickname = "n",
-            )
-    assertEquals(
-        UploadPictureUIState(
-            description = "d",
-            date = MemoryDate(2024),
-            location = location,
-            shownIds = setOf("p1"),
-            isUploading = true,
-            errorMsg = "e",
-            isAddPersonOpen = true,
-            isAddingPerson = true,
-            personFirstName = "f",
-            personLastName = "l",
-            personNickname = "n",
-        ),
-        copied,
-    )
-  }
+  // ---------- withCommon ----------
 
   @Test
-  fun copyMediaPreservesPictureSpecificFields() {
+  fun withCommonPreservesPictureSpecificFields() {
     val state =
         completeState.copy(
             pictureWidth = 640,
             pictureHeight = 480,
         )
 
-    val updated = state.copyMedia(description = "Updated description")
+    val updated = state.withCommon(state.common.copy(description = "Updated description"))
 
-    assertEquals("Updated description", updated.description)
+    assertEquals("Updated description", updated.common.description)
 
     assertEquals(state.pictureFile, updated.pictureFile)
     assertEquals(state.pictureWidth, updated.pictureWidth)
     assertEquals(state.pictureHeight, updated.pictureHeight)
+  }
+
+  // NEW TEST
+  @Test
+  fun withCommonReplacesTheCommonFields() {
+    val common = CommonMediaUIState(description = "New description", isUploading = true)
+    assertEquals(common, completeState.withCommon(common).common)
+  }
+
+  // NEW TEST
+  @Test
+  fun canUploadNeedsTheCommonFieldsToo() {
+    assertFalse(completeState.withCommon(CommonMediaUIState()).canUpload)
   }
 }
