@@ -9,10 +9,14 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
+import com.github.se.amber.data.account.DeletionMarker
 import com.github.se.amber.data.account.SharedPreferencesDeletionMarker
 import com.github.se.amber.data.media.image.MediaPictureFetcher
 import com.github.se.amber.data.media.image.MediaPictureKeyer
 import com.github.se.amber.model.media.MediaRepositoryProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * The app itself, created by Android before any activity or background job.
@@ -31,9 +35,29 @@ class AmberApplication : Application(), SingletonImageLoader.Factory, Configurat
 
   override fun onCreate() {
     super.onCreate()
-    AccountDeletionRepositoryProvider.default.resumeInterruptedDeletion(
-        SharedPreferencesDeletionMarker(this),
-    )
+    finishInterruptedDeletion()
+  }
+
+  /**
+   * Finishes a deletion started by an earlier launch, if [marker] says there was one. It doesn't
+   * wait for the UI: clearing stops Firestore and restarts the app, wherever it is.
+   *
+   * @param marker Tells whether a deletion was started.
+   * @param provider Builds the repository, only if [marker] is set.
+   * @param scope Runs the check in the background, so the app opens without waiting for the server.
+   */
+  internal fun finishInterruptedDeletion(
+      marker: DeletionMarker = SharedPreferencesDeletionMarker(this),
+      provider: AccountDeletionRepositoryProvider = AccountDeletionRepositoryProvider.default,
+      scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+  ) {
+    // The repository checks the marker too, but checking it first here means a normal launch
+    // doesn't build the repository, so it doesn't touch Firebase
+    if (!marker.isSet) return
+    scope.launch {
+      // A failure here must not stop the app from opening; the next launch tries again
+      runCatching { provider.repository.finishInterruptedDeletion() }
+    }
   }
 
   override fun newImageLoader(context: PlatformContext): ImageLoader =

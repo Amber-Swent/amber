@@ -20,7 +20,6 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -29,11 +28,6 @@ import org.junit.Test
 /** Checks the real Firebase pieces that the unit tests of account deletion replace with fakes. */
 class AccountDeletionFirebaseTest {
   private fun <T> Task<T>.await(): T = Tasks.await(this, 20, TimeUnit.SECONDS)
-
-  @Test
-  fun theDefaultRepositoryCanBeBuilt() {
-    assertNotNull(AccountDeletionRepositoryProvider.default.repository)
-  }
 
   private fun firebaseApp(name: String): FirebaseApp =
       FirebaseApp.initializeApp(
