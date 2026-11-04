@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Pause
@@ -279,9 +280,9 @@ internal fun PlaybackProgress(positionMs: Long = 0L, durationMs: Long = 0L) {
 }
 
 /**
- * Square patient button. [DisplayPatientButton] always includes a text label and a width fraction,
- * so an icon-only control uses the same container color, content color, corner, and height
- * directly.
+ * Circular patient icon button. [DisplayPatientButton] always includes a text label and a width
+ * fraction, so an icon-only control uses the same container color, content color, and height
+ * directly. The shape matches the caregiver icon button.
  */
 @Composable
 internal fun PlaybackIconButton(
@@ -298,7 +299,7 @@ internal fun PlaybackIconButton(
       onClick = onClick,
       enabled = enabled,
       modifier = modifier.size(PATIENT_BUTTON_HEIGHT_SMALL).testTag(testTag),
-      shape = RoundedCornerShape(ROUND_CORNER),
+      shape = CircleShape,
       colors =
           IconButtonDefaults.filledIconButtonColors(
               containerColor = MaterialTheme.colorScheme.tertiary,
