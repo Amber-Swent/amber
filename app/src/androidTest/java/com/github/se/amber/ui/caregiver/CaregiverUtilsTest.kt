@@ -390,9 +390,7 @@ class DisplayBoxWithIconTextTest {
   // ----- Default values (what the preview renders) -----
 
   private fun setPreviewBox() {
-    composeTestRule.setContent {
-      DisplayBoxWithIconTextPreview()
-    }
+    composeTestRule.setContent { DisplayBoxWithIconTextPreview() }
   }
 
   @Test
