@@ -147,6 +147,7 @@ class EmailSignInScreenTest {
         .onNodeWithTag(EmailSignInTestTags.INSTRUCTION)
         .assertTextEquals(INSTRUCTION_LABEL)
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertDoesNotExist()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD).assertDoesNotExist()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).assertDoesNotExist()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.OR_DIVIDER).assertDoesNotExist()
@@ -263,21 +264,17 @@ class EmailSignInScreenTest {
     assertEquals(0, googleSignInCount)
   }
 
-  @Ignore(EMAIL_HIDDEN)
   @Test
   fun screenWithDefaultArgumentsUsesProviderRepository() {
     every { repository.currentUser } returns AuthUser("existing-user")
     mockkObject(AuthRepositoryProvider)
     every { AuthRepositoryProvider.repository } returns repository
     try {
-      composeTestRule.setContent { EmailSignInScreen() }
-      composeTestRule
-          .onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD)
-          .performTextInput("person@example.com")
-      composeTestRule.onNodeWithTag(EmailSignInTestTags.CONTINUE_BUTTON).performClick()
+      composeTestRule.setContent { EmailSignInScreen(onGoogleSignIn = { googleSignInCount++ }) }
+      composeTestRule.waitForIdle()
 
-      composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertIsDisplayed()
       verify { repository.currentUser }
+      assertEquals(1, googleSignInCount)
     } finally {
       unmockkObject(AuthRepositoryProvider)
     }
