@@ -289,12 +289,16 @@ class UploadPictureViewModelTest {
 
   // NEW TEST
   @Test
-  fun canUploadIsFalseDuringAnUploadInProgress() {
-    val uploadReply = CompletableDeferred<Unit>() // the upload is still running when we look
+  fun canUploadIsFalseDuringAnUploadInProgress_andTrueWhenComplete() {
+    val uploadReply = CompletableDeferred<Unit>()
     coEvery { mediaRepo.addMedia(any(), any(), any()) } coAnswers { uploadReply.await() }
+
     val vm = readyViewModel()
     vm.uploadMedia()
     assertFalse(vm.uiState.value.canUpload)
+
+    uploadReply.complete(Unit)
+    assertTrue(vm.uiState.value.canUpload)
   }
 
   // ---------- copyMedia ----------
@@ -341,5 +345,22 @@ class UploadPictureViewModelTest {
         ),
         copied,
     )
+  }
+
+  @Test
+  fun copyMediaPreservesPictureSpecificFields() {
+    val state =
+        completeState.copy(
+            pictureWidth = 640,
+            pictureHeight = 480,
+        )
+
+    val updated = state.copyMedia(description = "Updated description")
+
+    assertEquals("Updated description", updated.description)
+
+    assertEquals(state.pictureFile, updated.pictureFile)
+    assertEquals(state.pictureWidth, updated.pictureWidth)
+    assertEquals(state.pictureHeight, updated.pictureHeight)
   }
 }
