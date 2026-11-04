@@ -131,6 +131,22 @@ class RoleLoadingViewModelTest {
   }
 
   @Test
+  fun loadRole_blankCircleIds_countsAsNoCircle() = runTest {
+    // Empty lists never call isNotBlank(). A non-empty list of blank ids must.
+    stubProfile(
+        UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("", " ")),
+    )
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertEquals(
+        RoleState.NeedsCareCircle(CareCircleDestination.Choice),
+        viewModel.state.value.roleState,
+    )
+  }
+
+  @Test
   fun loadRole_repositoryFails_emitsError() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.failure(RuntimeException("Firestore down"))
