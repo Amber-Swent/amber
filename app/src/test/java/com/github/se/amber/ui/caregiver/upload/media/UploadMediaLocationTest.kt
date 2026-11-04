@@ -1,5 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-package com.github.se.amber.ui.caregiver.upload.picture
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
@@ -25,14 +25,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
-import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
-import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocation
-import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocationHint
-import com.github.se.amber.ui.caregiver.upload.pictures.DisplayPlaceSuggestion
-import com.github.se.amber.ui.caregiver.upload.pictures.NO_PLACE_FOUND_HINT
-import com.github.se.amber.ui.caregiver.upload.pictures.PLACE_QUERY_TOO_SHORT_HINT
-import com.github.se.amber.ui.caregiver.upload.pictures.PLACE_SEARCH_FAILED_HINT
-import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureLocationTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -40,12 +32,12 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Robolectric tests for the "Location - optional" helpers of the Upload Picture screen, rendered on
- * their own: the screen tests cover them through the ViewModel, these cover what the helpers show
- * for each search state and with any list of suggestions.
+ * Robolectric tests for the "Location - optional" helpers of the upload screens, rendered on their
+ * own: the screen tests cover them through the ViewModel, these cover what the helpers show for
+ * each search state and with any list of suggestions.
  */
 @RunWith(RobolectricTestRunner::class)
-class UploadPictureLocationTest {
+class UploadMediaLocationTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
@@ -53,7 +45,7 @@ class UploadPictureLocationTest {
   private val unnamed = GeoLocation(lat = 45.0, lng = -73.0, placeName = null)
 
   private val searchField =
-      hasSetTextAction() and hasAnyAncestor(hasTestTag(UploadPictureLocationTestTags.SEARCH_FIELD))
+      hasSetTextAction() and hasAnyAncestor(hasTestTag(UploadMediaLocationTestTags.SEARCH_FIELD))
 
   private fun hasEditableText(text: String) =
       SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString(text))
@@ -67,10 +59,8 @@ class UploadPictureLocationTest {
 
     composeTestRule.onNodeWithText("Location - optional").assertIsDisplayed()
     composeTestRule.onNode(searchField).assertIsDisplayed()
-    composeTestRule
-        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
-        .assertCountEquals(0)
-    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE).assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION).assertCountEquals(0)
   }
 
   @Test
@@ -82,14 +72,14 @@ class UploadPictureLocationTest {
       )
     }
 
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SAVED_PLACE).performClick()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).performClick()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SAVED_PLACE).performClick()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SUGGESTION).performClick()
     composeTestRule.onNode(searchField).performTextInput("x")
 
     // the state is hoisted: without callbacks, nothing gets picked or typed
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SAVED_PLACE).assertIsNotSelected()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SAVED_PLACE).assertIsNotSelected()
     composeTestRule.onNode(searchField).assert(hasEditableText("Lau"))
-    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION).assertCountEquals(1)
   }
 
   @Test
@@ -102,7 +92,7 @@ class UploadPictureLocationTest {
       )
     }
 
-    val suggestions = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION)
+    val suggestions = composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION)
     suggestions.assertCountEquals(2)
     suggestions[1].performClick()
     suggestions[0].performClick()
@@ -118,41 +108,41 @@ class UploadPictureLocationTest {
 
     // a place typed but not found says how to unblock the upload
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
+        .onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT)
         .assertIsDisplayed()
         .assert(hasOnlyText(NO_PLACE_FOUND_HINT))
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
 
     // a failed search is not shown as no places found
     composeTestRule.runOnIdle {
       state = MediaLocationUIState(query = "Lausanne", searchFailed = true)
     }
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED)
+        .onNodeWithTag(UploadMediaLocationTestTags.SEARCH_FAILED)
         .assertIsDisplayed()
         .assert(hasOnlyText(PLACE_SEARCH_FAILED_HINT))
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
     // ...and it can be searched again from there
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).performClick()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.RETRY_SEARCH).performClick()
     assertEquals(1, retries)
 
     // a place too short to search says how many letters are needed
     composeTestRule.runOnIdle { state = MediaLocationUIState(query = "La") }
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.TOO_SHORT)
+        .onNodeWithTag(UploadMediaLocationTestTags.TOO_SHORT)
         .assertIsDisplayed()
         .assert(hasOnlyText(PLACE_QUERY_TOO_SHORT_HINT))
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
 
     // a search still running only shows searching
     composeTestRule.runOnIdle {
       state = MediaLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
     }
     composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 
   @Test
@@ -178,7 +168,7 @@ class UploadPictureLocationTest {
     }
 
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
+        .onNodeWithTag(UploadMediaLocationTestTags.SUGGESTION)
         .assertIsDisplayed()
         .assert(hasOnlyText(""))
         .performClick() // the default callback does nothing
@@ -191,15 +181,15 @@ class UploadPictureLocationTest {
   fun suggestionsGoAwayOnceAPlaceIsPicked() {
     var state by mutableStateOf(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule.setContent { DisplayLocation(state = state) }
-    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(1)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION).assertCountEquals(1)
 
     composeTestRule.runOnIdle { state = state.copy(pickedPlace = lausanne) }
 
-    composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SUGGESTION).assertCountEquals(0)
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION).assertCountEquals(0)
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 
   private companion object {
-    const val HINT_TAG = "UploadPictureLocationTest_hint"
+    const val HINT_TAG = "UploadMediaLocationTest_hint"
   }
 }
