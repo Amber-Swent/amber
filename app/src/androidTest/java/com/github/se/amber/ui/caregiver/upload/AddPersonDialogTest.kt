@@ -97,7 +97,9 @@ class AddPersonDialogTest {
     every { viewModel.dismissAddPerson() } answers
         {
           uiStateFlow.value =
-              uiStateFlow.value.copy(common = uiStateFlow.value.common.copy(isAddPersonOpen = false))
+              uiStateFlow.value.copy(
+                  common = uiStateFlow.value.common.copy(isAddPersonOpen = false)
+              )
         }
     launchScreen()
 
