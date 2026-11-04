@@ -25,11 +25,22 @@ sealed interface RoleState {
   // the role is loaded/ready
   data class Loaded(val role: Role) : RoleState
 
-  // signed in, but no profile document, or a profile that has not joined a circle yet
+  // signed in, but there is no user document for this uid
   data object NoProfile : RoleState
+
+  // profile exists, but the user has not created or joined a care circle yet
+  data class NeedsCareCircle(val destination: CareCircleDestination) : RoleState
 
   // the user is not connected or if Firestore has failed
   data object Error : RoleState
+}
+
+/** Where to send a user who already has a profile but no care circle. */
+enum class CareCircleDestination {
+  /** Caregiver: choose between creating a circle and entering an invitation. */
+  Choice,
+  /** Patient: enter an invitation code. */
+  Invitation,
 }
 
 data class RoleLoadingUIState(
@@ -73,8 +84,11 @@ class RoleLoadingViewModel(
               onSuccess = { profile ->
                 val hasCircle = profile?.circleIds?.any { it.isNotBlank() } == true
                 setRoleState(
-                    if (profile == null || !hasCircle) RoleState.NoProfile
-                    else RoleState.Loaded(profile.role)
+                    when {
+                      profile == null -> RoleState.NoProfile
+                      !hasCircle -> RoleState.NeedsCareCircle(destinationFor(profile.role))
+                      else -> RoleState.Loaded(profile.role)
+                    }
                 )
               },
               onFailure = { e ->
@@ -84,6 +98,12 @@ class RoleLoadingViewModel(
           )
     }
   }
+
+  private fun destinationFor(role: Role): CareCircleDestination =
+      when (role) {
+        Role.CAREGIVER -> CareCircleDestination.Choice
+        Role.PATIENT -> CareCircleDestination.Invitation
+      }
 
   fun signOut() {
     if (_state.value.isSigningOut) return

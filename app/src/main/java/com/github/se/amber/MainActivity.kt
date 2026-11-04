@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber
 
@@ -26,6 +27,7 @@ import androidx.navigation.navigation
 import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signOut.SignOutScreen
@@ -115,6 +117,14 @@ fun AmberApp(
       RoleLoadingScreen(
           onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
           noProfile = { navigationActions.navigateToGraph(NavGraphs.ONBOARDING) },
+          onNeedsCareCircle = { destination ->
+            val screen =
+                when (destination) {
+                  CareCircleDestination.Choice -> OnboardingScreen.CaregiverChoice
+                  CareCircleDestination.Invitation -> OnboardingScreen.EnterInvitation
+                }
+            navigationActions.navigateToGraph(screen.route)
+          },
           onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
       )
     }

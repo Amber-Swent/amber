@@ -8,6 +8,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
 import com.github.se.amber.ui.authentication.roleLoading.RoleState
 import io.mockk.coEvery
@@ -111,13 +112,22 @@ class RoleLoadingViewModelTest {
   }
 
   @Test
-  fun loadRole_profileWithNoCircle_emitsNoProfileForBothRoles() = runTest {
-    listOf(Role.PATIENT, Role.CAREGIVER).forEach { role ->
-      stubProfile(UserProfile(uid = "uid123", role = role))
-      viewModel.loadRole()
-      advanceUntilIdle()
-      assertEquals(RoleState.NoProfile, viewModel.state.value.roleState)
-    }
+  fun loadRole_profileWithNoCircle_sendsEachRoleToItsCareCircleStep() = runTest {
+    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+    viewModel.loadRole()
+    advanceUntilIdle()
+    assertEquals(
+        RoleState.NeedsCareCircle(CareCircleDestination.Choice),
+        viewModel.state.value.roleState,
+    )
+
+    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT))
+    viewModel.loadRole()
+    advanceUntilIdle()
+    assertEquals(
+        RoleState.NeedsCareCircle(CareCircleDestination.Invitation),
+        viewModel.state.value.roleState,
+    )
   }
 
   @Test
