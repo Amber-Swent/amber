@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber
 
@@ -194,6 +195,9 @@ fun AmberApp(
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onCreateCareCircleClick = {
+              navigationActions.navigateTo(OnboardingScreen.CreateCareCircle)
+            },
             onCreateInvitationClick = {
               navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
             },

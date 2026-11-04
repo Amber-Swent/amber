@@ -7,6 +7,7 @@
 package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -33,6 +34,7 @@ class CaregiverParameterScreenTest {
   private fun setScreen(
       viewModel: CaregiverParameterViewModel = CaregiverParameterViewModel(),
       onTabSelected: (Tab) -> Unit = {},
+      onCreateCareCircleClick: () -> Unit = {},
       onCreateInvitationClick: () -> Unit = {},
       onEnterInvitationClick: () -> Unit = {},
       onSignOutClick: () -> Unit = {},
@@ -42,6 +44,7 @@ class CaregiverParameterScreenTest {
         CaregiverParameterScreen(
             viewModel = viewModel,
             onTabSelected = onTabSelected,
+            onCreateCareCircleClick = onCreateCareCircleClick,
             onCreateInvitationClick = onCreateInvitationClick,
             onEnterInvitationClick = onEnterInvitationClick,
             onSignOutClick = onSignOutClick,
@@ -54,6 +57,15 @@ class CaregiverParameterScreenTest {
   fun titleIsDisplayed() {
     setScreen()
     composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun createCareCircleButtonIsDisplayed() {
+    setScreen()
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON)
+        .assertIsDisplayed()
   }
 
   @Test
@@ -85,7 +97,10 @@ class CaregiverParameterScreenTest {
   fun invitationHintIsDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
+        .assertIsDisplayed()
+        .assertTextEquals(INVITATION_HINT_LABEL)
   }
 
   @Test
@@ -95,6 +110,18 @@ class CaregiverParameterScreenTest {
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
+  }
+
+  @Test
+  fun createCareCircleClickInvokesTheCallback() {
+    var createCircleClicks = 0
+    setScreen(onCreateCareCircleClick = { createCircleClicks++ })
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON)
+        .performClick()
+
+    assertEquals(1, createCircleClicks)
   }
 
   @Test

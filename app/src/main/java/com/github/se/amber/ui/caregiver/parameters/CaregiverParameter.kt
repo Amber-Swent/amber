@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.MaterialTheme
@@ -45,11 +47,15 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 /** Test tags of [CaregiverParameterScreen]. */
 object CaregiverParametersTestTags {
   const val TITLE = "CaregiverParameter_test_tag_title"
+  const val CREATE_CARE_CIRCLE_BUTTON = "CaregiverParameter_test_tag_create_care_circle_button"
   const val CREATE_INVITATION_BUTTON = "CaregiverParameter_test_tag_create_invitation_button"
   const val ENTER_INVITATION_BUTTON = "CaregiverParameter_test_tag_enter_invitation_button"
   const val SIGN_OUT_BUTTON = "CaregiverParameter_test_tag_sign_out_button"
   const val INVITATION_HINT = "CaregiverParameter_test_tag_invitation_hint"
 }
+
+internal const val INVITATION_HINT_LABEL =
+    "To join, the second person needs a new code from a caregiver in the circle."
 
 /**
  * Displays the caregiver parameters screen.
@@ -59,6 +65,7 @@ object CaregiverParametersTestTags {
  *
  * @param viewModel ViewModel providing the UI state of the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
+ * @param onCreateCareCircleClick Callback invoked when the user creates a new care circle.
  * @param onCreateInvitationClick Callback invoked when the user creates an invitation.
  * @param onEnterInvitationClick Callback invoked when the user enters an invitation.
  * @param onSignOutClick Callback invoked when the user opens the sign-out confirmation screen.
@@ -67,6 +74,7 @@ object CaregiverParametersTestTags {
 fun CaregiverParameterScreen(
     viewModel: CaregiverParameterViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = {},
+    onCreateCareCircleClick: () -> Unit = {},
     onCreateInvitationClick: () -> Unit = {},
     onEnterInvitationClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
@@ -90,6 +98,7 @@ fun CaregiverParameterScreen(
             textAlign = TextAlign.Center,
             modifier =
                 Modifier.fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(
                         top = CAREGIVER_PADDING_SMALL,
                         bottom = CAREGIVER_PADDING_MEDIUM,
@@ -117,6 +126,13 @@ fun CaregiverParameterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           DisplayButton(
+              modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON),
+              icon = Icons.Outlined.Add,
+              text = "Create a new care circle",
+              description = "Create a new care circle",
+              onClick = onCreateCareCircleClick,
+          )
+          DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
               icon = Icons.Outlined.PersonAdd,
               text = "Create Invitation",
@@ -138,7 +154,7 @@ fun CaregiverParameterScreen(
               onClick = onSignOutClick,
           )
           Text(
-              text = "Invitation code is needed to add families/patient into the family circle",
+              text = INVITATION_HINT_LABEL,
               modifier =
                   Modifier.fillMaxWidth()
                       .padding(bottom = CAREGIVER_PADDING_ENORMOUS)
