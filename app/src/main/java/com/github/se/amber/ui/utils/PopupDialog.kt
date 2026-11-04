@@ -2,12 +2,14 @@
 package com.github.se.amber.ui.utils
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -68,17 +70,20 @@ fun PopupDialog(
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
       Column(
-          modifier = Modifier.imePadding().padding(CAREGIVER_PADDING_MEDIUM),
+          modifier =
+              Modifier.imePadding()
+                  .verticalScroll(rememberScrollState())
+                  .padding(CAREGIVER_PADDING_MEDIUM),
           verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
       ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
           DisplayCaregiverTitle(
-              modifier = Modifier.align(Alignment.CenterStart).testTag(titleTestTag),
+              modifier = Modifier.weight(1f).testTag(titleTestTag),
               title = title,
           )
           IconButton(
               onClick = onDismiss,
-              modifier = Modifier.align(Alignment.TopEnd).testTag(dismissTestTag),
+              modifier = Modifier.testTag(dismissTestTag),
           ) {
             Icon(
                 Icons.Default.Close,

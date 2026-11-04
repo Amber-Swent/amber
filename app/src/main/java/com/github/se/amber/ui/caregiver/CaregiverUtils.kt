@@ -47,7 +47,6 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.CAREGIVER_TITLE_WIDTH
@@ -69,9 +68,7 @@ fun DisplayCaregiverTitle(modifier: Modifier = Modifier, title: String) {
   Text(
       modifier =
           modifier
-              // FIXME remove the enormous padding and replace it with a small one when fixing the
-              // padding in other screens
-              .padding(top = CAREGIVER_PADDING_ENORMOUS, bottom = CAREGIVER_PADDING_MEDIUM)
+              .padding(top = CAREGIVER_PADDING_SMALL, bottom = CAREGIVER_PADDING_MEDIUM)
               .fillMaxWidth(CAREGIVER_TITLE_WIDTH),
       text = title,
       textAlign = TextAlign.Center,

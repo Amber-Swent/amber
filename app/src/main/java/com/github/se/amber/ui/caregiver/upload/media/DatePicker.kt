@@ -2,7 +2,7 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -49,7 +49,7 @@ internal object DatePickerTestTags {
   const val DIALOG = "date_picker_dialog"
   const val DIALOG_LIST = "date_picker_dialog_list"
   const val DONE_BUTTON = "date_picker_done_button"
-  const val CANCEL_BUTTON = "date_picker_ancel_button"
+  const val CANCEL_BUTTON = "date_picker_cancel_button"
   const val DISMISS_BUTTON = CANCEL_BUTTON
   const val MONTH_REQUIRED_ERROR = "date_picker_month_required_error"
 
@@ -165,8 +165,7 @@ fun DisplayScrollableDatePicker(
   Column(modifier = modifier) {
     Row(
         modifier =
-            modifier
-                .fillMaxWidth(DATE_PICKER_WIDTH_FRACTION)
+            Modifier.fillMaxWidth(DATE_PICKER_WIDTH_FRACTION)
                 .border(
                     width = BORDER_THICKNESS,
                     color = MaterialTheme.colorScheme.tertiary,
@@ -198,7 +197,8 @@ fun DisplayScrollableDatePicker(
     if (showMonthRequiredError) {
       Text(
           modifier =
-              Modifier.padding(top = CAREGIVER_PADDING_SMALL)
+              Modifier.align(Alignment.End)
+                  .padding(top = CAREGIVER_PADDING_SMALL)
                   .testTag(DatePickerTestTags.MONTH_REQUIRED_ERROR),
           text = "Select a month before selecting a day.",
           color = MaterialTheme.colorScheme.error,
