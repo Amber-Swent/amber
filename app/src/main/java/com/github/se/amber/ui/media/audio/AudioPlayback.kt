@@ -11,19 +11,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Replay
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,23 +28,26 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.ui.patient.DisplayPatientButton
+import com.github.se.amber.ui.patient.DisplayPatientIconButton
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
-import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.SECOND_FIELD_WIDTH
 import com.github.se.amber.ui.theme.WEIGHT_ONE
-import com.github.se.amber.ui.theme.lightGray
 
 private const val MILLIS_PER_SECOND = 1_000L
 private const val SECONDS_PER_MINUTE = 60L
-private const val SECOND_FIELD_WIDTH = 2
+private const val ZERO_MS = 0L
+private const val ZERO_FRACTION = 0f
+private const val SECOND_PAD_CHAR = '0'
 
-/** Opacity Material uses for a disabled control. */
-private const val DISABLED_ALPHA = 0.38f
+private const val PREVIEW_DURATION_MS = 190_000L
+private const val PREVIEW_PLAYING_POSITION_MS = 42_000L
+private const val PREVIEW_PAUSED_POSITION_MS = 95_000L
 
 /** How far one memo has played. Every memo except the active one is [AudioPlaybackState.Idle]. */
 sealed interface AudioPlaybackState {
@@ -61,33 +57,33 @@ sealed interface AudioPlaybackState {
 
   /** Nothing is playing. [positionMs] stays 0 and [durationMs] can already be known. */
   data class Idle(
-      override val positionMs: Long = 0L,
-      override val durationMs: Long = 0L,
+      override val positionMs: Long = ZERO_MS,
+      override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
 
   /** The file is being fetched. The buttons are disabled. */
   data class Loading(
-      override val positionMs: Long = 0L,
-      override val durationMs: Long = 0L,
+      override val positionMs: Long = ZERO_MS,
+      override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
 
   /** This memo is playing at [positionMs]. */
   data class Playing(
-      override val positionMs: Long = 0L,
-      override val durationMs: Long = 0L,
+      override val positionMs: Long = ZERO_MS,
+      override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
 
   /** This memo is paused at [positionMs], including when it has finished at 0. */
   data class Paused(
-      override val positionMs: Long = 0L,
-      override val durationMs: Long = 0L,
+      override val positionMs: Long = ZERO_MS,
+      override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
 
   /** Playback failed. [message] is shown with a retry button. */
   data class Error(
       val message: String = "",
-      override val positionMs: Long = 0L,
-      override val durationMs: Long = 0L,
+      override val positionMs: Long = ZERO_MS,
+      override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
 }
 
@@ -136,7 +132,11 @@ fun DisplayAudioPlayback(
       modifier =
           modifier
               .fillMaxWidth(WEIGHT_ONE)
-              .border(BORDER_THICKNESS, lightGray, RoundedCornerShape(ROUND_CORNER))
+              .border(
+                  BORDER_THICKNESS,
+                  MaterialTheme.colorScheme.outline,
+                  RoundedCornerShape(ROUND_CORNER),
+              )
               .clip(RoundedCornerShape(ROUND_CORNER))
               .background(MaterialTheme.colorScheme.surface)
               .padding(PATIENT_PADDING_SMALL)
@@ -159,9 +159,9 @@ fun DisplayAudioPlayback(
  * @param positionMs how far the memo has played, in milliseconds.
  * @param durationMs how long the memo lasts, in milliseconds.
  */
-internal fun playbackFraction(positionMs: Long = 0L, durationMs: Long = 0L): Float {
-  if (durationMs <= 0L) return 0f
-  return (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, WEIGHT_ONE)
+internal fun playbackFraction(positionMs: Long = ZERO_MS, durationMs: Long = ZERO_MS): Float {
+  if (durationMs <= ZERO_MS) return ZERO_FRACTION
+  return (positionMs.toFloat() / durationMs.toFloat()).coerceIn(ZERO_FRACTION, WEIGHT_ONE)
 }
 
 /**
@@ -170,7 +170,7 @@ internal fun playbackFraction(positionMs: Long = 0L, durationMs: Long = 0L): Flo
  * @param positionMs how far the memo has played, in milliseconds.
  * @param durationMs how long the memo lasts, in milliseconds.
  */
-internal fun formatPlaybackTime(positionMs: Long = 0L, durationMs: Long = 0L): String =
+internal fun formatPlaybackTime(positionMs: Long = ZERO_MS, durationMs: Long = ZERO_MS): String =
     "${formatPlaybackClock(positionMs)} / ${formatPlaybackClock(durationMs)}"
 
 /**
@@ -178,10 +178,11 @@ internal fun formatPlaybackTime(positionMs: Long = 0L, durationMs: Long = 0L): S
  *
  * @param timeMs the time to format, in milliseconds.
  */
-internal fun formatPlaybackClock(timeMs: Long = 0L): String {
-  val totalSeconds = timeMs.coerceAtLeast(0L) / MILLIS_PER_SECOND
+internal fun formatPlaybackClock(timeMs: Long = ZERO_MS): String {
+  val totalSeconds = timeMs.coerceAtLeast(ZERO_MS) / MILLIS_PER_SECOND
   val minutes = totalSeconds / SECONDS_PER_MINUTE
-  val seconds = (totalSeconds % SECONDS_PER_MINUTE).toString().padStart(SECOND_FIELD_WIDTH, '0')
+  val seconds =
+      (totalSeconds % SECONDS_PER_MINUTE).toString().padStart(SECOND_FIELD_WIDTH, SECOND_PAD_CHAR)
   return "$minutes:$seconds"
 }
 
@@ -215,15 +216,16 @@ internal fun PlaybackTransport(
       horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
       verticalAlignment = Alignment.CenterVertically,
   ) {
-    PlaybackIconButton(
+    DisplayPatientIconButton(
         icon = playPauseIcon(state),
         description = playPauseDescription(state),
         enabled = enabled,
         showSpinner = state is AudioPlaybackState.Loading,
         onClick = onPlayPause,
         testTag = AudioPlaybackTestTags.PLAY_PAUSE,
+        spinnerTestTag = AudioPlaybackTestTags.SPINNER,
     )
-    PlaybackIconButton(
+    DisplayPatientIconButton(
         icon = Icons.Outlined.Replay,
         description = AudioPlaybackDescriptions.RESTART,
         enabled = enabled,
@@ -259,14 +261,14 @@ internal fun PlaybackError(message: String = "", onRetry: () -> Unit = {}) {
 }
 
 @Composable
-internal fun PlaybackProgress(positionMs: Long = 0L, durationMs: Long = 0L) {
+internal fun PlaybackProgress(positionMs: Long = ZERO_MS, durationMs: Long = ZERO_MS) {
   val fraction = playbackFraction(positionMs, durationMs)
   Box(
       modifier =
           Modifier.fillMaxWidth(WEIGHT_ONE)
               .height(PADDING_MINI)
               .clip(RoundedCornerShape(ROUND_CORNER))
-              .background(lightGray)
+              .background(MaterialTheme.colorScheme.outline)
               .progressSemantics(fraction)
               .testTag(AudioPlaybackTestTags.PROGRESS)
   ) {
@@ -279,65 +281,28 @@ internal fun PlaybackProgress(positionMs: Long = 0L, durationMs: Long = 0L) {
   }
 }
 
-/**
- * Circular patient icon button. [DisplayPatientButton] always includes a text label and a width
- * fraction, so an icon-only control uses the same container color, content color, and height
- * directly. The shape matches the caregiver icon button.
- */
-@Composable
-internal fun PlaybackIconButton(
-    modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Outlined.PlayArrow,
-    description: String = "",
-    enabled: Boolean = true,
-    showSpinner: Boolean = false,
-    onClick: () -> Unit = {},
-    testTag: String = "",
-) {
-  val contentColor = MaterialTheme.colorScheme.onTertiary
-  FilledIconButton(
-      onClick = onClick,
-      enabled = enabled,
-      modifier = modifier.size(PATIENT_BUTTON_HEIGHT_SMALL).testTag(testTag),
-      shape = CircleShape,
-      colors =
-          IconButtonDefaults.filledIconButtonColors(
-              containerColor = MaterialTheme.colorScheme.tertiary,
-              contentColor = contentColor,
-              disabledContainerColor =
-                  MaterialTheme.colorScheme.tertiary.copy(alpha = DISABLED_ALPHA),
-              disabledContentColor = contentColor.copy(alpha = DISABLED_ALPHA),
-          ),
-  ) {
-    if (showSpinner) {
-      CircularProgressIndicator(
-          modifier = Modifier.size(PATIENT_ICON_SIZE).testTag(AudioPlaybackTestTags.SPINNER),
-          color = LocalContentColor.current,
-      )
-    } else {
-      Icon(
-          imageVector = icon,
-          contentDescription = description,
-          modifier = Modifier.size(PATIENT_ICON_SIZE),
-      )
-    }
-  }
-}
-
 /** Preview of [DisplayAudioPlayback] in each state. */
 @Preview(showBackground = true)
 @Composable
 internal fun AudioPlaybackPreview() {
   AmberAppTheme(dynamicColor = false) {
     Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
-      DisplayAudioPlayback(state = AudioPlaybackState.Idle(durationMs = 190_000L))
+      DisplayAudioPlayback(state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS))
       DisplayAudioPlayback(
-          state = AudioPlaybackState.Playing(positionMs = 42_000L, durationMs = 190_000L)
+          state =
+              AudioPlaybackState.Playing(
+                  positionMs = PREVIEW_PLAYING_POSITION_MS,
+                  durationMs = PREVIEW_DURATION_MS,
+              )
       )
       DisplayAudioPlayback(
-          state = AudioPlaybackState.Paused(positionMs = 95_000L, durationMs = 190_000L)
+          state =
+              AudioPlaybackState.Paused(
+                  positionMs = PREVIEW_PAUSED_POSITION_MS,
+                  durationMs = PREVIEW_DURATION_MS,
+              )
       )
-      DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = 190_000L))
+      DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS))
       DisplayAudioPlayback(
           state = AudioPlaybackState.Error(message = "This memo could not be played.")
       )

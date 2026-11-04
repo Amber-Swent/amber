@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -19,6 +20,7 @@ import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -342,6 +345,90 @@ class PatientUtilsTest {
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
         .assertWidthIsEqualTo(300.dp)
         .assertLeftPositionInRootIsEqualTo(0.dp)
+  }
+
+  // ---------- DisplayPatientIconButton ----------
+
+  @Test
+  fun iconButton_defaults_areEnabledSquareAndHaveNoSpinner() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientIconButton() } }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
+        .assertIsDisplayed()
+        .assertIsEnabled()
+        .assertWidthIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
+        .assertHeightIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsEnabled()
+  }
+
+  @Test
+  fun iconButton_exposesTheDescriptionOnTheButton() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientIconButton(description = "Play") } }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
+        .assertContentDescriptionEquals("Play")
+  }
+
+  @Test
+  fun iconButton_click_invokesCallbackOnce() {
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientIconButton(onClick = { clickCount++ }) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
+
+    assertEquals(1, clickCount)
+  }
+
+  @Test
+  fun iconButton_disabled_isNotEnabledAndIgnoresClicks() {
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientIconButton(enabled = false, onClick = { clickCount++ }) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
+
+    assertEquals(0, clickCount)
+  }
+
+  @Test
+  fun iconButton_withSpinner_showsTheTaggedSpinner() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientIconButton(showSpinner = true, spinnerTestTag = "spinner") }
+    }
+
+    composeTestRule.onNodeWithTag("spinner", useUnmergedTree = true).assertIsDisplayed()
+  }
+
+  @Test
+  fun iconButton_withSpinnerAndNoSpinnerTag_stillShowsTheButton() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientIconButton(showSpinner = true) } }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun iconButton_withoutSpinner_hasNoSpinner() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientIconButton(spinnerTestTag = "spinner") }
+    }
+
+    composeTestRule.onAllNodesWithTag("spinner", useUnmergedTree = true).assertCountEquals(0)
+  }
+
+  @Test
+  fun iconButton_usesCustomTestTag() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientIconButton(testTag = "custom_icon_button") }
+    }
+
+    composeTestRule.onNodeWithTag("custom_icon_button").assertIsDisplayed()
   }
 
   // ---------- Custom styles and heights ----------

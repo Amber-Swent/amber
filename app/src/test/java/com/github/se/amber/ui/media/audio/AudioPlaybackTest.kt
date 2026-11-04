@@ -4,6 +4,7 @@ package com.github.se.amber.ui.media.audio
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -16,7 +17,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -32,6 +32,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.GraphicsMode
+
+private const val TRANSITION_DURATION_MS = 190_000L
+private const val TRANSITION_PLAYING_POSITION_MS = 42_000L
+private const val TRANSITION_PAUSED_POSITION_MS = 95_000L
+private const val TRANSITION_ERROR_MESSAGE = "Playback failed"
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -150,13 +155,12 @@ class AudioPlaybackTest {
   }
 
   @Test
-  fun iconButtonDefault_staysEnabledAndHasNoSpinner() {
-    composeTestRule.setContent { AmberAppTheme { PlaybackIconButton() } }
+  fun spinner_isTaggedWithTheAudioSpinnerTag() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayAudioPlayback(state = AudioPlaybackState.Loading()) }
+    }
 
-    composeTestRule.onNode(hasClickAction()).assertIsEnabled()
-    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(0)
-    composeTestRule.onNode(hasClickAction()).performClick()
-    composeTestRule.onNode(hasClickAction()).assertIsEnabled()
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.SPINNER).assertIsDisplayed()
   }
 
   @Test
@@ -345,6 +349,91 @@ class AudioPlaybackTest {
       AmberAppTheme { DisplayAudioPlayback(modifier = Modifier.testTag("custom_playback")) }
     }
     composeTestRule.onNodeWithTag("custom_playback").assertIsDisplayed()
+  }
+
+  @Test
+  fun playbackStateChanges_updateTheDisplayedControls() {
+    val playbackState =
+        mutableStateOf<AudioPlaybackState>(
+            AudioPlaybackState.Idle(durationMs = TRANSITION_DURATION_MS)
+        )
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayAudioPlayback(state = playbackState.value) }
+    }
+
+    // Idle
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
+        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:00 / 3:10")
+
+    // Idle -> Loading
+    composeTestRule.runOnIdle {
+      playbackState.value = AudioPlaybackState.Loading(durationMs = TRANSITION_DURATION_MS)
+    }
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RESTART).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.SPINNER).assertIsDisplayed()
+
+    // Loading -> Playing
+    composeTestRule.runOnIdle {
+      playbackState.value =
+          AudioPlaybackState.Playing(
+              positionMs = TRANSITION_PLAYING_POSITION_MS,
+              durationMs = TRANSITION_DURATION_MS,
+          )
+    }
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertIsEnabled()
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
+        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PAUSE)
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(0)
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:42 / 3:10")
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
+        .assertRangeInfoEquals(
+            rangeInfo(TRANSITION_PLAYING_POSITION_MS.toFloat() / TRANSITION_DURATION_MS)
+        )
+
+    // Playing -> Paused
+    composeTestRule.runOnIdle {
+      playbackState.value =
+          AudioPlaybackState.Paused(
+              positionMs = TRANSITION_PAUSED_POSITION_MS,
+              durationMs = TRANSITION_DURATION_MS,
+          )
+    }
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
+        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("1:35 / 3:10")
+
+    // Paused -> Error
+    composeTestRule.runOnIdle {
+      playbackState.value = AudioPlaybackState.Error(message = TRANSITION_ERROR_MESSAGE)
+    }
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.ERROR)
+        .assertTextEquals(TRANSITION_ERROR_MESSAGE)
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RETRY).assertIsDisplayed()
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.RESTART).assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PROGRESS).assertCountEquals(0)
+
+    // Error -> Playing: the controls come back
+    composeTestRule.runOnIdle {
+      playbackState.value =
+          AudioPlaybackState.Playing(
+              positionMs = TRANSITION_PLAYING_POSITION_MS,
+              durationMs = TRANSITION_DURATION_MS,
+          )
+    }
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.ERROR).assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.RETRY).assertCountEquals(0)
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
+        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PAUSE)
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:42 / 3:10")
   }
 
   @Test

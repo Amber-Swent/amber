@@ -25,7 +25,6 @@ import com.github.se.amber.ui.onboarding.DividerTestTags.TEXT
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
-import com.github.se.amber.ui.theme.lightGray
 
 /** Test tags for [Divider]. */
 object DividerTestTags {
@@ -135,8 +134,7 @@ fun Divider(
   ) {
     HorizontalDivider(
         modifier = Modifier.weight(WEIGHT_ONE).testTag(HORIZONTAL_DIVIDER_LEFT),
-        // independent of DarkMode and lightMode
-        color = lightGray,
+        color = MaterialTheme.colorScheme.outline,
     )
 
     Text(
@@ -149,7 +147,7 @@ fun Divider(
 
     HorizontalDivider(
         modifier = Modifier.weight(WEIGHT_ONE).testTag(HORIZONTAL_DIVIDER_RIGHT),
-        color = lightGray,
+        color = MaterialTheme.colorScheme.outline,
     )
   }
 }
