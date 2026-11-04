@@ -1,6 +1,5 @@
-/* Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
- */
+// Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.clickable
