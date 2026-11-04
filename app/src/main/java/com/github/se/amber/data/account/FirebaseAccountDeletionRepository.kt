@@ -16,7 +16,7 @@ import kotlinx.coroutines.tasks.await
  *
  * @param localData What is cleared from the device once the backend confirms the deletion.
  * @param marker Set before calling the backend, as the app can die before hearing its answer. If it
- *   can't be saved, the backend isn't called.
+ *   can't be saved, the backend isn't called. Removed again if the backend refuses to start.
  * @param functions The Firebase Functions instance.
  * @param auth The Firebase Authentication instance.
  */
@@ -35,6 +35,12 @@ class FirebaseAccountDeletionRepository(
       return Result.failure(AccountDeletionError.Unknown(exception))
     }
     val deletion = requestDeletion()
+    if (deletion.exceptionOrNull() == AccountDeletionError.ReauthenticationRequired) {
+      // The backend refuses before writing anything: the account is untouched, so a signed-out
+      // launch must not take the marker for an interrupted deletion and clear the device. If
+      // removing it fails, that launch clears a device the user can sign in to again.
+      runCatching { marker.remove() }
+    }
     return if (deletion.isSuccess) clearLocalData() else deletion
   }
 
@@ -63,11 +69,11 @@ class FirebaseAccountDeletionRepository(
       }
 
   override suspend fun finishInterruptedDeletion() {
-    if (marker.isSet && accountIsGone()) clearLocalData()
+    if (marker.isSet && isAccountGone()) clearLocalData()
   }
 
   /** Nobody signed in counts: the wipe signs out, so it got that far and has nothing to protect. */
-  private suspend fun accountIsGone(): Boolean {
+  private suspend fun isAccountGone(): Boolean {
     val user = auth.currentUser ?: return true
     return try {
       user.reload().await()
@@ -97,22 +103,23 @@ class FirebaseAccountDeletionRepository(
             else AccountDeletionError.Unknown(this)
         FirebaseFunctionsException.Code.UNAUTHENTICATED ->
             AccountDeletionError.ReauthenticationRequired
-        FirebaseFunctionsException.Code.PERMISSION_DENIED -> AccountDeletionError.PermissionDenied
         FirebaseFunctionsException.Code.FAILED_PRECONDITION -> toPreconditionError()
         else -> AccountDeletionError.Unknown(this)
       }
 
   /** Maps the backend's machine-readable `details.reason`; the message is for logs only. */
   private fun FirebaseFunctionsException.toPreconditionError(): AccountDeletionError =
-      when ((details as? Map<*, *>)?.get(REASON_KEY)) {
-        "RECENT_SIGN_IN_REQUIRED" -> AccountDeletionError.ReauthenticationRequired
-        else -> AccountDeletionError.Unknown(this)
+      if ((details as? Map<*, *>)?.get(REASON_KEY) == RECENT_SIGN_IN_REQUIRED) {
+        AccountDeletionError.ReauthenticationRequired
+      } else {
+        AccountDeletionError.Unknown(this)
       }
 
   private companion object {
     const val DELETE_ACCOUNT_FUNCTION = "deleteAccount"
     const val DELETED_KEY = "deleted"
     const val REASON_KEY = "reason"
+    const val RECENT_SIGN_IN_REQUIRED = "RECENT_SIGN_IN_REQUIRED"
     const val ERROR_USER_NOT_FOUND = "ERROR_USER_NOT_FOUND"
     // Above the function's own 540 s limit, not the SDK's default of 70 s: a large circle would
     // otherwise look like a failure while the backend is still deleting it

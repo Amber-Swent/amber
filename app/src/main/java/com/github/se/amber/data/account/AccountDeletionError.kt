@@ -12,10 +12,11 @@ sealed class AccountDeletionError(message: String, cause: Throwable? = null) :
     Exception(message, cause) {
   data object Network : AccountDeletionError("Network unavailable")
 
-  /** The last sign-in is too old: re-authenticate, then try again. */
+  /**
+   * The sign-in is more than 5 minutes old, or nobody is signed in: re-authenticate, then try
+   * again. The backend refuses before deleting anything.
+   */
   data object ReauthenticationRequired : AccountDeletionError("A recent sign-in is required")
-
-  data object PermissionDenied : AccountDeletionError("Permission denied")
 
   data class Unknown(val source: Throwable) :
       AccountDeletionError("Unknown account deletion failure", source)

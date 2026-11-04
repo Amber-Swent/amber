@@ -110,7 +110,6 @@ class FirebaseAccountDeletionRepositoryTest {
                 Code.FAILED_PRECONDITION,
                 details = mapOf("reason" to "RECENT_SIGN_IN_REQUIRED"),
             ) to AccountDeletionError.ReauthenticationRequired,
-            functionsException(Code.PERMISSION_DENIED) to AccountDeletionError.PermissionDenied,
         )
     for ((failure, error) in expected) {
       `when`(callable.call()).thenReturn(Tasks.forException(failure))
@@ -127,6 +126,7 @@ class FirebaseAccountDeletionRepositoryTest {
         listOf(
             functionsException(Code.INTERNAL),
             functionsException(Code.NOT_FOUND),
+            functionsException(Code.PERMISSION_DENIED),
             functionsException(Code.FAILED_PRECONDITION, details = mapOf("reason" to "OTHER")),
             functionsException(Code.FAILED_PRECONDITION, details = "not a map"),
             IllegalStateException("Boom"),
@@ -152,7 +152,7 @@ class FirebaseAccountDeletionRepositoryTest {
   }
 
   @Test
-  fun cancellingBeforeTheConfirmationLeavesTheDeviceAlone() = runBlocking {
+  fun cancellingBeforeTheConfirmationLeavesTheDeviceAlone() {
     `when`(callable.call()).thenReturn(Tasks.forException(CancellationException("Cancelled")))
 
     assertThrows(CancellationException::class.java) { runBlocking { repository.deleteAccount() } }
@@ -161,17 +161,32 @@ class FirebaseAccountDeletionRepositoryTest {
   }
 
   @Test
-  fun theMarkerIsSetBeforeTheBackendIsCalledAndOutlivesEveryFailure() = runBlocking {
-    var markedWhenCalled = false
-    `when`(callable.call()).thenAnswer {
-      markedWhenCalled = marker.isSet
-      Tasks.forException<HttpsCallableResult>(functionsException(Code.UNAVAILABLE))
+  fun theMarkerIsSetBeforeTheBackendAndOnlyRemovedWhenItRefusedToStart() = runBlocking {
+    // whether the backend may have started deleting the account
+    val failures =
+        listOf(
+            functionsException(Code.UNAVAILABLE) to true,
+            offlineException() to true,
+            functionsException(Code.INTERNAL) to true,
+            functionsException(Code.UNAUTHENTICATED) to false,
+            functionsException(
+                Code.FAILED_PRECONDITION,
+                details = mapOf("reason" to "RECENT_SIGN_IN_REQUIRED"),
+            ) to false,
+        )
+    for ((failure, mayHaveStarted) in failures) {
+      marker.remove()
+      var markedWhenCalled = false
+      `when`(callable.call()).thenAnswer {
+        markedWhenCalled = marker.isSet
+        Tasks.forException<HttpsCallableResult>(failure)
+      }
+
+      repository.deleteAccount()
+
+      assertTrue(failure.code.name, markedWhenCalled)
+      assertEquals(failure.code.name, mayHaveStarted, marker.isSet)
     }
-
-    repository.deleteAccount()
-
-    assertTrue(markedWhenCalled)
-    assertTrue(marker.isSet)
   }
 
   @Test
