@@ -85,4 +85,23 @@ class SeeAudiosScreenTest {
 
     assertEquals(PatientTab.Home, selected)
   }
+
+  @Test
+  fun default_screen_displays_empty_state_and_keeps_it_after_back_click() {
+    composeTestRule.setContent { AmberAppTheme(dynamicColor = false) { SeeAudiosScreen() } }
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
+  }
+
+  @Test
+  fun preview_displays_the_empty_message() {
+    composeTestRule.setContent { SeeAudiosScreenPreview() }
+
+    composeTestRule
+        .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
+        .assertIsDisplayed()
+        .assertTextEquals("There are no audios yet.")
+  }
 }
