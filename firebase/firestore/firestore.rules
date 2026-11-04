@@ -146,6 +146,7 @@ service cloud.firestore {
         );
 
       allow update: if isSelf(uid)
+        && !isBeingDeleted()
         && request.resource.data.uid == uid
         && request.resource.data.role == resource.data.role
         && (

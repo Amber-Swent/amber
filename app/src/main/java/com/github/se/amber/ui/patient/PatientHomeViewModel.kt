@@ -1,6 +1,5 @@
 // this code was written with the aid of AI
 // Modified by Alaabrine, with assistance from Cursor.
-
 package com.github.se.amber.ui.patient
 
 import android.util.Log
@@ -31,8 +30,7 @@ data class PatientHomeUIState(
 /**
  * ViewModel for the Patient Home screen.
  *
- * Responsible for managing the UI state. Sign-out lives on the shared
- * [com.github.se.amber.ui.authentication.signOut.SignOutViewModel].
+ * Responsible for managing the UI state
  *
  * @property profileRepository The repository used to fetch the Profile.
  */
@@ -73,7 +71,7 @@ class PatientHomeViewModel(
               },
               onFailure = { e ->
                 Log.e("PatientHomeViewModel", "Error fetching profile", e)
-                setErrorMsg("Failed to load the profile: ${e.message}")
+                setErrorMsg("Failed to load the profile: ${e.message ?: "unknown error"}")
               },
           )
     }

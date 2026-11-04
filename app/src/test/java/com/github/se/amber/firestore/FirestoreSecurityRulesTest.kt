@@ -444,6 +444,12 @@ class FirestoreSecurityRulesTest {
     assertFalse(
         rules.canCreateCircle(CareCircle(id = "c2", memberIds = listOf("care"), createdBy = "care"))
     )
+    assertFalse(
+        rules.canUpdateUser(
+            caregiver,
+            caregiver.copy(person = Person(id = "care", firstName = "New")),
+        )
+    )
     assertFalse(rules.canUpdateCircle(circle, circle.copy(name = "New")))
     assertFalse(rules.canCreateMedia("c1", picture))
     assertFalse(rules.canUpdateMedia("c1", picture, picture.copy(description = "beach")))
@@ -678,7 +684,7 @@ private class FirestoreSecurityRules(
   }
 
   fun canUpdateUser(before: UserProfile, after: UserProfile): Boolean {
-    if (!isSelf(before.uid) || after.uid != before.uid) return false
+    if (!isSelf(before.uid) || isBeingDeleted() || after.uid != before.uid) return false
     if (after.role != before.role) return false
     val affected = affectedUserKeys(before, after)
     return (affected.all { it == "person" } && after.circleIds == before.circleIds) ||
