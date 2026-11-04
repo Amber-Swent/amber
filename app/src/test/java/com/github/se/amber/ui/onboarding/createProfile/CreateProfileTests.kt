@@ -3,6 +3,7 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.createProfile
 
+import android.os.Bundle
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
+import androidx.credentials.CustomCredential
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -27,14 +29,18 @@ import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
 import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
+import com.github.se.amber.ui.onboarding.createProfile.PreviewProfileRepository
+import com.github.se.amber.ui.onboarding.createProfile.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -233,6 +239,21 @@ class CreateProfileUITests {
 
     assertEquals(0, signedOutCount)
     assertEquals("Could not sign out. Please try again.", ShadowToast.getTextOfLatestToast())
+  }
+
+  @Test
+  fun previewRepositoriesReturnSafeResults() = runBlocking {
+    val person = Person(firstName = "Ada", lastName = "Lovelace")
+    val credential = CustomCredential("preview", Bundle())
+
+    assertTrue(PreviewProfileRepository.createProfile(person, Role.PATIENT).isSuccess)
+    assertTrue(PreviewProfileRepository.updateOnboardingProfile(person, Role.CAREGIVER).isSuccess)
+    assertEquals(null, PreviewProfileRepository.getCurrentProfile().getOrNull())
+    assertEquals(null, PreviewProfileRepository.getProfile("uid").getOrNull())
+    assertEquals(null, PreviewSignOutAuthRepository.currentUser)
+    assertTrue(PreviewSignOutAuthRepository.signInWithGoogle(credential).isFailure)
+    assertTrue(PreviewSignOutAuthRepository.reauthenticateWithGoogle(credential).isFailure)
+    assertTrue(PreviewSignOutAuthRepository.signOut().isSuccess)
   }
 
   @Test

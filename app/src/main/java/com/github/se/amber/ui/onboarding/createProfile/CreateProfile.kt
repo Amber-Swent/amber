@@ -219,7 +219,7 @@ fun CreateProfilePreview() {
   }
 }
 
-private object PreviewProfileRepository : ProfileRepository {
+internal object PreviewProfileRepository : ProfileRepository {
   override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
       Result.success(Unit)
 
@@ -231,7 +231,7 @@ private object PreviewProfileRepository : ProfileRepository {
   override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
 }
 
-private object PreviewSignOutAuthRepository : AuthRepository {
+internal object PreviewSignOutAuthRepository : AuthRepository {
   override val currentUser: AuthUser? = null
 
   override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =

@@ -1,5 +1,6 @@
 // this code was written by Alaabrine
 // with the aid of AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,7 +13,9 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -145,6 +148,17 @@ class CaregiverChoiceUITests {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.INFORMATION).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewRepositoryReturnsSafeResults() = runBlocking {
+    val person = Person(firstName = "Ada", lastName = "Lovelace")
+
+    assertTrue(PreviewChoiceProfileRepository.createProfile(person, Role.CAREGIVER).isSuccess)
+    assertTrue(
+        PreviewChoiceProfileRepository.updateOnboardingProfile(person, Role.PATIENT).isSuccess,
+    )
+    assertEquals(null, PreviewChoiceProfileRepository.getProfile("preview").getOrNull())
   }
 
   @Test
