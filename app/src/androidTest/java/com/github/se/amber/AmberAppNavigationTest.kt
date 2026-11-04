@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
@@ -104,9 +105,19 @@ class AmberAppNavigationTest {
     composeRule.waitForIdle()
   }
 
-  /** Programmatically moves to [route] (used to reach a nested screen before clicking). */
+  /**
+   * Programmatically moves to [route] (used to reach a nested screen before clicking).
+   *
+   * Waits until that destination is at least created. Navigating again before then makes Navigation
+   * destroy a back-stack entry that has not reached [Lifecycle.State.CREATED].
+   */
   private fun goTo(route: String) {
-    composeRule.runOnUiThread { navController.navigate(route) }
+    composeRule.runOnIdle { navController.navigate(route) }
+    composeRule.waitUntil(timeoutMillis = 15_000) {
+      val entry = navController.currentBackStackEntry
+      entry?.destination?.route == route &&
+          entry.lifecycle.currentState.isAtLeast(Lifecycle.State.CREATED)
+    }
     composeRule.waitForIdle()
   }
 
@@ -402,8 +413,8 @@ class AmberAppNavigationTest {
   @Test
   fun createInvitation_homeTab_navigatesToCaregiverHome() {
     launch(NavGraphs.CAREGIVER)
-    goTo(CaregiverScreen.Parameters.route)
-    goTo(CaregiverScreen.CreateInvitationCode.route)
+    click(Tags.CAREGIVER_TAB_PARAMETERS)
+    click(Tags.CREATE_INVITATION_BUTTON)
 
     click(Tags.CAREGIVER_TAB_HOME)
 
