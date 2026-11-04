@@ -126,9 +126,7 @@ class UploadPicturesTest {
         .onNodeWithTag(UploadMediaLocationTestTags.SECTION)
         .performScrollTo()
         .assertIsDisplayed()
-    composeTestRule
-        .onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE)
-        .assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE).assertCountEquals(0)
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
         .assertIsDisplayed()

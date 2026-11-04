@@ -32,9 +32,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Robolectric tests for the "Location - optional" helpers of the upload screens, rendered on
- * their own: the screen tests cover them through the ViewModel, these cover what the helpers show
- * for each search state and with any list of suggestions.
+ * Robolectric tests for the "Location - optional" helpers of the upload screens, rendered on their
+ * own: the screen tests cover them through the ViewModel, these cover what the helpers show for
+ * each search state and with any list of suggestions.
  */
 @RunWith(RobolectricTestRunner::class)
 class UploadMediaLocationTest {
@@ -59,9 +59,7 @@ class UploadMediaLocationTest {
 
     composeTestRule.onNodeWithText("Location - optional").assertIsDisplayed()
     composeTestRule.onNode(searchField).assertIsDisplayed()
-    composeTestRule
-        .onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE)
-        .assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE).assertCountEquals(0)
     composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION).assertCountEquals(0)
   }
 
