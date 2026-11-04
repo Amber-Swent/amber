@@ -239,9 +239,7 @@ class InvitationRedemptionUITests {
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
-    composeTestRule
-        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR)
-        .assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR).assertCountEquals(0)
   }
 
   private companion object {
