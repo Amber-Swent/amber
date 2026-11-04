@@ -24,6 +24,9 @@ interface AudioPlayer {
    * At the end of the file, playback stops and goes back to position 0, but the file and the
    * duration are kept, so the screen can show a "play again" button. If another audio is played
    * instead, [AudioState.file] changes to it.
+   *
+   * If the file fails while playing, it is unloaded, which empties the state as [stop] does. A file
+   * that can't be read at all fails earlier, in [play].
    */
   val state: StateFlow<AudioState>
 

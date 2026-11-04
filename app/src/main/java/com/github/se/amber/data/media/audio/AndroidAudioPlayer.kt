@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -116,12 +117,17 @@ class AndroidAudioPlayer(
   /**
    * Stops what was loaded, prepares [file] and plays it.
    *
-   * It takes the lock twice, as preparing reads the file and can take a while: holding the lock
+   * It takes the lock twice, as preparing reads the file and can take a while. Holding the lock
    * then would freeze every screen calling [pause] or [state] on the main thread. The first time,
    * it stops the old audio right away, so it doesn't play on while the new one is prepared, and
    * notes the file being prepared. The second time, it plays the file, unless another [play] or a
-   * [stop] of this file came in between: the prepared file is then dropped, so the last call wins
-   * and a screen that was closed while its file was prepared doesn't start playing.
+   * [stop] of this file came in between, or the caller was cancelled. The prepared file is then
+   * dropped, so the last call wins, and a screen that was closed while its file was prepared
+   * doesn't start playing.
+   *
+   * The cancelled caller needs its own check. Once the file is being prepared, the cancellation is
+   * only noticed when `withContext` ends, which then throws instead of returning. So the caller
+   * would never know that the file plays, and nobody would stop it.
    */
   override suspend fun play(file: File): Unit =
       withContext(ioDispatcher) {
@@ -135,15 +141,15 @@ class AndroidAudioPlayer(
             try {
               prepare(file)
             } catch (e: IOException) {
-              synchronized(lock) { if (playCount == count) preparing = null }
+              synchronized(lock) { endPreparing(count) }
               throw e
             }
         synchronized(lock) {
-          if (playCount != count) {
+          // replaced, stopped, or its caller is gone: nobody would ever stop it
+          if (!endPreparing(count) || !isActive) {
             player.release()
             return@withContext
           }
-          preparing = null
           mediaPlayer = player
           player.setOnCompletionListener { onCompletion(it) }
           player.setOnErrorListener { failed, _, _ ->
@@ -216,6 +222,19 @@ class AndroidAudioPlayer(
   }
 
   /**
+   * Ends the preparing of the [play] numbered [count], once its file is prepared or has failed.
+   * Called with the lock held.
+   *
+   * @return whether that [play] is still the latest one, with no [stop] of its file since. Only
+   *   then is [preparing] its file, so only then is it cleared.
+   */
+  private fun endPreparing(count: Int): Boolean {
+    val isLatest = playCount == count
+    if (isLatest) preparing = null
+    return isLatest
+  }
+
+  /**
    * Builds a [MediaPlayer] for [file] and prepares it. It is called without the lock, as it reads
    * the file.
    *
@@ -249,8 +268,10 @@ class AndroidAudioPlayer(
   }
 
   /**
-   * When the file fails while playing: it is unloaded, as it can't play anymore. It is called on
-   * the main thread, so it takes the lock, and it ignores a player that was replaced.
+   * Unloads the file when it fails while playing, as it can't play anymore. This also covers a
+   * [pause], [resume] or [seekTo] on a player that has failed. Android doesn't throw then, and
+   * reports the error here instead. It is called on the main thread, so it takes the lock, and it
+   * ignores a player that was replaced.
    */
   private fun onError(player: MediaPlayer) {
     synchronized(lock) { if (mediaPlayer === player) unload() }

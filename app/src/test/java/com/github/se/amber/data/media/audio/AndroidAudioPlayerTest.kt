@@ -2,6 +2,7 @@
 package com.github.se.amber.data.media.audio
 
 import android.app.Application
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Looper
@@ -12,6 +13,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -118,10 +121,17 @@ class AndroidAudioPlayerTest {
     player.pause()
     assertFalse(player.state.value.isPlaying)
     assertEquals(1_000L, player.state.value.positionMs)
+    // a paused player doesn't move on
+    playFor(1.seconds)
 
     player.resume()
     assertTrue(player.state.value.isPlaying)
     assertEquals(1_000L, player.state.value.positionMs)
+    // a resumed one does, from where it was paused
+    playFor(1.seconds)
+    advanceTimeBy(250.milliseconds)
+    runCurrent()
+    assertEquals(2_000L, player.state.value.positionMs)
   }
 
   @Test
@@ -148,8 +158,13 @@ class AndroidAudioPlayerTest {
   @Test
   fun theEndOfTheFileGoesBackToTheStartAndKeepsTheFile() = test {
     player.play(first)
+    // the position moves on first, so going back to 0 is seen
+    playFor(4.seconds)
+    advanceTimeBy(250.milliseconds)
+    runCurrent()
+    assertEquals(4_000L, player.state.value.positionMs)
 
-    playFor(6.seconds)
+    playFor(2.seconds)
 
     assertEquals(
         AudioState(first, isPlaying = false, positionMs = 0, durationMs = 5_000),
@@ -200,6 +215,12 @@ class AndroidAudioPlayerTest {
     val request = shadowOf(audioManager).lastAudioFocusRequest
     assertNotNull(request)
     assertEquals(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT, request.audioFocusRequest.focusGain)
+    val attributes = request.audioFocusRequest.audioAttributes
+    // played as media, so the media volume controls it
+    assertEquals(AudioAttributes.USAGE_MEDIA, attributes.usage)
+    // without these two, Android would play us lower by itself, without telling the listener
+    assertEquals(AudioAttributes.CONTENT_TYPE_SPEECH, attributes.contentType)
+    assertTrue(request.audioFocusRequest.willPauseWhenDucked())
     assertNull(shadowOf(audioManager).lastAbandonedAudioFocusRequest)
 
     player.stop(first)
@@ -208,10 +229,22 @@ class AndroidAudioPlayerTest {
   }
 
   @Test
-  fun losingTheFocusPauses() = test {
+  fun losingTheFocusForAWhilePauses() = test {
     player.play(first)
 
+    // e.g. a phone call
     player.focusListener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)
+
+    assertFalse(player.state.value.isPlaying)
+    assertEquals(first, player.state.value.file)
+  }
+
+  @Test
+  fun losingTheFocusForGoodPauses() = test {
+    player.play(first)
+
+    // e.g. another app starts playing music
+    player.focusListener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS)
 
     assertFalse(player.state.value.isPlaying)
     assertEquals(first, player.state.value.file)
@@ -264,6 +297,20 @@ class AndroidAudioPlayerTest {
     assertEquals(second, eager.state.value.file)
     assertTrue(eager.state.value.isPlaying)
     eager.stop(second)
+  }
+
+  @Test
+  fun aPlayWhoseCallerIsCancelledWhileItIsPreparedDoesntPlay() = test {
+    lateinit var playing: Job
+    // the screen is closed while its file is prepared, before it could call stop()
+    whilePreparing { playing.cancel() }
+
+    playing = launch { player.play(prepared) }
+    runCurrent()
+
+    assertTrue(playing.isCancelled)
+    assertEquals(AudioState(), player.state.value)
+    assertNull(shadowOf(audioManager).lastAudioFocusRequest)
   }
 
   @Test
