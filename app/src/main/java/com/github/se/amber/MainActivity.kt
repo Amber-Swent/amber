@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber
 
@@ -51,6 +52,7 @@ import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedempti
 import com.github.se.amber.ui.patient.PatientHomeScreen
 import com.github.se.amber.ui.patient.parameters.PatientParameterScreen
 import com.github.se.amber.ui.patient.seeMedias.SeeMediasScreen
+import com.github.se.amber.ui.patient.seeMedias.audios.SeeAudiosScreen
 import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -230,11 +232,18 @@ fun AmberApp(
       composable(route = PatientScreen.SeeMedias.route) {
         SeeMediasScreen(
             onSeePictureClick = { navigationActions.navigateTo(PatientScreen.SeePictures) },
+            onSeeAudioClick = { navigationActions.navigateTo(PatientScreen.SeeAudios) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
       composable(route = PatientScreen.SeePictures.route) {
         SeePicturesScreen(
+            onBackClick = { navigationActions.goBack() },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
+      }
+      composable(route = PatientScreen.SeeAudios.route) {
+        SeeAudiosScreen(
             onBackClick = { navigationActions.goBack() },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
