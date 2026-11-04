@@ -25,6 +25,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
 import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocation
 import com.github.se.amber.ui.caregiver.upload.pictures.DisplayLocationHint
 import com.github.se.amber.ui.caregiver.upload.pictures.DisplayPlaceSuggestion
