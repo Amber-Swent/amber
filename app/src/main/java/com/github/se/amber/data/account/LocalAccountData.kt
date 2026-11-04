@@ -34,8 +34,9 @@ fun interface LocalAccountData {
  *
  * Firestore's copy of the user's documents goes last, once everything else worked: clearing it
  * needs a stopped Firestore, which the repositories can't use any more, so the process ends. It
- * only reopens on the first screen if the device is clear: [marker] would otherwise make every
- * launch fail and relaunch in a loop, and instead the next launch the user makes tries again.
+ * only reopens on the first screen once the device is clear and [marker] removed: it would
+ * otherwise make every launch fail and relaunch in a loop, and instead the next launch the user
+ * makes tries again.
  *
  * @param mediaRepository Holds the media kept on the phone and their pending sends.
  * @param authRepository Ends the session.
@@ -76,11 +77,11 @@ class DeviceLocalAccountData(
         try {
           firestore.terminate().await()
           firestore.clearPersistence().await()
+          marker.remove()
         } catch (exception: Exception) {
           stopApp()
           throw exception
         }
-        marker.remove()
         restartApp()
       }
 

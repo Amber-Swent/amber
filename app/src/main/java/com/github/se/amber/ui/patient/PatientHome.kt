@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified with assistance from GitHub Copilot.
 // Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
@@ -9,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,7 +36,6 @@ import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
 /** No-op [ProfileRepository] used by Compose previews (and preview-driven tests). */
 private object PreviewPatientHomeProfileRepository : ProfileRepository {
@@ -45,9 +47,9 @@ private object PreviewPatientHomeProfileRepository : ProfileRepository {
   override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
 }
 
-object PatientHomeScreenTestTags {
-  const val TITLE = "home_title"
-  const val GREETINGS = "home_greetings"
+object PatientHomeTestTags {
+  const val GREETINGS = "patient_home_greetings"
+  const val TITLE = "patient_home_title"
 }
 
 /**
@@ -58,6 +60,7 @@ object PatientHomeScreenTestTags {
  * @param homeViewModel ViewModel providing the patient profile displayed on the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientHomeScreen(
     homeViewModel: PatientHomeViewModel = viewModel(),
@@ -66,6 +69,7 @@ fun PatientHomeScreen(
   val context = LocalContext.current
   val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
+  // Show error message
   LaunchedEffect(uiState.errorMsg) {
     uiState.errorMsg?.let { message ->
       Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -74,18 +78,7 @@ fun PatientHomeScreen(
   }
 
   Scaffold(
-      topBar = {
-        Text(
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(top = PATIENT_PADDING_SMALL, bottom = PATIENT_PADDING_MEDIUM)
-                    .testTag(PatientHomeScreenTestTags.TITLE),
-            text = "Home",
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
-        )
-      },
+      topBar = { TopAppBar(title = { DisplayPatientTitle(title = "Home") }) },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = PatientTab.Home,
@@ -103,9 +96,10 @@ fun PatientHomeScreen(
                     .padding(top = PATIENT_PADDING_MEDIUM),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+          val firstName = uiState.patientProfile.person.firstName
           Text(
-              modifier = Modifier.fillMaxWidth().testTag(PatientHomeScreenTestTags.GREETINGS),
-              text = "Hello " + uiState.patientProfile.person.firstName + " !",
+              modifier = Modifier.fillMaxWidth().testTag(PatientHomeTestTags.GREETINGS),
+              text = "Hello $firstName!",
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.headlineMedium,

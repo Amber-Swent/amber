@@ -3,7 +3,8 @@
 package com.github.se.amber.data.account
 
 import android.content.Context
-import androidx.core.content.edit
+import android.content.SharedPreferences
+import java.io.IOException
 
 /**
  * Remembers, even if the app dies, that an account deletion started and this device may still hold
@@ -12,8 +13,10 @@ import androidx.core.content.edit
 interface DeletionMarker {
   val isSet: Boolean
 
+  /** @throws IOException if the marker couldn't be saved: a later launch wouldn't see it. */
   fun set()
 
+  /** @throws IOException if the marker couldn't be removed: a later launch would still see it. */
   fun remove()
 }
 
@@ -24,10 +27,14 @@ class SharedPreferencesDeletionMarker(context: Context) : DeletionMarker {
   override val isSet: Boolean
     get() = preferences.getBoolean(KEY, false)
 
-  // commit: the process can end right after these, which would lose an asynchronous write
-  override fun set() = preferences.edit(commit = true) { putBoolean(KEY, true) }
+  override fun set() = save(preferences.edit().putBoolean(KEY, true))
 
-  override fun remove() = preferences.edit(commit = true) { remove(KEY) }
+  override fun remove() = save(preferences.edit().remove(KEY))
+
+  // commit: the process can end right after these, which would lose an asynchronous write
+  private fun save(editor: SharedPreferences.Editor) {
+    if (!editor.commit()) throw IOException("The deletion marker could not be saved")
+  }
 
   private companion object {
     const val PREFERENCES_NAME = "account_deletion"
