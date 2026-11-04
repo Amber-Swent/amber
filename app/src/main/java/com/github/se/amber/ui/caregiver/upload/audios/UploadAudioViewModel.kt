@@ -18,7 +18,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
-import com.github.se.amber.ui.caregiver.upload.pictures.PictureLocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import java.io.File
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,7 +41,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class UploadAudioUIState(
     val description: String = "",
     val date: MemoryDate? = null,
-    val location: PictureLocationUIState = PictureLocationUIState(),
+    val location: MediaLocationUIState = MediaLocationUIState(),
     val shownIds: Set<String> = emptySet(),
     val audioFile: File? = null,
     val waveform: List<Float> = emptyList(),
