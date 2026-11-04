@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.authentication.roleLoading
 
 import android.util.Log
@@ -24,7 +25,7 @@ sealed interface RoleState {
   // the role is loaded/ready
   data class Loaded(val role: Role) : RoleState
 
-  // the user is connected but there are no user document with this uid
+  // signed in, but no profile document, or a profile that has not joined a circle yet
   data object NoProfile : RoleState
 
   // the user is not connected or if Firestore has failed
@@ -70,8 +71,10 @@ class RoleLoadingViewModel(
           .getCurrentProfile()
           .fold(
               onSuccess = { profile ->
+                val hasCircle = profile?.circleIds?.any { it.isNotBlank() } == true
                 setRoleState(
-                    if (profile == null) RoleState.NoProfile else RoleState.Loaded(profile.role)
+                    if (profile == null || !hasCircle) RoleState.NoProfile
+                    else RoleState.Loaded(profile.role)
                 )
               },
               onFailure = { e ->

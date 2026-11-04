@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.ui.roleloading
 
 import android.util.Log
@@ -81,7 +82,7 @@ class RoleLoadingViewModelTest {
 
   @Test
   fun loadRole_patientProfile_emitsLoadedPatient() = runTest {
-    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT))
+    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT, circleIds = listOf("circle-1")))
 
     viewModel.loadRole()
     advanceUntilIdle()
@@ -91,7 +92,7 @@ class RoleLoadingViewModelTest {
 
   @Test
   fun loadRole_caregiverProfile_emitsLoadedCaregiver() = runTest {
-    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("circle-1")))
 
     viewModel.loadRole()
     advanceUntilIdle()
@@ -107,6 +108,16 @@ class RoleLoadingViewModelTest {
     advanceUntilIdle()
 
     assertEquals(RoleState.NoProfile, viewModel.state.value.roleState)
+  }
+
+  @Test
+  fun loadRole_profileWithNoCircle_emitsNoProfileForBothRoles() = runTest {
+    listOf(Role.PATIENT, Role.CAREGIVER).forEach { role ->
+      stubProfile(UserProfile(uid = "uid123", role = role))
+      viewModel.loadRole()
+      advanceUntilIdle()
+      assertEquals(RoleState.NoProfile, viewModel.state.value.roleState)
+    }
   }
 
   @Test
@@ -127,7 +138,9 @@ class RoleLoadingViewModelTest {
     coEvery { profileRepository.getCurrentProfile() } coAnswers
         {
           gate.await()
-          Result.success(UserProfile(uid = "uid123", role = Role.PATIENT))
+          Result.success(
+              UserProfile(uid = "uid123", role = Role.PATIENT, circleIds = listOf("circle-1"))
+          )
         }
 
     viewModel.loadRole()
@@ -157,7 +170,9 @@ class RoleLoadingViewModelTest {
     coEvery { profileRepository.getCurrentProfile() } coAnswers
         {
           gate.await()
-          Result.success(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+          Result.success(
+              UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("circle-1"))
+          )
         }
     viewModel.loadRole()
     runCurrent()
