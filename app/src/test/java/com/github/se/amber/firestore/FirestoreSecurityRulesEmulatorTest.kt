@@ -4,6 +4,7 @@
 // Modified by Neha Chakraborty and Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
@@ -310,12 +311,29 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+  fun profileOverwrite_canCorrectRoleUntilTheUserJoins_enforcedByEmulator() {
     val uid = "existing-user"
     fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
 
-    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
-    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "Ada")))
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", listOf("c1"), "Ada")))
+
+    val joined = "joined-user"
+    val circleId = "c-joined"
+    fs.assertSucceeds(
+        joined,
+        fs.commit(
+            fs.setWrite("users/$joined", user(joined, "CAREGIVER", listOf(circleId), "Ada")),
+            fs.setWrite(
+                "careCircles/$circleId",
+                circle(circleId, joined, listOf(joined), patientId = ""),
+            ),
+        ),
+    )
+    fs.assertFails(
+        joined,
+        fs.set("users/$joined", user(joined, "PATIENT", listOf(circleId), "Ada")),
+    )
   }
 
   @Test

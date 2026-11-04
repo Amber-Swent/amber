@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
@@ -127,10 +128,13 @@ fun InvitationRedemptionScreen(
 fun InvitationRedemptionPreview() {
   val viewModel = remember {
     InvitationRedemptionViewModel(
-        invitationRedemptionRepository = {
-          Result.success(InvitationRedemptionResult(careCircleId = "preview", role = Role.PATIENT))
-        },
+        invitationRedemptionRepository = PreviewInvitationRedemptionRepository,
     )
   }
   AmberAppTheme { InvitationRedemptionScreen(viewModel = viewModel) }
+}
+
+private object PreviewInvitationRedemptionRepository : InvitationRedemptionRepository {
+  override suspend fun redeemInvitation(code: String): Result<InvitationRedemptionResult> =
+      Result.success(InvitationRedemptionResult(careCircleId = "preview", role = Role.PATIENT))
 }
