@@ -13,10 +13,15 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.credentials.Credential
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
+import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
@@ -61,10 +66,18 @@ class CreateProfileUITests {
                     override suspend fun getCurrentProfile() = Result.success(null)
 
                     override suspend fun getProfile(uid: String) = Result.success(null)
+
+                    override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                        Result.success(Unit)
                   },
           ),
   ) {
-    composeTestRule.setContent { CreateProfileScreen(viewModel = viewModel) }
+    composeTestRule.setContent {
+      CreateProfileScreen(
+          viewModel = viewModel,
+          signOutViewModel = SignOutViewModel(idleAuthRepository()),
+      )
+    }
   }
 
   private fun hasErrorSemantics(): SemanticsMatcher =
@@ -90,6 +103,9 @@ class CreateProfileUITests {
           override suspend fun getCurrentProfile() = Result.success(null)
 
           override suspend fun getProfile(uid: String) = Result.success(null)
+
+          override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+              Result.success(Unit)
         }
     setCreateProfile(CreateProfileViewModel(profileRepository = repository))
 
@@ -117,6 +133,9 @@ class CreateProfileUITests {
           override suspend fun getCurrentProfile() = Result.success(null)
 
           override suspend fun getProfile(uid: String) = Result.success(null)
+
+          override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+              Result.success(Unit)
         }
     setCreateProfile(CreateProfileViewModel(profileRepository = repository))
 
@@ -133,6 +152,37 @@ class CreateProfileUITests {
         .performScrollTo()
         .assertIsDisplayed()
         .assertTextEquals("You don't have permission to create a profile.")
+  }
+
+  @Test
+  fun signOutButton_signsOutAndNotifiesTheCaller() {
+    var signedOutCount = 0
+    composeTestRule.setContent {
+      CreateProfileScreen(
+          viewModel =
+              CreateProfileViewModel(
+                  profileRepository =
+                      object : ProfileRepository {
+                        override suspend fun createProfile(person: Person, role: Role) =
+                            Result.success(Unit)
+
+                        override suspend fun getCurrentProfile() = Result.success(null)
+
+                        override suspend fun getProfile(uid: String) = Result.success(null)
+
+                        override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                            Result.success(Unit)
+                      },
+              ),
+          signOutViewModel = SignOutViewModel(idleAuthRepository()),
+          onSignedOut = { signedOutCount++ },
+      )
+    }
+
+    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(1, signedOutCount)
   }
 
   // ---------- Validation when role is chosen with empty fields ----------
@@ -174,3 +224,16 @@ class CreateProfileUITests {
         .assertTextEquals(FILL_OUT_MESSAGE)
   }
 }
+
+private fun idleAuthRepository(): AuthRepository =
+    object : AuthRepository {
+      override val currentUser: AuthUser? = AuthUser("uid")
+
+      override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+          error("unused")
+
+      override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
+          error("unused")
+
+      override suspend fun signOut(): Result<Unit> = Result.success(Unit)
+    }

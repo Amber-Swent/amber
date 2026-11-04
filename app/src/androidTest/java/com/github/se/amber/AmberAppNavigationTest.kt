@@ -53,7 +53,7 @@ class AmberAppNavigationTest {
     // Onboarding
     val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
     val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
-    val CHOICE_BACK = CaregiverChoiceTestTags.BACK_BUTTON
+    val CHOICE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     val INVITATION_REDEMPTION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Caregiver
@@ -195,6 +195,17 @@ class AmberAppNavigationTest {
 
     // goBack() pops once: we come back to CreateProfile
     assertRoute(OnboardingScreen.CreateProfile.route)
+  }
+
+  @Test
+  fun createCareCircle_cancel_returnsToCaregiverChoice() {
+    launch(NavGraphs.ONBOARDING)
+    goTo(OnboardingScreen.CaregiverChoice.route)
+    goTo(OnboardingScreen.CreateCareCircle.route)
+
+    click(Tags.CHOICE_BACK)
+
+    assertRoute(OnboardingScreen.CaregiverChoice.route)
   }
 
   @Test

@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 rules_version = '2';
 
 service cloud.firestore {
@@ -148,18 +149,27 @@ service cloud.firestore {
       allow update: if isSelf(uid)
         && !isBeingDeleted()
         && request.resource.data.uid == uid
-        && request.resource.data.role == resource.data.role
+        && request.resource.data.role in ['CAREGIVER', 'PATIENT']
         && (
           (
-            request.resource.data.circleIds == resource.data.circleIds
+            request.resource.data.role == resource.data.role
+            && request.resource.data.circleIds == resource.data.circleIds
             && request.resource.data.diff(resource.data)
                  .affectedKeys().hasOnly(['person'])
           )
           || (
-            request.resource.data.person == resource.data.person
+            request.resource.data.role == resource.data.role
+            && request.resource.data.person == resource.data.person
             && request.resource.data.diff(resource.data)
                  .affectedKeys().hasOnly(['circleIds'])
             && isInitialCareCircleLink()
+          )
+          || (
+            // A wrong onboarding role can be corrected until the user joins a circle.
+            resource.data.circleIds.size() == 0
+            && request.resource.data.circleIds.size() == 0
+            && request.resource.data.diff(resource.data)
+                 .affectedKeys().hasOnly(['role', 'person'])
           )
         );
 

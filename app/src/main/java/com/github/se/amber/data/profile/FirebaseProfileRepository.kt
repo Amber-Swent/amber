@@ -1,5 +1,6 @@
 // This file was written by Neha Chakraborty and Copilot
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.data.profile
 
 import com.github.se.amber.model.user.Person
@@ -57,6 +58,47 @@ class FirebaseProfileRepository(
     }
   }
 
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> {
+    val cleanedPerson =
+        person.copy(
+            firstName = person.firstName.trim(),
+            lastName = person.lastName.trim(),
+        )
+    if (cleanedPerson.firstName.isBlank() || cleanedPerson.lastName.isBlank()) {
+      return Result.failure(ProfileUpdateError.InvalidPersonDetails)
+    }
+
+    val uid = auth.currentUser?.uid ?: return Result.failure(ProfileUpdateError.NotAuthenticated)
+    val profileReference = firestore.collection(USERS_COLLECTION).document(uid)
+
+    return try {
+      firestore
+          .runTransaction { transaction ->
+            val snapshot = transaction.get(profileReference)
+            if (!snapshot.exists()) throw ProfileUpdateError.NoProfile
+            val existing =
+                snapshot.toObject(UserProfile::class.java) ?: throw ProfileUpdateError.NoProfile
+            if (existing.circleIds.any { it.isNotBlank() }) {
+              throw ProfileUpdateError.AlreadyInCareCircle
+            }
+            transaction.set(
+                profileReference,
+                existing.copy(
+                    role = role,
+                    person = cleanedPerson.copy(id = uid, nickname = existing.person.nickname),
+                    circleIds = emptyList(),
+                ),
+            )
+          }
+          .await()
+      Result.success(Unit)
+    } catch (exception: CancellationException) {
+      throw exception
+    } catch (exception: Exception) {
+      Result.failure(exception.toProfileUpdateError())
+    }
+  }
+
   override suspend fun getCurrentProfile(): Result<UserProfile?> {
     val uid = auth.currentUser?.uid ?: return Result.failure(ProfileReadError.NotAuthenticated)
     return getProfile(uid)
@@ -101,6 +143,22 @@ class FirebaseProfileRepository(
               else -> ProfileReadError.Unknown(this)
             }
         else -> ProfileReadError.Unknown(this)
+      }
+
+  private fun Exception.toProfileUpdateError(): ProfileUpdateError =
+      when (this) {
+        is ProfileUpdateError -> this
+        is FirebaseFirestoreException ->
+            when (code) {
+              FirebaseFirestoreException.Code.PERMISSION_DENIED ->
+                  ProfileUpdateError.PermissionDenied
+              FirebaseFirestoreException.Code.UNAUTHENTICATED -> ProfileUpdateError.NotAuthenticated
+              FirebaseFirestoreException.Code.UNAVAILABLE,
+              FirebaseFirestoreException.Code.DEADLINE_EXCEEDED,
+              FirebaseFirestoreException.Code.ABORTED -> ProfileUpdateError.Network
+              else -> ProfileUpdateError.Unknown(this)
+            }
+        else -> ProfileUpdateError.Unknown(this)
       }
 
   private fun Exception.toProfileCreationError(): ProfileCreationError =

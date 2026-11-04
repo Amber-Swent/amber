@@ -1,6 +1,7 @@
 // this code was written with the aid of AI
 // Modified with assistance from GitHub Copilot.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.patient
 
 import android.widget.Toast
@@ -45,6 +46,9 @@ private object PreviewPatientHomeProfileRepository : ProfileRepository {
   override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
 
   override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
+
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
 }
 
 object PatientHomeTestTags {

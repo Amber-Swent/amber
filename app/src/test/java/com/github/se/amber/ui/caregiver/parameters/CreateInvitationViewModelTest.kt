@@ -416,6 +416,9 @@ private class FakeProfileRepository(var result: Result<UserProfile?>) : ProfileR
   override suspend fun getCurrentProfile(): Result<UserProfile?> = result
 
   override suspend fun getProfile(uid: String): Result<UserProfile?> = result
+
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+      error("not used")
 }
 
 private class FakeCircleRepository(private val circles: Map<String, CareCircle>) :

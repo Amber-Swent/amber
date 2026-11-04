@@ -1,5 +1,6 @@
 // This file was written by Neha Chakraborty and Copilot
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.data.profile
 
 import com.github.se.amber.model.user.Person
@@ -213,6 +214,112 @@ class FirebaseProfileRepositoryTest {
   }
 
   @Test
+  fun updateOnboardingProfile_replacesRoleAndKeepsNickname() = runTest {
+    val existing =
+        UserProfile(
+            uid = uid,
+            role = Role.PATIENT,
+            person = Person(id = uid, firstName = "Ada", lastName = "Lovelace", nickname = "A"),
+        )
+    val captured = stubExistingProfile(existing)
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = " Ada ", lastName = " Byron "),
+            Role.CAREGIVER,
+        )
+
+    assertTrue(result.isSuccess)
+    assertEquals(Role.CAREGIVER, captured.captured.role)
+    assertEquals(uid, captured.captured.uid)
+    assertEquals(
+        Person(id = uid, firstName = "Ada", lastName = "Byron", nickname = "A"),
+        captured.captured.person,
+    )
+    assertTrue(captured.captured.circleIds.isEmpty())
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsProfileThatAlreadyJoinedACircle() = runTest {
+    stubExistingProfile(
+        UserProfile(
+            uid = uid,
+            role = Role.PATIENT,
+            person = Person(id = uid, firstName = "Ada", lastName = "Lovelace"),
+            circleIds = listOf("circle-1"),
+        ),
+    )
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.CAREGIVER,
+        )
+
+    assertFailure<ProfileUpdateError.AlreadyInCareCircle>(result)
+    verify(exactly = 0) { transaction.set(any(), any()) }
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsMissingProfile() = runTest {
+    val snapshot = mockk<DocumentSnapshot>()
+    every { snapshot.exists() } returns false
+    every { transaction.get(document) } returns snapshot
+    every { firestore.runTransaction<Unit>(any()) } answers
+        {
+          runTransactionFunction(firstArg(), transaction)
+        }
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.NoProfile>(result)
+    verify(exactly = 0) { transaction.set(any(), any()) }
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsBlankNameBeforeAccessingFirebase() = runTest {
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "  ", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.InvalidPersonDetails>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsSignedOutUserBeforeAccessingFirestore() = runTest {
+    every { auth.currentUser } returns null
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.NotAuthenticated>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsPermissionDeniedFirestoreFailure() = runTest {
+    stubFailedTransaction(firestoreFailure(FirebaseFirestoreException.Code.PERMISSION_DENIED))
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.PermissionDenied>(result)
+  }
+
+  @Test
   fun getCurrentProfile_returnsProfileOfAuthenticatedUser() = runTest {
     val profile =
         UserProfile(
@@ -370,6 +477,19 @@ class FirebaseProfileRepositoryTest {
     every { document.get() } returns Tasks.forException(error)
     return repository.getProfile(uid)
   }
+
+  private fun stubExistingProfile(profile: UserProfile) =
+      slot<UserProfile>().also { capturedProfile ->
+        val snapshot = mockk<DocumentSnapshot>()
+        every { snapshot.exists() } returns true
+        every { snapshot.toObject(UserProfile::class.java) } returns profile
+        every { transaction.get(document) } returns snapshot
+        every { transaction.set(document, capture(capturedProfile)) } returns transaction
+        every { firestore.runTransaction<Unit>(any()) } answers
+            {
+              runTransactionFunction(firstArg(), transaction)
+            }
+      }
 
   private fun stubSuccessfulTransaction() =
       slot<UserProfile>().also { capturedProfile ->
