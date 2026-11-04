@@ -25,7 +25,6 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
-import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.patient.parameters.PatientParameterTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -55,7 +54,7 @@ class AmberAppNavigationTest {
     val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
     val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
     val CHOICE_BACK = CaregiverChoiceTestTags.BACK_BUTTON
-    val INVITATION_REDEMPTION_BACK = InvitationRedemptionTestTags.BACK_BUTTON
+    val INVITATION_REDEMPTION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Caregiver
     val CAREGIVER_TAB_HOME = tabTag(CaregiverTab.Home)
@@ -205,7 +204,7 @@ class AmberAppNavigationTest {
     goTo(CaregiverScreen.Parameters.route)
     click(Tags.ENTER_INVITATION_BUTTON)
 
-    click(Tags.INVITATION_REDEMPTION_BACK.name)
+    click(Tags.INVITATION_REDEMPTION_BACK)
 
     assertRoute(CaregiverScreen.Parameters.route)
   }
