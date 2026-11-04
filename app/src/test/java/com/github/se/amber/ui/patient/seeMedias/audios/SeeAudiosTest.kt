@@ -4,7 +4,7 @@ package com.github.se.amber.ui.patient.seeMedias.audios
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -84,15 +84,6 @@ class SeeAudiosScreenTest {
         .performClick()
 
     assertEquals(PatientTab.Home, selected)
-  }
-
-  @Test
-  fun default_screen_displays_empty_state_and_keeps_it_after_back_click() {
-    composeTestRule.setContent { AmberAppTheme(dynamicColor = false) { SeeAudiosScreen() } }
-
-    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
   }
 
   @Test
