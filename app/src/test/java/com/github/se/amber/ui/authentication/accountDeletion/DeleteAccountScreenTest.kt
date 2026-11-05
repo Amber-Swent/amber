@@ -2,6 +2,7 @@
 package com.github.se.amber.ui.authentication.accountDeletion
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 class DeleteAccountScreenTest {
@@ -71,6 +73,36 @@ class DeleteAccountScreenTest {
   }
 
   @Test
+  fun explanationStatesThePermanentFamilyConsequences() {
+    setScreen()
+
+    composeTestRule
+        .onNodeWithTag(DeleteAccountTestTags.EXPLANATION)
+        .assertTextContains("Deletion is permanent", substring = true)
+        .assertTextContains("Your uploads and stories are removed", substring = true)
+        .assertTextContains("Photos of you uploaded by others stay", substring = true)
+        .assertTextContains("removed from appointments", substring = true)
+  }
+
+  @Test
+  fun warningLoadCompletionReplacesLoadingWithConfirmation() {
+    setScreen()
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
+
+    stateFlow.value =
+        DeleteAccountUIState(
+            isLoading = false,
+            warningsLoaded = true,
+            warnings = listOf("The family will continue with no one to manage it."),
+        )
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithText(DELETE_ACCOUNT_CHECKING_LABEL).assertDoesNotExist()
+    composeTestRule.onNodeWithText("The family will continue with no one to manage it.").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed()
+  }
+
+  @Test
   fun confirmationCallsViewModel() {
     stateFlow.value = DeleteAccountUIState(warningsLoaded = true, isLoading = false)
     setScreen()
@@ -100,6 +132,21 @@ class DeleteAccountScreenTest {
   }
 
   @Test
+  fun startedDeletionReplacesActionsButKeepsTitle() {
+    stateFlow.value = DeleteAccountUIState(warningsLoaded = true, isLoading = false)
+    setScreen()
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed()
+
+    stateFlow.value = stateFlow.value.copy(isDeleting = true)
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithText(DELETE_ACCOUNT_PROGRESS).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
   fun failedWarningLoadOffersRetry() {
     stateFlow.value = DeleteAccountUIState(isLoading = false)
     setScreen()
@@ -119,11 +166,23 @@ class DeleteAccountScreenTest {
   }
 
   @Test
+  fun finishDeletingActionCallsViewModel() {
+    stateFlow.value =
+        DeleteAccountUIState(warningsLoaded = true, isLoading = false, localCleanupNeeded = true)
+    setScreen()
+
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).performClick()
+
+    verify(exactly = 1) { viewModel.deleteAccount(any(), credentialManager) }
+  }
+
+  @Test
   fun errorIsClearedAfterBeingDisplayed() {
     stateFlow.value = DeleteAccountUIState(errorMessage = "Network error")
     setScreen()
     composeTestRule.waitForIdle()
 
+    assertEquals("Network error", ShadowToast.getTextOfLatestToast())
     verify(exactly = 1) { viewModel.clearError() }
   }
 }

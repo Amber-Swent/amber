@@ -6,6 +6,7 @@ import androidx.credentials.Credential
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import com.github.se.amber.R
 import com.github.se.amber.data.account.AccountDeletionError
 import com.github.se.amber.data.account.AccountDeletionRepository
@@ -31,6 +32,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -65,6 +68,40 @@ class DeleteAccountViewModelTest {
     every { response.credential } returns credential
     coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } returns response
     return credential
+  }
+
+  @Test
+  fun initialStateRequiresWarningsBeforeDeletion() {
+    assertTrue(viewModel.uiState.value.isLoading)
+    assertFalse(viewModel.uiState.value.warningsLoaded)
+    viewModel.deleteAccount(context, credentialManager)
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun ordinaryFamilyHasNoWarningAndIsLoadedOnce() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    viewModel.loadWarnings()
+
+    assertTrue(viewModel.uiState.value.warnings.isEmpty())
+    assertTrue(viewModel.uiState.value.warningsLoaded)
+    coVerify(exactly = 1) { profileRepository.getCurrentProfile() }
+  }
+
+  @Test
+  fun concurrentWarningLoadsReadTheProfileOnlyOnce() = runTest {
+    val pending = CompletableDeferred<Result<UserProfile?>>()
+    coEvery { profileRepository.getCurrentProfile() } coAnswers { pending.await() }
+
+    viewModel.loadWarnings()
+    runCurrent()
+    viewModel.loadWarnings()
+    coVerify(exactly = 1) { profileRepository.getCurrentProfile() }
+
+    pending.complete(Result.success(UserProfile(uid = "caregiver", circleIds = listOf("circle"))))
+    advanceUntilIdle()
+    assertTrue(viewModel.uiState.value.warningsLoaded)
   }
 
   @Test
@@ -203,5 +240,93 @@ class DeleteAccountViewModelTest {
 
     coVerify(exactly = 1) { deletionRepository.clearLocalData() }
     coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun networkFailureAllowsASecondDeletionAttempt() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns Result.success(Unit)
+    coEvery { deletionRepository.deleteAccount() } returns Result.failure(AccountDeletionError.Network)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    assertEquals("Check your connection and try again.", viewModel.uiState.value.errorMessage)
+    assertFalse(viewModel.uiState.value.isDeleting)
+
+    coEvery { deletionRepository.deleteAccount() } returns Result.success(Unit)
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    coVerify(exactly = 2) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun reauthenticationRequiredAsksGoogleAgainOnRetry() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns Result.success(Unit)
+    coEvery { deletionRepository.deleteAccount() } returns
+        Result.failure(AccountDeletionError.ReauthenticationRequired)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    assertTrue(viewModel.uiState.value.errorMessage!!.contains("Confirm your Google account"))
+
+    coEvery { deletionRepository.deleteAccount() } returns Result.success(Unit)
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    coVerify(exactly = 2) { authRepository.reauthenticateWithGoogle(credential) }
+  }
+
+  @Test
+  fun cancelledGooglePickerShowsNoErrorAndDoesNotDelete() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        GetCredentialCancellationException()
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    assertFalse(viewModel.uiState.value.isDeleting)
+    assertNull(viewModel.uiState.value.errorMessage)
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun accountNotFoundCleanupFailureCanRetryWithoutGoogle() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns
+        Result.failure(ReauthenticationError.AccountNotFound)
+    coEvery { deletionRepository.clearLocalData() } returns
+        Result.failure(AccountDeletionError.LocalDataNotCleared(Exception("disk")))
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    assertTrue(viewModel.uiState.value.localCleanupNeeded)
+    assertFalse(viewModel.uiState.value.isDeleting)
+
+    coEvery { deletionRepository.clearLocalData() } returns Result.success(Unit)
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    coVerify(exactly = 2) { deletionRepository.clearLocalData() }
+    coVerify(exactly = 1) { authRepository.reauthenticateWithGoogle(credential) }
+  }
+
+  @Test
+  fun clearErrorDoesNotEnableDeletion() = runTest {
+    coEvery { circleRepository.getCircle("circle") } returns Result.failure(Exception("offline"))
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    assertTrue(viewModel.uiState.value.errorMessage != null)
+
+    viewModel.clearError()
+
+    assertNull(viewModel.uiState.value.errorMessage)
+    assertFalse(viewModel.uiState.value.warningsLoaded)
   }
 }
