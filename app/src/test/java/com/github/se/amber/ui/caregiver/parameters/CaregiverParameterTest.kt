@@ -3,6 +3,7 @@
  * Modify by Lou-Anne Maier, with assistance from
  * Claude Code.
  * Modified by Alaabrine, with assistance from Cursor.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.parameters
 
@@ -36,6 +37,7 @@ class CaregiverParameterScreenTest {
       onCreateInvitationClick: () -> Unit = {},
       onEnterInvitationClick: () -> Unit = {},
       onSignOutClick: () -> Unit = {},
+      onDeleteAccountClick: () -> Unit = {},
   ) {
     composeTestRule.setContent {
       AmberAppTheme {
@@ -45,6 +47,7 @@ class CaregiverParameterScreenTest {
             onCreateInvitationClick = onCreateInvitationClick,
             onEnterInvitationClick = onEnterInvitationClick,
             onSignOutClick = onSignOutClick,
+            onDeleteAccountClick = onDeleteAccountClick,
         )
       }
     }
@@ -79,6 +82,15 @@ class CaregiverParameterScreenTest {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun deleteAccountButtonIsDisplayed() {
+    setScreen()
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON)
+        .assertIsDisplayed()
   }
 
   @Test
@@ -129,6 +141,18 @@ class CaregiverParameterScreenTest {
     composeTestRule.onNodeWithTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON).performClick()
 
     assertEquals(1, signOutClicks)
+  }
+
+  @Test
+  fun deleteAccountClickInvokesTheCallback() {
+    var deleteAccountClicks = 0
+    setScreen(onDeleteAccountClick = { deleteAccountClicks++ })
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON)
+        .performClick()
+
+    assertEquals(1, deleteAccountClicks)
   }
 
   @Test
