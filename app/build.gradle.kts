@@ -180,6 +180,8 @@ dependencies {
   globalTestImplementation(libs.compose.test.junit)
   debugImplementation(libs.compose.test.manifest)
   androidTestImplementation(libs.androidx.navigation.testing)
+  // Drives the system Photo Picker in the end-to-end tests
+  androidTestImplementation(libs.androidx.uiautomator)
 
   // --------- Kaspresso test framework ----------
   globalTestImplementation(libs.kaspresso)
