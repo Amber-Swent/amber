@@ -1,5 +1,6 @@
 // this code was written with the aid of AI
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
@@ -67,6 +68,7 @@ class AmberAppNavigationTest {
     const val UPLOAD_PICTURE_BUTTON = UploadTestTags.PICTURE_BUTTON
     const val UPLOAD_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val CREATE_CARE_CIRCLE_BUTTON = CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
     const val CAREGIVER_PARAMETERS_SIGN_OUT = CaregiverParametersTestTags.SIGN_OUT_BUTTON
@@ -353,6 +355,17 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_TAB_UPLOAD)
 
     assertRoute(CaregiverScreen.Upload.route)
+  }
+
+  @Test
+  fun parameters_createCareCircle_navigatesToCreateCareCircle() {
+    // Cross-graph navigation: caregiver graph -> onboarding graph
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+
+    click(Tags.CREATE_CARE_CIRCLE_BUTTON)
+
+    assertRoute(OnboardingScreen.CreateCareCircle.route)
   }
 
   @Test
