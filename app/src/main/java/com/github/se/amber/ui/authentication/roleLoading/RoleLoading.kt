@@ -1,5 +1,6 @@
 /* This file was written with the aid of AI.
  * Modified by Alaabrine, with assistance from Cursor.
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.authentication.roleLoading
 
@@ -37,7 +38,8 @@ object RoleLoadingTestTags {
  * @param modifier Modifier applied to the root layout.
  * @param onRoleLoaded Called once the user's role is known so navigation can switch graph.
  * @param noProfile Called when the signed-in user has no profile yet (onboarding).
- * @param onSignedOut Called after a successful sign-out from the error state.
+ * @param onSignedOut Called after a successful sign-out from the error state, or when the signed-in
+ *   account no longer exists.
  * @param viewModel ViewModel holding the state of the screen.
  */
 @Composable

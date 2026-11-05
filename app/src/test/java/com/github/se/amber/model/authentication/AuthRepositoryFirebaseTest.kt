@@ -153,6 +153,7 @@ class AuthRepositoryFirebaseTest {
       return repository.reauthenticateWithGoogle(credential).exceptionOrNull()
     }
 
+    `when`(user.reload()).thenReturn(Tasks.forResult(null))
     assertSame(
         ReauthenticationError.WrongAccount,
         errorFor(FirebaseAuthInvalidUserException("ERROR_USER_MISMATCH", "Other account")),
@@ -173,6 +174,53 @@ class AuthRepositoryFirebaseTest {
       runBlocking { repository.reauthenticateWithGoogle(credential) }
     }
     Unit
+  }
+
+  @Test
+  fun reauthenticationReportsAMismatchAsAccountNotFoundWhenTheAccountIsGone() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reauthenticate(firebaseCredential))
+        .thenReturn(
+            Tasks.forException(
+                FirebaseAuthInvalidUserException("ERROR_USER_MISMATCH", "Other account")
+            )
+        )
+    `when`(user.reload())
+        .thenReturn(
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "Deleted"))
+        )
+
+    assertSame(
+        ReauthenticationError.AccountNotFound,
+        repository.reauthenticateWithGoogle(credential).exceptionOrNull(),
+    )
+  }
+
+  @Test
+  fun refreshCurrentUserKeepsAnAccountThatExistsOrCannotBeChecked() = runBlocking {
+    assertNull(repository.refreshCurrentUser())
+
+    currentFirebaseUser = user
+    `when`(user.reload()).thenReturn(Tasks.forResult(null))
+    assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
+
+    // Offline, the app must still open on the signed-in account
+    `when`(user.reload()).thenReturn(Tasks.forException(FirebaseNetworkException("Offline")))
+    assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
+    assertFalse(cleanupCompleted)
+  }
+
+  @Test
+  fun refreshCurrentUserSignsOutOfAnAccountThatIsGone() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reload())
+        .thenReturn(
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "Deleted"))
+        )
+
+    assertNull(repository.refreshCurrentUser())
+    verify(auth).signOut()
+    assertTrue(cleanupCompleted)
   }
 
   @Test
