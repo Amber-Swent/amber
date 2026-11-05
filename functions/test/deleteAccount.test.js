@@ -293,3 +293,26 @@ test("deleteAccount finishes the job when retried after any partial failure", as
     });
   }
 });
+
+test("deleteAccount leaves the profile listing only the circles that still list the user", async (t) => {
+  // the app can only read a circle that both list: its deletion screen would refuse a retry
+  const failures = [
+    ["leaving the shared circle", "update", "careCircles/shared"],
+    ["the last member's circle", "recursiveDelete", "careCircles/alone"],
+    ["the profile", "delete", "users/gone"],
+  ];
+
+  for (const [name, failingAction, failingPath] of failures) {
+    await t.test(`after failing on ${name}`, async () => {
+      setupAccounts();
+      const {deleteAccount} = callableModule({firestore: storedFirestore()});
+      state.failWrite = (action, target) => action === failingAction && target === failingPath;
+      await assert.rejects(deleteAccount({auth: freshAuth(), data: {}}));
+
+      const listing = [...state.store.entries()]
+        .filter(([key, data]) => /^careCircles\/[^/]+$/.test(key) && data.memberIds?.includes("gone"))
+        .map(([key]) => key.split("/")[1]);
+      assert.deepEqual([...state.store.get("users/gone").circleIds].sort(), listing.sort());
+    });
+  }
+});
