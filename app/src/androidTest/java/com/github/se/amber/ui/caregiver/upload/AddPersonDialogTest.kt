@@ -1,4 +1,6 @@
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+/* Written by MeiliV, with assistance from OpenAI Codex
+ * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+ */
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.ui.test.assertIsDisplayed
@@ -25,11 +27,12 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
+import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialogTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.pictures.DisplayWhoIsInvolvedTestTags
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -73,7 +76,8 @@ class AddPersonDialogTest {
   fun addPersonChipOpensDialog() {
     every { viewModel.onAddPerson() } answers
         {
-          uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true)
+          uiStateFlow.value =
+              uiStateFlow.value.copy(common = uiStateFlow.value.common.copy(isAddPersonOpen = true))
         }
     launchScreen()
 
@@ -88,10 +92,14 @@ class AddPersonDialogTest {
 
   @Test
   fun closeButtonDismissesAddPersonDialog() {
-    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true)
+    uiStateFlow.value =
+        uiStateFlow.value.copy(common = uiStateFlow.value.common.copy(isAddPersonOpen = true))
     every { viewModel.dismissAddPerson() } answers
         {
-          uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = false)
+          uiStateFlow.value =
+              uiStateFlow.value.copy(
+                  common = uiStateFlow.value.common.copy(isAddPersonOpen = false)
+              )
         }
     launchScreen()
 
@@ -103,7 +111,10 @@ class AddPersonDialogTest {
 
   @Test
   fun addPersonSaveButtonCallsViewModelForValidName() {
-    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "Anne")
+    uiStateFlow.value =
+        uiStateFlow.value.copy(
+            common = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "Anne")
+        )
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
@@ -115,10 +126,13 @@ class AddPersonDialogTest {
   fun addPersonSaveTrimsNames() {
     uiStateFlow.value =
         uiStateFlow.value.copy(
-            isAddPersonOpen = true,
-            personFirstName = "  Anne  ",
-            personLastName = "  Dupont  ",
-            personNickname = "  Nana  ",
+            common =
+                uiStateFlow.value.common.copy(
+                    isAddPersonOpen = true,
+                    personFirstName = "  Anne  ",
+                    personLastName = "  Dupont  ",
+                    personNickname = "  Nana  ",
+                ),
         )
     launchScreen()
 
@@ -132,7 +146,10 @@ class AddPersonDialogTest {
 
   @Test
   fun addPersonSaveButtonIsDisabledForBlankName() {
-    uiStateFlow.value = uiStateFlow.value.copy(isAddPersonOpen = true, personFirstName = "  ")
+    uiStateFlow.value =
+        uiStateFlow.value.copy(
+            common = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "  ")
+        )
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
@@ -205,8 +222,8 @@ class AddPersonDialogTest {
         .performTextInput("Anne")
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
 
-    composeTestRule.waitUntil(10_000) { viewModel.uiState.value.shownIds.isNotEmpty() }
-    val savedId = viewModel.uiState.value.shownIds.single()
+    composeTestRule.waitUntil(10_000) { viewModel.uiState.value.common.shownIds.isNotEmpty() }
+    val savedId = viewModel.uiState.value.common.shownIds.single()
     composeTestRule.onNode(hasText("Anne") and hasClickAction()).assertIsSelected()
     Assert.assertEquals("Anne", fakeCircleRepo.circle.people[savedId]?.firstName)
   }

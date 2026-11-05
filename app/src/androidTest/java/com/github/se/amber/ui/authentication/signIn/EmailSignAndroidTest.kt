@@ -18,9 +18,12 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import org.junit.Assert.assertSame
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+
+private const val EMAIL_HIDDEN = "Email sign-in is commented out until it is implemented"
 
 /** Verifies that email input remains visible after a real Android activity recreation. */
 @RunWith(AndroidJUnit4::class)
@@ -53,6 +56,7 @@ class EmailSignInInstrumentedTest {
     return viewModel
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun emailRemainsVisibleAfterActivityRecreation() {
     lateinit var originalViewModel: EmailSignInViewModel

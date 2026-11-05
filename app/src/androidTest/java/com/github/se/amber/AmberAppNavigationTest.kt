@@ -1,6 +1,7 @@
 // this code was written with the aid of AI
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber
 
@@ -27,6 +28,8 @@ import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.patient.parameters.PatientParameterTestTags
+import com.github.se.amber.ui.patient.seeMedias.SeeMediasTestTags
+import com.github.se.amber.ui.patient.seeMedias.audios.SeeAudiosTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -484,6 +487,28 @@ class AmberAppNavigationTest {
     click(Tags.SEE_PICTURES_BACK)
 
     assertRoute(PatientScreen.Home.route)
+  }
+
+  @Test
+  fun seeMedias_audioButton_navigatesToSeeAudios() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.SeeMedias.route)
+
+    click(SeeMediasTestTags.AUDIOS_BUTTON)
+
+    assertRoute(PatientScreen.SeeAudios.route)
+    composeRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertExists()
+  }
+
+  @Test
+  fun seeAudios_back_returnsToSeeMedias() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.SeeMedias.route)
+    click(SeeMediasTestTags.AUDIOS_BUTTON)
+
+    click(TopNavigationMenuTestTags.BACK_BUTTON)
+
+    assertRoute(PatientScreen.SeeMedias.route)
   }
 
   @Test
