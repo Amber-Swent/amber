@@ -4,6 +4,7 @@
 package com.github.se.amber.e2e
 
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -13,13 +14,21 @@ import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.firestoreSettings
 import com.google.firebase.firestore.memoryCacheSettings
 import com.google.firebase.functions.functions
+import com.google.firebase.storage.FirebaseStorage
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
+import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 
 /**
- * Points the whole app at the local Auth, Firestore and Functions emulators, for end-to-end tests
- * that drive the real screens against the real backend (security rules and `redeemInvitation`).
+ * Points the whole app at the local Auth, Firestore, Functions and Storage emulators, for
+ * end-to-end tests that drive the real screens against the real backend (security rules,
+ * `redeemInvitation` and the media files).
+ *
+ * The Firebase emulators are local copies of these Firebase services, started on the computer
+ * running the tests. They apply the project's security rules and run its Cloud Functions, but keep
+ * their data in memory, so a test never touches real users' data.
  *
  * [useForDefaultApp] replaces the default Firebase app, which every repository uses, with one on
  * the fake [PROJECT_ID]: Firebase gives `demo-` projects no real resources, so the tests never
@@ -28,19 +37,43 @@ import java.net.Socket
  * rejects the fake key, and the calls go on without the id.
  *
  * Start the emulators on the host before running the tests (`functions/` needs `npm ci` first):
- * `firebase emulators:start --project demo-amber --only auth,firestore,functions`
+ * `firebase emulators:start --project demo-amber --only auth,firestore,functions,storage`
  *
- * The bucket trigger skips itself there, since the emulators can't create buckets. Seen from the
- * Android emulator, the host is 10.0.2.2.
+ * The bucket trigger skips itself there, since the emulators can't create buckets: a test that
+ * stores files gives its circle a bucket itself ([EmulatorAdmin]) and wires it with
+ * [useStorageFor]. Seen from the Android emulator, the host is 10.0.2.2.
  */
 object FirebaseEmulator {
+  /** The fake project the tests run on: Firebase gives a `demo-` project no real resources. */
   const val PROJECT_ID = "demo-amber"
 
-  private const val HOST = "10.0.2.2"
-  private const val AUTH_PORT = 9099
-  private const val FIRESTORE_PORT = 8080
+  /** The host machine, seen from the Android emulator. */
+  const val HOST = "10.0.2.2"
+  /** The port of the Auth emulator, on [HOST]. */
+  const val AUTH_PORT = 9099
+  /** The port of the Firestore emulator, on [HOST]. */
+  const val FIRESTORE_PORT = 8080
+  /** The port of the Storage emulator, on [HOST]. */
+  const val STORAGE_PORT = 9199
+  /**
+   * The instrumentation argument that makes missing emulators a failure instead of a skip. CI sets
+   * it to `true`, since it starts the emulators: a missing one there is broken wiring.
+   */
+  const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
   private const val FUNCTIONS_PORT = 5001
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
+
+  /**
+   * A Firebase emulator a test may need, with the port `firebase.json` gives it.
+   *
+   * @property port the port the emulator listens on, on [HOST]
+   */
+  enum class Service(val port: Int) {
+    AUTH(AUTH_PORT),
+    FIRESTORE(FIRESTORE_PORT),
+    FUNCTIONS(FUNCTIONS_PORT),
+    STORAGE(STORAGE_PORT),
+  }
 
   /**
    * Replaces the default Firebase app with a [PROJECT_ID] one wired to the emulators.
@@ -74,9 +107,52 @@ object FirebaseEmulator {
     check(Firebase.app.options.projectId == PROJECT_ID) { "The default app is not the demo one" }
   }
 
-  /** Whether all three emulators accept connections. */
-  fun isRunning(): Boolean = listOf(AUTH_PORT, FIRESTORE_PORT, FUNCTIONS_PORT).all(::accepts)
+  /**
+   * Points the Storage instance of [bucket] at the Storage emulator. The app gets that same
+   * instance from `FirebaseStorage.getInstance("gs://<bucket>")` (see `CircleStorageProvider`), so
+   * call it after [useForDefaultApp] and before the app touches the bucket: `useEmulator` throws
+   * once the instance has been used.
+   *
+   * @param bucket the name of the bucket, without `gs://`, as stored in `CareCircle.storageBucket`
+   */
+  fun useStorageFor(bucket: String) {
+    FirebaseStorage.getInstance("gs://$bucket").useEmulator(HOST, STORAGE_PORT)
+  }
 
+  /**
+   * Makes the calling test fail if one of [services] isn't running and the
+   * [REQUIRE_EMULATORS_ARGUMENT] instrumentation argument is `true`, or skips it otherwise. Call it
+   * first, before [useForDefaultApp].
+   *
+   * @param services the emulators the test needs; Auth, Firestore and Functions by default
+   * @param message why the test can't run, shown when it fails or is skipped
+   */
+  fun requireOrSkip(
+      services: Set<Service> = setOf(Service.AUTH, Service.FIRESTORE, Service.FUNCTIONS),
+      message: String = "Firebase emulators are not running on the host: see FirebaseEmulator",
+  ) {
+    val required =
+        InstrumentationRegistry.getArguments().getString(REQUIRE_EMULATORS_ARGUMENT) == "true"
+    if (required) assertTrue(message, isRunning(services))
+    else assumeTrue(message, isRunning(services))
+  }
+
+  /**
+   * Whether every one of [services] accepts connections.
+   *
+   * @param services the emulators the test needs; Auth, Firestore and Functions by default
+   * @return true if all of them are reachable from the device
+   */
+  fun isRunning(
+      services: Set<Service> = setOf(Service.AUTH, Service.FIRESTORE, Service.FUNCTIONS)
+  ): Boolean = services.all { accepts(it.port) }
+
+  /**
+   * Whether something on [HOST] accepts a connection on [port].
+   *
+   * @param port the port to try
+   * @return true if the connection was accepted within [CONNECT_TIMEOUT_MILLIS]
+   */
   private fun accepts(port: Int): Boolean =
       try {
         Socket().use { it.connect(InetSocketAddress(HOST, port), CONNECT_TIMEOUT_MILLIS) }

@@ -1,9 +1,9 @@
 // Written by MeiliV, with assistance from OpenAI Codex
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.data.circle
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.data.onboarding.FirebaseOnboardingRepository
 import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.e2e.FirebaseEmulator
@@ -20,7 +20,6 @@ import kotlinx.coroutines.tasks.await
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,11 +29,7 @@ import org.junit.runner.RunWith
 class FirebaseCareCircleRepositoryInstrumentedTest {
   @Before
   fun connectToEmulators() {
-    val message = "Firebase emulators are not running on the host"
-    val required =
-        InstrumentationRegistry.getArguments().getString("requireFirebaseEmulators") == "true"
-    if (required) assertTrue(message, FirebaseEmulator.isRunning())
-    else assumeTrue(message, FirebaseEmulator.isRunning())
+    FirebaseEmulator.requireOrSkip()
     FirebaseEmulator.useForDefaultApp()
   }
 
