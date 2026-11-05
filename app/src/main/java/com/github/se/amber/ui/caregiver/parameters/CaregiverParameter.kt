@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -54,8 +55,24 @@ object CaregiverParametersTestTags {
   const val INVITATION_HINT = "CaregiverParameter_test_tag_invitation_hint"
 }
 
+internal const val PARAMETERS_TITLE = "Parameters"
+
+internal const val CREATE_CARE_CIRCLE_LABEL = "Create a new care circle"
+
+internal const val CREATE_INVITATION_LABEL = "Create Invitation"
+
+internal const val ENTER_INVITATION_LABEL = "Enter Invitation"
+
+internal const val SIGN_OUT_LABEL = "Sign out"
+
+/**
+ * Tells a caregiver who already belongs to a circle how to add someone else.
+ *
+ * The sentence names [CREATE_INVITATION_LABEL], the button on this screen, and says to send the
+ * code that button creates. It does not ask an unnamed "second person" to obtain a code.
+ */
 internal const val INVITATION_HINT_LABEL =
-    "To join, the second person needs a new code from a caregiver in the circle."
+    "To add someone to your circle, tap $CREATE_INVITATION_LABEL and send them the code."
 
 /**
  * Displays the caregiver parameters screen.
@@ -92,7 +109,7 @@ fun CaregiverParameterScreen(
   Scaffold(
       topBar = {
         Text(
-            text = "Parameters",
+            text = PARAMETERS_TITLE,
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center,
@@ -128,29 +145,29 @@ fun CaregiverParameterScreen(
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON),
               icon = Icons.Outlined.Add,
-              text = "Create a new care circle",
-              description = "Create a new care circle",
+              text = CREATE_CARE_CIRCLE_LABEL,
+              description = CREATE_CARE_CIRCLE_LABEL,
               onClick = onCreateCareCircleClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
               icon = Icons.Outlined.PersonAdd,
-              text = "Create Invitation",
-              description = "Create Invitation",
+              text = CREATE_INVITATION_LABEL,
+              description = CREATE_INVITATION_LABEL,
               onClick = onCreateInvitationClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON),
               icon = Icons.Outlined.Mail,
-              text = "Enter Invitation",
-              description = "Enter Invitation",
+              text = ENTER_INVITATION_LABEL,
+              description = ENTER_INVITATION_LABEL,
               onClick = onEnterInvitationClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON),
               icon = Icons.AutoMirrored.Outlined.Logout,
-              text = "Sign out",
-              description = "Sign out",
+              text = SIGN_OUT_LABEL,
+              description = SIGN_OUT_LABEL,
               onClick = onSignOutClick,
           )
           Text(
@@ -168,9 +185,10 @@ fun CaregiverParameterScreen(
   )
 }
 
-/** Preview of [CaregiverParameterScreen] using the Amber application theme. */
-@Preview(showBackground = true, showSystemUi = true)
+/** Preview of [CaregiverParameterScreen], including the create-care-circle button. */
+@Preview(name = "Caregiver parameters", showBackground = true, showSystemUi = true)
 @Composable
 internal fun CaregiverParameterScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen() }
+  val viewModel = remember { CaregiverParameterViewModel() }
+  AmberAppTheme(dynamicColor = false) { CaregiverParameterScreen(viewModel = viewModel) }
 }
