@@ -58,7 +58,7 @@ class MediaCardViewModel(
       val authorProfile =
           profileRepository.getProfile(media.authorId).getOrElse { e ->
             Log.e(TAG, "Error fetching author profile", e)
-            setErrorMsg("Failed to load the author: \${e.message}")
+            setErrorMsg("Failed to load the author: ${e.message}")
             return@launch
           }
 
