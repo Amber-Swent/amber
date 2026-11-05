@@ -202,9 +202,6 @@ fun AmberApp(
             // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-            // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen if we were on a top level destination
-            checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
         )
       }
       @Suppress("java:S1135")

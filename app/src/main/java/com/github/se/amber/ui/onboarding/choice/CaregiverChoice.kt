@@ -1,5 +1,6 @@
 /* Written by Alaabrine with the aid of AI coding agent.
- * Modify by LaMaier, with the assistance of Claude Code.
+ * Modified by LaMaier, with the assistance of Claude Code.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.onboarding.choice
 
@@ -28,7 +29,7 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.Divider
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
@@ -123,7 +124,7 @@ fun CaregiverChoiceScreen(
             modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
         )
 
-        Divider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH))
+        Divider(modifier = Modifier.fillMaxWidth(CAREGIVER_BUTTON_WIDTH_MEDIUM))
 
         DisplayCaregiverButton(
             onClick = onJoinCircle,

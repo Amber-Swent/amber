@@ -54,7 +54,7 @@ import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestT
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
@@ -214,7 +214,7 @@ fun UploadPictureScreen(
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
             text = if (uiState.common.isUploading) "Uploading…" else "Upload Picture",
-            widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
+            widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
         )
       },
   )

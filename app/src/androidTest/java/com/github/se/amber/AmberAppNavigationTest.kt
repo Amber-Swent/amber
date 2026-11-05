@@ -272,16 +272,6 @@ class AmberAppNavigationTest {
     assertRoute(CaregiverScreen.Parameters.route)
   }
 
-  @Test
-  fun upload_back_navigatesToCaregiverHome() {
-    launch(NavGraphs.CAREGIVER)
-    goTo(CaregiverScreen.Upload.route)
-
-    click(Tags.UPLOAD_BACK)
-
-    assertRoute(CaregiverScreen.Home.route)
-  }
-
   // ---------------------------------------------------------------------------------------------
   // Caregiver graph: UploadPicture
   // ---------------------------------------------------------------------------------------------

@@ -52,7 +52,7 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.CAREGIVER_TITLE_WIDTH
@@ -120,7 +120,7 @@ fun DisplayCaregiverButton(
     text: String = "Text",
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
-    widthPercentage: Float = CAREGIVER_BUTTON_WIDTH,
+    widthPercentage: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
     paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
     buttonTestTag: String = BUTTON,
 ) {
