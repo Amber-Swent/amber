@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
 
@@ -580,5 +581,25 @@ class PatientUtilsTest {
         .assertIsEnabled()
         .performClick()
     assertEquals(1, clickCount)
+  }
+
+  @Test
+  fun preview_showsThePatientButtons() {
+    composeTestRule.setContent { DisplayPatientButtonsPreview() }
+
+    // The labeled button takes a width fraction inside a weighted row, so it is composed but has
+    // no size in this unbounded test. Existence still runs the preview.
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertExists()
+  }
+
+  @Test
+  fun darkPreview_showsThePatientButtons() {
+    composeTestRule.setContent { DisplayPatientButtonsDarkPreview() }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertExists()
   }
 }

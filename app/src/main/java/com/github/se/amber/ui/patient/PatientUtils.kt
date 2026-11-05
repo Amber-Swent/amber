@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
 
@@ -274,7 +275,7 @@ fun DisplayPatientIconButton(
 
 @Preview(showBackground = true, name = "Patient utils light")
 @Composable
-private fun DisplayPatientButtonsPreview() {
+internal fun DisplayPatientButtonsPreview() {
   AmberAppTheme(darkTheme = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -305,7 +306,7 @@ private fun DisplayPatientButtonsPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-private fun DisplayPatientButtonsDarkPreview() {
+internal fun DisplayPatientButtonsDarkPreview() {
   AmberAppTheme(darkTheme = true) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
