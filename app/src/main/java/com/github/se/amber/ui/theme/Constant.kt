@@ -1,6 +1,7 @@
 /**
  * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified by MeiliV,
- * with assistance from OpenAI Codex. Modified by Yuhan YANG, with assistance from Cursor.
+ * with assistance from OpenAI Codex. Modified by Yuhan YANG, with assistance from Cursor. Modified
+ * by camomille299, with assistance from Claude (Anthropic) via claude.ai.
  */
 package com.github.se.amber.ui.theme
 
@@ -26,6 +27,7 @@ val CAREGIVER_PADDING_MEDIUM = 16.dp
 val CAREGIVER_PADDING_BIG = 24.dp
 val CAREGIVER_PADDING_ENORMOUS = 48.dp
 
+val PATIENT_PADDING_MINI = 8.dp
 val PATIENT_PADDING_SMALL = 16.dp
 val PATIENT_PADDING_MEDIUM = 24.dp
 val PATIENT_PADDING_BIG = 32.dp
