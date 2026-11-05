@@ -1,0 +1,149 @@
+// Written by MeiliV, with assistance from OpenAI Codex.
+package com.github.se.amber.ui.authentication.accountDeletion
+
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.credentials.CredentialManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+
+object DeleteAccountTestTags {
+  const val TITLE = "delete_account_title"
+  const val EXPLANATION = "delete_account_explanation"
+  const val BUTTON = "delete_account_button"
+}
+
+/** Caregiver account deletion confirmation screen. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeleteAccountScreen(
+    viewModel: DeleteAccountViewModel = viewModel(),
+    credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
+    onBack: () -> Unit = {},
+) {
+  val context = LocalContext.current
+  val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+  // Catches a system Back press and does nothing, so that the user stays on the delete screen
+  // Works normally again after deletion stops
+  BackHandler(enabled = uiState.isDeleting) {}
+  LaunchedEffect(Unit) { viewModel.loadWarnings() }
+
+  LaunchedEffect(uiState.errorMessage) {
+    uiState.errorMessage?.let { message ->
+      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+      viewModel.clearError()
+    }
+  }
+  Scaffold(
+      topBar = {
+        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+          if (!uiState.isDeleting) {
+            TopNavigationMenu(action = TopNavigationAction.CANCEL, onBackClick = onBack)
+          }
+          TopAppBar(
+              title = {
+                Text(
+                    text = DELETE_ACCOUNT_TITLE,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.testTag(DeleteAccountTestTags.TITLE),
+                )
+              },
+          )
+        }
+      },
+      content = { paddingValues ->
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+          Column(
+              modifier =
+                  Modifier.fillMaxWidth()
+                      .verticalScroll(rememberScrollState())
+                      .heightIn(min = maxHeight)
+                      .padding(horizontal = CAREGIVER_PADDING_BIG),
+              verticalArrangement =
+                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
+              horizontalAlignment = Alignment.CenterHorizontally,
+          ) {
+            Text(
+                text = DELETE_ACCOUNT_EXPLANATION,
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().testTag(DeleteAccountTestTags.EXPLANATION),
+            )
+            uiState.warnings.forEach { warning ->
+              Text(
+                  text = warning,
+                  color = MaterialTheme.colorScheme.error,
+                  style = MaterialTheme.typography.bodyLarge,
+                  textAlign = TextAlign.Center,
+              )
+            }
+            if (uiState.isDeleting) {
+              Text(
+                  text = DELETE_ACCOUNT_PROGRESS,
+                  color = MaterialTheme.colorScheme.onBackground,
+                  style = MaterialTheme.typography.bodyLarge,
+                  textAlign = TextAlign.Center,
+              )
+            } else if (uiState.warningsLoaded) {
+              DisplayCaregiverButton(
+                  text =
+                      if (uiState.localCleanupNeeded) DELETE_ACCOUNT_CLEANUP_LABEL
+                      else DELETE_ACCOUNT_TITLE,
+                  onClick = { viewModel.deleteAccount(context, credentialManager) },
+                  modifier = Modifier.testTag(DeleteAccountTestTags.BUTTON),
+              )
+            } else if (uiState.isLoading) {
+              Text(
+                  text = DELETE_ACCOUNT_CHECKING_LABEL,
+                  color = MaterialTheme.colorScheme.onBackground,
+                  style = MaterialTheme.typography.bodyLarge,
+              )
+            } else {
+              DisplayCaregiverButton(
+                  text = DELETE_ACCOUNT_RETRY_LABEL,
+                  onClick = viewModel::loadWarnings,
+              )
+            }
+          }
+        }
+      },
+  )
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+internal fun DeleteAccountScreenPreview() {
+  AmberAppTheme(dynamicColor = false) { DeleteAccountScreen() }
+}

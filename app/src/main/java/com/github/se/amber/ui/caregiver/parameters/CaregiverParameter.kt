@@ -3,6 +3,7 @@
  * Modify by Lou-Anne Maier, with assistance from
  * Claude Code.
  * Modified by Alaabrine, with assistance from Cursor.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.parameters
 
@@ -16,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +50,7 @@ object CaregiverParametersTestTags {
   const val CREATE_INVITATION_BUTTON = "CaregiverParameter_test_tag_create_invitation_button"
   const val ENTER_INVITATION_BUTTON = "CaregiverParameter_test_tag_enter_invitation_button"
   const val SIGN_OUT_BUTTON = "CaregiverParameter_test_tag_sign_out_button"
+  const val DELETE_ACCOUNT_BUTTON = "CaregiverParameter_test_tag_delete_account_button"
   const val INVITATION_HINT = "CaregiverParameter_test_tag_invitation_hint"
 }
 
@@ -70,6 +73,7 @@ fun CaregiverParameterScreen(
     onCreateInvitationClick: () -> Unit = {},
     onEnterInvitationClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
+    onDeleteAccountClick: () -> Unit = {},
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -136,6 +140,13 @@ fun CaregiverParameterScreen(
               text = "Sign out",
               description = "Sign out",
               onClick = onSignOutClick,
+          )
+          DisplayButton(
+              modifier = Modifier.testTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON),
+              icon = Icons.Outlined.Delete,
+              text = "Delete account",
+              description = "Delete account",
+              onClick = onDeleteAccountClick,
           )
           Text(
               text = "Invitation code is needed to add families/patient into the family circle",
