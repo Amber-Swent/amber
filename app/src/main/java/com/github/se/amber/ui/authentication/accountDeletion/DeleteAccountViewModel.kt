@@ -37,7 +37,8 @@ internal const val DELETE_ACCOUNT_PROGRESS = "Deleting your account. This may ta
 internal const val DELETE_ACCOUNT_CLEANUP_LABEL = "Finish deleting"
 internal const val DELETE_ACCOUNT_CHECKING_LABEL = "Checking your families..."
 internal const val DELETE_ACCOUNT_RETRY_LABEL = "Retry"
-private const val CLEANUP_ERROR = "Your account was deleted, but this device could not be cleared. Tap Finish deleting to retry."
+private const val CLEANUP_ERROR =
+    "Your account was deleted, but this device could not be cleared. Tap Finish deleting to retry."
 private const val UNKNOWN_ERROR = "Could not delete the account. Please try again."
 private const val NETWORK_ERROR = "Check your connection and try again."
 
@@ -55,8 +56,8 @@ private const val NETWORK_ERROR = "Check your connection and try again."
  * @param warnings Last-member or last-caregiver consequences to show before confirmation.
  * @param errorMessage A message for the screen to display once, then clear with
  *   [DeleteAccountViewModel.clearError].
- * @param localCleanupNeeded Whether the remote account is already gone. The next confirmation
- *   calls [AccountDeletionRepository.clearLocalData] instead of deleting it again.
+ * @param localCleanupNeeded Whether the remote account is already gone. The next confirmation calls
+ *   [AccountDeletionRepository.clearLocalData] instead of deleting it again.
  */
 data class DeleteAccountUIState(
     val isLoading: Boolean = true,
@@ -82,8 +83,7 @@ class DeleteAccountViewModel(
     private val deletionRepository: AccountDeletionRepository =
         AccountDeletionRepositoryProvider.default.repository,
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
-    private val profileRepository: ProfileRepository =
-        ProfileRepositoryProvider.default.repository,
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
@@ -98,7 +98,9 @@ class DeleteAccountViewModel(
 
   /** Reads every family before enabling confirmation; a failed read can be retried. */
   fun loadWarnings() {
-    if (_uiState.value.warningsLoaded || _uiState.value.isDeleting || warningJob?.isActive == true) {
+    if (
+        _uiState.value.warningsLoaded || _uiState.value.isDeleting || warningJob?.isActive == true
+    ) {
       return
     }
     _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -157,10 +159,12 @@ class DeleteAccountViewModel(
         val option = GetSignInWithGoogleOption.Builder(clientId).build()
         val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
         val credential = credentialManager.getCredential(context, request).credential
-        authRepository.reauthenticateWithGoogle(credential).fold(
-            onSuccess = { handleResult(deletionRepository.deleteAccount()) },
-            onFailure = { handleReauthenticationFailure(it) },
-        )
+        authRepository
+            .reauthenticateWithGoogle(credential)
+            .fold(
+                onSuccess = { handleResult(deletionRepository.deleteAccount()) },
+                onFailure = { handleReauthenticationFailure(it) },
+            )
       } catch (_: GetCredentialCancellationException) {
         _uiState.update { it.copy(isDeleting = false) }
       } catch (error: CancellationException) {

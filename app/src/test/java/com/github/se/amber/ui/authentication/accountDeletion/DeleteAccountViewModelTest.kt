@@ -31,8 +31,8 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -56,17 +56,23 @@ class DeleteAccountViewModelTest {
         Result.success(UserProfile(uid = "caregiver", circleIds = listOf("circle")))
     coEvery { circleRepository.getCircle("circle") } returns
         Result.success(CareCircle(memberIds = listOf("caregiver", "other")))
-    viewModel = DeleteAccountViewModel(deletionRepository, authRepository, profileRepository, circleRepository)
+    viewModel =
+        DeleteAccountViewModel(
+            deletionRepository,
+            authRepository,
+            profileRepository,
+            circleRepository,
+        )
   }
 
-  @After
-  fun tearDown() = Dispatchers.resetMain()
+  @After fun tearDown() = Dispatchers.resetMain()
 
   private fun stubCredential(): Credential {
     val credential = mockk<Credential>()
     val response = mockk<GetCredentialResponse>()
     every { response.credential } returns credential
-    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } returns response
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } returns
+        response
     return credential
   }
 
@@ -119,7 +125,9 @@ class DeleteAccountViewModelTest {
   @Test
   fun lastCaregiverWarningIsLoaded() = runTest {
     coEvery { circleRepository.getCircle("circle") } returns
-        Result.success(CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient")))
+        Result.success(
+            CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient"))
+        )
 
     viewModel.loadWarnings()
     advanceUntilIdle()
@@ -248,7 +256,8 @@ class DeleteAccountViewModelTest {
     advanceUntilIdle()
     val credential = stubCredential()
     coEvery { authRepository.reauthenticateWithGoogle(credential) } returns Result.success(Unit)
-    coEvery { deletionRepository.deleteAccount() } returns Result.failure(AccountDeletionError.Network)
+    coEvery { deletionRepository.deleteAccount() } returns
+        Result.failure(AccountDeletionError.Network)
 
     viewModel.deleteAccount(context, credentialManager)
     advanceUntilIdle()

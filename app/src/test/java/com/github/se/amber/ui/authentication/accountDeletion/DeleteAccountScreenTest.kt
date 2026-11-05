@@ -65,7 +65,11 @@ class DeleteAccountScreenTest {
   @Test
   fun loadedWarningsAndConfirmationAreShown() {
     stateFlow.value =
-        DeleteAccountUIState(warningsLoaded = true, isLoading = false, warnings = listOf("Last caregiver"))
+        DeleteAccountUIState(
+            warningsLoaded = true,
+            isLoading = false,
+            warnings = listOf("Last caregiver"),
+        )
     setScreen()
 
     composeTestRule.onNodeWithText("Last caregiver").assertIsDisplayed()
@@ -98,7 +102,9 @@ class DeleteAccountScreenTest {
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithText(DELETE_ACCOUNT_CHECKING_LABEL).assertDoesNotExist()
-    composeTestRule.onNodeWithText("The family will continue with no one to manage it.").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText("The family will continue with no one to manage it.")
+        .assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed()
   }
 
@@ -123,7 +129,8 @@ class DeleteAccountScreenTest {
 
   @Test
   fun deletingShowsProgressAndHidesCancelAndConfirm() {
-    stateFlow.value = DeleteAccountUIState(warningsLoaded = true, isLoading = false, isDeleting = true)
+    stateFlow.value =
+        DeleteAccountUIState(warningsLoaded = true, isLoading = false, isDeleting = true)
     setScreen()
 
     composeTestRule.onNodeWithText(DELETE_ACCOUNT_PROGRESS).assertIsDisplayed()
