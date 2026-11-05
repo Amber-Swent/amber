@@ -1,3 +1,6 @@
+/** Written by camomille299, with assistance from Claude (Anthropic) via claude.ai. */
+
+
 package com.github.se.amber.ui.media
 
 import com.github.se.amber.data.circle.CareCircleRepository
