@@ -1,0 +1,207 @@
+// Written by MeiliV, with assistance from OpenAI Codex.
+package com.github.se.amber.ui.authentication.accountDeletion
+
+import android.content.Context
+import androidx.credentials.Credential
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import com.github.se.amber.R
+import com.github.se.amber.data.account.AccountDeletionError
+import com.github.se.amber.data.account.AccountDeletionRepository
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.ReauthenticationError
+import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class DeleteAccountViewModelTest {
+  private val deletionRepository = mockk<AccountDeletionRepository>()
+  private val authRepository = mockk<AuthRepository>()
+  private val profileRepository = mockk<ProfileRepository>()
+  private val circleRepository = mockk<CareCircleRepository>()
+  private val context = mockk<Context>()
+  private val credentialManager = mockk<CredentialManager>()
+  private lateinit var viewModel: DeleteAccountViewModel
+
+  @Before
+  fun setUp() {
+    Dispatchers.setMain(StandardTestDispatcher())
+    every { context.getString(R.string.default_web_client_id) } returns "client-id"
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(UserProfile(uid = "caregiver", circleIds = listOf("circle")))
+    coEvery { circleRepository.getCircle("circle") } returns
+        Result.success(CareCircle(memberIds = listOf("caregiver", "other")))
+    viewModel = DeleteAccountViewModel(deletionRepository, authRepository, profileRepository, circleRepository)
+  }
+
+  @After
+  fun tearDown() = Dispatchers.resetMain()
+
+  private fun stubCredential(): Credential {
+    val credential = mockk<Credential>()
+    val response = mockk<GetCredentialResponse>()
+    every { response.credential } returns credential
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } returns response
+    return credential
+  }
+
+  @Test
+  fun lastMemberWarningIsLoadedBeforeConfirmation() = runTest {
+    coEvery { circleRepository.getCircle("circle") } returns
+        Result.success(CareCircle(memberIds = listOf("caregiver")))
+
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.uiState.value.warningsLoaded)
+    assertTrue(viewModel.uiState.value.warnings.single().contains("last member"))
+  }
+
+  @Test
+  fun lastCaregiverWarningIsLoaded() = runTest {
+    coEvery { circleRepository.getCircle("circle") } returns
+        Result.success(CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient")))
+
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.uiState.value.warnings.single().contains("last caregiver"))
+  }
+
+  @Test
+  fun patientProfileNeverEnablesDeletion() = runTest {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(UserProfile(uid = "patient", role = Role.PATIENT))
+
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+
+    assertFalse(viewModel.uiState.value.warningsLoaded)
+    viewModel.deleteAccount(context, credentialManager)
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun failedWarningReadCanBeRetried() = runTest {
+    coEvery { circleRepository.getCircle("circle") } returns Result.failure(Exception("offline"))
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    assertFalse(viewModel.uiState.value.warningsLoaded)
+
+    coEvery { circleRepository.getCircle("circle") } returns
+        Result.success(CareCircle(memberIds = listOf("caregiver", "other")))
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.uiState.value.warningsLoaded)
+  }
+
+  @Test
+  fun successfulReauthenticationCallsDeletionOnce() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns Result.success(Unit)
+    coEvery { deletionRepository.deleteAccount() } returns Result.success(Unit)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    coVerify(exactly = 1) { authRepository.reauthenticateWithGoogle(credential) }
+    coVerify(exactly = 1) { deletionRepository.deleteAccount() }
+    assertTrue(viewModel.uiState.value.isDeleting)
+  }
+
+  @Test
+  fun repeatTapDuringDeletionDoesNotStartAnotherRequest() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    val pending = CompletableDeferred<Result<Unit>>()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns Result.success(Unit)
+    coEvery { deletionRepository.deleteAccount() } coAnswers { pending.await() }
+
+    viewModel.deleteAccount(context, credentialManager)
+    runCurrent()
+    viewModel.deleteAccount(context, credentialManager)
+    coVerify(exactly = 1) { deletionRepository.deleteAccount() }
+
+    pending.complete(Result.success(Unit))
+    advanceUntilIdle()
+  }
+
+  @Test
+  fun wrongGoogleAccountDoesNotCallDeletion() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns
+        Result.failure(ReauthenticationError.WrongAccount)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    assertFalse(viewModel.uiState.value.isDeleting)
+    assertTrue(viewModel.uiState.value.errorMessage!!.contains("signed in with"))
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun localCleanupFailureRetriesCleanupWithoutReauthentication() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns Result.success(Unit)
+    coEvery { deletionRepository.deleteAccount() } returns
+        Result.failure(AccountDeletionError.LocalDataNotCleared(Exception("disk")))
+    coEvery { deletionRepository.clearLocalData() } returns Result.success(Unit)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+    assertTrue(viewModel.uiState.value.localCleanupNeeded)
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    coVerify(exactly = 1) { deletionRepository.deleteAccount() }
+    coVerify(exactly = 1) { deletionRepository.clearLocalData() }
+    coVerify(exactly = 1) { authRepository.reauthenticateWithGoogle(credential) }
+  }
+
+  @Test
+  fun accountNotFoundClearsLocalData() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns
+        Result.failure(ReauthenticationError.AccountNotFound)
+    coEvery { deletionRepository.clearLocalData() } returns Result.success(Unit)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    coVerify(exactly = 1) { deletionRepository.clearLocalData() }
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+}
