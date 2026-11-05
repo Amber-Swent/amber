@@ -115,14 +115,23 @@ fun MediaCard(
             style = MaterialTheme.typography.titleMedium,
         )
       }
-      Text(
-          text = memoryDateIntoString(media.date),
-          style = MaterialTheme.typography.titleMedium,
-          modifier =
-              Modifier.align(Alignment.Top)
-                  .padding(end = PATIENT_PADDING_MINI)
-                  .testTag(MediaCardTestTags.date(media.id)),
-      )
+      Column(
+          horizontalAlignment = Alignment.End,
+          modifier = Modifier.align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+      ) {
+        Text(
+            text = memoryDateIntoString(media.date),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.testTag(MediaCardTestTags.date(media.id)),
+        )
+        // to display the location if it is not null
+        media.location?.let { location ->
+          Text(
+              text = geoLocationIntoString(location),
+              modifier = Modifier.testTag(MediaCardTestTags.location(media.id)),
+          )
+        }
+      }
     }
     // content that pop when the user click on the "- see more" button
     AnimatedVisibility(visible = expanded) {
@@ -170,15 +179,6 @@ fun MediaCard(
                     }
                   }
                 }
-              }
-            }
-            // to display the location if it is not null
-            media.location?.let { location ->
-              OrangeBox {
-                Text(
-                    text = geoLocationIntoString(location),
-                    modifier = Modifier.testTag(MediaCardTestTags.location(media.id)),
-                )
               }
             }
           }
