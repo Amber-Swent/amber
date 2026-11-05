@@ -22,10 +22,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.credentials.CredentialManager
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
@@ -95,10 +95,12 @@ fun AmberApp(
 ) {
 
   val navigationActions = remember(navController) { NavigationActions(navController) }
-  val backStack by navController.currentBackStack.collectAsStateWithLifecycle()
-  val route = backStack.lastOrNull()?.destination?.route
+  val currentEntry by navController.currentBackStackEntryAsState()
+  val route = currentEntry?.destination?.route
+  // previousBackStackEntry skips navigation graphs, so null means this screen has nothing behind
+  // it. Reading the entry above recomposes when navigation changes.
   val strandedSetupStep =
-      backStack.size <= 1 &&
+      navController.previousBackStackEntry == null &&
           (route == OnboardingScreen.CaregiverChoice.route ||
               route == OnboardingScreen.EnterInvitation.route)
 
