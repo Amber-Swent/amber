@@ -148,9 +148,7 @@ class CaregiverParameterScreenTest {
     var deleteAccountClicks = 0
     setScreen(onDeleteAccountClick = { deleteAccountClicks++ })
 
-    composeTestRule
-        .onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON)
-        .performClick()
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON).performClick()
 
     assertEquals(1, deleteAccountClicks)
   }
