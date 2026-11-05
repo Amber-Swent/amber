@@ -39,7 +39,7 @@ import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
-/** Test tags owned by [AudioRecorder]. */
+/** Test tags owned by [DisplayAudioRecorder]. */
 object AudioRecorderTestTags {
   const val DELETE_BUTTON = "audio_recorder_delete_button"
   const val STOP_BUTTON = "audio_recorder_stop_button"

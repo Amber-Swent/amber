@@ -103,16 +103,7 @@ fun DisplayWhoIsInvolved(
           )
         }
         // Display a button to add another person to the care circle
-        AssistChip(
-            onClick = { onAddPerson() },
-            label = { Text("+", style = MaterialTheme.typography.labelMedium) },
-            modifier = Modifier.fillMaxHeight().testTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON),
-            colors =
-                AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    labelColor = MaterialTheme.colorScheme.onTertiary,
-                ),
-        )
+        DisplayAddPersonChip(modifier = Modifier.fillMaxHeight(), onAddPerson = onAddPerson)
       }
     } else {
       FlowRow(
@@ -130,19 +121,33 @@ fun DisplayWhoIsInvolved(
               colors = selectableChipColors(),
           )
         }
-        AssistChip(
-            onClick = { onAddPerson() },
-            label = { Text("+", style = MaterialTheme.typography.labelMedium) },
-            modifier = Modifier.testTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON),
-            colors =
-                AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary,
-                    labelColor = MaterialTheme.colorScheme.onTertiary,
-                ),
-        )
+        DisplayAddPersonChip(onAddPerson = onAddPerson)
       }
     }
   }
+}
+
+/**
+ * The "+" chip that lets the caregiver add a person to the care circle.
+ *
+ * @param modifier The modifier applied to the chip.
+ * @param onAddPerson The callback invoked when the chip is clicked.
+ */
+@Composable
+private fun DisplayAddPersonChip(
+    modifier: Modifier = Modifier,
+    onAddPerson: () -> Unit = {},
+) {
+  AssistChip(
+      onClick = onAddPerson,
+      label = { Text("+", style = MaterialTheme.typography.labelMedium) },
+      modifier = modifier.testTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON),
+      colors =
+          AssistChipDefaults.assistChipColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              labelColor = MaterialTheme.colorScheme.onTertiary,
+          ),
+  )
 }
 
 /** Colors of the selectable chips: the theme's tertiary color, and its secondary once selected. */
