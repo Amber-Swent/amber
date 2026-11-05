@@ -54,12 +54,12 @@ import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.CAREGIVER_TITLE_WIDTH
 import com.github.se.amber.ui.theme.MAX_CHAR_DEFAULT
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import com.github.se.amber.ui.theme.MIN_LINE_DEFAULT
 import com.github.se.amber.ui.theme.PADDING_BIG
 import com.github.se.amber.ui.theme.PADDING_MEDIUM
-import com.github.se.amber.ui.theme.PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.SURFACE_MEDIUM
 
@@ -72,8 +72,12 @@ import com.github.se.amber.ui.theme.SURFACE_MEDIUM
 @Composable
 fun DisplayCaregiverTitle(modifier: Modifier = Modifier, title: String) {
   Text(
-      modifier = modifier.padding(top = PADDING_SMALL, bottom = PADDING_MEDIUM),
+      modifier =
+          modifier
+              .padding(top = CAREGIVER_PADDING_SMALL, bottom = CAREGIVER_PADDING_MEDIUM)
+              .fillMaxWidth(CAREGIVER_TITLE_WIDTH),
       text = title,
+      textAlign = TextAlign.Center,
       color = MaterialTheme.colorScheme.primary,
       style = MaterialTheme.typography.headlineSmall,
   )
@@ -333,4 +337,11 @@ internal fun DisplayBoxWithIconTextPreview() {
 @Composable
 private fun DisplayCaregiverButtonPreview() {
   AmberAppTheme { DisplayCaregiverButton() }
+}
+
+/** Preview of [DisplayCaregiverTitle] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun DisplayCaregiverTitlePreview() {
+  AmberAppTheme { DisplayCaregiverTitle(title = "Title") }
 }
