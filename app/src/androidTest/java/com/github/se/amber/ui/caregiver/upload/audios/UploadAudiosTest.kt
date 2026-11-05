@@ -158,6 +158,15 @@ class UploadAudiosTest {
     tagged(UploadAudioScreenTestTags.RECORD_AUDIO).assertIsDisplayed()
   }
 
+  // ---------- scrolling ----------
+
+  @Test
+  fun scrollingToTheLastElementOfTheFormDisplaysTheDatePicker() {
+    // the date picker is the last element of the scrollable form
+    launchScreen()
+    tagged(UploadAudioScreenTestTags.SELECT_DATE).performScrollTo().assertIsDisplayed()
+  }
+
   // ---------- preview ----------
 
   /**

@@ -15,7 +15,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.ui.theme.AmberAppTheme
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -39,12 +38,6 @@ class PersonInvolvedTest {
                   ?.startsWith(DisplayWhoIsInvolvedTestTags.personInvolved("")) == true
             }
         )
-
-  @Before
-  fun setUp() {
-    toggledIds.clear()
-    addPersonCount = 0
-  }
 
   private fun launch(
       options: Map<String, String> = emptyMap(),
@@ -109,7 +102,7 @@ class PersonInvolvedTest {
   }
 
   @Test
-  fun withOptionsTheAddPersonButtonIsDisplayed() {
+  fun withOptionsTheAddPersonButtonIsDisplayed_andNotifiesOnce() {
     launch(options)
     composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON).performClick()

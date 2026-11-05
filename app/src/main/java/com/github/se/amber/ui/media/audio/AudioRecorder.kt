@@ -156,14 +156,13 @@ fun DisplayAudioWaveform(
     // Divide the canvas width into equal slots, one per possible bar.
     val slotWidth = size.width / WAVEFORM_BARS
 
-    // Only render up to the maximum number of bars supported.
-    waveform.take(WAVEFORM_BARS).forEachIndexed { index, level ->
+    // Only render up to the maximum number of bars supported, with every bar kept visible.
+    displayedWaveformLevels(waveform).forEachIndexed { index, level ->
       // Center each bar within its slot.
       val x = (index + HALF) * slotWidth
 
-      // Clamp very small levels so bars always remain visible.
       // Bar height is drawn symmetrically around the vertical center.
-      val halfBarHeight = size.height * level.coerceAtLeast(AUDIO_WAVEFORM_MIN_LEVEL) * HALF
+      val halfBarHeight = size.height * level * HALF
 
       // Draw a vertical line for each waveform bar.
       drawLine(
@@ -176,6 +175,15 @@ fun DisplayAudioWaveform(
     }
   }
 }
+
+/**
+ * Gives the levels that [DisplayAudioWaveform] really draws: at most [WAVEFORM_BARS] of them, and
+ * none below [AUDIO_WAVEFORM_MIN_LEVEL], so that every bar remains visible.
+ *
+ * @param waveform The levels from 0 (silence) to 1 (the loudest), in playback order.
+ */
+internal fun displayedWaveformLevels(waveform: List<Float> = emptyList()): List<Float> =
+    waveform.take(WAVEFORM_BARS).map { it.coerceAtLeast(AUDIO_WAVEFORM_MIN_LEVEL) }
 
 /** Preview of [DisplayAudioRecorder] while recording. */
 @Preview(showBackground = true)
