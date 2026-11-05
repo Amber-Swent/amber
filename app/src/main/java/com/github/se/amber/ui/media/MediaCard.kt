@@ -31,12 +31,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.theme.WEIGHT_TWO
 
+
+/**
+ * Test tags used to identify the elements of the [MediaCard]. Each tag is made unique by the id of
+ * the media it belongs to.
+ */
 object MediaCardTestTags {
   fun toggleButton(id: String) = "media_card_toggle_button_$id"
 
@@ -64,6 +74,8 @@ object MediaCardTestTags {
  * @param modifier modifier to apply to the card
  * @param media the media item we want to apply the description of. By default a picture.
  * @param testTag test tag of the card
+ * @param mediaCardViewModel view model of the card, which loads the nicknames of the author and of
+ *        the persons related to the media. One instance per media id.
  */
 @Composable
 fun MediaCard(
@@ -80,7 +92,7 @@ fun MediaCard(
 
   LaunchedEffect(uiState.errorMsg) {
     uiState.errorMsg?.let {
-      Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+      Toast.makeText(context, it, Toast.LENGTH_LONG).show()
       mediaCardViewModel.clearErrorMsg()
     }
   }
@@ -92,26 +104,19 @@ fun MediaCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-      Button(
+        val textToDisplay: String = if (expanded) "hide info" else "show info"
+      DisplayPatientButton(
+          modifier = Modifier.weight(WEIGHT_ONE).padding(start = PATIENT_PADDING_MINI),
+          buttonHeight = PATIENT_BUTTON_HEIGHT_SMALL,
+          buttonWidth = PATIENT_BUTTON_WIDTH_BIG,
+          text = textToDisplay,
+          textStyle = MaterialTheme.typography.titleMedium,
           onClick = { expanded = !expanded },
-          shape = RoundedCornerShape(ROUND_CORNER),
-          colors =
-              ButtonDefaults.buttonColors(
-                  containerColor = MaterialTheme.colorScheme.tertiary,
-                  contentColor = MaterialTheme.colorScheme.onTertiary,
-              ),
-          modifier =
-              Modifier.padding(start = PATIENT_PADDING_MINI)
-                  .testTag(MediaCardTestTags.toggleButton(media.id)),
-      ) {
-        Text(
-            text = if (expanded) "- see less" else "+ see more",
-            style = MaterialTheme.typography.titleMedium,
-        )
-      }
+          testTag = MediaCardTestTags.toggleButton(media.id),
+      )
       Column(
           horizontalAlignment = Alignment.End,
-          modifier = Modifier.align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+          modifier = Modifier.weight(WEIGHT_TWO).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
       ) {
         Text(
             text = memoryDateIntoString(media.date),
