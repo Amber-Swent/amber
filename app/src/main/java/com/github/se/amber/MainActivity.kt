@@ -1,11 +1,13 @@
 // this code was written with the aid of AI
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,12 +15,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.credentials.CredentialManager
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,7 +39,7 @@ import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -53,6 +57,7 @@ import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedempti
 import com.github.se.amber.ui.patient.PatientHomeScreen
 import com.github.se.amber.ui.patient.parameters.PatientParameterScreen
 import com.github.se.amber.ui.patient.seeMedias.SeeMediasScreen
+import com.github.se.amber.ui.patient.seeMedias.audios.SeeAudiosScreen
 import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -90,6 +95,19 @@ fun AmberApp(
 ) {
 
   val navigationActions = remember(navController) { NavigationActions(navController) }
+  val backStack by navController.currentBackStack.collectAsStateWithLifecycle()
+  val route = backStack.lastOrNull()?.destination?.route
+  val strandedSetupStep =
+      backStack.size <= 1 &&
+          (route == OnboardingScreen.CaregiverChoice.route ||
+              route == OnboardingScreen.EnterInvitation.route)
+
+  // Role loading opens the circle step with nothing behind it. Popping that last entry leaves a
+  // blank NavHost. The sign-in screen is not a usable fallback either: a signed-in user is sent
+  // straight back through role loading to this same step. Back stays here instead.
+  val backOrStay: () -> Unit = {
+    if (navController.previousBackStackEntry != null) navigationActions.goBack()
+  }
 
   NavHost(
       navController = navController,
@@ -146,7 +164,7 @@ fun AmberApp(
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
         CaregiverChoiceScreen(
-            onBack = { navigationActions.goBack() },
+            onBack = backOrStay,
             onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
             onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },
         )
@@ -161,7 +179,7 @@ fun AmberApp(
             onRedeemSuccess = { result ->
               navigationActions.navigateToGraph(graphForRole(result.role))
             },
-            onBack = { navigationActions.goBack() },
+            onBack = backOrStay,
         )
       }
     }
@@ -240,11 +258,18 @@ fun AmberApp(
       composable(route = PatientScreen.SeeMedias.route) {
         SeeMediasScreen(
             onSeePictureClick = { navigationActions.navigateTo(PatientScreen.SeePictures) },
+            onSeeAudioClick = { navigationActions.navigateTo(PatientScreen.SeeAudios) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
       composable(route = PatientScreen.SeePictures.route) {
         SeePicturesScreen(
+            onBackClick = { navigationActions.goBack() },
+            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+        )
+      }
+      composable(route = PatientScreen.SeeAudios.route) {
+        SeeAudiosScreen(
             onBackClick = { navigationActions.goBack() },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
@@ -263,4 +288,7 @@ fun AmberApp(
       }
     }
   }
+
+  // Registered after NavHost so system back is consumed here instead of popping the last screen.
+  BackHandler(enabled = strandedSetupStep) {}
 }

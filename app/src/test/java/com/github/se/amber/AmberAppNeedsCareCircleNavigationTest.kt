@@ -4,7 +4,9 @@ package com.github.se.amber
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.credentials.Credential
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
@@ -19,6 +21,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.OnboardingScreen
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
@@ -29,6 +32,8 @@ import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -83,6 +88,62 @@ class AmberAppNeedsCareCircleNavigationTest {
 
     assertEquals(OnboardingScreen.EnterInvitation.route, navController.currentDestination?.route)
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).assertIsDisplayed()
+  }
+
+  @Test
+  fun caregiverWithoutCircle_backDoesNotLeaveABlankScreen() {
+    val navController = launch(profile(Role.CAREGIVER))
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == OnboardingScreen.CaregiverChoice.route
+    }
+
+    val seen = recordRoutes(navController)
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertNotNull(navController.currentDestination)
+    assertEquals(OnboardingScreen.CaregiverChoice.route, navController.currentDestination?.route)
+    assertEquals(listOf(OnboardingScreen.CaregiverChoice.route), seen)
+  }
+
+  @Test
+  fun patientWithoutCircle_cancelDoesNotLeaveABlankScreen() {
+    val navController = launch(profile(Role.PATIENT))
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == OnboardingScreen.EnterInvitation.route
+    }
+
+    val seen = recordRoutes(navController)
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertNotNull(navController.currentDestination)
+    assertEquals(OnboardingScreen.EnterInvitation.route, navController.currentDestination?.route)
+    assertEquals(listOf(OnboardingScreen.EnterInvitation.route), seen)
+  }
+
+  @Test
+  fun caregiverWithoutCircle_roleLoadingIsNotInTheBackStack() {
+    val navController = launch(profile(Role.CAREGIVER))
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == OnboardingScreen.CaregiverChoice.route
+    }
+
+    assertFalse(
+        navController.currentBackStack.value.any {
+          it.destination.route == TransitionScreen.RoleLoading.route
+        }
+    )
+  }
+
+  private fun recordRoutes(navController: NavHostController): List<String?> {
+    val seen = mutableListOf<String?>()
+    navController.addOnDestinationChangedListener(
+        NavController.OnDestinationChangedListener { _, destination, _ ->
+          seen.add(destination.route)
+        }
+    )
+    return seen
   }
 
   private fun launch(profile: UserProfile): NavHostController {

@@ -147,6 +147,18 @@ class RoleLoadingViewModelTest {
   }
 
   @Test
+  fun loadRole_blankIdBeforeARealOne_emitsLoaded() = runTest {
+    stubProfile(
+        UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("", "circle-1")),
+    )
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value.roleState)
+  }
+
+  @Test
   fun loadRole_repositoryFails_emitsError() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.failure(RuntimeException("Firestore down"))

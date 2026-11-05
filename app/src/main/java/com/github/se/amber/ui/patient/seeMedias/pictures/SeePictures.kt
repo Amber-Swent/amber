@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.media.MediaCard
 import com.github.se.amber.ui.media.MediaImage
 import com.github.se.amber.ui.media.aspectRatioOf
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
@@ -54,6 +55,8 @@ object SeePicturesTestTags {
   const val TITLE = "see_pictures_title"
 
   fun picture(id: String = "") = "see_pictures_picture_$id"
+
+  fun pictureCard(id: String = "") = "see_pictures_picture_card_$id"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,7 +79,7 @@ fun SeePicturesScreen(
         is SeePicturesUIState.BlockingError -> null
       }
 
-  // Show error message if fetching todos fails
+  // Show error message if fetching pictures fails
   LaunchedEffect(errorMsg) {
     errorMsg?.let { message ->
       Toast.makeText(context, message, Toast.LENGTH_LONG).show()
@@ -176,6 +179,11 @@ fun SeePicturesScreen(
                             .aspectRatioOf(picture)
                             .testTag(SeePicturesTestTags.picture(picture.id)),
                     loading = { CircularProgressIndicator() },
+                )
+                MediaCard(
+                    modifier = Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG),
+                    media = picture,
+                    testTag = SeePicturesTestTags.pictureCard(picture.id),
                 )
               }
             }

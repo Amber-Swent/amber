@@ -27,19 +27,14 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.upload.picture.DisplayWhoIsInvolvedTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.PictureLocationUIState
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureLocationTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreen
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureScreenTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureUIState
-import com.github.se.amber.ui.caregiver.upload.picture.UploadPictureViewModel
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
+import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.UploadMediaLocationTestTags
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
 import java.time.Month
-import kotlin.getValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -94,8 +89,11 @@ class UploadPicturesTest {
               pictureFile = File("picture.jpg"),
               pictureWidth = 640,
               pictureHeight = 480,
-              description = "Beach day",
-              date = MemoryDate(2000, Month.OCTOBER, 10),
+              common =
+                  CommonMediaUIState(
+                      description = "Beach day",
+                      date = MemoryDate(2000, Month.OCTOBER, 10),
+                  ),
           )
     }
   }
@@ -125,12 +123,10 @@ class UploadPicturesTest {
         .assertIsDisplayed()
     chips.assertCountEquals(0)
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SECTION)
+        .onNodeWithTag(UploadMediaLocationTestTags.SECTION)
         .performScrollTo()
         .assertIsDisplayed()
-    composeTestRule
-        .onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
-        .assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE).assertCountEquals(0)
     composeTestRule
         .onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
         .assertIsDisplayed()
@@ -145,7 +141,8 @@ class UploadPicturesTest {
     val uploadButton = composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.UPLOAD_BUTTON)
 
     composeTestRule.runOnIdle {
-      uiStateFlow.value = UploadPictureUIState(description = "Beach day")
+      uiStateFlow.value =
+          UploadPictureUIState(common = CommonMediaUIState(description = "Beach day"))
     }
     uploadButton.assertIsNotEnabled()
 
@@ -187,8 +184,9 @@ class UploadPicturesTest {
           uiStateFlow.value =
               uiStateFlow.value.let { state ->
                 val shownIds =
-                    if (id in state.shownIds) state.shownIds - id else state.shownIds + id
-                state.copy(shownIds = shownIds)
+                    if (id in state.common.shownIds) state.common.shownIds - id
+                    else state.common.shownIds + id
+                state.withCommon(state.common.copy(shownIds = shownIds))
               }
         }
   }
@@ -216,20 +214,22 @@ class UploadPicturesTest {
     composeTestRule.onNodeWithText("Anne").performScrollTo().assertIsDisplayed().performClick()
     composeTestRule.onNodeWithText("Anne").assertIsSelected()
     composeTestRule.onNodeWithText("Marie").assertIsNotSelected()
-    composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.shownIds) }
+    composeTestRule.runOnIdle { assertTrue("p1" in viewModel.uiState.value.common.shownIds) }
     verify(exactly = 0) { viewModel.toggleShownId("uid123") }
 
     composeTestRule.onNodeWithText("Anne").performClick()
     composeTestRule.onNodeWithText("Anne").assertIsNotSelected()
-    composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.shownIds.isEmpty()) }
+    composeTestRule.runOnIdle { assertTrue(viewModel.uiState.value.common.shownIds.isEmpty()) }
   }
 
   // ---------- location ----------
 
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
 
-  private fun setLocation(location: PictureLocationUIState) {
-    composeTestRule.runOnIdle { uiStateFlow.value = UploadPictureUIState(location = location) }
+  private fun setLocation(location: MediaLocationUIState) {
+    composeTestRule.runOnIdle {
+      uiStateFlow.value = UploadPictureUIState(common = CommonMediaUIState(location = location))
+    }
   }
 
   @Test
@@ -238,14 +238,18 @@ class UploadPicturesTest {
     every { viewModel.selectPlace(any<String>()) } answers
         {
           uiStateFlow.value =
-              uiStateFlow.value.copy(
-                  location = uiStateFlow.value.location.copy(selectedPlaceId = firstArg())
-              )
+              uiStateFlow.value.let { state ->
+                state.withCommon(
+                    state.common.copy(
+                        location = state.common.location.copy(selectedPlaceId = firstArg())
+                    )
+                )
+              }
         }
     composeTestRule.runOnIdle {
       placeOptionsFlow.value = mapOf("home" to "Home", "doctor" to "Dr. Martin")
     }
-    val chips = composeTestRule.onAllNodesWithTag(UploadPictureLocationTestTags.SAVED_PLACE)
+    val chips = composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE)
     chips.assertCountEquals(2)
 
     chips[0].performScrollTo().assertIsNotSelected().performClick()
@@ -261,40 +265,40 @@ class UploadPicturesTest {
     composeTestRule
         .onNode(
             hasSetTextAction() and
-                hasAnyAncestor(hasTestTag(UploadPictureLocationTestTags.SEARCH_FIELD))
+                hasAnyAncestor(hasTestTag(UploadMediaLocationTestTags.SEARCH_FIELD))
         )
         .performScrollTo()
         .performTextInput("Lausanne")
     verify { viewModel.setPlaceQuery("Lausanne") }
 
-    setLocation(PictureLocationUIState(query = "Lau", isSearching = true))
+    setLocation(MediaLocationUIState(query = "Lau", isSearching = true))
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SEARCHING)
+        .onNodeWithTag(UploadMediaLocationTestTags.SEARCHING)
         .performScrollTo()
         .assertIsDisplayed()
 
-    setLocation(PictureLocationUIState(query = "Grandma's house"))
+    setLocation(MediaLocationUIState(query = "Grandma's house"))
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT)
+        .onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT)
         .performScrollTo()
         .assertIsDisplayed()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SEARCHING).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SEARCHING).assertDoesNotExist()
 
-    setLocation(PictureLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
+    setLocation(MediaLocationUIState(query = "Lau", suggestions = listOf(lausanne)))
     composeTestRule
-        .onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION)
+        .onNodeWithTag(UploadMediaLocationTestTags.SUGGESTION)
         .performScrollTo()
         .performClick()
     verify { viewModel.selectPlace(lausanne) }
 
     setLocation(
-        PictureLocationUIState(
+        MediaLocationUIState(
             query = lausanne.placeName!!,
             suggestions = listOf(lausanne),
             pickedPlace = lausanne,
         )
     )
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.SUGGESTION).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadPictureLocationTestTags.NO_RESULT).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SUGGESTION).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
   }
 }
