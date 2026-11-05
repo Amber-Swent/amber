@@ -41,7 +41,23 @@ private const val CLEANUP_ERROR = "Your account was deleted, but this device cou
 private const val UNKNOWN_ERROR = "Could not delete the account. Please try again."
 private const val NETWORK_ERROR = "Check your connection and try again."
 
-/** State of the caregiver deletion confirmation and its family warnings. */
+/**
+ * UI state for the caregiver account deletion screen.
+ *
+ * Family warnings must load before deletion is enabled. A failed warning read leaves
+ * [warningsLoaded] false so the screen offers a retry. Successful deletion normally restarts the
+ * app; [isDeleting] remains true until that happens.
+ *
+ * @param isLoading Whether the profile and family warnings are being read. Initially true.
+ * @param isDeleting Whether reauthentication, remote deletion, or local cleanup is in progress.
+ *   While true, the screen shows progress and blocks Cancel and system Back.
+ * @param warningsLoaded Whether all family reads succeeded and deletion may be confirmed.
+ * @param warnings Last-member or last-caregiver consequences to show before confirmation.
+ * @param errorMessage A message for the screen to display once, then clear with
+ *   [DeleteAccountViewModel.clearError].
+ * @param localCleanupNeeded Whether the remote account is already gone. The next confirmation
+ *   calls [AccountDeletionRepository.clearLocalData] instead of deleting it again.
+ */
 data class DeleteAccountUIState(
     val isLoading: Boolean = true,
     val isDeleting: Boolean = false,
@@ -51,7 +67,17 @@ data class DeleteAccountUIState(
     val localCleanupNeeded: Boolean = false,
 )
 
-/** Loads family warnings, confirms the Google account, and requests deletion. */
+/**
+ * Loads family warnings, confirms the Google account, and requests permanent deletion.
+ *
+ * All external reads and writes go through repositories. The deletion repository clears local data
+ * and restarts the app on success; there is no success-navigation state.
+ *
+ * @param deletionRepository Deletes the account or retries local cleanup.
+ * @param authRepository Reauthenticates the currently signed-in account.
+ * @param profileRepository Reads the current caregiver profile.
+ * @param circleRepository Reads each family to determine last-member and last-caregiver warnings.
+ */
 class DeleteAccountViewModel(
     private val deletionRepository: AccountDeletionRepository =
         AccountDeletionRepositoryProvider.default.repository,
@@ -70,7 +96,7 @@ class DeleteAccountViewModel(
     _uiState.update { it.copy(errorMessage = null) }
   }
 
-  /** Reads every family before enabling the confirmation button. */
+  /** Reads every family before enabling confirmation; a failed read can be retried. */
   fun loadWarnings() {
     if (_uiState.value.warningsLoaded || _uiState.value.isDeleting || warningJob?.isActive == true) {
       return
@@ -109,7 +135,15 @@ class DeleteAccountViewModel(
     }
   }
 
-  /** Reauthenticates the caregiver before calling the deletion repository. */
+  /**
+   * Requests a fresh Google credential and reauthenticates before deletion.
+   *
+   * A repeat attempt after [AccountDeletionError.LocalDataNotCleared] skips Google and calls
+   * [AccountDeletionRepository.clearLocalData] because the remote account is already deleted.
+   *
+   * @param context Activity context used by Credential Manager and for the Google client ID.
+   * @param credentialManager Supplies the Google credential for reauthentication.
+   */
   fun deleteAccount(context: Context, credentialManager: CredentialManager) {
     if (_uiState.value.isDeleting || !_uiState.value.warningsLoaded) return
     val clientId = context.getString(R.string.default_web_client_id)

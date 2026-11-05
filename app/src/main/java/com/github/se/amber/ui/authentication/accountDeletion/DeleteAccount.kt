@@ -36,13 +36,24 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 
+/** Tags for the title, explanation, and confirmation button. */
 object DeleteAccountTestTags {
   const val TITLE = "delete_account_title"
   const val EXPLANATION = "delete_account_explanation"
   const val BUTTON = "delete_account_button"
 }
 
-/** Caregiver account deletion confirmation screen. */
+/**
+ * Confirms permanent deletion of a caregiver account.
+ *
+ * Family consequences are loaded before the button appears. During deletion the screen shows
+ * progress and prevents leaving through Cancel or system Back. The repository restarts the app on
+ * success, so this screen does not navigate after confirmation.
+ *
+ * @param viewModel Owns the warnings, reauthentication, deletion, and retry state.
+ * @param credentialManager Requests a fresh Google credential when deletion is confirmed.
+ * @param onBack Returns to parameters when deletion is not running.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteAccountScreen(
@@ -53,8 +64,7 @@ fun DeleteAccountScreen(
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-  // Catches a system Back press and does nothing, so that the user stays on the delete screen
-  // Works normally again after deletion stops
+  // Consume system Back while the deletion request is in progress.
   BackHandler(enabled = uiState.isDeleting) {}
   LaunchedEffect(Unit) { viewModel.loadWarnings() }
 
@@ -142,6 +152,7 @@ fun DeleteAccountScreen(
   )
 }
 
+/** Preview of [DeleteAccountScreen] in the Amber theme. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 internal fun DeleteAccountScreenPreview() {
