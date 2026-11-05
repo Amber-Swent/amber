@@ -113,6 +113,7 @@ const val SECOND_FIELD_WIDTH = 2
 
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f
+const val HALF = 0.5f
 
 const val WEIGHT_TWO = 2f
 
@@ -120,6 +121,15 @@ const val WEIGHT_TWO = 2f
 
 const val DIALOG_WIDTH = 0.8f
 const val CAREGIVER_TITLE_WIDTH = 1f
+
+// ------- AUDIO WAVEFORM -------
+val AUDIO_WAVEFORM_HEIGHT = 48.dp
+
+/** Share of a bar's slot that is filled; the rest is the gap between two bars. */
+const val AUDIO_WAVEFORM_BAR_FRACTION = 0.6f
+
+/** Smallest drawn level, so that silence still shows a small bar. */
+const val AUDIO_WAVEFORM_MIN_LEVEL = 0.05f
 
 // ------- LOGO -------
 val LOGO_SIZE = 48.dp
