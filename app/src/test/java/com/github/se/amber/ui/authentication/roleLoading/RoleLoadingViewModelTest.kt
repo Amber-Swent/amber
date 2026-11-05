@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.roleloading
 
 import android.util.Log
@@ -51,6 +52,7 @@ class RoleLoadingViewModelTest {
 
     profileRepository = mockk()
     authRepository = mockk()
+    coEvery { authRepository.refreshCurrentUser() } returns AuthUser("uid123")
 
     viewModel = RoleLoadingViewModel(profileRepository, authRepository)
   }
@@ -97,6 +99,18 @@ class RoleLoadingViewModelTest {
     advanceUntilIdle()
 
     assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value.roleState)
+  }
+
+  @Test
+  fun loadRole_accountGone_signsOutInsteadOfOnboarding() = runTest {
+    stubProfile(null)
+    coEvery { authRepository.refreshCurrentUser() } returns null
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.state.value.signedOut)
+    assertEquals(RoleState.Loading, viewModel.state.value.roleState)
   }
 
   @Test

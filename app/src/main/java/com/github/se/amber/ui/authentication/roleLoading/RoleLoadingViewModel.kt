@@ -1,4 +1,5 @@
 // this code was written with the aid of AI
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.authentication.roleLoading
 
 import android.util.Log
@@ -10,6 +11,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Role
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -66,8 +68,15 @@ class RoleLoadingViewModel(
     if (loadJob?.isActive == true) return
     loadJob = viewModelScope.launch {
       setRoleState(RoleState.Loading)
-      profileRepository
-          .getCurrentProfile()
+      val profile = async { profileRepository.getCurrentProfile() }
+      if (authRepository.refreshCurrentUser() == null) {
+        // The account is gone, for example deleted: there is no profile to load or create
+        profile.cancel()
+        _state.update { it.copy(signedOut = true) }
+        return@launch
+      }
+      profile
+          .await()
           .fold(
               onSuccess = { profile ->
                 setRoleState(

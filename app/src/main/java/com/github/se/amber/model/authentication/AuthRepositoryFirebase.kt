@@ -12,6 +12,8 @@ import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
@@ -61,9 +63,35 @@ class AuthRepositoryFirebase(
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
-      Result.failure(e.toReauthenticationError())
+      val error = e.toReauthenticationError()
+      // The session of a deleted account outlives it on the device, and Firebase then reports any
+      // Google account as another one
+      val isAccountGone =
+          error == ReauthenticationError.WrongAccount &&
+              auth.currentUser?.let { isGone(it) } == true
+      Result.failure(if (isAccountGone) ReauthenticationError.AccountNotFound else error)
     }
   }
+
+  override suspend fun refreshCurrentUser(): AuthUser? {
+    val user = auth.currentUser ?: return null
+    if (isGone(user)) signOut()
+    return currentUser
+  }
+
+  /** Whether the server no longer accepts [user]: deleted, disabled, or its session revoked. */
+  private suspend fun isGone(user: FirebaseUser): Boolean =
+      try {
+        user.reload().await()
+        false
+      } catch (e: CancellationException) {
+        throw e
+      } catch (_: FirebaseAuthInvalidUserException) {
+        true
+      } catch (_: Exception) {
+        // Offline or unknown: the account may well exist
+        false
+      }
 
   private fun Exception.toReauthenticationError(): ReauthenticationError =
       when {
