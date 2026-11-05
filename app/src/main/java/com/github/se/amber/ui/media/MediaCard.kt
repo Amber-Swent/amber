@@ -2,9 +2,7 @@ package com.github.se.amber.ui.media
 
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,17 +28,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
-import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.BORDER_THICKNESS
-import com.github.se.amber.ui.theme.PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
-import java.util.Locale
 
 object MediaCardTestTags {
   fun toggleButton(id: String) = "media_card_toggle_button_$id"
@@ -82,7 +74,7 @@ fun MediaCard(
   val uiState by mediaCardViewModel.uiState.collectAsStateWithLifecycle()
   val context = LocalContext.current
 
-  LaunchedEffect(media) { mediaCardViewModel.load(media) }
+  LaunchedEffect(media, expanded) { if (expanded) mediaCardViewModel.load(media) }
 
   LaunchedEffect(uiState.errorMsg) {
     uiState.errorMsg?.let {
@@ -146,7 +138,7 @@ fun MediaCard(
               modifier = Modifier.padding(PATIENT_PADDING_SMALL),
           ) {
             // to display the description and name of the people who wrote it
-            OrangeBox() {
+            DisplayBox() {
               Column(
                   verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
                   modifier = Modifier.fillMaxWidth(),
@@ -164,7 +156,7 @@ fun MediaCard(
             }
             // to display the persons related to this media if there are any
             if (uiState.relatedNicknames.isNotEmpty()) {
-              OrangeBox() {
+              DisplayBox() {
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
                     modifier = Modifier.testTag(MediaCardTestTags.relatedList(media.id)),
@@ -185,42 +177,6 @@ fun MediaCard(
         }
       }
     }
-  }
-}
-
-/** transform the MemoryDate into a string */
-private fun memoryDateIntoString(date: MemoryDate?): String {
-  if (date == null) return "Unknown date"
-  val month = date.month?.value ?: return "%04d".format(date.year)
-  val day = date.day ?: return "%02d/%04d".format(month, date.year)
-  return "%02d/%02d/%04d".format(day, month, date.year)
-}
-
-/** transform a GeoLocation into a string */
-/** transform a GeoLocation into a string */
-private fun geoLocationIntoString(location: GeoLocation): String {
-  val name = location.placeName
-  if (!name.isNullOrBlank()) return name
-
-  val lat = location.lat
-  val lng = location.lng
-  if (lat != null && lng != null) return "%.4f, %.4f".format(Locale.US, lat, lng)
-
-  return "Unknown location"
-}
-
-/** create the box composable with visible outlines */
-@Composable
-private fun OrangeBox(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-  Surface(
-      modifier = modifier.fillMaxWidth(),
-      shape = RoundedCornerShape(ROUND_CORNER),
-      border = BorderStroke(BORDER_THICKNESS, MaterialTheme.colorScheme.secondary),
-  ) {
-    Box(Modifier.padding(PADDING_MINI)) { content() }
   }
 }
 
