@@ -2,32 +2,23 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  */
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,27 +26,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.CANCEL_BUTTON
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DIALOG_LIST
-import com.github.se.amber.ui.caregiver.upload.DatePickerTestTags.DONE_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
-import com.github.se.amber.ui.theme.DATE_PICKER_DIALOG_WIDTH_FRACTION
-import com.github.se.amber.ui.theme.DATE_PICKER_LIST_HEIGHT_FRACTION
+import com.github.se.amber.ui.theme.DATE_PICKER_WIDTH_FRACTION
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
-import com.github.se.amber.ui.theme.MAX_VISIBLE_ITEM
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import com.github.se.amber.ui.theme.YEAR_RANGE
@@ -68,14 +46,14 @@ import java.util.Locale
 
 internal object DatePickerTestTags {
   const val DIVIDER = "date_picker_divider"
-
   const val DIALOG = "date_picker_dialog"
-
-  fun dialogTitle(field: DateField) = "date_picker_dialog_title_${field.name}"
-
   const val DIALOG_LIST = "date_picker_dialog_list"
   const val DONE_BUTTON = "date_picker_done_button"
-  const val CANCEL_BUTTON = "date_picker_ancel_button"
+  const val CANCEL_BUTTON = "date_picker_cancel_button"
+  const val DISMISS_BUTTON = CANCEL_BUTTON
+  const val MONTH_REQUIRED_ERROR = "date_picker_month_required_error"
+
+  fun dialogTitle(field: DateField) = "date_picker_dialog_title_${field.name}"
 
   fun box(field: DateField) = "date_picker_box_${field.name}"
 
@@ -180,28 +158,51 @@ fun DisplayScrollableDatePicker(
   var date by remember { mutableStateOf(initialDate) }
   var openField by remember { mutableStateOf<DateField?>(null) }
 
+  // Day cannot be chosen until month is specified
+  var showMonthRequiredError by remember { mutableStateOf(false) }
+
   // Displays the date field (c.f year, month, and day)
-  Row(
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .border(
-                  width = BORDER_THICKNESS,
-                  color = MaterialTheme.colorScheme.tertiary,
-                  shape = RoundedCornerShape(size = ROUND_CORNER),
-              )
-              .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
-              .padding(CAREGIVER_PADDING_SMALL),
-      verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.SpaceBetween,
-  ) {
-    DateField.entries.forEach { field ->
-      DateBox(
-          field = field,
-          value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
-          enabled = field != DateField.DAY || date.month != null,
-          onClick = { openField = field },
-          modifier = Modifier.weight(WEIGHT_ONE).testTag(DatePickerTestTags.box(field)),
+  Column(modifier = modifier) {
+    Row(
+        modifier =
+            Modifier.fillMaxWidth(DATE_PICKER_WIDTH_FRACTION)
+                .border(
+                    width = BORDER_THICKNESS,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    shape = RoundedCornerShape(size = ROUND_CORNER),
+                )
+                .clip(shape = RoundedCornerShape(size = ROUND_CORNER))
+                .padding(CAREGIVER_PADDING_SMALL),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+      DateField.entries.forEach { field ->
+        DateBox(
+            field = field,
+            value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
+            // Disabling the day button when month is not selected would not detect tentative clicks
+            // On the day button, so we use onClick to show an error instead
+            onClick = {
+              if (field == DateField.DAY && date.month == null) {
+                showMonthRequiredError = true
+              } else {
+                openField = field
+              }
+            },
+            modifier = Modifier.weight(WEIGHT_ONE).testTag(DatePickerTestTags.box(field)),
+        )
+      }
+    }
+    // Day cannot be selected before the month is
+    if (showMonthRequiredError) {
+      Text(
+          modifier =
+              Modifier.align(Alignment.End)
+                  .padding(top = CAREGIVER_PADDING_SMALL)
+                  .testTag(DatePickerTestTags.MONTH_REQUIRED_ERROR),
+          text = "Select a month before selecting a day.",
+          color = MaterialTheme.colorScheme.error,
+          style = MaterialTheme.typography.bodySmall,
       )
     }
   }
@@ -224,6 +225,11 @@ fun DisplayScrollableDatePicker(
               if (allowsUnknown && index == 0) null
               else range.first + index - if (allowsUnknown) 1 else 0
           date = field.applyTo(date, value)
+
+          // Clear error state
+          if (date.month != null) {
+            showMonthRequiredError = false
+          }
           onDateSelected(date)
           openField = null
         },
@@ -289,127 +295,6 @@ private fun DateBox(
         color = textColor,
         style = MaterialTheme.typography.bodyMedium,
     )
-  }
-}
-
-/**
- * Displays a dialog for selecting one value from a scrollable list.
- *
- * @param field The date field being edited; its label determines the dialog title.
- * @param items The choices shown in the scrollable list.
- * @param initialIndex The index of the initially selected choice.
- * @param onDismiss Closes the dialog without applying a choice.
- * @param onSelected Receives the index of the confirmed choice.
- */
-@Composable
-private fun ScrollablePickerDialog(
-    field: DateField, // No natural default for the next three values that would not break behaviour
-    items: List<String>,
-    initialIndex: Int,
-    onDismiss: () -> Unit = {},
-    onSelected: (Int) -> Unit = {},
-) {
-  Dialog(
-      onDismissRequest = onDismiss,
-      // lets the dialog use the width we give it.
-      // The size depends on the Screen of the user's Android
-      properties = DialogProperties(usePlatformDefaultWidth = false),
-  ) {
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
-
-    // Snapping guarantees the list always rests with one item exactly in the
-    // highlighted slot, so the first visible item index IS the selected one.
-    val snapFling = rememberSnapFlingBehavior(listState)
-    val selectedIndex by remember { derivedStateOf { listState.firstVisibleItemIndex } }
-
-    // Better than [LocalConfiguration.current.screenHeightDp] because
-    // Responds to real-time window size changes
-    // But require conversion from Float to Dp
-    val screenHeight =
-        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val listHeight = screenHeight * DATE_PICKER_LIST_HEIGHT_FRACTION
-    val itemHeight = listHeight / MAX_VISIBLE_ITEM
-
-    Column(
-        modifier =
-            Modifier.fillMaxWidth(fraction = DATE_PICKER_DIALOG_WIDTH_FRACTION)
-                .testTag(DIALOG)
-                .background(
-                    color = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(size = ROUND_CORNER),
-                )
-                .padding(CAREGIVER_PADDING_MEDIUM),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
-    ) {
-      // display "Select <dateFieldName>"
-      Text(
-          modifier = Modifier.testTag(DatePickerTestTags.dialogTitle(field)),
-          text = "Select ${field.label}",
-          style = MaterialTheme.typography.titleLarge,
-          color = MaterialTheme.colorScheme.onSurface,
-      )
-
-      Box(
-          modifier =
-              Modifier.height(listHeight)
-                  .border(
-                      width = BORDER_THICKNESS,
-                      color = MaterialTheme.colorScheme.tertiary,
-                      shape = RoundedCornerShape(ROUND_CORNER),
-                  )
-      ) {
-        LazyColumn(
-            state = listState,
-            flingBehavior = snapFling,
-            // Lets the first and last items reach the center slot
-            contentPadding = PaddingValues(vertical = (listHeight - itemHeight) / 2),
-            modifier = Modifier.fillMaxWidth().testTag(DIALOG_LIST),
-        ) {
-          itemsIndexed(items) { index, item ->
-            val isSelected = (index == selectedIndex)
-            Text(
-                modifier =
-                    Modifier.fillMaxWidth()
-                        .height(itemHeight)
-                        .clickable { onSelected(index) }
-                        .wrapContentHeight(Alignment.CenterVertically)
-                        .testTag(DatePickerTestTags.item(index)),
-                text = item,
-                style =
-                    if (isSelected) MaterialTheme.typography.bodyLarge
-                    else MaterialTheme.typography.bodyMedium,
-                color =
-                    if (isSelected) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-          }
-        }
-      }
-
-      Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
-      ) {
-        DisplayCaregiverButton(
-            modifier = Modifier.weight(WEIGHT_ONE),
-            onClick = { onSelected(selectedIndex) },
-            text = "Done",
-            style = MaterialTheme.typography.labelLarge,
-            widthPercentage = WEIGHT_ONE,
-            buttonTestTag = DONE_BUTTON,
-        )
-        DisplayCaregiverButton(
-            modifier = Modifier.weight(WEIGHT_ONE),
-            onClick = onDismiss,
-            text = "Cancel",
-            style = MaterialTheme.typography.labelLarge,
-            widthPercentage = WEIGHT_ONE,
-            buttonTestTag = CANCEL_BUTTON,
-        )
-      }
-    }
   }
 }
 

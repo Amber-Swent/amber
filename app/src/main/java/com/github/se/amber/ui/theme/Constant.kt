@@ -100,7 +100,7 @@ const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pi
 // ------- DATE PICKER CONSTANTS -------
 
 const val DATE_PICKER_LIST_HEIGHT_FRACTION = 0.3f
-const val DATE_PICKER_DIALOG_WIDTH_FRACTION = 0.7f
+const val DATE_PICKER_WIDTH_FRACTION = 1f
 
 const val YEAR_RANGE = 100
 
@@ -108,6 +108,11 @@ const val YEAR_RANGE = 100
 const val WEIGHT_ONE = 1f
 
 const val WEIGHT_TWO = 2f
+
+// ------- GENERAL WIDTH --------
+
+const val DIALOG_WIDTH = 0.8f
+const val CAREGIVER_TITLE_WIDTH = 1f
 
 // ------- LOGO -------
 val LOGO_SIZE = 48.dp

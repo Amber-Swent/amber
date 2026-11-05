@@ -6,13 +6,15 @@ package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.upload.media.DateField
+import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags
+import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.time.Month
 import java.time.format.TextStyle
@@ -31,8 +33,9 @@ private class FakeDateSelectionListener {
 }
 
 /**
- * UI tests for [DisplayScrollableDatePicker]. Everything is located through test tags, and expected
- * values are derived from the date under test (never from displayed strings).
+ * UI tests for [com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker].
+ * Everything is located through test tags, and expected values are derived from the date under test
+ * (never from displayed strings).
  */
 class CaregiverUtilsAndroidTest {
 
@@ -92,9 +95,15 @@ class CaregiverUtilsAndroidTest {
   }
 
   @Test
-  fun dayBox_isDisabledWhenMonthIsUnknown() {
+  fun clickingDayBoxWhenMonthIsUnknown_showsMonthRequiredError() {
     launch(MemoryDate(2024))
-    composeRule.onNodeWithTag(DatePickerTestTags.box(DateField.DAY)).assertIsNotEnabled()
+    composeRule.onNodeWithTag(DatePickerTestTags.MONTH_REQUIRED_ERROR).assertDoesNotExist()
+    openDialog(DateField.DAY)
+    composeRule
+        .onNodeWithTag(DatePickerTestTags.MONTH_REQUIRED_ERROR)
+        .assertIsDisplayed()
+        .assertTextEquals("Select a month before selecting a day.")
+    composeRule.onNodeWithTag(DatePickerTestTags.DIALOG).assertDoesNotExist()
   }
 
   @Test
