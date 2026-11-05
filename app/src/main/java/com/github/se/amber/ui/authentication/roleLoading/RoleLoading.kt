@@ -37,6 +37,7 @@ object RoleLoadingTestTags {
  * @param modifier Modifier applied to the root layout.
  * @param onRoleLoaded Called once the user's role is known so navigation can switch graph.
  * @param noProfile Called when the signed-in user has no profile yet (onboarding).
+ * @param onNeedsCareCircle Called when the user has a profile but no care circle yet.
  * @param onSignedOut Called after a successful sign-out from the error state.
  * @param viewModel ViewModel holding the state of the screen.
  */
@@ -45,6 +46,7 @@ fun RoleLoadingScreen(
     modifier: Modifier = Modifier,
     onRoleLoaded: (Role) -> Unit = {},
     noProfile: () -> Unit = {},
+    onNeedsCareCircle: (CareCircleDestination) -> Unit = {},
     onSignedOut: () -> Unit = {},
     viewModel: RoleLoadingViewModel = viewModel(),
 ) {
@@ -56,7 +58,7 @@ fun RoleLoadingScreen(
       viewModel.loadRole()
     }
   }
-  // Fires the callbacks as soon as the state is Loaded or NoProfile.
+  // Fires the callbacks as soon as the state is Loaded, NoProfile, or NeedsCareCircle.
   LaunchedEffect(state.roleState) {
     when (val roleState = state.roleState) {
       // Callback fires immediately when the Loaded state is reached, passing the user's role
@@ -66,6 +68,8 @@ fun RoleLoadingScreen(
       // For NoProfile, the callback fires immediately when the state is reached,
       // triggering navigation to onboarding without showing any UI.
       RoleState.NoProfile -> noProfile()
+      // Profile exists but has no circle: caregiver chooses, patient enters an invitation.
+      is RoleState.NeedsCareCircle -> onNeedsCareCircle(roleState.destination)
       RoleState.Loading,
       RoleState.Error -> Unit
     }
@@ -97,6 +101,8 @@ fun RoleLoadingScreen(
         }
     // when there is no profile it displays nothing because being redirected
     is RoleState.NoProfile -> Unit
+    // profile without a circle displays nothing because being redirected
+    is RoleState.NeedsCareCircle -> Unit
     // what is displayed if the user is not connected or if Firestore has failed
     is RoleState.Error ->
         AuthenticationLayout(modifier = modifier) {

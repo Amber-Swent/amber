@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags.CANCEL_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL

@@ -93,6 +93,16 @@ sealed interface MediaItem {
 }
 
 /**
+ * Where an [MediaItem.Audio] is in its recording: not started yet, being recorded, or finished and
+ * kept.
+ */
+enum class AudioRecordingState {
+  IDLE,
+  RECORDING,
+  RECORDED,
+}
+
+/**
  * Whether this media's file is stored in care circle [circleId]'s media folder
  * (careCircles/{circleId}/media/{fileName}), the only place the security rules accept it. Always
  * false for a [MediaItem.Text], which has no file.
