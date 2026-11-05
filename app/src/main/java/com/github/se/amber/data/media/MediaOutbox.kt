@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 package com.github.se.amber.data.media
 
 import android.util.Log
@@ -99,6 +100,19 @@ class MediaOutbox(
                   .map { it.entry }
                   .sortedWith(compareBy({ it.item.createdAt }, { it.item.id }))
             }
+            .distinctUntilChanged()
+    )
+  }
+
+  /**
+   * Whether any circle has an entry. Emits again when the first entry is added or the last one
+   * leaves. A change of [SendState] alone does not emit.
+   */
+  fun observeHasUnsent(): Flow<Boolean> = flow {
+    locked {} // reads the disk on first use
+    emitAll(
+        records
+            .map { all -> all.values.any { circle -> circle.isNotEmpty() } }
             .distinctUntilChanged()
     )
   }

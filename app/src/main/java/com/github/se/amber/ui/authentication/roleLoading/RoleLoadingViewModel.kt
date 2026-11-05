@@ -5,11 +5,13 @@ package com.github.se.amber.ui.authentication.roleLoading
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.offline.OFFLINE_TRY_AGAIN
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +19,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val TAG = "RoleLoadingViewModel"
+
+/** Shown when the role cannot be loaded for a reason other than being offline. */
+internal const val ROLE_LOADING_ERROR_MESSAGE = "Could not load your profile.\nTry again."
 
 sealed interface RoleState {
   // waiting for finding the role
@@ -48,6 +53,7 @@ data class RoleLoadingUIState(
     val isSigningOut: Boolean = false,
     val signedOut: Boolean = false,
     val errorMsg: String? = null,
+    val roleErrorMessage: String = ROLE_LOADING_ERROR_MESSAGE,
 )
 
 class RoleLoadingViewModel(
@@ -93,7 +99,14 @@ class RoleLoadingViewModel(
               },
               onFailure = { e ->
                 Log.e(TAG, "Failed to load role", e)
-                setRoleState(RoleState.Error)
+                _state.update {
+                  it.copy(
+                      roleState = RoleState.Error,
+                      roleErrorMessage =
+                          if (e is ProfileReadError.Network) OFFLINE_TRY_AGAIN
+                          else ROLE_LOADING_ERROR_MESSAGE,
+                  )
+                }
               },
           )
     }

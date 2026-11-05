@@ -107,7 +107,7 @@ fun RoleLoadingScreen(
     is RoleState.Error ->
         AuthenticationLayout(modifier = modifier) {
           AuthenticationText(
-              text = "Could not load your profile.\nTry again.",
+              text = state.roleErrorMessage,
               modifier = Modifier.fillMaxWidth().testTag(RoleLoadingTestTags.ERROR_MESSAGE),
               textAlign = TextAlign.Center,
               style = MaterialTheme.typography.titleMedium,

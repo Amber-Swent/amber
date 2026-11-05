@@ -12,12 +12,16 @@ import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.offline.toLoadErrorMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -28,6 +32,7 @@ import kotlinx.coroutines.launch
  * @param careCircle actual careCircle.
  * @param patient Patient of the actual careCircle - whose information is displayed on the screen.
  * @param errorMsg Error message to display, or null when there is no error.
+ * @param pendingUploadCount Media saved on this phone that has not been sent yet.
  */
 data class CaregiverHomeUIState(
     val caregiver: UserProfile =
@@ -46,6 +51,7 @@ data class CaregiverHomeUIState(
             circleIds = emptyList(),
         ),
     val errorMsg: String? = null,
+    val pendingUploadCount: Int = 0,
 )
 
 /**
@@ -57,6 +63,7 @@ class CaregiverHomeViewModel(
     private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
+    private val mediaRepository: MediaRepository = MediaRepositoryProvider.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(CaregiverHomeUIState())
   val uiState: StateFlow<CaregiverHomeUIState> = _uiState.asStateFlow()
@@ -97,7 +104,12 @@ class CaregiverHomeViewModel(
                   },
                   onFailure = { e ->
                     Log.e(TAG, "Error fetching caregiver profile", e)
-                    setErrorMsg("Failed to load the profile: ${e.message}")
+                    setErrorMsg(
+                        e.toLoadErrorMessage(
+                            "Failed to load the profile: ${e.message}",
+                            showingSaved = false,
+                        )
+                    )
                     null
                   },
               ) ?: return@launch
@@ -109,6 +121,7 @@ class CaregiverHomeViewModel(
         setErrorMsg("No care circle found for this caregiver.")
         return@launch
       }
+      observePendingUploads(circleId)
 
       // 3. Care circle
       val circle =
@@ -118,7 +131,12 @@ class CaregiverHomeViewModel(
                   onSuccess = { it },
                   onFailure = { e ->
                     Log.e(TAG, "Error fetching care circle", e)
-                    setErrorMsg("Failed to load the care circle: ${e.message}")
+                    setErrorMsg(
+                        e.toLoadErrorMessage(
+                            "Failed to load the care circle: ${e.message}",
+                            showingSaved = false,
+                        )
+                    )
                     null
                   },
               ) ?: return@launch
@@ -143,9 +161,24 @@ class CaregiverHomeViewModel(
               },
               onFailure = { e ->
                 Log.e(TAG, "Error fetching patient profile", e)
-                setErrorMsg("Failed to load the patient profile: ${e.message}")
+                setErrorMsg(
+                    e.toLoadErrorMessage(
+                        "Failed to load the patient profile: ${e.message}",
+                        showingSaved = _uiState.value.careCircle.id.isNotBlank(),
+                    )
+                )
               },
           )
+    }
+  }
+
+  /** Keeps [CaregiverHomeUIState.pendingUploadCount] in step with this phone's outbox. */
+  private fun observePendingUploads(circleId: String) {
+    viewModelScope.launch {
+      mediaRepository
+          .observeOutbox(circleId)
+          .catch { error -> Log.e(TAG, "Error observing pending uploads", error) }
+          .collect { entries -> _uiState.update { it.copy(pendingUploadCount = entries.size) } }
     }
   }
 

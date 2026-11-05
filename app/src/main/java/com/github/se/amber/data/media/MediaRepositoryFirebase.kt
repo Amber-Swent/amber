@@ -171,6 +171,8 @@ class MediaRepositoryFirebase(
 
   override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = outbox.observe(circleId)
 
+  override fun observeHasUnsent(): Flow<Boolean> = outbox.observeHasUnsent()
+
   override suspend fun retrySend(circleId: String, mediaId: String) {
     // only the call that moved the entry back schedules: a second tap must not replace that send
     if (outbox.retry(circleId, mediaId)) scheduler.reschedule(circleId, mediaId)

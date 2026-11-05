@@ -11,6 +11,7 @@ package com.github.se.amber.ui.caregiver.upload.pictures
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -82,6 +83,7 @@ class UploadPictureViewModel(
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
+    isOnline: () -> Boolean = { ConnectivityMonitorProvider.monitor.isOnline.value },
 ) :
     MediaViewModel<UploadPictureUIState>(
         initialState =
@@ -93,6 +95,7 @@ class UploadPictureViewModel(
         profileRepo = profileRepo,
         circleRepo = circleRepo,
         placeRepo = placeRepo,
+        isOnline = isOnline,
     ) {
 
   /**

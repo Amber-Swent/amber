@@ -56,9 +56,15 @@ import kotlinx.coroutines.launch
 
 /** One-shot events sent by a [MediaViewModel] to its screen. */
 sealed interface MediaEvent {
-  /** The media was saved: the screen can navigate away. */
-  data object Uploaded : MediaEvent
+  /**
+   * The media was saved on this phone: the screen can navigate away. [savedOffline] is true when
+   * the phone had no connection, so the screen can say the media will be shared later.
+   */
+  data class Uploaded(val savedOffline: Boolean) : MediaEvent
 }
+
+/** Toast shown after a media is saved while the phone is offline. */
+const val SAVED_OFFLINE_MESSAGE = "Saved. It will be shared when you're back online."
 
 /**
  * Error messages shared by every upload ViewModel (text, picture, audio). A message that only makes
@@ -218,6 +224,9 @@ private sealed interface UploadCheck {
  * @param profileRepo The repository used to load the authenticated user's profile.
  * @param circleRepo The repository used to load the user's care circle.
  * @param placeRepo The repository used to find real places from what the user types.
+ * @param isOnline Whether the phone can reach the internet. Read when an upload is saved, so the
+ *   screen can say it will be shared later. Defaults to online for tests that do not pass one; the
+ *   picture screen passes the app's connectivity monitor.
  */
 abstract class MediaViewModel<S : MediaUIState<S>>(
     initialState: S,
@@ -228,6 +237,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         CareCircleRepositoryProvider.default.repository,
     protected val placeRepo: PlaceSearchRepository =
         PlaceSearchRepositoryProvider.default.repository,
+    private val isOnline: () -> Boolean = { true },
 ) : ViewModel() {
   /** Writable state, for the subclass to update its own fields. */
   protected val _uiState = MutableStateFlow(initialState)
@@ -450,7 +460,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         val item = createItem(id, state, ready.authorId, circle, ready.date, shownIds)
         mediaRepo.addMedia(circle, item, fileOf(state))
         updateCommon { it.copy(isUploading = false) }
-        _events.send(MediaEvent.Uploaded)
+        _events.send(MediaEvent.Uploaded(savedOffline = !isOnline()))
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {

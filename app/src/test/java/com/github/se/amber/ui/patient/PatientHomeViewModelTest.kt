@@ -3,10 +3,12 @@
 package com.github.se.amber.ui.patient
 
 import android.util.Log
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.offline.OFFLINE_TRY_AGAIN
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -88,6 +90,15 @@ class PatientHomeViewModelTest {
     val vm = PatientHomeViewModel(profileRepo)
 
     assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun `network failure asks to try again`() = runTest {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.failure(ProfileReadError.Network)
+
+    val vm = PatientHomeViewModel(profileRepo)
+
+    assertEquals(OFFLINE_TRY_AGAIN, vm.uiState.value.errorMsg)
   }
 
   @Test

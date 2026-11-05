@@ -3,6 +3,7 @@
 package com.github.se.amber.ui.roleloading
 
 import android.util.Log
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -11,6 +12,7 @@ import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
 import com.github.se.amber.ui.authentication.roleLoading.RoleState
+import com.github.se.amber.ui.offline.OFFLINE_TRY_AGAIN
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -167,6 +169,18 @@ class RoleLoadingViewModelTest {
     advanceUntilIdle()
 
     assertEquals(RoleState.Error, viewModel.state.value.roleState)
+  }
+
+  @Test
+  fun loadRole_networkFailure_usesOfflineMessage() = runTest {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.failure(ProfileReadError.Network)
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertEquals(RoleState.Error, viewModel.state.value.roleState)
+    assertEquals(OFFLINE_TRY_AGAIN, viewModel.state.value.roleErrorMessage)
   }
 
   @Test

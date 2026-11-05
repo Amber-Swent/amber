@@ -38,7 +38,12 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 object SignOutTestTags {
   const val TITLE = "SignOut_test_tag_title"
   const val EXPLANATION = "SignOut_test_tag_explanation"
+  const val UNSENT_WARNING = "SignOut_test_tag_unsent_warning"
 }
+
+/** Shown when signing out would delete media that has not been sent. */
+const val UNSENT_MEDIA_WARNING =
+    "Unsent photos, texts, and voice memos on this phone will be deleted."
 
 /**
  * Confirmation screen shared by caregiver and patient parameters.
@@ -113,6 +118,15 @@ fun SignOutScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().testTag(SignOutTestTags.EXPLANATION),
             )
+            if (uiState.hasUnsentMedia) {
+              Text(
+                  text = UNSENT_MEDIA_WARNING,
+                  color = MaterialTheme.colorScheme.error,
+                  style = MaterialTheme.typography.bodyLarge,
+                  textAlign = TextAlign.Center,
+                  modifier = Modifier.fillMaxWidth().testTag(SignOutTestTags.UNSENT_WARNING),
+              )
+            }
             SignOutButton(viewModel = viewModel)
           }
         }

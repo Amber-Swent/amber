@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -37,6 +38,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 object CaregiverHomeTestTags {
   const val TITLE = "caregiver_home_title"
   const val WELCOME_TEXT = "caregiver_home_welcome_text"
+  const val PENDING_UPLOADS = "caregiver_home_pending_uploads"
 }
 
 /**
@@ -53,6 +55,7 @@ object CaregiverHomeTestTags {
 fun CaregiverHomeScreen(
     viewModel: CaregiverHomeViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = {},
+    onPendingUploadsClick: () -> Unit = {},
 ) {
   val context = LocalContext.current
 
@@ -108,6 +111,14 @@ fun CaregiverHomeScreen(
               style = MaterialTheme.typography.bodyLarge,
               textAlign = TextAlign.Center,
           )
+          if (uiState.pendingUploadCount > 0) {
+            Button(
+                onClick = onPendingUploadsClick,
+                modifier = Modifier.fillMaxWidth().testTag(CaregiverHomeTestTags.PENDING_UPLOADS),
+            ) {
+              Text("Pending uploads (${uiState.pendingUploadCount})")
+            }
+          }
         }
       },
   )

@@ -22,10 +22,18 @@ import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.CircleMedia
+import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
 import com.github.se.amber.ui.theme.ROUND_CORNER
+import java.io.File
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /** No-op [AuthRepository] used by Compose previews (and preview-driven tests). */
 internal object PreviewSignOutAuthRepository : AuthRepository {
@@ -95,7 +103,44 @@ fun SignOutButton(
   }
 }
 
-internal val previewSignOutViewModel = SignOutViewModel(PreviewSignOutAuthRepository)
+/** No-op media repository for the sign-out preview: nothing is waiting to be sent. */
+private object PreviewSignOutMediaRepository : MediaRepository {
+  override fun observeHasUnsent(): Flow<Boolean> = flowOf(false)
+
+  override suspend fun clearLocalMedia() = Unit
+
+  override fun newMediaId(circleId: String): String = unused()
+
+  override fun observeApprovedMedia(circleId: String): Flow<List<MediaItem>> = unused()
+
+  override fun observeMediaShowing(circleId: String, shownId: String): Flow<List<MediaItem>> =
+      unused()
+
+  override fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>> = unused()
+
+  override suspend fun getMedia(circleId: String, mediaId: String): MediaItem? = unused()
+
+  override suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?) = unused()
+
+  override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = unused()
+
+  override suspend fun retrySend(circleId: String, mediaId: String) = unused()
+
+  override suspend fun discardUnsent(circleId: String, mediaId: String) = unused()
+
+  override suspend fun updateMedia(circleId: String, item: MediaItem) = unused()
+
+  override suspend fun deleteMedia(circle: CareCircle, item: MediaItem) = unused()
+
+  override suspend fun getFile(circle: CareCircle, item: MediaItem): File = unused()
+
+  override suspend fun clearLocalMedia(circleId: String) = unused()
+
+  private fun unused(): Nothing = error("Not used by the sign-out preview")
+}
+
+internal val previewSignOutViewModel =
+    SignOutViewModel(PreviewSignOutAuthRepository, PreviewSignOutMediaRepository)
 
 /** Preview of [SignOutButton] using the Amber application theme. */
 @Preview(showBackground = true)

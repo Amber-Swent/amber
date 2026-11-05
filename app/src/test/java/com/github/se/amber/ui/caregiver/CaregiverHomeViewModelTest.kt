@@ -5,11 +5,19 @@
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
+import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.OutboxEntry
+import com.github.se.amber.model.media.SendState
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.offline.OFFLINE_SHOWING_SAVED
+import com.github.se.amber.ui.offline.OFFLINE_TRY_AGAIN
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -17,6 +25,8 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -43,6 +53,7 @@ class CaregiverHomeViewModelTest {
 
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private lateinit var mediaRepo: MediaRepository
 
   private val caregiver =
       UserProfile(uid = "cg1", role = Role.CAREGIVER, circleIds = listOf("circle1"))
@@ -53,6 +64,8 @@ class CaregiverHomeViewModelTest {
   fun setup() {
     profileRepo = mockk()
     circleRepo = mockk()
+    mediaRepo = mockk()
+    every { mediaRepo.observeOutbox(any()) } returns flowOf(emptyList())
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -60,7 +73,7 @@ class CaregiverHomeViewModelTest {
   @After fun tearDown() = unmockkAll()
 
   // The ViewModel loads in init, so stubs must be set before creating it.
-  private fun createVm() = CaregiverHomeViewModel(profileRepo, circleRepo)
+  private fun createVm() = CaregiverHomeViewModel(profileRepo, circleRepo, mediaRepo)
 
   @Test
   fun load_success_fillsCaregiverCircleAndPatient() {
@@ -147,5 +160,48 @@ class CaregiverHomeViewModelTest {
     vm.clearErrorMsg()
 
     assertNull(vm.uiState.value.errorMsg)
+  }
+
+  @Test
+  fun load_profileNetworkFailure_usesOfflineMessage() {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.failure(ProfileReadError.Network)
+
+    assertEquals(OFFLINE_TRY_AGAIN, createVm().uiState.value.errorMsg)
+  }
+
+  @Test
+  fun load_patientNetworkFailure_keepsWhatWasSaved() {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
+    coEvery { profileRepo.getProfile("p1") } returns Result.failure(ProfileReadError.Network)
+
+    val state = createVm().uiState.value
+
+    assertEquals(OFFLINE_SHOWING_SAVED, state.errorMsg)
+    assertEquals(circle, state.careCircle)
+  }
+
+  @Test
+  fun pendingUploadCountFollowsTheOutbox() {
+    val outbox = MutableStateFlow(emptyList<OutboxEntry>())
+    every { mediaRepo.observeOutbox("circle1") } returns outbox
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
+    coEvery { profileRepo.getProfile("p1") } returns Result.success(patient)
+
+    val vm = createVm()
+    assertEquals(0, vm.uiState.value.pendingUploadCount)
+
+    outbox.value = listOf(OutboxEntry(MediaItem.Text(id = "t1"), SendState.WAITING))
+
+    assertEquals(1, vm.uiState.value.pendingUploadCount)
+  }
+
+  @Test
+  fun load_circleNetworkFailure_usesOfflineMessage() {
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
+    coEvery { circleRepo.getCircle("circle1") } returns Result.failure(CareCircleError.Network)
+
+    assertEquals(OFFLINE_TRY_AGAIN, createVm().uiState.value.errorMsg)
   }
 }
