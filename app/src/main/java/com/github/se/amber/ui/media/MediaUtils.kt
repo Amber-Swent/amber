@@ -1,3 +1,5 @@
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.media
 
 import androidx.compose.foundation.BorderStroke
@@ -63,13 +65,11 @@ fun geoLocationIntoString(location: GeoLocation): String {
  * Displays a box with visible orange outlines around its content.
  *
  * @param modifier modifier to apply to the box
- * @param testTag test tag of the box
  * @param content content displayed inside the box
  */
 @Composable
 fun DisplayBox(
     modifier: Modifier = Modifier,
-    testTag: String = MediaUtilsTestTags.DISPLAY_BOX,
     content: @Composable () -> Unit,
 ) {
   Surface(

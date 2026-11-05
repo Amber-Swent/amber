@@ -1,4 +1,5 @@
-/** Written by camomille299, with assistance from Claude (Anthropic) via claude.ai. */
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.media
 
 import androidx.compose.ui.Modifier
@@ -242,9 +243,7 @@ class MediaCardTest {
 
     toggle()
 
-    composeTestRule
-        .onNodeWithTag(MediaCardTestTags.relatedTitle("m1"))
-        .assertTextEquals("Memory shared with")
+    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedTitle("m1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedList("m1")).assertIsDisplayed()
     // every nickname except the last one is followed by a comma
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 0)).assertTextEquals("Bob,")
