@@ -104,6 +104,13 @@ const val DATE_PICKER_WIDTH_FRACTION = 1f
 
 const val YEAR_RANGE = 100
 
+// ------- AUDIO PLAYBACK -------
+/** Opacity Material uses for a disabled control. */
+const val DISABLED_ALPHA = 0.38f
+
+/** Number of digits used to display the seconds of a playback clock (`m:ss`). */
+const val SECOND_FIELD_WIDTH = 2
+
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f
 

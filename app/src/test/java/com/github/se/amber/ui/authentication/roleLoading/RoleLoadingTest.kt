@@ -12,6 +12,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingTestTags
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingUIState
@@ -48,11 +49,15 @@ class RoleLoadingScreenTest {
   // Spy: noProfile increments this counter (see setScreen).
   private var noProfileCount = 0
 
+  // Spy: onNeedsCareCircle adds each destination it receives (see setScreen).
+  private val careCircleDestinations = mutableListOf<CareCircleDestination>()
+
   @Before
   fun setUp() {
     loadedRoles.clear()
     signedOutCount = 0
     noProfileCount = 0
+    careCircleDestinations.clear()
     stateFlow = MutableStateFlow(RoleLoadingUIState())
     viewModel = mockk(relaxed = true)
     every { viewModel.state } returns stateFlow
@@ -64,6 +69,7 @@ class RoleLoadingScreenTest {
       RoleLoadingScreen(
           onRoleLoaded = { loadedRoles.add(it) },
           noProfile = { noProfileCount++ },
+          onNeedsCareCircle = { careCircleDestinations.add(it) },
           onSignedOut = { signedOutCount++ },
           viewModel = viewModel,
       )
@@ -268,7 +274,40 @@ class RoleLoadingScreenTest {
 
     assertEquals(1, noProfileCount)
     assertTrue(loadedRoles.isEmpty())
+    assertTrue(careCircleDestinations.isEmpty())
     assertEquals(0, signedOutCount)
+  }
+
+  // ---------- NeedsCareCircle ----------
+
+  @Test
+  fun needsCareCircle_callsCallbackWithDestination() {
+    setScreen(RoleState.NeedsCareCircle(CareCircleDestination.Choice))
+    composeTestRule.waitForIdle()
+
+    assertEquals(listOf(CareCircleDestination.Choice), careCircleDestinations)
+    assertEquals(0, noProfileCount)
+    assertTrue(loadedRoles.isEmpty())
+
+    stateFlow.value =
+        RoleLoadingUIState(roleState = RoleState.NeedsCareCircle(CareCircleDestination.Invitation))
+    composeTestRule.waitForIdle()
+
+    assertEquals(
+        listOf(CareCircleDestination.Choice, CareCircleDestination.Invitation),
+        careCircleDestinations,
+    )
+    assertEquals(0, noProfileCount)
+  }
+
+  @Test
+  fun needsCareCircle_displaysNothing() {
+    setScreen(RoleState.NeedsCareCircle(CareCircleDestination.Invitation))
+    composeTestRule.waitForIdle()
+
+    assertNoErrorOrBackToLoginShown()
+    composeTestRule.onNodeWithTag(RoleLoadingTestTags.LOADING_INDICATOR).assertDoesNotExist()
+    assertSharedAuthenticationLayoutHidden()
   }
 
   @Test
