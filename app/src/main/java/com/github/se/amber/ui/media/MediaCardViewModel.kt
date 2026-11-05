@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.media.MediaItem
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +23,7 @@ data class MediaCardUIState(
 )
 
 class MediaCardViewModel(
-    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
@@ -32,6 +32,7 @@ class MediaCardViewModel(
   val uiState: StateFlow<MediaCardUIState> = _uiState.asStateFlow()
 
   private var loadJob: Job? = null
+  private var loadedMedia: MediaItem? = null
 
   /** Clears the error message in the UI state. */
   fun clearErrorMsg() {
@@ -40,6 +41,8 @@ class MediaCardViewModel(
 
   /** Sets an error message in the UI state. */
   private fun setErrorMsg(message: String) {
+    // to be able to retry to load when we next see it
+    loadedMedia = null
     _uiState.value = _uiState.value.copy(isLoading = false, errorMsg = message)
   }
 
@@ -50,6 +53,8 @@ class MediaCardViewModel(
    * @param media the media we want the card of
    */
   fun load(media: MediaItem) {
+    if (media == loadedMedia) return
+    loadedMedia = media
     loadJob?.cancel()
     _uiState.value = MediaCardUIState(isLoading = true)
 
