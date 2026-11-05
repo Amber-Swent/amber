@@ -2,6 +2,8 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
+ * Modified by LaMaier, with assistance from
+ * Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.pictures
 
@@ -43,8 +45,8 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialog
+import com.github.se.amber.ui.caregiver.upload.media.DisplayLocation
 import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
-import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolved
 import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags.UPLOAD_BUTTON
