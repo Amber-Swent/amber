@@ -45,7 +45,7 @@ import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
@@ -206,7 +206,7 @@ fun UploadAudioScreen(
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
             text = if (uiState.isUploading) "Uploading…" else "Upload Audio",
-            widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
+            widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
         )
       },
   )
