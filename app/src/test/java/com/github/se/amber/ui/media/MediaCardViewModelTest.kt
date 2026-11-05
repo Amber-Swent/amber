@@ -1,6 +1,4 @@
 /** Written by camomille299, with assistance from Claude (Anthropic) via claude.ai. */
-
-
 package com.github.se.amber.ui.media
 
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -163,7 +161,7 @@ class MediaCardViewModelTest {
     val state = viewModel.uiState.value
     assertFalse(state.isLoading)
     assertNotNull(state.errorMsg)
-    assertTrue(state.errorMsg!!.startsWith("Failed to load the author"))
+    assertEquals("$FAIL_LOAD_AUTHOR_PROFILE boom", state.errorMsg)
     assertEquals("", state.addedByNickname)
   }
 
@@ -173,7 +171,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media())
 
-    assertEquals("Author not found.", viewModel.uiState.value.errorMsg)
+    assertEquals(AUTHOR_NOT_FOUND, viewModel.uiState.value.errorMsg)
     assertFalse(viewModel.uiState.value.isLoading)
   }
 
@@ -184,7 +182,7 @@ class MediaCardViewModelTest {
     viewModel.load(media(shownIds = listOf("p1")))
 
     val state = viewModel.uiState.value
-    assertEquals("Failed to load the profile: boom", state.errorMsg)
+    assertEquals("$FAIL_LOAD_CURRENT_PROFILE boom", state.errorMsg)
     assertEquals("Alice", state.addedByNickname)
     assertFalse(state.isLoading)
   }
@@ -195,7 +193,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1")))
 
-    assertEquals("No care circle found.", viewModel.uiState.value.errorMsg)
+    assertEquals(NO_CARE_CIRCLE_FOUND, viewModel.uiState.value.errorMsg)
   }
 
   @Test
@@ -205,7 +203,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1")))
 
-    assertEquals("No care circle found.", viewModel.uiState.value.errorMsg)
+    assertEquals(NO_CARE_CIRCLE_FOUND, viewModel.uiState.value.errorMsg)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
   }
 
@@ -216,7 +214,7 @@ class MediaCardViewModelTest {
     viewModel.load(media(shownIds = listOf("p1")))
 
     val state = viewModel.uiState.value
-    assertEquals("Failed to load the care circle: boom", state.errorMsg)
+    assertEquals("$FAIL_LOAD_CARE_CIRCLE boom", state.errorMsg)
     assertEquals("Alice", state.addedByNickname)
     assertTrue(state.relatedNicknames.isEmpty())
   }
@@ -251,7 +249,7 @@ class MediaCardViewModelTest {
   fun load_resetsPreviousErrorAndData() {
     coEvery { profileRepository.getProfile("author") } returns Result.success(null)
     viewModel.load(media())
-    assertEquals("Author not found.", viewModel.uiState.value.errorMsg)
+    assertEquals(AUTHOR_NOT_FOUND, viewModel.uiState.value.errorMsg)
 
     coEvery { profileRepository.getProfile("author") } returns Result.success(authorProfile)
     viewModel.load(media())

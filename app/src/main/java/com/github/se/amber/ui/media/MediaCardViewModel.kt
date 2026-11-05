@@ -1,6 +1,4 @@
 /** Written by camomille299, with assistance from Claude (Anthropic) via claude.ai. */
-
-
 package com.github.se.amber.ui.media
 
 import android.util.Log
@@ -11,11 +9,18 @@ import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.media.MediaItem
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+internal const val FAIL_LOAD_AUTHOR_PROFILE = "Failed to load the author profile:"
+internal const val FAIL_LOAD_CURRENT_PROFILE = "Failed to load the current profile:"
+internal const val FAIL_LOAD_CARE_CIRCLE = "Failed to load the care circle:"
+internal const val AUTHOR_NOT_FOUND = "Author not found."
+internal const val NO_CARE_CIRCLE_FOUND = "No care circle found."
 
 data class MediaCardUIState(
     val addedByNickname: String = "",
@@ -50,6 +55,22 @@ class MediaCardViewModel(
   }
 
   /**
+   * Returns the value of this [Result], or logs the failure, sets an error message and calls
+   * [onFailure] to stop the load. A [CancellationException] is always rethrown, so that the
+   * cancellation of the coroutine is not turned into an error message.
+   */
+  private inline fun <T> Result<T>.getOrSetError(
+      logMessage: String,
+      errorPrefix: String,
+      onFailure: () -> Nothing,
+  ): T = getOrElse { e ->
+    if (e is CancellationException) throw e
+    Log.e(TAG, logMessage, e)
+    setErrorMsg("$errorPrefix ${e.message}")
+    onFailure()
+  }
+
+  /**
    * Loads the data needed to display the card of [media]: the nickname of the person who added it
    * and the nickames of all the related persons Cancels any previous load still running.
    *
@@ -64,14 +85,15 @@ class MediaCardViewModel(
     loadJob = viewModelScope.launch {
       // 1. Author profile
       val authorProfile =
-          profileRepository.getProfile(media.authorId).getOrElse { e ->
-            Log.e(TAG, "Error fetching author profile", e)
-            setErrorMsg("Failed to load the author: ${e.message}")
+          profileRepository.getProfile(media.authorId).getOrSetError(
+              logMessage = "Error fetching author profile",
+              errorPrefix = FAIL_LOAD_AUTHOR_PROFILE,
+          ) {
             return@launch
           }
 
       if (authorProfile == null) {
-        setErrorMsg("Author not found.")
+        setErrorMsg(AUTHOR_NOT_FOUND)
         return@launch
       }
       _uiState.value =
@@ -85,23 +107,25 @@ class MediaCardViewModel(
 
       // 2. Patient profile (the current profile) -> first care circle id
       val patientProfile =
-          profileRepository.getCurrentProfile().getOrElse { e ->
-            Log.e(TAG, "Error fetching patient profile", e)
-            setErrorMsg("Failed to load the profile: ${e.message}")
+          profileRepository.getCurrentProfile().getOrSetError(
+              "Error fetching patient profile",
+              FAIL_LOAD_CURRENT_PROFILE,
+          ) {
             return@launch
           }
 
       val circleId = patientProfile?.circleIds?.firstOrNull()
       if (circleId == null) {
-        setErrorMsg("No care circle found.")
+        setErrorMsg(NO_CARE_CIRCLE_FOUND)
         return@launch
       }
 
       // 3. Care circle
       val circle =
-          circleRepository.getCircle(circleId).getOrElse { e ->
-            Log.e(TAG, "Error fetching care circle", e)
-            setErrorMsg("Failed to load the care circle: ${e.message}")
+          circleRepository.getCircle(circleId).getOrSetError(
+              "Error fetching care circle",
+              FAIL_LOAD_CARE_CIRCLE,
+          ) {
             return@launch
           }
 

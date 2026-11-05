@@ -1,5 +1,4 @@
 /** Written by camomille299, with assistance from Claude (Anthropic) via claude.ai. */
-
 package com.github.se.amber.ui.media
 
 import androidx.compose.ui.Modifier
@@ -69,7 +68,7 @@ class MediaCardTest {
     Dispatchers.resetMain()
   }
 
-  // The ViewModel is created before the composition: its load runs right away (Unconfined)
+  // The ViewModel is created before the composition. Its load only runs once the card is expanded.
   private fun setCard(media: MediaItem, testTag: String = "media_card") {
     val viewModel = MediaCardViewModel(profileRepository, circleRepository)
     composeTestRule.setContent {
@@ -101,19 +100,22 @@ class MediaCardTest {
           shownIds = shownIds,
       )
 
-  private fun toggle(id: String = "m1") {
-    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButton(id)).performClick()
+  /** Clicks the toggle button. Set [expanded] to true if the card is currently expanded. */
+  private fun toggle(id: String = "m1", expanded: Boolean = false) {
+    val tag =
+        if (expanded) MediaCardTestTags.toggleButtonTextHide(id)
+        else MediaCardTestTags.toggleButtonTextShow(id)
+    composeTestRule.onNodeWithTag(tag).performClick()
     composeTestRule.waitForIdle()
   }
 
   // ---------- toggle ----------
 
   @Test
-  fun toggleButton_initiallyShowsSeeMore() {
+  fun toggleButton_initiallyShowsShowInfos() {
     setCard(picture())
-    composeTestRule
-        .onNodeWithTag(MediaCardTestTags.toggleButton("m1"))
-        .assertTextEquals("+ see more")
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1")).assertDoesNotExist()
   }
 
   @Test
@@ -130,15 +132,13 @@ class MediaCardTest {
     setCard(picture())
 
     toggle()
-    composeTestRule
-        .onNodeWithTag(MediaCardTestTags.toggleButton("m1"))
-        .assertTextEquals("- see less")
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("m1")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertIsDisplayed()
 
-    toggle()
-    composeTestRule
-        .onNodeWithTag(MediaCardTestTags.toggleButton("m1"))
-        .assertTextEquals("+ see more")
+    toggle(expanded = true)
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertDoesNotExist()
   }
 
@@ -183,7 +183,8 @@ class MediaCardTest {
     toggle()
 
     composeTestRule.onNodeWithTag(MediaCardTestTags.loading("m1")).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.addedBy("m1")).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedList("m1")).assertDoesNotExist()
   }
 
   @Test
@@ -241,8 +242,12 @@ class MediaCardTest {
 
     toggle()
 
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.relatedTitle("m1"))
+        .assertTextEquals("Memory shared with")
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedList("m1")).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 0)).assertTextEquals("Bob")
+    // every nickname except the last one is followed by a comma
+    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 0)).assertTextEquals("Bob,")
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 1)).assertTextEquals("Carol")
   }
 
@@ -252,6 +257,7 @@ class MediaCardTest {
 
     toggle()
 
+    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedTitle("m1")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedList("m1")).assertDoesNotExist()
   }
 
@@ -314,6 +320,7 @@ class MediaCardTest {
     coEvery { profileRepository.getProfile("author") } returns Result.success(null)
 
     setCard(picture())
+    toggle()
 
     assertEquals("Author not found.", ShadowToast.getTextOfLatestToast())
   }
@@ -339,6 +346,7 @@ class MediaCardTest {
     coEvery { profileRepository.getProfile("author") } returns Result.success(null)
 
     setCard(picture())
+    toggle()
     composeTestRule.waitForIdle()
 
     assertEquals(1, ShadowToast.shownToastCount())

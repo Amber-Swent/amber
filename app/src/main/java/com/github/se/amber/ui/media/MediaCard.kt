@@ -1,5 +1,4 @@
 /** Written by camomille299, with assistance from Claude (Anthropic) via claude.ai. */
-
 package com.github.se.amber.ui.media
 
 import android.widget.Toast
@@ -11,9 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,17 +34,17 @@ import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
-import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import com.github.se.amber.ui.theme.WEIGHT_TWO
-
 
 /**
  * Test tags used to identify the elements of the [MediaCard]. Each tag is made unique by the id of
  * the media it belongs to.
  */
 object MediaCardTestTags {
-  fun toggleButton(id: String) = "media_card_toggle_button_$id"
+  fun toggleButtonTextShow(id: String) = "media_card_toggle_button_text_show_$id"
+
+  fun toggleButtonTextHide(id: String) = "media_card_toggle_button_text_hide_$id"
 
   fun date(id: String) = "media_card_date_$id"
 
@@ -60,6 +56,8 @@ object MediaCardTestTags {
 
   fun relatedList(id: String) = "media_card_related_list_$id"
 
+  fun relatedTitle(id: String) = "media_card_related_title_$id"
+
   fun relatedItem(id: String, index: Int) = "media_card_related_item_${id}_$index"
 
   fun location(id: String) = "media_card_location_$id"
@@ -69,13 +67,13 @@ object MediaCardTestTags {
  * Displays the card related to the Media, including the date, the description, the location and the
  * persons related to it
  *
- * This functions must only be used on scrollable screens.
+ * This function must only be used on scrollable screens.
  *
  * @param modifier modifier to apply to the card
  * @param media the media item we want to apply the description of. By default a picture.
  * @param testTag test tag of the card
  * @param mediaCardViewModel view model of the card, which loads the nicknames of the author and of
- *        the persons related to the media. One instance per media id.
+ *   the persons related to the media. One instance per media id.
  */
 @Composable
 fun MediaCard(
@@ -104,7 +102,10 @@ fun MediaCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        val textToDisplay: String = if (expanded) "hide info" else "show info"
+      val textToDisplay: String = if (expanded) "hide infos" else "show infos"
+      val actualTestTag =
+          if (expanded) MediaCardTestTags.toggleButtonTextHide(media.id)
+          else MediaCardTestTags.toggleButtonTextShow(media.id)
       DisplayPatientButton(
           modifier = Modifier.weight(WEIGHT_ONE).padding(start = PATIENT_PADDING_MINI),
           buttonHeight = PATIENT_BUTTON_HEIGHT_SMALL,
@@ -112,11 +113,12 @@ fun MediaCard(
           text = textToDisplay,
           textStyle = MaterialTheme.typography.titleMedium,
           onClick = { expanded = !expanded },
-          testTag = MediaCardTestTags.toggleButton(media.id),
+          testTag = actualTestTag,
       )
       Column(
           horizontalAlignment = Alignment.End,
-          modifier = Modifier.weight(WEIGHT_TWO).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+          modifier =
+              Modifier.weight(WEIGHT_TWO).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
       ) {
         Text(
             text = memoryDateIntoString(media.date),
@@ -164,17 +166,24 @@ fun MediaCard(
             // to display the persons related to this media if there are any
             if (uiState.relatedNicknames.isNotEmpty()) {
               DisplayBox() {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-                    modifier = Modifier.testTag(MediaCardTestTags.relatedList(media.id)),
-                ) {
-                  itemsIndexed(uiState.relatedNicknames) { index, nickname ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                      Text(
-                          text = nickname,
-                          modifier =
-                              Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index)),
-                      )
+                Column {
+                  Text(
+                      text = "Memory shared with",
+                      modifier = Modifier.testTag(MediaCardTestTags.relatedTitle(media.id)),
+                  )
+                  LazyRow(
+                      horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+                      modifier = Modifier.testTag(MediaCardTestTags.relatedList(media.id)),
+                  ) {
+                    itemsIndexed(uiState.relatedNicknames) { index, nickname ->
+                      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val isLast = index == uiState.relatedNicknames.lastIndex
+                        Text(
+                            text = if (isLast) nickname else "$nickname,",
+                            modifier =
+                                Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index)),
+                        )
+                      }
                     }
                   }
                 }
@@ -189,6 +198,6 @@ fun MediaCard(
 
 @Preview(showBackground = true)
 @Composable
-fun DisplayMediaCardPreview() {
+private fun DisplayMediaCardPreview() {
   AmberAppTheme { MediaCard() }
 }

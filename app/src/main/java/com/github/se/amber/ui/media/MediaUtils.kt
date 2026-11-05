@@ -75,7 +75,7 @@ fun DisplayBox(
   Surface(
       modifier = modifier.fillMaxWidth(),
       shape = RoundedCornerShape(ROUND_CORNER),
-      border = BorderStroke(BORDER_THICKNESS, MaterialTheme.colorScheme.secondary),
+      border = BorderStroke(BORDER_THICKNESS, MaterialTheme.colorScheme.outline),
   ) {
     Box(Modifier.padding(PADDING_MINI)) { content() }
   }
