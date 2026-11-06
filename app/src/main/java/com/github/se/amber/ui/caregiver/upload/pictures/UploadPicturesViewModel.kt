@@ -1,9 +1,7 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
+/* Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
+ * Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
  * Modified with assistance from GitHub Copilot.
  */
 package com.github.se.amber.ui.caregiver.upload.pictures

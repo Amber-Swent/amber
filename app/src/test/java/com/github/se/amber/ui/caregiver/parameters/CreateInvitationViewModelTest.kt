@@ -1,6 +1,6 @@
 // Written by Yuhan YANG, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
-// Modified with assistance from OpenAI Codex
+// Modified by MeiliV, with assistance from OpenAI Codex
 
 package com.github.se.amber.ui.caregiver.parameters
 
