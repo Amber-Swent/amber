@@ -32,6 +32,7 @@ import androidx.navigation.navigation
 import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.authentication.accountDeletion.DeleteAccountScreen
 import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
@@ -232,11 +233,18 @@ fun AmberApp(
               navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
             },
             onSignOutClick = { navigationActions.navigateTo(CaregiverScreen.SignOut) },
+            onDeleteAccountClick = { navigationActions.navigateTo(CaregiverScreen.DeleteAccount) },
         )
       }
       composable(route = CaregiverScreen.SignOut.route) {
         SignOutScreen(
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onBack = { navigationActions.goBack() },
+        )
+      }
+      composable(route = CaregiverScreen.DeleteAccount.route) {
+        DeleteAccountScreen(
+            credentialManager = credentialManager,
             onBack = { navigationActions.goBack() },
         )
       }

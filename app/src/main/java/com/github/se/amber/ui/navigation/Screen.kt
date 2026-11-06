@@ -129,6 +129,12 @@ sealed class CaregiverScreen(
           name = "Sign out",
       )
 
+  data object DeleteAccount :
+      CaregiverScreen(
+          route = "caregiver_delete_account",
+          name = "Delete account",
+      )
+
   data object CreateInvitationCode :
       CaregiverScreen(
           route = "create_invitation_code",
