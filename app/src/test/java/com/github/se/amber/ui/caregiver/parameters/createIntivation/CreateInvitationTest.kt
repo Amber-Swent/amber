@@ -31,8 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Tests what [CreateInvitationScreen]
- * draws and which actions a click performs.
+ * Tests what [CreateInvitationScreen] draws and which actions a click performs.
  *
  * The ViewModel is mocked, so these tests do not load a profile or call Firebase.
  */

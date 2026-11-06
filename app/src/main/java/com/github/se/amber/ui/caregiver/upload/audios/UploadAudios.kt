@@ -105,19 +105,17 @@ fun UploadAudioScreen(
 
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-          TopAppBar(
-              title = {
-                Column {
-                  TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
-                  DisplayCaregiverTitle(
-                      Modifier.testTag(UploadAudioScreenTestTags.TITLE),
-                      "Upload Audio",
-                  )
-                }
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                DisplayCaregiverTitle(
+                    Modifier.testTag(UploadAudioScreenTestTags.TITLE),
+                    "Upload Audio",
+                )
               }
-          )
-        }
+            }
+        )
       },
       content = { paddingValues ->
         Column(

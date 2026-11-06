@@ -36,8 +36,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests [CreateInvitationViewModel]
- * with in-memory repositories.
+ * Tests [CreateInvitationViewModel] with in-memory repositories.
  *
  * Covers circle selection, invitation loading, creation failures, a second click while a creation
  * is still running, a stale circle lookup, and an unexpected creation exception. No test talks to
