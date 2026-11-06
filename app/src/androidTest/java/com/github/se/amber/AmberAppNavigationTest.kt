@@ -1,4 +1,4 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.

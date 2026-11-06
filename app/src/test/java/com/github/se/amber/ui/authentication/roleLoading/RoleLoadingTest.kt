@@ -1,3 +1,5 @@
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 /* This file was written with the aid of AI.
  * Modified by Alaabrine, with assistance from Cursor.
  */

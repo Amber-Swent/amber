@@ -2,6 +2,8 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by Alaabrine, with assistance from Cursor.
  */
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
