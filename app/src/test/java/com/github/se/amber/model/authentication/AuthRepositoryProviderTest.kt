@@ -1,4 +1,4 @@
-// Written with the aid of AI
+// Written by MeiliV, with assistance from OpenAI Codex
 
 package com.github.se.amber.model.authentication
 
