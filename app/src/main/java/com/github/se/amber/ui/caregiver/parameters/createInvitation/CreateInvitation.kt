@@ -3,7 +3,7 @@
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex
 
-package com.github.se.amber.ui.caregiver.parameters
+package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -118,14 +119,21 @@ private fun CreateInvitationContent(
 ) {
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
-          TopNavigationMenu(
-              modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
-              action = TopNavigationAction.CANCEL,
-              onBackClick = checkout,
-          )
-          DisplayCaregiverTitle(Modifier.testTag(CreateInvitationTestTags.TITLE), "Parameters")
-        }
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(PADDING_SMALL)) {
+                TopNavigationMenu(
+                    modifier = Modifier.testTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU),
+                    action = TopNavigationAction.CANCEL,
+                    onBackClick = checkout,
+                )
+                DisplayCaregiverTitle(
+                    Modifier.testTag(CreateInvitationTestTags.TITLE),
+                    "Create Invitation",
+                )
+              }
+            }
+        )
       },
       bottomBar = {
         BottomNavigationMenu(

@@ -17,6 +17,8 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,7 +36,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests [CreateInvitationViewModel] with in-memory repositories.
+ * Tests [com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel]
+ * with in-memory repositories.
  *
  * Covers circle selection, invitation loading, creation failures, a second click while a creation
  * is still running, a stale circle lookup, and an unexpected creation exception. No test talks to

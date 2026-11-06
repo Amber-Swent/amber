@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,9 +17,11 @@ import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.DisplayButton
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -41,7 +43,6 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 
 /** Test tags of [CaregiverParameterScreen]. */
 object CaregiverParametersTestTags {
@@ -85,6 +86,7 @@ internal const val INVITATION_HINT_LABEL =
  * @param onEnterInvitationClick Callback invoked when the user enters an invitation.
  * @param onSignOutClick Callback invoked when the user opens the sign-out confirmation screen.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaregiverParameterScreen(
     viewModel: CaregiverParameterViewModel = viewModel(),
@@ -106,19 +108,13 @@ fun CaregiverParameterScreen(
 
   Scaffold(
       topBar = {
-        Text(
-            text = PARAMETERS_TITLE,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(
-                        top = CAREGIVER_PADDING_SMALL,
-                        bottom = CAREGIVER_PADDING_MEDIUM,
-                    )
-                    .testTag(CaregiverParametersTestTags.TITLE),
+        TopAppBar(
+            title = {
+              DisplayCaregiverTitle(
+                  modifier = Modifier.testTag(CaregiverParametersTestTags.TITLE),
+                  title = PARAMETERS_TITLE,
+              )
+            }
         )
       },
       bottomBar = {

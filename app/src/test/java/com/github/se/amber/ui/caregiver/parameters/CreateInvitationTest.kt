@@ -14,6 +14,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.data.invitation.InvitationStatus
 import com.github.se.amber.data.invitation.InvitationSummary
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationTestTags
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationUiState
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -26,7 +31,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Tests what [CreateInvitationScreen] draws and which actions a click performs.
+ * Tests what [com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen]
+ * draws and which actions a click performs.
  *
  * The ViewModel is mocked, so these tests do not load a profile or call Firebase.
  */
