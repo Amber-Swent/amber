@@ -1,5 +1,6 @@
 // Written by GitHub Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.storage
 
 import com.github.se.amber.model.circle.CareCircle

@@ -1,5 +1,5 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code and GitHub Copilot.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code and GitHub Copilot.
+
 package com.github.se.amber.model.circle
 
 import com.github.se.amber.model.location.Place

@@ -1,4 +1,5 @@
-/** Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code. */
+// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.theme
 
 import android.app.Activity

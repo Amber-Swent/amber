@@ -1,4 +1,5 @@
 // This file was written with the aid of AI
+
 package com.github.se.amber.model.authentication
 
 import androidx.test.core.app.ActivityScenario

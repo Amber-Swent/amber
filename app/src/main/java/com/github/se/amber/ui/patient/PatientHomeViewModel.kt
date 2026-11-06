@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.patient
 
 import android.util.Log

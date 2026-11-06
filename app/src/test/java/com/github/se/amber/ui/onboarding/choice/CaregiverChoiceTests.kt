@@ -1,5 +1,5 @@
-// this code was written by Alaabrine
-// with the aid of AI coding agent
+// Written by Alaabrine with the aid of AI coding agent
+
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.ui.test.assertIsDisplayed
