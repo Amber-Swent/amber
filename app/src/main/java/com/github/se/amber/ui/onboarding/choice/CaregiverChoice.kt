@@ -1,7 +1,7 @@
-/* Written by Alaabrine with the aid of AI coding agent.
- * Modified by LaMaier, with the assistance of Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- */
+// Written by Alaabrine with the aid of AI coding agent.
+// Modified by LaMaier, with the assistance of Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.foundation.background

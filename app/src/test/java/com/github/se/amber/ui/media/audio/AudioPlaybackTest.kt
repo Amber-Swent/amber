@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+
 package com.github.se.amber.ui.media.audio
 
 import androidx.compose.material.icons.Icons

@@ -1,6 +1,4 @@
-/* Written by Yuhan YANG, with assistance from
- * Cursor.
- */
+// Written by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.parameters
 

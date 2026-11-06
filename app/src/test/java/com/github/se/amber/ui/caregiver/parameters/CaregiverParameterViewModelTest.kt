@@ -1,8 +1,6 @@
-/* Written by Yuhan YANG, with assistance from
- * Cursor.
- * Modify by Lou-Anne Maier, with assistance from
- * Claude Code
- */
+// Written by Yuhan YANG, with assistance from Cursor.
+// Modify by Lou-Anne Maier, with assistance from Claude Code
+
 package com.github.se.amber.ui.caregiver.parameters
 
 import kotlinx.coroutines.Dispatchers

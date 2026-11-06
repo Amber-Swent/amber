@@ -1,7 +1,6 @@
-/* This file was written with the aid of AI.
- * Modified by nehachak1, with assistance from
- * Claude Code
- */
+// Written with the aid of AI.
+// Modified by nehachak1, with assistance from Claude Code
+
 package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context

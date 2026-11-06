@@ -1,6 +1,6 @@
-/* Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.material.icons.Icons

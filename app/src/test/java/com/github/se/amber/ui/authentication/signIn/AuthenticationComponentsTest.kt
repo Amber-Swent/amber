@@ -1,6 +1,5 @@
-/* Written by nehachak1, with assistance from
- * Claude Code
- */
+// Written by nehachak1, with assistance fromClaude Code
+
 package com.github.se.amber.ui.authentication
 
 import androidx.compose.foundation.text.KeyboardOptions

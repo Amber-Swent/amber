@@ -1,8 +1,7 @@
-/**
- * Written by Yuhan YANG, with assistance from Cursor. Modified by Viktor Jurczenko, with assistance
- * from Claude (Anthropic) via Claude Code. Modified by Lou-Anne Maier, with assistance from Claude
- * (Anthropic) via Claude Code.
- */
+// Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.foundation.border

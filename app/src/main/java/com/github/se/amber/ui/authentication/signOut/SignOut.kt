@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.authentication.signOut
 
 import android.widget.Toast

@@ -1,9 +1,9 @@
-// Written by Alaabrine, with assistance from
-// Cursor (Composer).
+// Written by Alaabrine, with assistance from Cursor (Composer).
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Neha Chakraborty and Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload

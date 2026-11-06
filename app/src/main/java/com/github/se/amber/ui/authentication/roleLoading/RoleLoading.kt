@@ -1,6 +1,6 @@
-/* This file was written with the aid of AI.
- * Modified by Alaabrine, with assistance from Cursor.
- */
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.authentication.roleLoading
 
 import android.widget.Toast

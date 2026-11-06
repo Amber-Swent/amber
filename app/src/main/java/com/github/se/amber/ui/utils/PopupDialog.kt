@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.utils
 
 import androidx.compose.foundation.layout.Arrangement
