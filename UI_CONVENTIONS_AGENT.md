@@ -72,9 +72,31 @@ The app is in English and French. Android picks `res/values-fr/strings.xml` when
 ViewModels have no `Context`, so they MUST NOT hold translated text. They expose what to show and the composable resolves it:
 - A fixed message: a `@StringRes Int`, e.g. `submitErrorRes = R.string.createProfileErrorExists`. The composable calls `stringResource(it)`.
 - Text that depends on data only the ViewModel has: a `UiText` (`ui/utils/UiText.kt`).
-  - `UiText.Resource(id, args)` is app text with its placeholder arguments. Example: "Unknown member 3" in `UploadPicturesViewModel` becomes `UiText.Resource(R.string.unknownMember, listOf(number))` with `Unknown member %1$d` (French: `Membre inconnu %1$d`).
-  - `UiText.Dynamic(value)` is user data shown as is. Example: the same field holds a member's name when it is known, so it is `UiText.Dynamic(name)` and the field type is `UiText`.
+  - `UiText.Resource(id, args)` is **app text**: a key from `strings.xml`, plus the values for its placeholders, if any. It is translated.
+  - `UiText.Dynamic(value)` is **user data** shown exactly as typed, such as a name or a nickname. It is never translated.
   - ⚠️ `Dynamic` is ONLY for user data that fills the whole text. Data inside a sentence is an argument of `Resource`. A string literal or a constant in `Dynamic` is hardcoded English.
+
+  Example: each picture shows who uploaded it. That is the member's name when it is known, otherwise "Unknown member 3".
+  ```xml
+  <!-- values/strings.xml -->
+  <string name="unknownMember">Unknown member %1$d</string>
+  <!-- values-fr/strings.xml -->
+  <string name="unknownMember">Membre inconnu %1$d</string>
+  ```
+  ```kotlin
+  // ViewModel: the field is a UiText, because it holds either user data or app text.
+  val uploader: UiText =
+      if (name != null) UiText.Dynamic(name) // "Mamie Jo", shown as is
+      else UiText.Resource(R.string.unknownMember, listOf(number)) // "Unknown member 3" / "Membre inconnu 3"
+
+  // Composable
+  Text(uiState.uploader.asString())
+  ```
+  | Text to show                              | Correct                                               | Wrong                              |
+  |-------------------------------------------|-------------------------------------------------------|------------------------------------|
+  | A name alone: "Mamie Jo"                  | `UiText.Dynamic(name)`                                | -                                  |
+  | Fixed app text: "Anonymous"               | `UiText.Resource(R.string.anonymous)`                 | `UiText.Dynamic("Anonymous")`      |
+  | A name in a sentence: "Welcome, Mamie Jo" | `UiText.Resource(R.string.welcomeName, listOf(name))` | `UiText.Dynamic("Welcome, $name")` |
 - In composition, call `text.asString()`. Outside it, for example a `Toast` inside `LaunchedEffect`, call `text.asString(context)` or `context.getString(res)`.
 - Errors: data-layer exceptions keep their English messages, which are for logs. The ViewModel maps the error type to a resource and MUST NOT show `e.message` to the user.
 
