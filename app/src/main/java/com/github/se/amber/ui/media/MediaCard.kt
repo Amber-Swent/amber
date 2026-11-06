@@ -119,7 +119,7 @@ fun MediaCard(
       Column(
           horizontalAlignment = Alignment.End,
           modifier =
-              Modifier.weight(WEIGHT_TWO).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+              Modifier.weight(WEIGHT_ONE).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
       ) {
         Text(
             text = memoryDateIntoString(media.date),
