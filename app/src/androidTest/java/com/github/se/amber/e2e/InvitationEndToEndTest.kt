@@ -27,9 +27,9 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
-import com.github.se.amber.ui.caregiver.parameters.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
-import com.github.se.amber.ui.caregiver.parameters.CreateInvitationTestTags
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CREATE_CODE_PLACEHOLDER
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags

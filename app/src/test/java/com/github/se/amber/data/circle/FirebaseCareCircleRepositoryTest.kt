@@ -1,5 +1,5 @@
 // Written by Neha Chakraborty and Claude Code
-// Modified with assistance from OpenAI Codex
+// Modified by MeiliV, with assistance from OpenAI Codex
 
 package com.github.se.amber.data.circle
 

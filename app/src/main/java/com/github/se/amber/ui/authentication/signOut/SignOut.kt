@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -17,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,9 +32,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 
 /** Test tags of [SignOutScreen]. */
@@ -77,22 +79,20 @@ fun SignOutScreen(
 
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-          TopNavigationMenu(
-              action = TopNavigationAction.CANCEL,
-              onBackClick = onBack,
-          )
-          Text(
-              text = "Sign out",
-              color = MaterialTheme.colorScheme.primary,
-              style = MaterialTheme.typography.headlineSmall,
-              modifier =
-                  Modifier.fillMaxWidth()
-                      .padding(top = CAREGIVER_PADDING_SMALL, bottom = CAREGIVER_PADDING_MEDIUM)
-                      .testTag(SignOutTestTags.TITLE),
-              textAlign = TextAlign.Center,
-          )
-        }
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+                TopNavigationMenu(
+                    action = TopNavigationAction.CANCEL,
+                    onBackClick = onBack,
+                )
+                DisplayPatientTitle(
+                    title = "Sign out",
+                    testTag = SignOutTestTags.TITLE,
+                )
+              }
+            }
+        )
       },
       content = { paddingValues ->
         BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues)) {

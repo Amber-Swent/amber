@@ -1,4 +1,4 @@
-// Written with the aid of AI.
+// Written by MeiliV, with assistance from OpenAI Codex
 // Modified by nehachak1, with assistance from Claude Code
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 

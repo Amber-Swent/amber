@@ -1,7 +1,7 @@
 // Written by Yuhan YANG, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
 
-package com.github.se.amber.ui.caregiver.parameters
+package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -14,6 +14,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.data.invitation.InvitationStatus
 import com.github.se.amber.data.invitation.InvitationSummary
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationTestTags
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationUiState
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify

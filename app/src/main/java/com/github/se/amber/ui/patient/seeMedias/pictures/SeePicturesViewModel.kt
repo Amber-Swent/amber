@@ -7,8 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
@@ -47,7 +47,7 @@ class SeePicturesViewModel(
     private val mediaRepository: MediaRepository = MediaRepositoryProvider.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
-    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
 ) : ViewModel() {
 
   // See Pictures UI state, start on loading by default.
