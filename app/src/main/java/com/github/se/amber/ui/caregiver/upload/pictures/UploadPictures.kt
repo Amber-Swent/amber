@@ -27,6 +27,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -115,13 +116,17 @@ fun UploadPictureScreen(
 
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-          TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
-          DisplayCaregiverTitle(
-              Modifier.testTag(UploadPictureScreenTestTags.TITLE),
-              "Upload Picture",
-          )
-        }
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                DisplayCaregiverTitle(
+                    Modifier.testTag(UploadPictureScreenTestTags.TITLE),
+                    "Upload Picture",
+                )
+              }
+            }
+        )
       },
       content = { paddingValues ->
         Column(

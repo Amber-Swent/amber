@@ -38,7 +38,7 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signOut.SignOutScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
-import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal

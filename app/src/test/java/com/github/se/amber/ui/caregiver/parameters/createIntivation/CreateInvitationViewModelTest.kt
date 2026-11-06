@@ -2,7 +2,7 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex
 
-package com.github.se.amber.ui.caregiver.parameters
+package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -17,6 +17,8 @@ import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
