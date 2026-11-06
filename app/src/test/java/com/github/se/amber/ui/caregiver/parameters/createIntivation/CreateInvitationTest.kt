@@ -1,7 +1,7 @@
 // Written by Yuhan YANG, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
 
-package com.github.se.amber.ui.caregiver.parameters
+package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -31,7 +31,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * Tests what [com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen]
+ * Tests what [CreateInvitationScreen]
  * draws and which actions a click performs.
  *
  * The ViewModel is mocked, so these tests do not load a profile or call Firebase.

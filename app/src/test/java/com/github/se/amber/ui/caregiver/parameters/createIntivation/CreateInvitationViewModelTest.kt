@@ -2,7 +2,7 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex
 
-package com.github.se.amber.ui.caregiver.parameters
+package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -36,7 +36,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests [com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel]
+ * Tests [CreateInvitationViewModel]
  * with in-memory repositories.
  *
  * Covers circle selection, invitation loading, creation failures, a second click while a creation
