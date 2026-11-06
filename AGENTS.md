@@ -8,6 +8,7 @@
 ## Changes
 - Do not edit generated files or anything under the repository-root `/generated`; update their sources instead.
 - Use camelCase for variables, properties, and parameters; use PascalCase for Kotlin types.
+- User-visible text goes in `strings.xml` with a French version in `values-fr`, never hardcoded in Kotlin; follow "Text and translation" in `UI_CONVENTIONS_AGENT.md`.
 - Preserve existing attribution and add the required contributor acknowledgment to changed source files using the project handout's format.
 - Keep PRs focused. Aim for commits under 500 lines, UI changes around 500 LOC or less per PR, and logic changes around 200-500 LOC; these are targets, not quotas.
 
