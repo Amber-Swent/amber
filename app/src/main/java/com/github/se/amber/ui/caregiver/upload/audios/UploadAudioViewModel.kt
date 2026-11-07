@@ -110,7 +110,7 @@ class UploadAudioViewModel(
   private var recordingJob: Job? = null
 
   /**
-   * The task that adds each microphone level to the waveform while recording. Cancelled as soon as
+   * The task that adds each microphone level to the waveform while recording. Canceled as soon as
    * the recording ends, so the waveform no longer grows.
    */
   private var amplitudeJob: Job? = null

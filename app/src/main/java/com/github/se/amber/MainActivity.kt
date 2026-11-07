@@ -40,6 +40,7 @@ import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
+import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
 import com.github.se.amber.ui.navigation.AuthScreen
@@ -199,8 +200,9 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Upload.route) {
         UploadScreen(
-            // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
+            // onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
+            onUploadAudioClick = { navigationActions.navigateTo(CaregiverScreen.UploadAudio) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
@@ -215,9 +217,11 @@ fun AmberApp(
             goBack = { navigationActions.goBack() },
         )
       }
-      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadAudio.route) {
-        // TODO in M2/M3
+        UploadAudioScreen(
+            onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            goBack = { navigationActions.goBack() },
+        )
       }
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
