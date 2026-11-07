@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +30,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -49,11 +49,13 @@ object CreateCareCircleTestTags {
  * Displays the first care circle form and connects it to [viewModel].
  *
  * A blank name appears below the field. Repository failures are shown as a toast, while successful
- * creation calls [onCreated] once. The caller decides where to navigate afterward.
+ * creation calls [onCreated] once. The top Cancel calls [onBack]. Cancel does nothing while a
+ * create is in progress or after the circle has been created.
  *
  * @param modifier Modifier applied to the root care circle layout.
  * @param context Used to display repository failures as a toast.
  * @param onCreated Called after the repository creates the circle.
+ * @param onBack Called when the user taps Cancel, unless a create is in progress or finished.
  * @param viewModel ViewModel holding the form state and handling creation.
  */
 @Composable
@@ -61,6 +63,7 @@ fun CreateCareCircleScreen(
     modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
     onCreated: () -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: CreateCareCircleViewModel = viewModel(),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -81,16 +84,23 @@ fun CreateCareCircleScreen(
   // launch
   LaunchedEffect(viewModel) { viewModel.successEvents.collect { currentOnCreated() } }
 
-  Surface(
+  val canLeave = !uiState.isLoading && !uiState.isCreated
+
+  Scaffold(
       modifier = modifier.fillMaxSize(),
-      color = MaterialTheme.colorScheme.background,
+      containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
-  ) {
+      topBar = {
+        TopNavigationMenu(
+            action = TopNavigationAction.CANCEL,
+            onBackClick = { if (canLeave) onBack() },
+        )
+      },
+  ) { innerPadding ->
     Column(
         modifier =
             Modifier.fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = CAREGIVER_PADDING_BIG, vertical = CAREGIVER_PADDING_BIG),
         horizontalAlignment = Alignment.CenterHorizontally,

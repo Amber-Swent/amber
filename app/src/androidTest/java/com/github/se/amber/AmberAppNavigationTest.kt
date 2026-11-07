@@ -180,6 +180,18 @@ class AmberAppNavigationTest {
   }
 
   @Test
+  fun createCareCircle_cancel_returnsToCaregiverChoice() {
+    launch(NavGraphs.ONBOARDING)
+    goTo(OnboardingScreen.CaregiverChoice.route)
+    click(Tags.CHOICE_CREATE_CIRCLE_BUTTON)
+    assertRoute(OnboardingScreen.CreateCareCircle.route)
+
+    click(TopNavigationMenuTestTags.BACK_BUTTON)
+
+    assertRoute(OnboardingScreen.CaregiverChoice.route)
+  }
+
+  @Test
   fun caregiverChoice_joinCircle_navigatesToEnterInvitation() {
     launch(NavGraphs.ONBOARDING)
     goTo(OnboardingScreen.CaregiverChoice.route)

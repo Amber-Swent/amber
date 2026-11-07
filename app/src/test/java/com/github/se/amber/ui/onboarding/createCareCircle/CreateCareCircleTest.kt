@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -39,15 +40,21 @@ class CreateCareCircleScreenTest {
 
   private lateinit var repository: FakeOnboardingRepository
   private lateinit var viewModel: CreateCareCircleViewModel
+  private var backCount = 0
 
   @Before
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     repository = FakeOnboardingRepository()
     viewModel = CreateCareCircleViewModel(repository)
+    backCount = 0
+    showScreen()
+  }
+
+  private fun showScreen(onBack: () -> Unit = { backCount++ }) {
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleScreen(viewModel = viewModel)
+        CreateCareCircleScreen(viewModel = viewModel, onBack = onBack)
       }
     }
   }
@@ -108,6 +115,40 @@ class CreateCareCircleScreenTest {
     viewModel.onNameChange("Family")
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.onNodeWithText("Creation...").assertExists()
+  }
+
+  @Test
+  fun cancelWhileTheFormIsIdle_callsOnBackOnceAndDoesNotCreate() {
+    composeTestRule.onNodeWithText("Cancel").assertExists()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(1, backCount)
+    assertEquals(emptyList<String>(), repository.submittedNames)
+  }
+
+  @Test
+  fun cancelWhileCreationIsInProgress_doesNotCallOnBack() {
+    repository.gate = CompletableDeferred()
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(0, backCount)
+    assertEquals(listOf("Family"), repository.submittedNames)
+  }
+
+  @Test
+  fun cancelAfterTheCircleIsCreated_doesNotCallOnBack() {
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(0, backCount)
+    assertEquals(listOf("Family"), repository.submittedNames)
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 
   @Test

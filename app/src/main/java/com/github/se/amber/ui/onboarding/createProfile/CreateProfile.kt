@@ -3,6 +3,7 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 package com.github.se.amber.ui.onboarding.createProfile
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,14 +17,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.signOut.SignOutButton
+import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
@@ -48,19 +53,36 @@ object CreateProfileTestTags {
  * persists the profile when the user taps one of those role buttons. Validation and the repository
  * write live in [CreateProfileViewModel]; this composable only renders [viewModel] state and
  * forwards user actions. [onProfileCreated] should navigate to the next onboarding step.
+ * [SignOutButton] ends the session without saving a profile. [onSignedOut] runs after that
+ * succeeds.
  *
  * @param modifier Modifier applied to the root profile layout.
  * @param onProfileCreated called with the saved [Role] after a successful create.
+ * @param onSignedOut called after [SignOutButton] ends the session.
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
  *   composition; tests can pass a custom instance with a fake profile repository.
+ * @param signOutViewModel shared sign-out action used by [SignOutButton].
  */
 @Composable
 fun CreateProfileScreen(
     modifier: Modifier = Modifier,
     onProfileCreated: (Role) -> Unit = {},
+    onSignedOut: () -> Unit = {},
     viewModel: CreateProfileViewModel = viewModel(),
+    signOutViewModel: SignOutViewModel = viewModel(),
 ) {
+  val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val signOutState by signOutViewModel.uiState.collectAsStateWithLifecycle()
+
+  LaunchedEffect(signOutState.errorMsg) {
+    signOutState.errorMsg?.let { message ->
+      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+      signOutViewModel.clearErrorMsg()
+    }
+  }
+
+  LaunchedEffect(signOutState.signedOut) { if (signOutState.signedOut) onSignedOut() }
 
   Surface(
       modifier = modifier.fillMaxSize(),
@@ -130,6 +152,8 @@ fun CreateProfileScreen(
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
+
+      SignOutButton(viewModel = signOutViewModel)
 
       uiState.submitError?.let { errorMessage ->
         Text(
