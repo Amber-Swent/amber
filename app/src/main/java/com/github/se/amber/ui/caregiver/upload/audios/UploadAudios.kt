@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -24,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -39,8 +41,10 @@ import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialog
+import com.github.se.amber.ui.caregiver.upload.media.DisplayLocation
 import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolved
+import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -79,8 +83,8 @@ fun UploadAudioScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
-  //    val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
-  val errorMessage = uiState.errorMsg
+  val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
+  val errorMessage = uiState.common.errorMsg
   val context = LocalContext.current
 
   LaunchedEffect(errorMessage) {
@@ -90,18 +94,15 @@ fun UploadAudioScreen(
     }
   }
 
-  // FIXME : will be unExtract once the ViewModel is implemented.
-  //  for the moment, I let it to avoid forgetting
-
-  //      // The upload is over: leave the screen only once it really succeeded
-  //      val currentOnUpload by rememberUpdatedState(onUpload)
-  //      LaunchedEffect(Unit) {
-  //          viewModel.events.collect { event ->
-  //              when (event) {
-  //                  UploadAudioEvent.Uploaded -> currentOnUpload()
-  //              }
-  //          }
-  //      }
+  // The upload is over: leave the screen only once it really succeeded
+  val currentOnUpload by rememberUpdatedState(onUpload)
+  LaunchedEffect(Unit) {
+    viewModel.events.collect { event ->
+      when (event) {
+        MediaEvent.Uploaded -> currentOnUpload()
+      }
+    }
+  }
 
   Scaffold(
       topBar = {
@@ -136,7 +137,7 @@ fun UploadAudioScreen(
                     isRecording = true,
                     waveform = uiState.waveform,
                     onDelete = viewModel::deleteRecording,
-                    onStop = viewModel::stopRecording, // must update uiState.audioFile
+                    onStop = viewModel::stopRecording,
                 )
             AudioRecordingState.RECORDED ->
                 DisplayAudioRecorder(
@@ -157,7 +158,7 @@ fun UploadAudioScreen(
           // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
-              value = uiState.description,
+              value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
               label = "Description",
               placeholder = "Enter a description of the Audio",
@@ -168,28 +169,23 @@ fun UploadAudioScreen(
 
           DisplayWhoIsInvolved(
               options = options,
-              shownIds = uiState.shownIds,
+              shownIds = uiState.common.shownIds,
               toggleShownId = viewModel::toggleShownId,
               onAddPerson = viewModel::onAddPerson,
           )
 
-          // FIXME: will be unExtract once the global Location logic is implemented.
-          //  This will come in another PR.
-          //  I don't want to create a new UploadAudioLocation file that duplicate the
-          //  UploadPictureLocation.
-
-          //          DisplayLocation(
-          //              savedPlaceNamesById = placeOptions,
-          //              state = uiState.location,
-          //              onSavedPlaceClick = viewModel::selectPlace,
-          //              onQueryChange = viewModel::setPlaceQuery,
-          //              onSuggestionClick = viewModel::selectPlace,
-          //              onRetrySearch = viewModel::retryPlaceSearch,
-          //          )
+          DisplayLocation(
+              savedPlaceNamesById = placeOptions,
+              state = uiState.common.location,
+              onSavedPlaceClick = viewModel::selectPlace,
+              onQueryChange = viewModel::setPlaceQuery,
+              onSuggestionClick = viewModel::selectPlace,
+              onRetrySearch = viewModel::retryPlaceSearch,
+          )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
-              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
+              initialDate = uiState.common.date ?: MemoryDate(LocalDate.now().year),
               onDateSelected = viewModel::setDate,
           )
         }
@@ -197,24 +193,24 @@ fun UploadAudioScreen(
       // Pinned below the form so it stays reachable however long the form grows
       bottomBar = {
         DisplayCaregiverButton(
-            onClick = { viewModel.uploadAudio() },
+            onClick = { viewModel.uploadMedia() },
             modifier =
                 Modifier.navigationBarsPadding()
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.isUploading) "Uploading…" else "Upload Audio",
+            text = if (uiState.common.isUploading) "Uploading…" else "Upload Audio",
             widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
         )
       },
   )
 
   AddPersonDialog(
-      isOpen = uiState.isAddPersonOpen,
-      isAddingPerson = uiState.isAddingPerson,
-      firstName = uiState.personFirstName,
-      lastName = uiState.personLastName,
-      nickname = uiState.personNickname,
+      isOpen = uiState.common.isAddPersonOpen,
+      isAddingPerson = uiState.common.isAddingPerson,
+      firstName = uiState.common.personFirstName,
+      lastName = uiState.common.personLastName,
+      nickname = uiState.common.personNickname,
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,
