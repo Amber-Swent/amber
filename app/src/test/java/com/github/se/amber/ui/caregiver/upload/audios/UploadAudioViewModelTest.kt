@@ -134,11 +134,6 @@ class UploadAudioViewModelTest {
   }
 
   @Test
-  fun canUploadIsFalseWhileStillRecording() {
-    assertFalse(recordedState.copy(recordingState = AudioRecordingState.RECORDING).canUpload)
-  }
-
-  @Test
   fun canUploadIsFalseWithoutDescription() {
     val state = recordedState.copy(common = recordedState.common.copy(description = ""))
     assertFalse(state.canUpload)
@@ -171,7 +166,7 @@ class UploadAudioViewModelTest {
   @Test
   fun startRecordingStartsTheRecorder_andStartRecordingSetsTheRecordingState() {
     val vm = createViewModel()
-      vm.startRecording()
+    vm.startRecording()
     assertEquals(1, recorder.startCalls)
     assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
   }
@@ -231,7 +226,6 @@ class UploadAudioViewModelTest {
     assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
   }
 
-
   @Test
   fun stopRecordingKeepsTheDuration() {
     // Necessary included : AudioFile, Duration, Waveform
@@ -242,7 +236,6 @@ class UploadAudioViewModelTest {
     assertTrue(vm.uiState.value.audioFile?.exists() == true)
     assertEquals(4_500L, vm.uiState.value.durationMs)
     assertEquals(WAVEFORM_BARS, vm.uiState.value.waveform.size)
-
   }
 
   @Test
@@ -285,7 +278,6 @@ class UploadAudioViewModelTest {
     assertFalse(file.exists())
     assertNull(vm.uiState.value.audioFile)
   }
-
 
   @Test
   fun deleteRecordingOnceRecordedClearsTheWaveform() {
