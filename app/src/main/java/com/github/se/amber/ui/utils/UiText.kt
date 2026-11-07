@@ -13,18 +13,6 @@ import androidx.annotation.StringRes
  * `UI_CONVENTIONS_AGENT.md`.
  */
 sealed interface UiText {
-
-  /**
-   * Resolves the text in the current app language.
-   * - In a composable: `text.asString(LocalResources.current)`, which updates when the language
-   *   changes.
-   * - Outside composition, e.g. a `Toast` in `LaunchedEffect`: `text.asString(context.resources)`.
-   *
-   * @param resources the app resources, which carry the current language.
-   * @return the text to show.
-   */
-  fun asString(resources: Resources): String
-
   /**
    * App text: a string resource, with its arguments if it has placeholders (`%1$s` for a string,
    * `%1$d` for an integer). It is translated.
@@ -36,10 +24,7 @@ sealed interface UiText {
    * @property id the string resource, defined in `values/strings.xml` and `values-fr/strings.xml`.
    * @property args the values for the placeholders, in order.
    */
-  data class Resource(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText {
-    override fun asString(resources: Resources): String =
-        resources.getString(id, *args.toTypedArray())
-  }
+  data class Resource(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
 
   /**
    * User data shown as is (a name, a nickname) that fills the whole text.
@@ -53,7 +38,20 @@ sealed interface UiText {
    *
    * @property value the user data to show.
    */
-  data class Dynamic(val value: String) : UiText {
-    override fun asString(resources: Resources): String = value
-  }
+  data class Dynamic(val value: String) : UiText
 }
+
+/**
+ * Resolves the text in the current app language.
+ * - In a composable: `text.asString(LocalResources.current)`, which updates when the language
+ *   changes.
+ * - Outside composition, e.g. a `Toast` in `LaunchedEffect`: `text.asString(context.resources)`.
+ *
+ * @param resources the app resources, which carry the current language.
+ * @return the text to show.
+ */
+fun UiText.asString(resources: Resources): String =
+    when (this) {
+      is UiText.Resource -> resources.getString(id, *args.toTypedArray())
+      is UiText.Dynamic -> value
+    }
