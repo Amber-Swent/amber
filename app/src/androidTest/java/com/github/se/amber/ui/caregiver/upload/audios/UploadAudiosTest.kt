@@ -22,6 +22,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -52,6 +53,8 @@ class UploadAudiosTest {
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.involvedOptions } returns MutableStateFlow(emptyMap())
+    every { viewModel.placeOptions } returns MutableStateFlow(emptyMap())
+    every { viewModel.events } returns emptyFlow()
   }
 
   private fun launchScreen(state: UploadAudioUIState = UploadAudioUIState()) {

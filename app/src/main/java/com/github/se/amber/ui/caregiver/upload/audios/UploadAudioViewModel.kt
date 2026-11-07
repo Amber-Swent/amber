@@ -88,7 +88,9 @@ class UploadAudioViewModel(
 ) :
     MediaViewModel<UploadAudioUIState>(
         initialState =
-            UploadAudioUIState(common = CommonMediaUIState(date = MemoryDate(LocalDate.now().year))),
+            UploadAudioUIState(
+                common = CommonMediaUIState(date = MemoryDate(LocalDate.now().year))
+            ),
         mediaRepo = mediaRepo,
         authRepo = authRepo,
         profileRepo = profileRepo,
@@ -176,33 +178,34 @@ class UploadAudioViewModel(
   fun startRecording() {
     if (_uiState.value.recordingState != AudioRecordingState.IDLE) return
     recordingJob?.cancel()
-    recordingJob =
-        viewModelScope.launch {
-          try {
-            recorder.start()
-          } catch (e: CancellationException) {
-            throw e
-          } catch (e: SecurityException) {
-            setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess + (e.message ?: "") )
-            return@launch
-          } catch (e: Exception) {
-            setErrorMsg(
-                UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.mess + (e.message ?: "")
-            )
-            return@launch
-          }
-          _uiState.update {
-            it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
-          }
-          amplitudeJob =
-              recorder.amplitude
-                  .onEach { level -> _uiState.update { it.copy(waveform = it.waveform + level) } }
-                  .launchIn(this)
-          // the recorder stops by itself at its limits: keep what was recorded
-          recorder.isRecording.first { !it }
-          amplitudeJob?.cancel()
-          saveRecording()
-        }
+    recordingJob = viewModelScope.launch {
+      try {
+        recorder.start()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: SecurityException) {
+        setErrorMsg(
+            UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess + (e.message ?: "")
+        )
+        return@launch
+      } catch (e: Exception) {
+        setErrorMsg(
+            UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.mess + (e.message ?: "")
+        )
+        return@launch
+      }
+      _uiState.update {
+        it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
+      }
+      amplitudeJob =
+          recorder.amplitude
+              .onEach { level -> _uiState.update { it.copy(waveform = it.waveform + level) } }
+              .launchIn(this)
+      // the recorder stops by itself at its limits: keep what was recorded
+      recorder.isRecording.first { !it }
+      amplitudeJob?.cancel()
+      saveRecording()
+    }
   }
 
   /** Stops the recording and keeps it: [UploadAudioUIState.waveform] then holds the full audio. */

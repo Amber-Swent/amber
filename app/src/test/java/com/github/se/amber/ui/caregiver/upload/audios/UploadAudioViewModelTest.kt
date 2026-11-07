@@ -1,123 +1,373 @@
-// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.media.audio.FakeAudioRecorder
+import com.github.se.amber.data.media.audio.WAVEFORM_BARS
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.AudioRecordingState
+import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
+import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.unmockkAll
+import java.io.File
+import java.io.IOException
+import java.time.LocalDate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /**
- * Unit tests for [UploadAudioViewModel]. Every repository is a mock: nothing touches the network.
- *
- * Situation: the audio upload screen can't have its own logic yet. Its ViewModel will be built on a
- * global upload ViewModel, which is not defined yet, so every action of [UploadAudioViewModel] is a
- * `TODO("...")` and throws [NotImplementedError]. The tests below therefore check two things: the
- * initial state, which already exists, and that each action throws. They are drafts that keep the
- * coverage up in the meantime: when an action is implemented, replace its "throws" test with tests
- * of its real behavior.
+ * Unit tests for what is specific to [UploadAudioViewModel]: the recording, and the item made from
+ * it. What all upload ViewModels share is tested in
+ * [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelTest]. Repositories are mocked and
+ * the microphone is a [FakeAudioRecorder]: nothing touches the network.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class UploadAudioViewModelTest {
-  private lateinit var viewModel: UploadAudioViewModel
+  @get:Rule val tempFolder = TemporaryFolder()
+
+  private val testDispatcher = UnconfinedTestDispatcher()
+  private val circle = CareCircle(id = "circle1")
+
+  private lateinit var mediaRepo: MediaRepository
+  private lateinit var authRepo: AuthRepository
+  private lateinit var profileRepo: ProfileRepository
+  private lateinit var circleRepo: CareCircleRepository
+  private lateinit var placeRepo: PlaceSearchRepository
+  private lateinit var recorder: FakeAudioRecorder
 
   @Before
   fun setUp() {
-    viewModel =
-        UploadAudioViewModel(
-            mediaRepo = mockk(relaxed = true),
-            authRepo = mockk(relaxed = true),
-            profileRepo = mockk(relaxed = true),
-            circleRepo = mockk(relaxed = true),
-            placeRepo = mockk(relaxed = true),
-        )
+    Dispatchers.setMain(testDispatcher)
+    mediaRepo = mockk(relaxed = true)
+    authRepo = mockk()
+    profileRepo = mockk()
+    circleRepo = mockk()
+    placeRepo = mockk()
+    recorder = FakeAudioRecorder(tempFolder.newFolder())
+
+    every { authRepo.currentUser } returns mockk { every { uid } returns "user1" }
+    coEvery { profileRepo.getProfile(any()) } returns
+        Result.success(mockk<UserProfile> { every { circleIds } returns listOf("circle1") })
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
+    coEvery { mediaRepo.newMediaId(any()) } returns "media1"
+    coEvery { placeRepo.search(any()) } returns Result.success(emptyList())
+  }
+
+  @After
+  fun tearDown() {
+    Dispatchers.resetMain()
+    unmockkAll()
+  }
+
+  // ---------- helpers ----------
+
+  private fun createViewModel() =
+      UploadAudioViewModel(
+          mediaRepo = mediaRepo,
+          authRepo = authRepo,
+          profileRepo = profileRepo,
+          circleRepo = circleRepo,
+          placeRepo = placeRepo,
+          recorder = recorder,
+      )
+
+  private fun recordedViewModel(): UploadAudioViewModel {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    vm.setDescription("Grandma's story")
+    return vm
+  }
+
+  private fun uploadedItem(): MediaItem.Audio {
+    val slot = slot<MediaItem>()
+    coVerify { mediaRepo.addMedia(any(), capture(slot), any()) }
+    return slot.captured as MediaItem.Audio
+  }
+
+  private val recordedState =
+      UploadAudioUIState(
+          common = CommonMediaUIState(description = "Grandma's story", date = MemoryDate(1974)),
+          audioFile = File("audio.m4a"),
+          recordingState = AudioRecordingState.RECORDED,
+      )
+
+  // ---------- UploadAudioUIState ----------
+
+  @Test
+  fun canUploadIsFalseOnTheInitialState() {
+    assertFalse(UploadAudioUIState().canUpload)
+  }
+
+  @Test
+  fun canUploadIsTrueOnceRecordedAndCommonFieldsAreFilled() {
+    assertTrue(recordedState.canUpload)
+  }
+
+  @Test
+  fun canUploadIsFalseWithoutAudioFile() {
+    assertFalse(recordedState.copy(audioFile = null).canUpload)
+  }
+
+  @Test
+  fun canUploadIsFalseWhileStillRecording() {
+    assertFalse(recordedState.copy(recordingState = AudioRecordingState.RECORDING).canUpload)
+  }
+
+  @Test
+  fun canUploadIsFalseWithoutDescription() {
+    val state = recordedState.copy(common = recordedState.common.copy(description = ""))
+    assertFalse(state.canUpload)
+  }
+
+  @Test
+  fun withCommonReplacesTheCommonFields_andKeepsTheAudioFile() {
+    val common = CommonMediaUIState(description = "New")
+    assertEquals(common, recordedState.withCommon(common).common)
+    assertEquals(recordedState.audioFile, recordedState.withCommon(common).audioFile)
   }
 
   // ---------- initial state ----------
 
   @Test
-  fun initialState_followUploadCondition() {
-    assertEquals(AudioRecordingState.IDLE, viewModel.uiState.value.recordingState)
-    assertFalse(viewModel.uiState.value.canUpload)
-  }
-
-  // ---------- actions: TODO(), so they throw until implemented ----------
-
-  @Test
-  fun clearErrorMsg_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.clearErrorMsg() }
+  fun initialRecordingStateIsIdle() {
+    assertEquals(AudioRecordingState.IDLE, createViewModel().uiState.value.recordingState)
   }
 
   @Test
-  fun setErrorMsg_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.setErrorMsg("Boom") }
+  fun initialDateIsTheCurrentYear() {
+    assertEquals(
+        MemoryDate(LocalDate.now().year),
+        createViewModel().uiState.value.common.date,
+    )
+  }
+
+  // ---------- startRecording ----------
+
+  @Test
+  fun startRecordingStartsTheRecorder_andStartRecordingSetsTheRecordingState() {
+    val vm = createViewModel()
+      vm.startRecording()
+    assertEquals(1, recorder.startCalls)
+    assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
   }
 
   @Test
-  fun setDescription_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.setDescription("Grandma's story") }
+  fun startRecordingTwiceStartsTheRecorderOnce() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.startRecording()
+    assertEquals(1, recorder.startCalls)
   }
 
   @Test
-  fun setDate_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.setDate(MemoryDate(1974)) }
+  fun waveformGrowsWithTheMicrophoneLevel() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.amplitude.value = 0.7f
+    assertEquals(listOf(0.7f), vm.uiState.value.waveform.filter { it > 0f })
   }
 
   @Test
-  fun toggleShownId_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.toggleShownId("person1") }
+  fun startRecordingWithoutPermissionAsksToAllowTheMicrophone() {
+    recorder.startError = SecurityException()
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess,
+        vm.uiState.value.common.errorMsg,
+    )
   }
 
   @Test
-  fun onAddPerson_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.onAddPerson() }
+  fun startRecordingFailureSetsTheStartError_andStaysIdle() {
+    recorder.startError = IOException("busy")
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.mess + "busy",
+        vm.uiState.value.common.errorMsg,
+    )
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  // ---------- stopRecording ----------
+
+  @Test
+  fun stopRecordingWithoutRecordingDoesNothing() {
+    createViewModel().stopRecording()
+    assertEquals(0, recorder.stopCalls)
   }
 
   @Test
-  fun setPersonFirstName_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.setPersonFirstName("Anna") }
+  fun stopRecordingSetsTheRecordedState() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+
+  @Test
+  fun stopRecordingKeepsTheDuration() {
+    // Necessary included : AudioFile, Duration, Waveform
+    recorder.durationMs = 4_500L
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertTrue(vm.uiState.value.audioFile?.exists() == true)
+    assertEquals(4_500L, vm.uiState.value.durationMs)
+    assertEquals(WAVEFORM_BARS, vm.uiState.value.waveform.size)
+
   }
 
   @Test
-  fun setPersonLastName_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.setPersonLastName("Smith") }
+  fun recorderStoppingByItselfKeepsTheRecording() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
   }
 
   @Test
-  fun setPersonNickname_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.setPersonNickname("Annie") }
+  fun stopRecordingFailureSetsTheStopError_andGoesBackToIdle() {
+    recorder.stopError = IllegalStateException("too short")
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.mess + "too short",
+        vm.uiState.value.common.errorMsg,
+    )
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  // ---------- deleteRecording ----------
+
+  @Test
+  fun deleteRecordingWhileRecordingCancelsTheRecorder_andGoesBackToIdle() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.deleteRecording()
+    assertEquals(1, recorder.cancelCalls)
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
   @Test
-  fun dismissAddPerson_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.dismissAddPerson() }
+  fun deleteRecordingOnceRecordedDeletesTheFile_andClearsTheAudioFile() {
+    val vm = recordedViewModel()
+    val file = vm.uiState.value.audioFile!!
+    vm.deleteRecording()
+    assertFalse(file.exists())
+    assertNull(vm.uiState.value.audioFile)
+  }
+
+
+  @Test
+  fun deleteRecordingOnceRecordedClearsTheWaveform() {
+    val vm = recordedViewModel()
+    vm.deleteRecording()
+    assertTrue(vm.uiState.value.waveform.isEmpty())
   }
 
   @Test
-  fun addPerson_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.addPerson() }
+  fun recordingAgainAfterDeleteStartsTheRecorderAgain() {
+    val vm = recordedViewModel()
+    vm.deleteRecording()
+    vm.startRecording()
+    assertEquals(2, recorder.startCalls)
+  }
+
+  // ---------- upload ----------
+
+  @Test
+  fun uploadWithoutAudioAsksToRecordOne() {
+    val vm = createViewModel()
+    vm.uploadMedia()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.RECORD_AUDIO.mess,
+        vm.uiState.value.common.errorMsg,
+    )
   }
 
   @Test
-  fun startRecording_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.startRecording() }
+  fun uploadWhileStillRecordingAsksToRecordOne() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.uploadMedia()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.RECORD_AUDIO.mess,
+        vm.uiState.value.common.errorMsg,
+    )
   }
 
   @Test
-  fun stopRecording_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.stopRecording() }
+  fun uploadWithoutAudioDoesNotCallTheRepository() {
+    createViewModel().uploadMedia()
+    coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
   @Test
-  fun deleteRecording_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.deleteRecording() }
+  fun uploadSendsTheRecordedFile() {
+    val vm = recordedViewModel()
+    val file = vm.uiState.value.audioFile
+    vm.uploadMedia()
+    coVerify(exactly = 1) { mediaRepo.addMedia(circle, any(), file) }
   }
 
   @Test
-  fun uploadAudio_isNotImplementedYet_throws() {
-    assertThrows(NotImplementedError::class.java) { viewModel.uploadAudio() }
+  fun uploadedItemIsAnAudioStoredAsM4aInTheCircle() {
+    recordedViewModel().uploadMedia()
+    assertEquals("careCircles/circle1/media/media1.m4a", uploadedItem().storagePath)
+  }
+
+  @Test
+  fun uploadedItemKeepsTheNecessary() {
+    // Necessary include : Duration, Waveform, Description
+    recorder.durationMs = 4_500L
+    recordedViewModel().uploadMedia()
+    assertEquals(4_500L, uploadedItem().durationMs)
+    assertEquals(List(WAVEFORM_BARS) { 0.5f }, uploadedItem().waveform)
+    assertEquals("Grandma's story", uploadedItem().description)
+  }
+
+  @Test
+  fun uploadedItemIsWrittenByTheSignedInUser() {
+    recordedViewModel().uploadMedia()
+    assertEquals("user1", uploadedItem().authorId)
+  }
+
+  // ---------- onCleared ----------
+
+  @Test
+  fun clearingTheViewModelCancelsTheRecorder() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.javaClass.getDeclaredMethod("onCleared").apply { isAccessible = true }.invoke(vm)
+    assertEquals(1, recorder.cancelCalls)
   }
 }
