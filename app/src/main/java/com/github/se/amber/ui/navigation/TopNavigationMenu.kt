@@ -1,11 +1,13 @@
 // Written by Lou-Anne Maier.
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.navigation
 
 //noinspection UsingMaterialAndMaterial3Libraries
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
@@ -21,13 +23,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
-
-internal const val CANCEL_LABEL = "Cancel"
-internal const val CHECKOUT_LABEL = "Checkout"
-internal const val BACK_CONTENT_DESCRIPTION = "Back"
 
 /** Stable tags for the top bar, its action label, the back control, and the divider. */
 object TopNavigationMenuTestTags {
@@ -41,11 +41,11 @@ object TopNavigationMenuTestTags {
  * Label shown in [TopNavigationMenu]. The click itself is [TopNavigationMenu]'s `onBackClick`; this
  * enum only chooses the words.
  *
- * @property label Text shown in the bar.
+ * @property label Text shown in the bar, as a string resource.
  */
-enum class TopNavigationAction(val label: String) {
-  CANCEL(CANCEL_LABEL),
-  CHECKOUT(CHECKOUT_LABEL),
+enum class TopNavigationAction(@param:StringRes val label: Int) {
+  CANCEL(R.string.navigationCancel),
+  CHECKOUT(R.string.navigationCheckout),
 }
 
 /**
@@ -72,7 +72,7 @@ fun TopNavigationMenu(
     TopAppBar(
         title = {
           Text(
-              text = action.label,
+              text = stringResource(action.label),
               modifier = Modifier.testTag(TopNavigationMenuTestTags.TITLE),
               style = MaterialTheme.typography.titleLarge,
           )
@@ -84,7 +84,7 @@ fun TopNavigationMenu(
           ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                contentDescription = BACK_CONTENT_DESCRIPTION,
+                contentDescription = stringResource(R.string.navigationBack),
             )
           }
         },

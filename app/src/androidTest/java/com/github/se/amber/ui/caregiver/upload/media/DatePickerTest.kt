@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.time.Month
@@ -43,6 +45,10 @@ class CaregiverUtilsAndroidTest {
 
   // Jan 31 of a leap year: lets us test month clamping (31 -> 29) and a 31-day month.
   private val initialDate = MemoryDate(2024, Month.JANUARY, 31)
+
+  // The picker shows month names in the app language, which follows the device language.
+  private val appLocale: Locale =
+      InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.locales[0]
 
   // ---------- helpers ----------
 
@@ -115,7 +121,7 @@ class CaregiverUtilsAndroidTest {
     launch()
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.YEAR), useUnmergedTree = true)
-        .assertTextEquals(DateField.YEAR.format(DateField.YEAR.valueIn(initialDate)!!))
+        .assertTextEquals(DateField.YEAR.format(DateField.YEAR.valueIn(initialDate)!!, appLocale))
   }
 
   @Test
@@ -123,7 +129,9 @@ class CaregiverUtilsAndroidTest {
     launch()
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.MONTH), useUnmergedTree = true)
-        .assertTextEquals(DateField.MONTH.formatCompact(DateField.MONTH.valueIn(initialDate)!!))
+        .assertTextEquals(
+            DateField.MONTH.formatCompact(DateField.MONTH.valueIn(initialDate)!!, appLocale)
+        )
   }
 
   @Test
@@ -131,7 +139,7 @@ class CaregiverUtilsAndroidTest {
     launch()
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.DAY), useUnmergedTree = true)
-        .assertTextEquals(DateField.DAY.format(DateField.DAY.valueIn(initialDate)!!))
+        .assertTextEquals(DateField.DAY.format(DateField.DAY.valueIn(initialDate)!!, appLocale))
   }
 
   @Test
@@ -179,7 +187,7 @@ class CaregiverUtilsAndroidTest {
     openDialog(DateField.MONTH)
     composeRule
         .onNodeWithTag(DatePickerTestTags.item(1))
-        .assertTextEquals(Month.JANUARY.getDisplayName(TextStyle.FULL, Locale.ENGLISH))
+        .assertTextEquals(Month.JANUARY.getDisplayName(TextStyle.FULL, appLocale))
   }
 
   @Test
@@ -342,6 +350,6 @@ class CaregiverUtilsAndroidTest {
     tapCancel()
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.DAY), useUnmergedTree = true)
-        .assertTextEquals(DateField.DAY.format(DateField.DAY.valueIn(initialDate)!!))
+        .assertTextEquals(DateField.DAY.format(DateField.DAY.valueIn(initialDate)!!, appLocale))
   }
 }

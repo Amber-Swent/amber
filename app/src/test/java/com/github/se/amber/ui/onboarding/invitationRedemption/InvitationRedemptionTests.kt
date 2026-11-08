@@ -1,8 +1,10 @@
 // Written by Alaabrine with the aid of AI coding agent.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.invitationRedemption
 
+import android.content.Context
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -15,6 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
@@ -107,7 +110,10 @@ class InvitationRedemptionUITests {
 
     composeTestRule
         .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
-        .assertTextEquals(TopNavigationAction.CANCEL.label)
+        .assertTextEquals(
+            ApplicationProvider.getApplicationContext<Context>()
+                .getString(TopNavigationAction.CANCEL.label)
+        )
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 

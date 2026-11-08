@@ -1,2 +1,33 @@
 <resources>
+
+    <!-- Navigation -->
+    <string name="navigationTabHome">Accueil</string>
+    <string name="navigationTabUpload">Ajouter</string>
+    <string name="navigationTabSetting">Paramètres</string>
+    <string name="navigationTabMedias">Médias</string>
+    <string name="navigationCancel">Annuler</string>
+    <string name="navigationCheckout">Valider</string>
+    <string name="navigationBack">Retour</string>
+
+    <!-- Screen titles -->
+    <string name="screenTitleAuth">Authentification</string>
+    <string name="screenTitleRoleLoading">Chargement du rôle</string>
+    <string name="screenTitleCreateProfile">Créer un profil</string>
+    <string name="screenTitleCaregiverChoice">Créer un cercle de soins ou saisir une invitation</string>
+    <string name="screenTitleCreateCareCircle">Créer un cercle de soins</string>
+    <string name="screenTitleEnterInvitation">Saisir une invitation</string>
+    <string name="screenTitleCaregiverHome">Accueil</string>
+    <string name="screenTitleCaregiverUpload">Ajouter des textes, des photos ou des audios</string>
+    <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>
+    <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
+    <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
+    <string name="screenTitleCaregiverParameters">Paramètres</string>
+    <string name="screenTitleCaregiverSignOut">Déconnexion</string>
+    <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
+    <string name="screenTitlePatientHome">Accueil</string>
+    <string name="screenTitlePatientSeeMedias">Voir les médias</string>
+    <string name="screenTitlePatientSeePictures">Voir les photos</string>
+    <string name="screenTitlePatientSeeAudios">Voir les audios</string>
+    <string name="screenTitlePatientParameters">Paramètres</string>
+    <string name="screenTitlePatientSignOut">Déconnexion</string>
 </resources>

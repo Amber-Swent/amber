@@ -1,11 +1,13 @@
 // Written by Lou-Anne Maier.
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.navigation
 
 //noinspection UsingMaterialAndMaterial3Libraries
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
@@ -26,18 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import com.github.se.amber.ui.theme.ROUND_CORNER
-
-internal const val HOME_TAB_LABEL = "Home"
-internal const val UPLOAD_TAB_LABEL = "Upload"
-internal const val SETTING_TAB_LABEL = "Setting"
-internal const val MEDIAS_TAB_LABEL = "Medias"
 
 /** Stable tags for the bottom bar, its divider, and one tag per [Tab]. */
 object BottomNavigationMenuTestTags {
@@ -48,21 +47,23 @@ object BottomNavigationMenuTestTags {
    * Tag for [tab], unique across caregiver and patient menus. The default is the caregiver home
    * tab, the same default selection as [BottomNavigationMenu].
    */
-  fun tabTag(tab: Tab = CaregiverTab.Home) =
-      "BottomNavigationMenu_test_tag_tab_${tab.id}${tab.name}"
+  fun tabTag(tab: Tab = CaregiverTab.Home) = "BottomNavigationMenu_test_tag_tab_${tab.id}${tab.key}"
 }
 
 /**
  * One destination in a bottom navigation menu.
  *
- * @property name Label used as the icon content description.
+ * @property key Stable name of the tab, used in its test tag. It is not shown, so it is not
+ *   translated.
+ * @property label Label used as the icon content description, as a string resource.
  * @property icon Icon drawn for this tab.
  * @property iconSize Drawn size of [icon]. Caregiver and patient tabs use different sizes.
  * @property destination Screen opened when the tab is selected.
  * @property id Prefix that keeps a caregiver tag distinct from a patient tag with the same name.
  */
 sealed interface Tab {
-  val name: String
+  val key: String
+  @get:StringRes val label: Int
   val icon: ImageVector
   val iconSize: Dp
   val destination: Screen
@@ -72,32 +73,45 @@ sealed interface Tab {
 /**
  * Caregiver bottom navigation tabs.
  *
- * @property name Label used as the icon content description.
+ * @property key Stable name of the tab, used in its test tag.
+ * @property label Label used as the icon content description, as a string resource.
  * @property icon Icon drawn for this tab.
  * @property destination Screen opened when the tab is selected.
  * @property iconSize Drawn size of [icon]. Defaults to [CAREGIVER_ICON_SIZE].
  * @property id Prefix shared by every caregiver tab.
  */
 sealed class CaregiverTab(
-    override val name: String,
+    override val key: String,
+    @param:StringRes override val label: Int,
     override val icon: ImageVector,
     override val destination: CaregiverScreen,
     override val iconSize: Dp = CAREGIVER_ICON_SIZE,
     override val id: String = "caregiverId_",
 ) : Tab {
   /** Caregiver home. */
-  data object Home : CaregiverTab(HOME_TAB_LABEL, Icons.Outlined.Home, CaregiverScreen.Home)
+  data object Home :
+      CaregiverTab("Home", R.string.navigationTabHome, Icons.Outlined.Home, CaregiverScreen.Home)
 
   /** Caregiver upload. */
   data object Upload :
-      CaregiverTab(UPLOAD_TAB_LABEL, Icons.Outlined.PhotoCamera, CaregiverScreen.Upload)
+      CaregiverTab(
+          "Upload",
+          R.string.navigationTabUpload,
+          Icons.Outlined.PhotoCamera,
+          CaregiverScreen.Upload,
+      )
 
   /**
-   * Caregiver parameters. The visible label stays [SETTING_TAB_LABEL]; the destination is
+   * Caregiver parameters. The label stays "Setting"; the destination is
    * [CaregiverScreen.Parameters].
    */
   data object Setting :
-      CaregiverTab(SETTING_TAB_LABEL, Icons.Outlined.Settings, CaregiverScreen.Parameters)
+      CaregiverTab(
+          "Setting",
+          R.string.navigationTabSetting,
+          Icons.Outlined.Settings,
+          CaregiverScreen.Parameters,
+      )
 
   companion object {
     /** Tabs shown on caregiver screens, in bar order. */
@@ -109,27 +123,41 @@ sealed class CaregiverTab(
 /**
  * Patient bottom navigation tabs.
  *
- * @property name Label used as the icon content description.
+ * @property key Stable name of the tab, used in its test tag.
+ * @property label Label used as the icon content description, as a string resource.
  * @property icon Icon drawn for this tab.
  * @property destination Screen opened when the tab is selected.
  * @property iconSize Drawn size of [icon]. Defaults to [PATIENT_ICON_SIZE].
  * @property id Prefix shared by every patient tab.
  */
 sealed class PatientTab(
-    override val name: String,
+    override val key: String,
+    @param:StringRes override val label: Int,
     override val icon: ImageVector,
     override val destination: PatientScreen,
     override val iconSize: Dp = PATIENT_ICON_SIZE,
     override val id: String = "patientId_",
 ) : Tab {
   /** Patient home. */
-  data object Home : PatientTab(HOME_TAB_LABEL, Icons.Outlined.Home, PatientScreen.Home)
+  data object Home :
+      PatientTab("Home", R.string.navigationTabHome, Icons.Outlined.Home, PatientScreen.Home)
 
   /** Patient picture list. */
   data object SeeMedias :
-      PatientTab(MEDIAS_TAB_LABEL, Icons.Outlined.Photo, PatientScreen.SeeMedias)
+      PatientTab(
+          "Medias",
+          R.string.navigationTabMedias,
+          Icons.Outlined.Photo,
+          PatientScreen.SeeMedias,
+      )
 
-  data object Setting : PatientTab("Setting", Icons.Outlined.Settings, PatientScreen.Parameters)
+  data object Setting :
+      PatientTab(
+          "Setting",
+          R.string.navigationTabSetting,
+          Icons.Outlined.Settings,
+          PatientScreen.Parameters,
+      )
 
   companion object {
     /** Tabs shown on patient screens, in bar order. */
@@ -175,7 +203,7 @@ fun BottomNavigationMenu(
                 icon = {
                   Icon(
                       imageVector = tab.icon,
-                      contentDescription = tab.name,
+                      contentDescription = stringResource(tab.label),
                       modifier = Modifier.size(tab.iconSize),
                   )
                 },

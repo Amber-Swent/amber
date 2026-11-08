@@ -3,4 +3,35 @@
     <string name="app_name" translatable="false">AmberApp</string>
     <string name="title_activity_main" translatable="false">Amber</string>
     <string name="title_activity_second" translatable="false">SecondActivity</string>
+
+    <!-- Navigation -->
+    <string name="navigationTabHome">Home</string>
+    <string name="navigationTabUpload">Upload</string>
+    <string name="navigationTabSetting">Setting</string>
+    <string name="navigationTabMedias">Medias</string>
+    <string name="navigationCancel">Cancel</string>
+    <string name="navigationCheckout">Checkout</string>
+    <string name="navigationBack">Back</string>
+
+    <!-- Screen titles -->
+    <string name="screenTitleAuth">Authentication</string>
+    <string name="screenTitleRoleLoading">Role loading</string>
+    <string name="screenTitleCreateProfile">Create a profile</string>
+    <string name="screenTitleCaregiverChoice">Create CareCircle or Enter Invitation</string>
+    <string name="screenTitleCreateCareCircle">Create a CareCircle</string>
+    <string name="screenTitleEnterInvitation">Enter an invitation</string>
+    <string name="screenTitleCaregiverHome">Home</string>
+    <string name="screenTitleCaregiverUpload">Upload Texts, Pictures or Audios</string>
+    <string name="screenTitleCaregiverUploadText">Upload Text</string>
+    <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
+    <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
+    <string name="screenTitleCaregiverParameters">Parameters</string>
+    <string name="screenTitleCaregiverSignOut">Sign out</string>
+    <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
+    <string name="screenTitlePatientHome">Home</string>
+    <string name="screenTitlePatientSeeMedias">See Medias</string>
+    <string name="screenTitlePatientSeePictures">See Pictures</string>
+    <string name="screenTitlePatientSeeAudios">See Audios</string>
+    <string name="screenTitlePatientParameters">Parameters</string>
+    <string name="screenTitlePatientSignOut">Sign out</string>
 </resources>
