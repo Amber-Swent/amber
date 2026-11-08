@@ -3,11 +3,13 @@
 
 package com.github.se.amber.data.profile
 
+private const val NO_USER_SIGNED_IN = "No user is signed in"
+
 /** Typed failures returned by [ProfileRepository.createProfile]. */
 sealed class ProfileCreationError(message: String) : Exception(message) {
   data object InvalidPersonDetails : ProfileCreationError("A first name is required")
 
-  data object NotAuthenticated : ProfileCreationError("No user is signed in")
+  data object NotAuthenticated : ProfileCreationError(NO_USER_SIGNED_IN)
 
   data object ProfileAlreadyExists : ProfileCreationError("A profile already exists for this user")
 
@@ -25,7 +27,7 @@ sealed class ProfileCreationError(message: String) : Exception(message) {
  * [ProfileRepository.getCurrentProfile].
  */
 sealed class ProfileReadError(message: String) : Exception(message) {
-  data object NotAuthenticated : ProfileReadError("No user is signed in")
+  data object NotAuthenticated : ProfileReadError(NO_USER_SIGNED_IN)
 
   data object InvalidProfile : ProfileReadError("The stored profile is invalid")
 
@@ -46,7 +48,7 @@ sealed class ProfileReadError(message: String) : Exception(message) {
 sealed class ProfileUpdateError(message: String) : Exception(message) {
   data object InvalidPersonDetails : ProfileUpdateError("A first and last name are required")
 
-  data object NotAuthenticated : ProfileUpdateError("No user is signed in")
+  data object NotAuthenticated : ProfileUpdateError(NO_USER_SIGNED_IN)
 
   data object NoProfile : ProfileUpdateError("No profile exists for this user")
 
