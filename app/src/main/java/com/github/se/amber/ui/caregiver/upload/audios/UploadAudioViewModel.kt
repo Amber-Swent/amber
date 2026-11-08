@@ -11,6 +11,7 @@ import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.media.audio.AudioRecorder
 import com.github.se.amber.data.media.audio.AudioRecorderProvider
+import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
@@ -212,7 +213,11 @@ class UploadAudioViewModel(
       }
       amplitudeJob =
           recorder.amplitude
-              .onEach { level -> _uiState.update { it.copy(waveform = it.waveform + level) } }
+              // the screen draws WAVEFORM_BARS bars at most: keep the latest ones, or the drawing
+              // would freeze after the first few seconds
+              .onEach { level ->
+                _uiState.update { it.copy(waveform = (it.waveform + level).takeLast(WAVEFORM_BARS)) }
+              }
               .launchIn(this)
       // the recorder stops by itself at its limits: keep what was recorded
       recorder.isRecording.first { !it }

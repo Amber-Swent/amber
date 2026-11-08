@@ -194,6 +194,22 @@ class UploadAudioViewModelTest {
   }
 
   @Test
+  fun waveformKeepsOnlyTheLatestLevelsOnceFull() {
+    val vm = createViewModel()
+    vm.startRecording()
+    repeat(WAVEFORM_BARS + 5) { recorder.amplitude.value = (it + 1) / 100f }
+    assertEquals(WAVEFORM_BARS, vm.uiState.value.waveform.size)
+  }
+
+  @Test
+  fun waveformEndsWithTheLatestLevelOnceFull() {
+    val vm = createViewModel()
+    vm.startRecording()
+    repeat(WAVEFORM_BARS + 5) { recorder.amplitude.value = (it + 1) / 100f }
+    assertEquals((WAVEFORM_BARS + 5) / 100f, vm.uiState.value.waveform.last())
+  }
+
+  @Test
   fun startRecordingWithoutPermissionAsksToAllowTheMicrophone() {
     recorder.startError = SecurityException()
     val vm = createViewModel()
