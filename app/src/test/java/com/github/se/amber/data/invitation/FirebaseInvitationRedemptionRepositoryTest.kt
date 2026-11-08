@@ -1,5 +1,5 @@
-// This file was written by Neha Chakraborty and Copilot, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Neha Chakraborty and Copilot, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.invitation
 
 import com.github.se.amber.model.user.Role

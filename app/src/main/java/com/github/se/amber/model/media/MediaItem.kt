@@ -1,5 +1,5 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.model.media
 
 import com.github.se.amber.model.location.GeoLocation
@@ -90,6 +90,16 @@ sealed interface MediaItem {
       // empty = unknown (e.g. a picked file), and the screen shows a progress bar instead
       val waveform: List<Float> = emptyList(),
   ) : MediaItem
+}
+
+/**
+ * Where an [MediaItem.Audio] is in its recording: not started yet, being recorded, or finished and
+ * kept.
+ */
+enum class AudioRecordingState {
+  IDLE,
+  RECORDING,
+  RECORDED,
 }
 
 /**

@@ -1,4 +1,6 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.authentication.roleLoading
 
 import android.util.Log
@@ -24,11 +26,22 @@ sealed interface RoleState {
   // the role is loaded/ready
   data class Loaded(val role: Role) : RoleState
 
-  // the user is connected but there are no user document with this uid
+  // signed in, but there is no user document for this uid
   data object NoProfile : RoleState
+
+  // profile exists, but the user has not created or joined a care circle yet
+  data class NeedsCareCircle(val destination: CareCircleDestination) : RoleState
 
   // the user is not connected or if Firestore has failed
   data object Error : RoleState
+}
+
+/** Where to send a user who already has a profile but no care circle. */
+enum class CareCircleDestination {
+  /** Caregiver: choose between creating a circle and entering an invitation. */
+  Choice,
+  /** Patient: enter an invitation code. */
+  Invitation,
 }
 
 data class RoleLoadingUIState(
@@ -70,8 +83,13 @@ class RoleLoadingViewModel(
           .getCurrentProfile()
           .fold(
               onSuccess = { profile ->
+                val hasCircle = profile?.circleIds?.any { it.isNotBlank() } == true
                 setRoleState(
-                    if (profile == null) RoleState.NoProfile else RoleState.Loaded(profile.role)
+                    when {
+                      profile == null -> RoleState.NoProfile
+                      !hasCircle -> RoleState.NeedsCareCircle(destinationFor(profile.role))
+                      else -> RoleState.Loaded(profile.role)
+                    }
                 )
               },
               onFailure = { e ->
@@ -81,6 +99,12 @@ class RoleLoadingViewModel(
           )
     }
   }
+
+  private fun destinationFor(role: Role): CareCircleDestination =
+      when (role) {
+        Role.CAREGIVER -> CareCircleDestination.Choice
+        Role.PATIENT -> CareCircleDestination.Invitation
+      }
 
   fun signOut() {
     if (_state.value.isSigningOut) return

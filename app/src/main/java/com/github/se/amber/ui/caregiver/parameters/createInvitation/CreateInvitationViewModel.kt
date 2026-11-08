@@ -1,8 +1,6 @@
-/* Written by Yuhan YANG, with assistance from
- * Cursor.
- */
+// Written by Yuhan YANG, with assistance from Cursor.
 
-package com.github.se.amber.ui.caregiver.parameters
+package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

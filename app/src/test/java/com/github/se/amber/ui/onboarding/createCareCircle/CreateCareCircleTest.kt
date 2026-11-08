@@ -1,5 +1,6 @@
-// This file was written with the aid of AI.
+// Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+
 package com.github.se.amber.ui.onboarding
 
 import androidx.compose.ui.test.assertIsNotEnabled

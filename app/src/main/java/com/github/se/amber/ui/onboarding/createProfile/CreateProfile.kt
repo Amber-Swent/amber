@@ -1,6 +1,6 @@
-// this code was written by Alaabrine
-// with the aid of AI coding agent
+// Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+
 package com.github.se.amber.ui.onboarding.createProfile
 
 import android.widget.Toast

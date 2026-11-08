@@ -1,12 +1,15 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Alaabrine, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,17 +27,19 @@ import androidx.credentials.CredentialManager
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signOut.SignOutScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
-import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
@@ -91,6 +97,21 @@ fun AmberApp(
 ) {
 
   val navigationActions = remember(navController) { NavigationActions(navController) }
+  val currentEntry by navController.currentBackStackEntryAsState()
+  val route = currentEntry?.destination?.route
+  // previousBackStackEntry skips navigation graphs, so null means this screen has nothing behind
+  // it. Reading the entry above recomposes when navigation changes.
+  val strandedSetupStep =
+      navController.previousBackStackEntry == null &&
+          (route == OnboardingScreen.CaregiverChoice.route ||
+              route == OnboardingScreen.EnterInvitation.route)
+
+  // Role loading opens the circle step with nothing behind it. Popping that last entry leaves a
+  // blank NavHost. The sign-in screen is not a usable fallback either: a signed-in user is sent
+  // straight back through role loading to this same step. Back stays here instead.
+  val backOrStay: () -> Unit = {
+    if (navController.previousBackStackEntry != null) navigationActions.goBack()
+  }
 
   NavHost(
       navController = navController,
@@ -118,6 +139,14 @@ fun AmberApp(
       RoleLoadingScreen(
           onRoleLoaded = { role -> navigationActions.navigateToGraph(graphForRole(role)) },
           noProfile = { navigationActions.navigateToGraph(NavGraphs.ONBOARDING) },
+          onNeedsCareCircle = { destination ->
+            val screen =
+                when (destination) {
+                  CareCircleDestination.Choice -> OnboardingScreen.CaregiverChoice
+                  CareCircleDestination.Invitation -> OnboardingScreen.EnterInvitation
+                }
+            navigationActions.navigateToGraph(screen.route)
+          },
           onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
       )
     }
@@ -140,7 +169,7 @@ fun AmberApp(
       }
       composable(route = OnboardingScreen.CaregiverChoice.route) {
         CaregiverChoiceScreen(
-            onBack = { navigationActions.goBack() },
+            onBack = backOrStay,
             onCreateCircle = { navigationActions.navigateTo(OnboardingScreen.CreateCareCircle) },
             onJoinCircle = { navigationActions.navigateTo(OnboardingScreen.EnterInvitation) },
         )
@@ -156,7 +185,7 @@ fun AmberApp(
             onRedeemSuccess = { result ->
               navigationActions.navigateToGraph(graphForRole(result.role))
             },
-            onBack = { navigationActions.goBack() },
+            onBack = backOrStay,
         )
       }
     }
@@ -176,9 +205,6 @@ fun AmberApp(
             // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-            // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen if we were on a top level destination
-            checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
         )
       }
       @Suppress("java:S1135")
@@ -199,6 +225,9 @@ fun AmberApp(
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
+            onCreateCareCircleClick = {
+              navigationActions.navigateTo(OnboardingScreen.CreateCareCircle)
+            },
             onCreateInvitationClick = {
               navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
             },
@@ -265,4 +294,7 @@ fun AmberApp(
       }
     }
   }
+
+  // Registered after NavHost so system back is consumed here instead of popping the last screen.
+  BackHandler(enabled = strandedSetupStep) {}
 }

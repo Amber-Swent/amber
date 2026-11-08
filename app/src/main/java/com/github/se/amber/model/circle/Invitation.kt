@@ -1,6 +1,6 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty and Copilot.
+
 package com.github.se.amber.model.circle
 
 /**

@@ -1,7 +1,7 @@
-/* Written by MeiliV, with assistance from OpenAI Codex
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- */
-package com.github.se.amber.ui.caregiver.upload
+// Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
+package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -27,9 +27,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
-import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialogTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.pictures.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
