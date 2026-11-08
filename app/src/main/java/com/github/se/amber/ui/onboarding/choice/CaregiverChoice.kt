@@ -34,6 +34,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
@@ -114,14 +115,11 @@ fun CaregiverChoiceScreen(
           verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
       ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          Text(
+          DisplayCaregiverTitle(
               modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
-              text =
+              title =
                   if (uiState.displayName.isEmpty()) WELCOME
                   else WELCOME + ", ${uiState.displayName}",
-              style = MaterialTheme.typography.headlineSmall,
-              color = MaterialTheme.colorScheme.onBackground,
-              textAlign = TextAlign.Center,
           )
           Text(
               modifier = Modifier.testTag(CaregiverChoiceTestTags.QUESTION),

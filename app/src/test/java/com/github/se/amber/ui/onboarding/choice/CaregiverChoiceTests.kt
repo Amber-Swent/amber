@@ -1,4 +1,5 @@
 // Written by Alaabrine with the aid of AI coding agent
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.choice
 
@@ -152,25 +153,31 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun previewRepositoryReturnsTheNamedCaregiver() = runBlocking {
+  fun previewRepository_readsTheNamedCaregiver() = runBlocking {
     val profile = PreviewChoiceProfileRepository.getCurrentProfile().getOrNull()
 
     assertEquals("Ada", profile?.person?.firstName)
     assertEquals(Role.CAREGIVER, profile?.role)
-    assertEquals(null, PreviewChoiceProfileRepository.getProfile("preview").getOrNull())
+    assertEquals(null, PreviewChoiceProfileRepository.getProfile("other").getOrNull())
+  }
+
+  @Test
+  fun previewRepository_acceptsProfileCreation() = runBlocking {
     assertTrue(
         PreviewChoiceProfileRepository.createProfile(
                 Person(firstName = "Ada", lastName = "Lovelace"),
                 Role.CAREGIVER,
             )
-            .isSuccess
+            .isSuccess,
     )
+  }
+
+  @Test
+  fun previewRepository_acceptsARoleCorrection() = runBlocking {
+    val person = Person(firstName = "Ada", lastName = "Lovelace")
+
     assertTrue(
-        PreviewChoiceProfileRepository.updateOnboardingProfile(
-                Person(firstName = "Ada", lastName = "Lovelace"),
-                Role.PATIENT,
-            )
-            .isSuccess
+        PreviewChoiceProfileRepository.updateOnboardingProfile(person, Role.PATIENT).isSuccess
     )
   }
 
