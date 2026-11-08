@@ -9,6 +9,8 @@ import com.google.firebase.functions.FirebaseFunctionsException
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -26,6 +28,9 @@ class FirebaseAccountDeletionRepository(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance(),
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
 ) : AccountDeletionRepository {
+  // The launch check and the role loading screen can both find the account gone at once: two
+  // clears would stop Firestore under each other, and a failed one ends the app without reopening
+  private val clearing = Mutex()
 
   override suspend fun deleteAccount(): Result<Unit> {
     try {
@@ -60,7 +65,7 @@ class FirebaseAccountDeletionRepository(
 
   override suspend fun clearLocalData(): Result<Unit> =
       try {
-        localData.clear()
+        clearing.withLock { localData.clear() }
         Result.success(Unit)
       } catch (exception: CancellationException) {
         throw exception

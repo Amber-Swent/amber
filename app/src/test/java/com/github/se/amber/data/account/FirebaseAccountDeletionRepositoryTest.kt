@@ -14,7 +14,12 @@ import com.google.firebase.functions.HttpsCallableReference
 import com.google.firebase.functions.HttpsCallableResult
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -280,5 +285,28 @@ class FirebaseAccountDeletionRepositoryTest {
 
     assertEquals(2, clears)
     verifyNoInteractions(callable)
+  }
+
+  @Test
+  fun twoClearsAtOnceRunOneAfterTheOther() = runBlocking {
+    val firstStarted = CompletableDeferred<Unit>()
+    val firstMayFinish = CompletableDeferred<Unit>()
+    val running = AtomicInteger()
+    val mostAtOnce = AtomicInteger()
+    clearLocalData = {
+      mostAtOnce.accumulateAndGet(running.incrementAndGet(), ::maxOf)
+      if (firstStarted.complete(Unit)) firstMayFinish.await()
+      running.decrementAndGet()
+    }
+
+    val first = async(Dispatchers.Default) { repository.clearLocalData() }
+    firstStarted.await()
+    val second = async(Dispatchers.Default) { repository.clearLocalData() }
+    delay(100) // time for the second to start, were it not waiting
+    firstMayFinish.complete(Unit)
+
+    assertTrue(first.await().isSuccess && second.await().isSuccess)
+    assertEquals(2, clears)
+    assertEquals(1, mostAtOnce.get())
   }
 }

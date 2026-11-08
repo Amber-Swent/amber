@@ -5,6 +5,9 @@
 package com.github.se.amber.ui.roleloading
 
 import android.util.Log
+import com.github.se.amber.data.account.AccountDeletionError
+import com.github.se.amber.data.account.AccountDeletionRepository
+import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -43,6 +46,7 @@ class RoleLoadingViewModelTest {
 
   private lateinit var profileRepository: ProfileRepository
   private lateinit var authRepository: AuthRepository
+  private lateinit var deletionRepository: AccountDeletionRepository
   private lateinit var viewModel: RoleLoadingViewModel
 
   @Before
@@ -55,9 +59,17 @@ class RoleLoadingViewModelTest {
 
     profileRepository = mockk()
     authRepository = mockk()
+    every { authRepository.currentUser } returns AuthUser("uid123")
     coEvery { authRepository.refreshCurrentUser() } returns AuthUser("uid123")
+    deletionRepository = mockk()
+    coEvery { deletionRepository.clearLocalData() } returns Result.success(Unit)
 
-    viewModel = RoleLoadingViewModel(profileRepository, authRepository)
+    viewModel =
+        RoleLoadingViewModel(
+            profileRepository,
+            authRepository,
+            AccountDeletionRepositoryProvider { deletionRepository },
+        )
   }
 
   @After
@@ -105,15 +117,42 @@ class RoleLoadingViewModelTest {
   }
 
   @Test
-  fun loadRole_accountGone_signsOutInsteadOfOnboarding() = runTest {
+  fun loadRole_accountGone_clearsTheDeviceAndSignsOutInsteadOfOnboarding() = runTest {
     stubProfile(null)
     coEvery { authRepository.refreshCurrentUser() } returns null
 
     viewModel.loadRole()
     advanceUntilIdle()
 
+    coVerify(exactly = 1) { deletionRepository.clearLocalData() }
     assertTrue(viewModel.state.value.signedOut)
     assertEquals(RoleState.Loading, viewModel.state.value.roleState)
+  }
+
+  @Test
+  fun loadRole_accountGoneAndDeviceNotCleared_stillSignsOut() = runTest {
+    stubProfile(null)
+    coEvery { authRepository.refreshCurrentUser() } returns null
+    coEvery { deletionRepository.clearLocalData() } returns
+        Result.failure(AccountDeletionError.LocalDataNotCleared(Exception("Files left")))
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.state.value.signedOut)
+  }
+
+  @Test
+  fun loadRole_nobodySignedIn_signsOutWithoutClearingTheDevice() = runTest {
+    stubProfile(null)
+    every { authRepository.currentUser } returns null
+    coEvery { authRepository.refreshCurrentUser() } returns null
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    coVerify(exactly = 0) { deletionRepository.clearLocalData() }
+    assertTrue(viewModel.state.value.signedOut)
   }
 
   @Test
