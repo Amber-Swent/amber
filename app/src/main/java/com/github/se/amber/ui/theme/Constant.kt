@@ -80,7 +80,7 @@ val BORDER_THICKNESS = 3.dp
 
 // This constant is intended for the person responsible for setting up the patient screens.
 // I’ll leave it to them to decide on a value that fits in with the rest.
-//If the thickness specified for caregiver is suitable,
+// If the thickness specified for caregiver is suitable,
 // you can delete it and rename the one for the caregiver.
 val BORDER_THICKNESS_PATIENT = 3.dp
 
