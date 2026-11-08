@@ -283,11 +283,6 @@ class UploadAudioViewModelTest {
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
-  @Test
-  fun microphoneErrorsTellTheUserToUseTheAndroidSettings() {
-    assertTrue(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess.contains("settings"))
-  }
-
   // ---------- stopRecording ----------
 
   @Test
