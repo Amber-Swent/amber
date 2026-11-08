@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createCareCircle
 
@@ -25,11 +26,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
@@ -65,6 +69,8 @@ fun CreateCareCircleScreen(
     viewModel: CreateCareCircleViewModel = viewModel(),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   // Keep one stable reference for the effect, but always update the value inside it to the newest
   // onCreated
@@ -72,8 +78,8 @@ fun CreateCareCircleScreen(
 
   // Display submit errors when creating the circle
   LaunchedEffect(viewModel) {
-    viewModel.errorEvents.collect { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    viewModel.errorEvents.collect { errorRes ->
+      Toast.makeText(context, resources.getString(errorRes), Toast.LENGTH_SHORT).show()
     }
   }
 
@@ -100,7 +106,7 @@ fun CreateCareCircleScreen(
       AmberHeader(horizontalAlignment = Alignment.CenterHorizontally)
 
       Text(
-          text = "New Care Circle",
+          text = stringResource(R.string.createCareCircleTitle),
           modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.headlineSmall,
           textAlign = TextAlign.Center,
@@ -110,22 +116,26 @@ fun CreateCareCircleScreen(
       OnboardingOutlinedTextField(
           value = uiState.name,
           onValueChange = viewModel::onNameChange,
-          label = "Circle name",
+          label = stringResource(R.string.createCareCircleNameLabel),
           modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_FIELD),
-          placeholder = "Name your care circle",
-          error = uiState.nameError,
+          placeholder = stringResource(R.string.createCareCircleNamePlaceholder),
+          error = uiState.nameErrorRes?.let { stringResource(it) },
           errorTestTag = CreateCareCircleTestTags.NAME_ERROR,
           enabled = !uiState.isLoading && !uiState.isCreated,
       )
 
       DisplayCaregiverButton(
-          text = if (uiState.isLoading) "Creation..." else "Create",
+          text =
+              stringResource(
+                  if (uiState.isLoading) R.string.createCareCircleCreating
+                  else R.string.createCareCircleCreate
+              ),
           enabled = !uiState.isLoading && !uiState.isCreated,
           onClick = viewModel::createCareCircle,
       )
 
       Text(
-          text = "You will be able to invite members to the circle after its creation.",
+          text = stringResource(R.string.createCareCircleInviteLater),
           modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.bodyMedium,
           textAlign = TextAlign.Center,

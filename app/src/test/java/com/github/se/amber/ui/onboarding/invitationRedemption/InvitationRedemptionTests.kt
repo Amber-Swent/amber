@@ -18,17 +18,17 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
-import com.github.se.amber.ui.onboarding.invitationRedemption.toActionableMessage
+import com.github.se.amber.ui.onboarding.invitationRedemption.errorMessage
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -42,6 +42,10 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class InvitationRedemptionUITests {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   private var redeemSuccessCount = 0
   private var backCount = 0
@@ -110,10 +114,7 @@ class InvitationRedemptionUITests {
 
     composeTestRule
         .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
-        .assertTextEquals(
-            ApplicationProvider.getApplicationContext<Context>()
-                .getString(TopNavigationAction.CANCEL.label)
-        )
+        .assertTextEquals(string(TopNavigationAction.CANCEL.label))
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
@@ -141,7 +142,7 @@ class InvitationRedemptionUITests {
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(CODE_REQUIRED_MESSAGE)
+        .assertTextEquals(string(R.string.invitationRedemptionCodeRequired))
     assertEquals(0, redeemSuccessCount)
   }
 
@@ -151,7 +152,7 @@ class InvitationRedemptionUITests {
 
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitForIdle()
-    assertEquals(CODE_REQUIRED_MESSAGE, viewModel.uiState.value.errorMessage)
+    assertEquals(R.string.invitationRedemptionCodeRequired, viewModel.uiState.value.errorMessageRes)
 
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
@@ -199,7 +200,7 @@ class InvitationRedemptionUITests {
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(InvitationError.InvalidCode.toActionableMessage())
+        .assertTextEquals(string(InvitationError.InvalidCode.errorMessage()))
     assertEquals(0, redeemSuccessCount)
   }
 

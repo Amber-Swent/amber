@@ -56,4 +56,71 @@
     <string name="signOutButton">Sign out</string>
     <string name="signOutSuccess">Logout successful</string>
     <string name="signOutError">Could not sign out. Please try again.</string>
+
+    <!-- AmberHeader -->
+    <string name="amberHeaderLogo">Amber logo</string>
+
+    <!-- Onboarding -->
+    <string name="onboardingDividerOr">or</string>
+
+    <!-- CaregiverChoice -->
+    <string name="caregiverChoiceWelcome">Welcome</string>
+    <string name="caregiverChoiceWelcomeName">Welcome, %1$s</string>
+    <string name="caregiverChoiceQuestion">How will you enter your Care Circle?</string>
+    <string name="caregiverChoiceCreateCircle">Create a new care circle</string>
+    <string name="caregiverChoiceJoinCircle">Join an existing care circle</string>
+    <string name="caregiverChoiceInfo">Info</string>
+    <string name="caregiverChoiceInviteHintCondition">To join an existing care circle, you must have an invite link.</string>
+    <string name="caregiverChoiceInviteHintSolution">Any caregiver belonging to the circle can create a link for you.</string>
+    <string name="caregiverChoiceBack">Back</string>
+
+    <!-- CreateProfile -->
+    <string name="createProfileTitle">Create an account</string>
+    <string name="createProfileQuestion">What should we call you?</string>
+    <string name="createProfileName">Name</string>
+    <string name="createProfileSurname">Surname</string>
+    <string name="createProfileSelectRole">Please select your role</string>
+    <string name="createProfilePatient">Patient</string>
+    <string name="createProfileCaregiver">Caregiver</string>
+    <string name="createProfileFillOut">Please fill this out</string>
+    <string name="createProfileErrorInvalidName">Enter your first and last name and try again.</string>
+    <string name="createProfileErrorSessionExpired">Your session expired. Sign in and try again.</string>
+    <string name="createProfileErrorExists">A profile already exists for this account.</string>
+    <string name="createProfileErrorPermissionDenied">You don\'t have permission to create a profile.</string>
+    <string name="createProfileErrorOffline">You\'re offline. Check your connection and try again.</string>
+    <string name="createProfileErrorUnknown">Couldn\'t create your profile. Please try again.</string>
+
+    <!-- CreateCareCircle -->
+    <string name="createCareCircleTitle">New Care Circle</string>
+    <string name="createCareCircleNameLabel">Circle name</string>
+    <string name="createCareCircleNamePlaceholder">Name your care circle</string>
+    <string name="createCareCircleCreate">Create</string>
+    <string name="createCareCircleCreating">Creation...</string>
+    <string name="createCareCircleInviteLater">You will be able to invite members to the circle after its creation.</string>
+    <string name="createCareCircleNameRequired">Circle name cannot be empty</string>
+    <string name="createCareCircleErrorInvalidName">Enter a care circle name and try again.</string>
+    <string name="createCareCircleErrorOffline">You\'re offline. Check your connection and try again.</string>
+    <string name="createCareCircleErrorSessionExpired">Your session expired. Sign in and try again.</string>
+    <string name="createCareCircleErrorProfileMissing">Your profile could not be found. Complete your profile and try again.</string>
+    <string name="createCareCircleErrorNotCaregiver">Only caregivers can create a care circle. Check your profile and try again.</string>
+    <string name="createCareCircleErrorAlreadyExists">You already have a care circle. Return to your home screen.</string>
+    <string name="createCareCircleErrorPermissionDenied">Creation was denied. Check your account and try again.</string>
+    <string name="createCareCircleErrorUnknown">Couldn\'t create your care circle. Please try again.</string>
+
+    <!-- InvitationRedemption -->
+    <string name="invitationRedemptionTitle">Enter your invitation code</string>
+    <string name="invitationRedemptionCodeLabel">Invitation code</string>
+    <string name="invitationRedemptionCodePlaceholder">Your code</string>
+    <string name="invitationRedemptionSubmit">Submit</string>
+    <string name="invitationRedemptionCodeRequired">Enter an invitation code and try again.</string>
+    <string name="invitationRedemptionErrorInvalidCode">That invitation code isn\'t valid. Check it and try again.</string>
+    <string name="invitationRedemptionErrorNotFound">No invitation matches this code. Check it and try again.</string>
+    <string name="invitationRedemptionErrorExpired">This invitation has expired. Ask for a new one.</string>
+    <string name="invitationRedemptionErrorAlreadyUsed">This invitation was already used. Ask for a new one.</string>
+    <string name="invitationRedemptionErrorAlreadyInCircle">You\'re already in a care circle.</string>
+    <string name="invitationRedemptionErrorProfileMissing">Complete your profile, then try again.</string>
+    <string name="invitationRedemptionErrorCircleUnavailable">This care circle is unavailable. Ask for a new invitation.</string>
+    <string name="invitationRedemptionErrorPatientSlotTaken">This circle already has a patient. Ask the caregiver for help.</string>
+    <string name="invitationRedemptionErrorOffline">You\'re offline. Check your connection and try again.</string>
+    <string name="invitationRedemptionErrorUnknown">Couldn\'t redeem this invitation. Please try again.</string>
 </resources>

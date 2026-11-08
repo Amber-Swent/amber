@@ -1,10 +1,13 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
@@ -16,34 +19,35 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal const val FILL_OUT_MESSAGE = "Please fill this out"
-
 /**
  * UI state for the create-profile step.
  *
  * Field errors are derived from the value once validation has been attempted (blank + already
- * touched), matching the bootcamp B2 pattern. [submitError] carries mapped repository failures.
+ * touched), matching the bootcamp B2 pattern. [submitErrorRes] carries mapped repository failures.
+ * Errors are string resources, resolved by the screen in the app language.
  *
  * @param name first name entered by the user.
  * @param surname last name entered by the user.
  * @param validationAttempted true after the user has pressed Patient or Caregiver at least once.
  * @param isSaving true while a create-profile request is in flight.
- * @param submitError actionable repository failure message, or null when there is none.
+ * @param submitErrorRes actionable repository failure message, or null when there is none.
  */
 data class CreateProfileUIState(
     val name: String = "",
     val surname: String = "",
     val validationAttempted: Boolean = false,
     val isSaving: Boolean = false,
-    val submitError: String? = null,
+    @param:StringRes val submitErrorRes: Int? = null,
 ) {
   /** Fill-out message when validation ran and [name] is blank; otherwise null. */
-  val nameError: String?
-    get() = if (validationAttempted && name.isBlank()) FILL_OUT_MESSAGE else null
+  @get:StringRes
+  val nameErrorRes: Int?
+    get() = if (validationAttempted && name.isBlank()) R.string.createProfileFillOut else null
 
   /** Fill-out message when validation ran and [surname] is blank; otherwise null. */
-  val surnameError: String?
-    get() = if (validationAttempted && surname.isBlank()) FILL_OUT_MESSAGE else null
+  @get:StringRes
+  val surnameErrorRes: Int?
+    get() = if (validationAttempted && surname.isBlank()) R.string.createProfileFillOut else null
 }
 
 /**
@@ -94,14 +98,14 @@ class CreateProfileViewModel(
           name = trimmedName,
           surname = trimmedSurname,
           validationAttempted = true,
-          submitError = null,
+          submitErrorRes = null,
       )
     }
 
     if (trimmedName.isBlank() || trimmedSurname.isBlank()) return
 
     viewModelScope.launch {
-      _uiState.update { it.copy(isSaving = true, submitError = null) }
+      _uiState.update { it.copy(isSaving = true, submitErrorRes = null) }
       val result =
           profileRepository.createProfile(
               person = Person(firstName = trimmedName, lastName = trimmedSurname),
@@ -110,14 +114,14 @@ class CreateProfileViewModel(
       result
           .onSuccess {
             createdRole = role
-            _uiState.update { it.copy(isSaving = false, submitError = null) }
+            _uiState.update { it.copy(isSaving = false, submitErrorRes = null) }
             onSuccess(role)
           }
           .onFailure { error ->
             _uiState.update {
               it.copy(
                   isSaving = false,
-                  submitError = error.toActionableMessage(),
+                  submitErrorRes = error.errorMessage(),
               )
             }
           }
@@ -129,20 +133,20 @@ class CreateProfileViewModel(
       it.copy(
           name = name ?: it.name,
           surname = surname ?: it.surname,
-          submitError = null,
+          submitErrorRes = null,
       )
     }
   }
 }
 
-private fun Throwable.toActionableMessage(): String =
+/** Maps a repository failure to the string resource of the message shown to the user. */
+@StringRes
+private fun Throwable.errorMessage(): Int =
     when (this) {
-      is ProfileCreationError.InvalidPersonDetails ->
-          "Enter your first and last name and try again."
-      is ProfileCreationError.NotAuthenticated -> "Your session expired. Sign in and try again."
-      is ProfileCreationError.ProfileAlreadyExists -> "A profile already exists for this account."
-      is ProfileCreationError.PermissionDenied -> "You don't have permission to create a profile."
-      is ProfileCreationError.Network -> "You're offline. Check your connection and try again."
-      is ProfileCreationError.Unknown -> "Couldn't create your profile. Please try again."
-      else -> "Couldn't create your profile. Please try again."
+      is ProfileCreationError.InvalidPersonDetails -> R.string.createProfileErrorInvalidName
+      is ProfileCreationError.NotAuthenticated -> R.string.createProfileErrorSessionExpired
+      is ProfileCreationError.ProfileAlreadyExists -> R.string.createProfileErrorExists
+      is ProfileCreationError.PermissionDenied -> R.string.createProfileErrorPermissionDenied
+      is ProfileCreationError.Network -> R.string.createProfileErrorOffline
+      else -> R.string.createProfileErrorUnknown
     }

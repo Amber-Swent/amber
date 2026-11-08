@@ -1,8 +1,10 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -11,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
@@ -37,6 +41,10 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class CreateCareCircleScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   private lateinit var repository: FakeOnboardingRepository
   private lateinit var viewModel: CreateCareCircleViewModel
@@ -84,7 +92,7 @@ class CreateCareCircleScreenTest {
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule
         .onNodeWithTag(CreateCareCircleTestTags.NAME_ERROR, useUnmergedTree = true)
-        .assertTextEquals("Circle name cannot be empty")
+        .assertTextEquals(string(R.string.createCareCircleNameRequired))
   }
 
   @Test
@@ -108,7 +116,7 @@ class CreateCareCircleScreenTest {
     repository.gate = CompletableDeferred()
     viewModel.onNameChange("Family")
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
-    composeTestRule.onNodeWithText("Creation...").assertExists()
+    composeTestRule.onNodeWithText(string(R.string.createCareCircleCreating)).assertExists()
   }
 
   @Test

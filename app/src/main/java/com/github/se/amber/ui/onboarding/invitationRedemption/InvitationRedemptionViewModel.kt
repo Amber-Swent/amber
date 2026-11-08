@@ -1,10 +1,13 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionRepositoryProvider
@@ -15,34 +18,34 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal const val CODE_REQUIRED_MESSAGE = "Enter an invitation code and try again."
-
 /**
  * UI state for the redeem-invite step.
  *
- * Blank-code errors are derived once validation has been attempted. [redemptionError] carries
- * mapped [InvitationError] messages from the repository.
+ * Blank-code errors are derived once validation has been attempted. [redemptionErrorRes] carries
+ * mapped [InvitationError] messages from the repository. Errors are string resources, resolved by
+ * the screen in the app language.
  *
  * @param inviteCode invitation code / link entered by the user.
  * @param validationAttempted true after the user has pressed Submit at least once.
- * @param redemptionError actionable repository failure message, or null when there is none.
+ * @param redemptionErrorRes actionable repository failure message, or null when there is none.
  * @param isRedeeming true while a redeem request is in flight.
  */
 data class InvitationRedemptionUIState(
     val inviteCode: String = "",
     val validationAttempted: Boolean = false,
-    val redemptionError: String? = null,
+    @param:StringRes val redemptionErrorRes: Int? = null,
     val isRedeeming: Boolean = false,
 ) {
   /**
    * Message shown under the code field: blank-code validation when attempted, otherwise the latest
    * mapped redemption failure.
    */
-  val errorMessage: String?
+  @get:StringRes
+  val errorMessageRes: Int?
     get() =
         when {
-          validationAttempted && inviteCode.isBlank() -> CODE_REQUIRED_MESSAGE
-          else -> redemptionError
+          validationAttempted && inviteCode.isBlank() -> R.string.invitationRedemptionCodeRequired
+          else -> redemptionErrorRes
         }
 }
 
@@ -67,7 +70,7 @@ class InvitationRedemptionViewModel(
    * user can retry with a corrected code.
    */
   fun onInviteCodeChange(value: String) {
-    _uiState.update { it.copy(inviteCode = value, redemptionError = null) }
+    _uiState.update { it.copy(inviteCode = value, redemptionErrorRes = null) }
   }
 
   /**
@@ -77,7 +80,7 @@ class InvitationRedemptionViewModel(
    * Submit), so the navigation owner can route without observing UI state. Does nothing while a
    * redeem is already in progress. Trims only the value sent to the repository so the entered code
    * stays in the field after failure. Does not call the repository when the code is blank after
-   * trim; the derived [InvitationRedemptionUIState.errorMessage] is shown instead.
+   * trim; the derived [InvitationRedemptionUIState.errorMessageRes] is shown instead.
    */
   fun onSubmit(onSuccess: (InvitationRedemptionResult) -> Unit = {}) {
     redeemedResult?.let {
@@ -90,25 +93,25 @@ class InvitationRedemptionViewModel(
     _uiState.update {
       it.copy(
           validationAttempted = true,
-          redemptionError = null,
+          redemptionErrorRes = null,
       )
     }
     if (trimmedCode.isBlank()) return
 
     viewModelScope.launch {
-      _uiState.update { it.copy(isRedeeming = true, redemptionError = null) }
+      _uiState.update { it.copy(isRedeeming = true, redemptionErrorRes = null) }
       invitationRedemptionRepository
           .redeemInvitation(trimmedCode)
           .onSuccess { result ->
             redeemedResult = result
-            _uiState.update { it.copy(isRedeeming = false, redemptionError = null) }
+            _uiState.update { it.copy(isRedeeming = false, redemptionErrorRes = null) }
             onSuccess(result)
           }
           .onFailure { error ->
             _uiState.update {
               it.copy(
                   isRedeeming = false,
-                  redemptionError = error.toActionableMessage(),
+                  redemptionErrorRes = error.errorMessage(),
               )
             }
           }
@@ -116,21 +119,22 @@ class InvitationRedemptionViewModel(
   }
 }
 
-internal fun Throwable.toActionableMessage(): String =
+/** Maps a repository failure to the string resource of the message shown to the user. */
+@StringRes
+internal fun Throwable.errorMessage(): Int =
     when (this) {
-      is InvitationError.InvalidCode -> "That invitation code isn't valid. Check it and try again."
-      is InvitationError.InvitationNotFound ->
-          "No invitation matches this code. Check it and try again."
-      is InvitationError.InvitationExpired -> "This invitation has expired. Ask for a new one."
-      is InvitationError.InvitationAlreadyUsed ->
-          "This invitation was already used. Ask for a new one."
-      is InvitationError.UserAlreadyBelongsToCircle -> "You're already in a care circle."
-      is InvitationError.MissingOrInvalidUserProfile -> "Complete your profile, then try again."
+      is InvitationError.InvalidCode -> R.string.invitationRedemptionErrorInvalidCode
+      is InvitationError.InvitationNotFound -> R.string.invitationRedemptionErrorNotFound
+      is InvitationError.InvitationExpired -> R.string.invitationRedemptionErrorExpired
+      is InvitationError.InvitationAlreadyUsed -> R.string.invitationRedemptionErrorAlreadyUsed
+      is InvitationError.UserAlreadyBelongsToCircle ->
+          R.string.invitationRedemptionErrorAlreadyInCircle
+      is InvitationError.MissingOrInvalidUserProfile ->
+          R.string.invitationRedemptionErrorProfileMissing
       is InvitationError.InvalidOrUnavailableCareCircle ->
-          "This care circle is unavailable. Ask for a new invitation."
+          R.string.invitationRedemptionErrorCircleUnavailable
       is InvitationError.PatientSlotAlreadyOccupied ->
-          "This circle already has a patient. Ask the caregiver for help."
-      is InvitationError.Network -> "You're offline. Check your connection and try again."
-      is InvitationError.Unknown -> "Couldn't redeem this invitation. Please try again."
-      else -> "Couldn't redeem this invitation. Please try again."
+          R.string.invitationRedemptionErrorPatientSlotTaken
+      is InvitationError.Network -> R.string.invitationRedemptionErrorOffline
+      else -> R.string.invitationRedemptionErrorUnknown
     }

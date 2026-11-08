@@ -1,8 +1,10 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
 
+import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -53,11 +55,11 @@ class CreateCareCircleViewModelTest {
   @Test
   fun typingStoresTheExactNameAndClearsValidationError() {
     viewModel.onNameChange(" ")
-    assertEquals("Circle name cannot be empty", viewModel.uiState.value.nameError)
+    assertEquals(R.string.createCareCircleNameRequired, viewModel.uiState.value.nameErrorRes)
 
     viewModel.onNameChange("  Family  ")
     assertEquals("  Family  ", viewModel.uiState.value.name)
-    assertNull(viewModel.uiState.value.nameError)
+    assertNull(viewModel.uiState.value.nameErrorRes)
   }
 
   @Test
@@ -65,7 +67,7 @@ class CreateCareCircleViewModelTest {
     viewModel.createCareCircle()
     advanceUntilIdle()
 
-    assertEquals("Circle name cannot be empty", viewModel.uiState.value.nameError)
+    assertEquals(R.string.createCareCircleNameRequired, viewModel.uiState.value.nameErrorRes)
     assertFalse(viewModel.uiState.value.isLoading)
     assertTrue(repository.submittedNames.isEmpty())
   }
@@ -126,7 +128,7 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isCreated)
     assertEquals("Family", viewModel.uiState.value.name)
     assertEquals(
-        "You're offline. Check your connection and try again.",
+        R.string.createCareCircleErrorOffline,
         viewModel.errorEvents.first(),
     )
 
@@ -145,7 +147,7 @@ class CreateCareCircleViewModelTest {
 
     assertFalse(viewModel.uiState.value.isLoading)
     assertEquals(
-        "Couldn't create your care circle. Please try again.",
+        R.string.createCareCircleErrorUnknown,
         viewModel.errorEvents.first(),
     )
   }
@@ -158,7 +160,7 @@ class CreateCareCircleViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        "Your session expired. Sign in and try again.",
+        R.string.createCareCircleErrorSessionExpired,
         viewModel.errorEvents.first(),
     )
   }
@@ -175,7 +177,7 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isLoading)
 
     assertEquals(
-        "Creation was denied. Check your account and try again.",
+        R.string.createCareCircleErrorPermissionDenied,
         viewModel.errorEvents.first(),
     )
   }

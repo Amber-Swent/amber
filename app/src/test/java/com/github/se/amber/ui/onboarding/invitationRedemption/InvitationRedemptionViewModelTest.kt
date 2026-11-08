@@ -1,16 +1,17 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.invitationRedemption
 
+import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionUIState
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
-import com.github.se.amber.ui.onboarding.invitationRedemption.toActionableMessage
+import com.github.se.amber.ui.onboarding.invitationRedemption.errorMessage
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -75,7 +76,7 @@ class InvitationRedemptionViewModelTest {
   @Test
   fun initialState_hasEmptyCodeAndNoErrors() {
     assertEquals(InvitationRedemptionUIState(), viewModel.uiState.value)
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorMessageRes)
   }
 
   // ---------- onInviteCodeChange ----------
@@ -95,14 +96,14 @@ class InvitationRedemptionViewModelTest {
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(
-        InvitationError.InvalidCode.toActionableMessage(),
-        viewModel.uiState.value.errorMessage,
+        InvitationError.InvalidCode.errorMessage(),
+        viewModel.uiState.value.errorMessageRes,
     )
 
     viewModel.onInviteCodeChange("ABC-123")
 
-    assertNull(viewModel.uiState.value.redemptionError)
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.redemptionErrorRes)
+    assertNull(viewModel.uiState.value.errorMessageRes)
     assertEquals("ABC-123", viewModel.uiState.value.inviteCode)
   }
 
@@ -115,7 +116,7 @@ class InvitationRedemptionViewModelTest {
 
     val state = viewModel.uiState.value
     assertTrue(state.validationAttempted)
-    assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
+    assertEquals(R.string.invitationRedemptionCodeRequired, state.errorMessageRes)
     assertEquals("", state.inviteCode)
     assertFalse(state.isRedeeming)
     assertEquals(0, successCount)
@@ -130,7 +131,7 @@ class InvitationRedemptionViewModelTest {
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
+    assertEquals(R.string.invitationRedemptionCodeRequired, state.errorMessageRes)
     assertEquals("   ", state.inviteCode)
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }
   }
@@ -149,7 +150,7 @@ class InvitationRedemptionViewModelTest {
 
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
-    assertNull(state.errorMessage)
+    assertNull(state.errorMessageRes)
     assertEquals(1, successCount)
     assertEquals(result, lastSuccessResult)
     assertEquals("  invite-code  ", state.inviteCode)
@@ -185,7 +186,7 @@ class InvitationRedemptionViewModelTest {
 
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
-    assertEquals(InvitationError.InvalidCode.toActionableMessage(), state.errorMessage)
+    assertEquals(InvitationError.InvalidCode.errorMessage(), state.errorMessageRes)
     assertEquals(0, successCount)
   }
 
@@ -199,8 +200,8 @@ class InvitationRedemptionViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        InvitationError.InvitationNotFound.toActionableMessage(),
-        viewModel.uiState.value.errorMessage,
+        InvitationError.InvitationNotFound.errorMessage(),
+        viewModel.uiState.value.errorMessageRes,
     )
     assertEquals(0, successCount)
   }
@@ -215,8 +216,8 @@ class InvitationRedemptionViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        InvitationError.Network.toActionableMessage(),
-        viewModel.uiState.value.errorMessage,
+        InvitationError.Network.errorMessage(),
+        viewModel.uiState.value.errorMessageRes,
     )
     assertEquals(0, successCount)
     assertFalse(viewModel.uiState.value.isRedeeming)
@@ -237,7 +238,7 @@ class InvitationRedemptionViewModelTest {
                 InvitationError.Network,
                 InvitationError.Unknown(IllegalStateException("x")),
             )
-            .map { it.toActionableMessage() }
+            .map { it.errorMessage() }
 
     assertEquals(messages.size, messages.toSet().size)
   }
@@ -256,14 +257,14 @@ class InvitationRedemptionViewModelTest {
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(
-        InvitationError.InvalidCode.toActionableMessage(),
-        viewModel.uiState.value.errorMessage,
+        InvitationError.InvalidCode.errorMessage(),
+        viewModel.uiState.value.errorMessageRes,
     )
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorMessageRes)
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessResult?.role)
   }

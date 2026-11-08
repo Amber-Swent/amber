@@ -52,4 +52,71 @@
     <string name="signOutButton">Se déconnecter</string>
     <string name="signOutSuccess">Déconnexion réussie</string>
     <string name="signOutError">Impossible de se déconnecter. Veuillez réessayer.</string>
+
+    <!-- AmberHeader -->
+    <string name="amberHeaderLogo">Logo d\'Amber</string>
+
+    <!-- Onboarding -->
+    <string name="onboardingDividerOr">ou</string>
+
+    <!-- CaregiverChoice -->
+    <string name="caregiverChoiceWelcome">Bienvenue</string>
+    <string name="caregiverChoiceWelcomeName">Bienvenue, %1$s</string>
+    <string name="caregiverChoiceQuestion">Comment allez-vous rejoindre votre cercle de soins&#160;?</string>
+    <string name="caregiverChoiceCreateCircle">Créer un nouveau cercle de soins</string>
+    <string name="caregiverChoiceJoinCircle">Rejoindre un cercle de soins existant</string>
+    <string name="caregiverChoiceInfo">Information</string>
+    <string name="caregiverChoiceInviteHintCondition">Pour rejoindre un cercle de soins existant, vous devez avoir un lien d\'invitation.</string>
+    <string name="caregiverChoiceInviteHintSolution">Tout aidant membre du cercle peut créer un lien pour vous.</string>
+    <string name="caregiverChoiceBack">Retour</string>
+
+    <!-- CreateProfile -->
+    <string name="createProfileTitle">Créer un compte</string>
+    <string name="createProfileQuestion">Comment devons-nous vous appeler&#160;?</string>
+    <string name="createProfileName">Prénom</string>
+    <string name="createProfileSurname">Nom</string>
+    <string name="createProfileSelectRole">Veuillez choisir votre rôle</string>
+    <string name="createProfilePatient">Patient</string>
+    <string name="createProfileCaregiver">Aidant</string>
+    <string name="createProfileFillOut">Veuillez remplir ce champ</string>
+    <string name="createProfileErrorInvalidName">Saisissez votre prénom et votre nom, puis réessayez.</string>
+    <string name="createProfileErrorSessionExpired">Votre session a expiré. Connectez-vous, puis réessayez.</string>
+    <string name="createProfileErrorExists">Un profil existe déjà pour ce compte.</string>
+    <string name="createProfileErrorPermissionDenied">Vous n\'avez pas l\'autorisation de créer un profil.</string>
+    <string name="createProfileErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="createProfileErrorUnknown">Impossible de créer votre profil. Veuillez réessayer.</string>
+
+    <!-- CreateCareCircle -->
+    <string name="createCareCircleTitle">Nouveau cercle de soins</string>
+    <string name="createCareCircleNameLabel">Nom du cercle</string>
+    <string name="createCareCircleNamePlaceholder">Nommez votre cercle de soins</string>
+    <string name="createCareCircleCreate">Créer</string>
+    <string name="createCareCircleCreating">Création…</string>
+    <string name="createCareCircleInviteLater">Vous pourrez inviter des membres dans le cercle après sa création.</string>
+    <string name="createCareCircleNameRequired">Le nom du cercle ne peut pas être vide</string>
+    <string name="createCareCircleErrorInvalidName">Saisissez un nom de cercle de soins, puis réessayez.</string>
+    <string name="createCareCircleErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="createCareCircleErrorSessionExpired">Votre session a expiré. Connectez-vous, puis réessayez.</string>
+    <string name="createCareCircleErrorProfileMissing">Votre profil est introuvable. Complétez votre profil, puis réessayez.</string>
+    <string name="createCareCircleErrorNotCaregiver">Seuls les aidants peuvent créer un cercle de soins. Vérifiez votre profil, puis réessayez.</string>
+    <string name="createCareCircleErrorAlreadyExists">Vous avez déjà un cercle de soins. Retournez à l\'écran d\'accueil.</string>
+    <string name="createCareCircleErrorPermissionDenied">La création a été refusée. Vérifiez votre compte, puis réessayez.</string>
+    <string name="createCareCircleErrorUnknown">Impossible de créer votre cercle de soins. Veuillez réessayer.</string>
+
+    <!-- InvitationRedemption -->
+    <string name="invitationRedemptionTitle">Saisissez votre code d\'invitation</string>
+    <string name="invitationRedemptionCodeLabel">Code d\'invitation</string>
+    <string name="invitationRedemptionCodePlaceholder">Votre code</string>
+    <string name="invitationRedemptionSubmit">Valider</string>
+    <string name="invitationRedemptionCodeRequired">Saisissez un code d\'invitation, puis réessayez.</string>
+    <string name="invitationRedemptionErrorInvalidCode">Ce code d\'invitation n\'est pas valide. Vérifiez-le, puis réessayez.</string>
+    <string name="invitationRedemptionErrorNotFound">Aucune invitation ne correspond à ce code. Vérifiez-le, puis réessayez.</string>
+    <string name="invitationRedemptionErrorExpired">Cette invitation a expiré. Demandez-en une nouvelle.</string>
+    <string name="invitationRedemptionErrorAlreadyUsed">Cette invitation a déjà été utilisée. Demandez-en une nouvelle.</string>
+    <string name="invitationRedemptionErrorAlreadyInCircle">Vous faites déjà partie d\'un cercle de soins.</string>
+    <string name="invitationRedemptionErrorProfileMissing">Complétez votre profil, puis réessayez.</string>
+    <string name="invitationRedemptionErrorCircleUnavailable">Ce cercle de soins n\'est pas disponible. Demandez une nouvelle invitation.</string>
+    <string name="invitationRedemptionErrorPatientSlotTaken">Ce cercle a déjà un patient. Demandez de l\'aide à l\'aidant.</string>
+    <string name="invitationRedemptionErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="invitationRedemptionErrorUnknown">Impossible d\'utiliser cette invitation. Veuillez réessayer.</string>
 </resources>
