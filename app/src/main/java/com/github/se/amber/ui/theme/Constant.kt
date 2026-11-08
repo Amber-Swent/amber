@@ -73,7 +73,16 @@ const val PATIENT_BUTTON_WIDTH_BIG = 1f
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
 val DIVIDER_THICKNESS = 1.dp
-val BORDER_THICKNESS = 1.dp
+
+// This constant will be renamed BORDER_THICKNESS_CAREGIVER when less Pr are open.
+// Currently, this would create too much conflicts.
+val BORDER_THICKNESS = 3.dp
+
+// This constant is intended for the person responsible for setting up the patient screens.
+// I’ll leave it to them to decide on a value that fits in with the rest.
+// If the thickness specified for caregiver is suitable,
+// you can delete it and rename the one for the caregiver.
+val BORDER_THICKNESS_PATIENT = 3.dp
 
 // ------- SURFACE -------
 
