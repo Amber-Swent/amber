@@ -1,5 +1,6 @@
-// This file was written with the aid of AI
+// Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.model.authentication
 
 import androidx.credentials.Credential

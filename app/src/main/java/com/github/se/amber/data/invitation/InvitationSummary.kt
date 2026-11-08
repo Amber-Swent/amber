@@ -1,4 +1,5 @@
-// This file was written by Neha Chakraborty and Copilot
+// Written by Neha Chakraborty and Copilot
+
 package com.github.se.amber.data.invitation
 
 /** Invitation information displayed by the caregiver's invitation-code screen. */

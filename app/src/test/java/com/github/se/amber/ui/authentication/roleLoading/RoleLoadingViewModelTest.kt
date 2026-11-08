@@ -1,5 +1,7 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.roleloading
 
 import android.util.Log
@@ -8,6 +10,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingViewModel
 import com.github.se.amber.ui.authentication.roleLoading.RoleState
 import io.mockk.coEvery
@@ -83,7 +86,7 @@ class RoleLoadingViewModelTest {
 
   @Test
   fun loadRole_patientProfile_emitsLoadedPatient() = runTest {
-    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT))
+    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT, circleIds = listOf("circle-1")))
 
     viewModel.loadRole()
     advanceUntilIdle()
@@ -93,7 +96,7 @@ class RoleLoadingViewModelTest {
 
   @Test
   fun loadRole_caregiverProfile_emitsLoadedCaregiver() = runTest {
-    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("circle-1")))
 
     viewModel.loadRole()
     advanceUntilIdle()
@@ -124,6 +127,53 @@ class RoleLoadingViewModelTest {
   }
 
   @Test
+  fun loadRole_profileWithNoCircle_sendsEachRoleToItsCareCircleStep() = runTest {
+    stubProfile(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+    viewModel.loadRole()
+    advanceUntilIdle()
+    assertEquals(
+        RoleState.NeedsCareCircle(CareCircleDestination.Choice),
+        viewModel.state.value.roleState,
+    )
+
+    stubProfile(UserProfile(uid = "uid123", role = Role.PATIENT))
+    viewModel.loadRole()
+    advanceUntilIdle()
+    assertEquals(
+        RoleState.NeedsCareCircle(CareCircleDestination.Invitation),
+        viewModel.state.value.roleState,
+    )
+  }
+
+  @Test
+  fun loadRole_blankCircleIds_countsAsNoCircle() = runTest {
+    // Empty lists never call isNotBlank(). A non-empty list of blank ids must.
+    stubProfile(
+        UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("", " ")),
+    )
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertEquals(
+        RoleState.NeedsCareCircle(CareCircleDestination.Choice),
+        viewModel.state.value.roleState,
+    )
+  }
+
+  @Test
+  fun loadRole_blankIdBeforeARealOne_emitsLoaded() = runTest {
+    stubProfile(
+        UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("", "circle-1")),
+    )
+
+    viewModel.loadRole()
+    advanceUntilIdle()
+
+    assertEquals(RoleState.Loaded(Role.CAREGIVER), viewModel.state.value.roleState)
+  }
+
+  @Test
   fun loadRole_repositoryFails_emitsError() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.failure(RuntimeException("Firestore down"))
@@ -141,7 +191,9 @@ class RoleLoadingViewModelTest {
     coEvery { profileRepository.getCurrentProfile() } coAnswers
         {
           gate.await()
-          Result.success(UserProfile(uid = "uid123", role = Role.PATIENT))
+          Result.success(
+              UserProfile(uid = "uid123", role = Role.PATIENT, circleIds = listOf("circle-1"))
+          )
         }
 
     viewModel.loadRole()
@@ -171,7 +223,9 @@ class RoleLoadingViewModelTest {
     coEvery { profileRepository.getCurrentProfile() } coAnswers
         {
           gate.await()
-          Result.success(UserProfile(uid = "uid123", role = Role.CAREGIVER))
+          Result.success(
+              UserProfile(uid = "uid123", role = Role.CAREGIVER, circleIds = listOf("circle-1"))
+          )
         }
     viewModel.loadRole()
     runCurrent()

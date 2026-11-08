@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
-import com.github.se.amber.ui.caregiver.upload.pictures.selectableChipColors
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_PLACE_SEARCH

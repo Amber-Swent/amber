@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.caregiver.upload
 
 import androidx.compose.material.icons.Icons

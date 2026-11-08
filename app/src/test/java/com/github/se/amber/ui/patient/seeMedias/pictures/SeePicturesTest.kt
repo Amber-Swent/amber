@@ -1,10 +1,18 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -13,6 +21,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.media.MediaCardViewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
@@ -62,6 +71,18 @@ class SeePicturesScreenTest {
           circleIds = listOf("circle1"),
       )
 
+  // construct a MediaCardViewModel with mocks
+  private val mediaCardOwner =
+      object : ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
+        override val viewModelStore = ViewModelStore()
+        override val defaultViewModelProviderFactory =
+            object : ViewModelProvider.Factory {
+              @Suppress("UNCHECKED_CAST")
+              override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                  MediaCardViewModel(profileRepository, circleRepository) as T
+            }
+      }
+
   @Before
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -69,6 +90,7 @@ class SeePicturesScreenTest {
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.success(CareCircle(id = "circle1"))
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
+    coEvery { profileRepository.getProfile(any()) } returns Result.success(profile)
   }
 
   @After
@@ -83,12 +105,14 @@ class SeePicturesScreenTest {
   ): SeePicturesViewModel {
     val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
     composeTestRule.setContent {
-      AmberAppTheme(dynamicColor = false) {
-        SeePicturesScreen(
-            pictureViewModel = viewModel,
-            onBackClick = onBackClick,
-            onTabSelected = onTabSelected,
-        )
+      CompositionLocalProvider(LocalViewModelStoreOwner provides mediaCardOwner) {
+        AmberAppTheme(dynamicColor = false) {
+          SeePicturesScreen(
+              pictureViewModel = viewModel,
+              onBackClick = onBackClick,
+              onTabSelected = onTabSelected,
+          )
+        }
       }
     }
     composeTestRule.waitForIdle()

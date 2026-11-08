@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.navigation
 
 import androidx.compose.ui.test.assertIsDisplayed

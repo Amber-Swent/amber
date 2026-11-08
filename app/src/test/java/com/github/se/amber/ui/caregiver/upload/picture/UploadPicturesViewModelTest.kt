@@ -1,10 +1,8 @@
-/* Written by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Refactor by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver.upload.picture
 
 import com.github.se.amber.data.circle.CareCircleRepository

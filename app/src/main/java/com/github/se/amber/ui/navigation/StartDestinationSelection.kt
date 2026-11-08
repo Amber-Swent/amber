@@ -1,4 +1,5 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.navigation
 
 import com.github.se.amber.model.user.Role

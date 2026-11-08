@@ -1,5 +1,5 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 // The fake ID token follows the SwEnt bootcamp's end-to-end test utilities.
 package com.github.se.amber.e2e
 

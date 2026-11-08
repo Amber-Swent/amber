@@ -1,4 +1,6 @@
-// Modified with assistance from OpenAI Codex.
+// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.navigation
 
