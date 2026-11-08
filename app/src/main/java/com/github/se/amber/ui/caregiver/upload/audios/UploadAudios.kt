@@ -97,7 +97,8 @@ fun UploadAudioScreen(
 
   // Android remembers the answer, so nothing is stored here except that the popup was shown once
   // rememberSaveable keeps it from coming back after a rotation.
-  val micLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+  val micLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
   var askedMic by rememberSaveable { mutableStateOf(false) }
   LaunchedEffect(Unit) {
     val granted =

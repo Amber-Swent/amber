@@ -47,8 +47,7 @@ enum class UploadAudioViewModelErrorMessage(val mess: String) {
   COULD_NOT_START_RECORDING(mess = "Could not start the recording: "),
   COULD_NOT_STOP_RECORDING(mess = "Could not keep the recording: "),
   COULD_NOT_PLAY_RECORDING(mess = "Could not play the recording: "),
-
-    MICROPHONE_BUSY(mess = "Microphone used by another application")
+  MICROPHONE_BUSY(mess = "Microphone used by another application"),
 }
 
 /**
@@ -216,7 +215,9 @@ class UploadAudioViewModel(
               // the screen draws WAVEFORM_BARS bars at most: keep the latest ones, or the drawing
               // would freeze after the first few seconds
               .onEach { level ->
-                _uiState.update { it.copy(waveform = (it.waveform + level).takeLast(WAVEFORM_BARS)) }
+                _uiState.update {
+                  it.copy(waveform = (it.waveform + level).takeLast(WAVEFORM_BARS))
+                }
               }
               .launchIn(this)
       // the recorder stops by itself at its limits: keep what was recorded
