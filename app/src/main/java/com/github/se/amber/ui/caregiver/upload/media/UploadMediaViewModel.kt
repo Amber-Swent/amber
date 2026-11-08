@@ -173,11 +173,11 @@ data class CommonMediaUIState(
 
   /** Why the surname typed in the add-person dialog is refused, or null. */
   val personLastNameError: String?
-    get() = InputValidation.NAME.optional().errorMessage(personLastName)
+    get() = InputValidation.OPTIONAL_NAME.errorMessage(personLastName)
 
   /** Why the nickname typed in the add-person dialog is refused, or null. */
   val personNicknameError: String?
-    get() = InputValidation.NAME.optional().errorMessage(personNickname)
+    get() = InputValidation.OPTIONAL_NAME.errorMessage(personNickname)
 
   /** Whether the add-person dialog can save: a valid first name, and valid optional names. */
   val canAddPerson: Boolean

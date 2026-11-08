@@ -100,12 +100,16 @@ data class InputRule(
   ): String? {
     return when (check(text) ?: return null) {
       InputError.BLANK -> blankMessage?.takeIf { submitted }
-      InputError.TOO_SHORT -> "Use at least $minLength characters".takeIf { submitted }
+      InputError.TOO_SHORT -> tooShortMessage().takeIf { submitted }
       InputError.TOO_LONG -> "Use at most $maxLength characters"
       InputError.WRONG_FORMAT ->
           formatMessage.takeIf { submitted || !hasOnlyAllowedCharacters(text.trim()) }
     }
   }
+
+  private fun tooShortMessage(): String =
+      if (minLength == maxLength) "Enter all $minLength characters"
+      else "Use at least $minLength characters"
 
   /** Whether the value can be saved as it is. */
   fun isValid(text: String): Boolean = check(text) == null
@@ -129,16 +133,15 @@ object InputValidation {
   // The longest address SMTP allows (RFC 5321)
   const val EMAIL_MAX_LENGTH = 254
 
-  // Must match the codes FirebaseInvitationCreationRepository generates: no I, O, 0 or 1, which
-  // are easy to mix up when read aloud or copied by hand
+  // The codes FirebaseInvitationCreationRepository generates: no I, O, 0 or 1, which are easy to
+  // mix up when read aloud or copied by hand
   const val INVITATION_CODE_LENGTH = 8
   const val INVITATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
   /**
    * A person's first name, surname or nickname: letters in any alphabet, with their accents
    * (\p{M}), as words joined by spaces, hyphens or apostrophes (straight, or the curly one many
-   * keyboards type): "Anne-Marie", "D'Angelo", "Jean Paul". No digits, emojis or other symbols. Use
-   * [InputRule.optional] for a name that may be left blank.
+   * keyboards type): "Anne-Marie", "D'Angelo", "Jean Paul". No digits, emojis or other symbols.
    */
   val NAME =
       InputRule(
@@ -147,6 +150,9 @@ object InputValidation {
           format = Regex("[\\p{L}\\p{M}]+(?:[ '’-]+[\\p{L}\\p{M}]+)*"),
           formatMessage = "Use only letters, spaces, hyphens (-) and apostrophes (')",
       )
+
+  /** A name that may be left blank, like a surname or a nickname in the Add Person dialog. */
+  val OPTIONAL_NAME = NAME.optional()
 
   /** A short title on one line, like a care circle's name: any characters but control ones. */
   val SHORT_TEXT = InputRule(maxLength = SHORT_TEXT_MAX_LENGTH)

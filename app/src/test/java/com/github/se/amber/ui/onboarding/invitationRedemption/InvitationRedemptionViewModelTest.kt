@@ -107,7 +107,7 @@ class InvitationRedemptionViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        "Use at least ${InputValidation.INVITATION_CODE_LENGTH} characters",
+        "Enter all ${InputValidation.INVITATION_CODE_LENGTH} characters",
         viewModel.uiState.value.errorMessage,
     )
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }

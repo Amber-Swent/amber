@@ -97,7 +97,11 @@ class InputValidationTest {
     val code = InputValidation.INVITATION_CODE
 
     assertEquals("Enter a code", code.errorMessage(" ", blankMessage = "Enter a code"))
-    assertEquals("Use at least 8 characters", code.errorMessage("ABCD"))
+    assertEquals("Enter all 8 characters", code.errorMessage("ABCD"))
+    assertEquals(
+        "Use at least 2 characters",
+        InputRule(maxLength = 3, minLength = 2).errorMessage("a"),
+    )
     assertEquals(InputValidation.NAME.formatMessage, InputValidation.NAME.errorMessage("Anne-"))
     assertEquals("Use at most 3 characters", InputRule(maxLength = 3).errorMessage("abcd"))
     assertNull(InputValidation.NAME.errorMessage("Anne-Marie"))

@@ -20,10 +20,9 @@ object AddPersonDialogTestTags {
 /**
  * Displays a controlled add-person form inside [PopupDialog] when [isOpen] is true.
  *
- * The action is enabled only when [canSave]: in the upload screens, a valid first name, valid
- * optional names, and no add operation in progress. A name with characters a name can't have shows
- * its error under its field. On action, trimmed field values are sent through their change
- * callbacks before [onSave] runs.
+ * The action is enabled only when the first name is nonblank, no field shows an error, and no add
+ * operation is in progress. On action, trimmed field values are sent through their change callbacks
+ * before [onSave] runs.
  *
  * @param isOpen whether the dialog is visible.
  * @param isAddingPerson whether an add operation is in progress.
@@ -33,8 +32,6 @@ object AddPersonDialogTestTags {
  * @param firstNameError why [firstName] is refused, or null.
  * @param lastNameError why [lastName] is refused, or null.
  * @param nicknameError why [nickname] is refused, or null.
- * @param canSave whether the action is enabled; by default, when the first name is nonblank and no
- *   add operation is in progress.
  * @param onFirstNameChange receives first name edits and its trimmed value on save.
  * @param onLastNameChange receives surname edits and its trimmed value on save.
  * @param onNicknameChange receives nickname edits and its trimmed value on save.
@@ -51,7 +48,6 @@ fun AddPersonDialog(
     firstNameError: String? = null,
     lastNameError: String? = null,
     nicknameError: String? = null,
-    canSave: Boolean = firstName.isNotBlank() && !isAddingPerson,
     onFirstNameChange: (String) -> Unit = {},
     onLastNameChange: (String) -> Unit = {},
     onNicknameChange: (String) -> Unit = {},
@@ -70,35 +66,35 @@ fun AddPersonDialog(
         onNicknameChange(nickname.trim())
         onSave()
       },
-      actionEnabled = canSave,
+      actionEnabled =
+          firstName.isNotBlank() &&
+              !isAddingPerson &&
+              listOf(firstNameError, lastNameError, nicknameError).all { it == null },
       dialogTestTag = AddPersonDialogTestTags.DIALOG,
       dismissTestTag = AddPersonDialogTestTags.CLOSE,
   ) {
     Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
-      DisplayTextField(
-          value = firstName,
-          onValueChange = onFirstNameChange,
-          label = "First name",
-          maxChar = MAX_CHAR_NAME,
-          singleLine = true,
-          error = firstNameError,
-      )
-      DisplayTextField(
-          value = lastName,
-          onValueChange = onLastNameChange,
-          label = "Surname - optional",
-          maxChar = MAX_CHAR_NAME,
-          singleLine = true,
-          error = lastNameError,
-      )
-      DisplayTextField(
-          value = nickname,
-          onValueChange = onNicknameChange,
-          label = "Nickname - optional",
-          maxChar = MAX_CHAR_NAME,
-          singleLine = true,
-          error = nicknameError,
-      )
+      NameField(firstName, onFirstNameChange, "First name", firstNameError)
+      NameField(lastName, onLastNameChange, "Surname - optional", lastNameError)
+      NameField(nickname, onNicknameChange, "Nickname - optional", nicknameError)
     }
   }
+}
+
+/** One single-line name field of [AddPersonDialog], with the names' length limit. */
+@Composable
+private fun NameField(
+    value: String = "",
+    onValueChange: (String) -> Unit = {},
+    label: String = "",
+    error: String? = null,
+) {
+  DisplayTextField(
+      value = value,
+      onValueChange = onValueChange,
+      label = label,
+      maxChar = MAX_CHAR_NAME,
+      singleLine = true,
+      error = error,
+  )
 }

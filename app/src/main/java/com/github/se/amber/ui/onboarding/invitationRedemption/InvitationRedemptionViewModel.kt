@@ -83,7 +83,7 @@ class InvitationRedemptionViewModel(
   /**
    * Updates [InvitationRedemptionUIState.inviteCode] and clears a previous redemption error so the
    * user can retry with a corrected code. The code is put in capitals, without spaces, and cut at
-   * [InputValidation.INVITATION_CODE], the way codes are generated.
+   * [InputValidation.INVITATION_CODE_LENGTH], the way codes are generated.
    */
   fun onInviteCodeChange(value: String) {
     _uiState.update {

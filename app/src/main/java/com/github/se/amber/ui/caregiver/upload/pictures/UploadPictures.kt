@@ -231,7 +231,6 @@ fun UploadPictureScreen(
       firstNameError = uiState.common.personFirstNameError,
       lastNameError = uiState.common.personLastNameError,
       nicknameError = uiState.common.personNicknameError,
-      canSave = uiState.common.canAddPerson,
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,
