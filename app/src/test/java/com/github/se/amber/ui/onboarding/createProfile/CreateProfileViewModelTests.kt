@@ -4,9 +4,12 @@
 package com.github.se.amber.ui.createProfile
 
 import com.github.se.amber.data.profile.ProfileCreationError
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileUIState
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
 import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
@@ -249,9 +252,11 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onRoleSelected_profileAlreadyExists_setsMappedSubmitError() = runTest {
+  fun onRoleSelected_profileAlreadyInACircle_keepsTheExistingRoleMessage() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(savedProfile(role = Role.CAREGIVER, circleIds = listOf("circle-1")))
     fillValidNameAndSurname()
 
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
@@ -261,6 +266,101 @@ class CreateProfileViewModelTests {
     assertFalse(state.isSaving)
     assertEquals(0, successCount)
     assertEquals("A profile already exists for this account.", state.submitError)
+    coVerify(exactly = 0) { profileRepository.updateOnboardingProfile(any(), any()) }
+  }
+
+  @Test
+  fun onRoleSelected_existingProfileWithNoCircle_writesTheNewlySelectedRole() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(savedProfile(role = Role.CAREGIVER))
+    coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns Result.success(Unit)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
+    coVerify(exactly = 1) {
+      profileRepository.updateOnboardingProfile(
+          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          role = Role.PATIENT,
+      )
+    }
+  }
+
+  @Test
+  fun onRoleSelected_existingProfileAlreadyMatching_navigatesWithoutAnotherWrite() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(savedProfile(role = Role.PATIENT))
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
+    coVerify(exactly = 0) { profileRepository.updateOnboardingProfile(any(), any()) }
+  }
+
+  @Test
+  fun onRoleSelected_missingProfileAfterAlreadyExists_keepsTheExistingProfileMessage() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(0, successCount)
+    assertEquals(
+        "A profile already exists for this account.",
+        viewModel.uiState.value.submitError,
+    )
+    coVerify(exactly = 0) { profileRepository.updateOnboardingProfile(any(), any()) }
+  }
+
+  @Test
+  fun onRoleSelected_existingProfileUpdateFails_showsTheExistingProfileMessage() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(savedProfile(role = Role.CAREGIVER))
+    coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns
+        Result.failure(ProfileUpdateError.AlreadyInCareCircle)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(0, successCount)
+    assertEquals(
+        "A profile already exists for this account.",
+        viewModel.uiState.value.submitError,
+    )
+  }
+
+  @Test
+  fun onRoleSelected_unreadableExistingProfile_showsTheSessionError() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns
+        Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.failure(ProfileReadError.NotAuthenticated)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(0, successCount)
+    assertEquals(
+        "Your session expired. Sign in and try again.",
+        viewModel.uiState.value.submitError,
+    )
   }
 
   @Test
@@ -345,26 +445,77 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onRoleSelected_afterSuccessfulSave_reinvokesOnSuccessWithoutRepository() = runTest {
+  fun onRoleSelected_sameRoleAgain_navigatesWithoutAnotherWrite() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
     fillValidNameAndSurname()
 
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
     assertEquals(1, successCount)
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
+    coVerify(exactly = 0) { profileRepository.updateOnboardingProfile(any(), any()) }
+    assertEquals(2, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
+  }
+
+  @Test
+  fun onRoleSelected_differentRoleAfterCreate_updatesTheStoredRole() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
+    coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns Result.success(Unit)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
 
     viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
     advanceUntilIdle()
 
-    coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
+    coVerify(exactly = 1) { profileRepository.createProfile(any(), Role.PATIENT) }
+    coVerify(exactly = 1) {
+      profileRepository.updateOnboardingProfile(
+          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          role = Role.CAREGIVER,
+      )
+    }
     assertEquals(2, successCount)
-    assertEquals(Role.PATIENT, lastSuccessRole)
+    assertEquals(Role.CAREGIVER, lastSuccessRole)
     assertNull(viewModel.uiState.value.submitError)
+  }
+
+  @Test
+  fun onRoleSelected_updateRejectedBecauseTheUserJoined_showsTheExistingProfileMessage() = runTest {
+    coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
+    coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns
+        Result.failure(ProfileUpdateError.AlreadyInCareCircle)
+    fillValidNameAndSurname()
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+    viewModel.onRoleSelected(Role.CAREGIVER, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(1, successCount)
+    assertEquals(Role.PATIENT, lastSuccessRole)
+    assertEquals(
+        "A profile already exists for this account.",
+        viewModel.uiState.value.submitError,
+    )
   }
 
   private fun fillValidNameAndSurname() {
     viewModel.onNameChange("Ada")
     viewModel.onSurnameChange("Lovelace")
   }
+
+  private fun savedProfile(role: Role, circleIds: List<String> = emptyList()) =
+      UserProfile(
+          uid = "uid",
+          role = role,
+          person = Person(id = "uid", firstName = "Ada", lastName = "Lovelace"),
+          circleIds = circleIds,
+      )
 }

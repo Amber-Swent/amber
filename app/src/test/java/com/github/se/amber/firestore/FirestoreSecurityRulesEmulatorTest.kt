@@ -100,6 +100,22 @@ class FirestoreSecurityRulesEmulatorTest {
         peer,
         fs.set("users/$peer", user(peer, "CAREGIVER", emptyList(), "Bob")),
     )
+    fs.assertSucceeds(
+        peer,
+        fs.patch(
+            "users/$peer",
+            mapOf(
+                "role" to "PATIENT",
+                "person" to
+                    mapOf(
+                        "id" to peer,
+                        "firstName" to "Bob",
+                        "lastName" to "Stone",
+                        "nickname" to null,
+                    ),
+            ),
+        ),
+    )
     fs.assertFails(
         peer,
         fs.set(
@@ -128,6 +144,7 @@ class FirestoreSecurityRulesEmulatorTest {
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertFails(peer, fs.patch("users/$peer", mapOf("role" to "PATIENT")))
     fs.assertSucceeds(
         peer,
         fs.set(

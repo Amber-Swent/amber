@@ -174,6 +174,9 @@ class AddPersonDialogTest {
           override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
               error("Not used by this test")
 
+          override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+              error("Not used by this test")
+
           override suspend fun getCurrentProfile(): Result<UserProfile?> =
               error("Not used by this test")
 

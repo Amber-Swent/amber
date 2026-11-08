@@ -359,6 +359,171 @@ class FirebaseProfileRepositoryTest {
     assertSame(source, (error as ProfileReadError.Unknown).source)
   }
 
+  @Test
+  fun updateOnboardingProfile_rejectsABlankNameBeforeWriting() = runTest {
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = " ", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.InvalidPersonDetails>(result)
+    verify(exactly = 0) { firestore.collection(any()) }
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsASignedOutUser() = runTest {
+    every { auth.currentUser } returns null
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+
+    assertFailure<ProfileUpdateError.NotAuthenticated>(result)
+  }
+
+  @Test
+  fun updateOnboardingProfile_writesTheNewRoleAndKeepsTheNickname() = runTest {
+    val captured = stubUpdateTransaction(existingProfile(circleIds = emptyList()))
+
+    val result =
+        repository.updateOnboardingProfile(
+            Person(firstName = " Ada ", lastName = " Lovelace ", nickname = "ignored"),
+            Role.PATIENT,
+        )
+
+    assertTrue(result.isSuccess)
+    assertEquals(Role.PATIENT, captured.captured.role)
+    assertEquals("Ada", captured.captured.person.firstName)
+    assertEquals("Lovelace", captured.captured.person.lastName)
+    assertEquals("Ada", captured.captured.person.nickname)
+    assertEquals(emptyList<String>(), captured.captured.circleIds)
+    assertEquals(uid, captured.captured.person.id)
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsAMissingProfile() = runTest {
+    stubUpdateTransaction(existing = null)
+
+    assertFailure<ProfileUpdateError.NoProfile>(
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+    )
+  }
+
+  @Test
+  fun updateOnboardingProfile_rejectsAProfileThatAlreadyJoinedACircle() = runTest {
+    stubUpdateTransaction(existingProfile(circleIds = listOf("circle-1")))
+
+    assertFailure<ProfileUpdateError.AlreadyInCareCircle>(
+        repository.updateOnboardingProfile(
+            Person(firstName = "Ada", lastName = "Lovelace"),
+            Role.PATIENT,
+        )
+    )
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsPermissionDenied() = runTest {
+    assertUpdateFailure<ProfileUpdateError.PermissionDenied>(
+        firestoreFailure(FirebaseFirestoreException.Code.PERMISSION_DENIED)
+    )
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsUnauthenticated() = runTest {
+    assertUpdateFailure<ProfileUpdateError.NotAuthenticated>(
+        firestoreFailure(FirebaseFirestoreException.Code.UNAUTHENTICATED)
+    )
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsUnavailableToNetwork() = runTest {
+    assertUpdateFailure<ProfileUpdateError.Network>(
+        firestoreFailure(FirebaseFirestoreException.Code.UNAVAILABLE)
+    )
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsAbortedToNetwork() = runTest {
+    assertUpdateFailure<ProfileUpdateError.Network>(
+        firestoreFailure(FirebaseFirestoreException.Code.ABORTED)
+    )
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsOtherFirestoreFailureToUnknown() = runTest {
+    val source = firestoreFailure(FirebaseFirestoreException.Code.INTERNAL)
+    val error = updateFailingWith(source).exceptionOrNull()
+
+    assertTrue(error is ProfileUpdateError.Unknown)
+    assertSame(source, (error as ProfileUpdateError.Unknown).source)
+  }
+
+  @Test
+  fun updateOnboardingProfile_mapsUnexpectedExceptionToUnknown() = runTest {
+    val source = IllegalStateException("boom")
+    val error = updateFailingWith(source).exceptionOrNull()
+
+    assertTrue(error is ProfileUpdateError.Unknown)
+    assertSame(source, (error as ProfileUpdateError.Unknown).source)
+  }
+
+  @Test
+  fun updateOnboardingProfile_rethrowsCancellation() = runTest {
+    val cancellation = CancellationException("profile update cancelled")
+    every { firestore.runTransaction<Unit>(any()) } returns Tasks.forException(cancellation)
+
+    try {
+      repository.updateOnboardingProfile(
+          Person(firstName = "Ada", lastName = "Lovelace"),
+          Role.PATIENT,
+      )
+      fail("Expected cancellation to be rethrown")
+    } catch (thrown: CancellationException) {
+      assertSame(cancellation, thrown)
+    }
+  }
+
+  private fun existingProfile(circleIds: List<String>) =
+      UserProfile(
+          uid = uid,
+          role = Role.CAREGIVER,
+          person = Person(id = uid, firstName = "Ada", lastName = "Lovelace", nickname = "Ada"),
+          circleIds = circleIds,
+      )
+
+  private fun stubUpdateTransaction(existing: UserProfile?) =
+      slot<UserProfile>().also { captured ->
+        val snapshot = mockk<DocumentSnapshot>()
+        every { snapshot.exists() } returns (existing != null)
+        every { snapshot.toObject(UserProfile::class.java) } returns existing
+        every { transaction.get(document) } returns snapshot
+        every { transaction.set(document, capture(captured)) } returns transaction
+        every { firestore.runTransaction<Unit>(any()) } answers
+            {
+              runTransactionFunction(firstArg(), transaction)
+            }
+      }
+
+  private suspend fun updateFailingWith(error: Exception): Result<Unit> {
+    every { firestore.runTransaction<Unit>(any()) } returns Tasks.forException(error)
+    return repository.updateOnboardingProfile(
+        Person(firstName = "Ada", lastName = "Lovelace"),
+        Role.PATIENT,
+    )
+  }
+
+  private suspend inline fun <reified T : ProfileUpdateError> assertUpdateFailure(
+      error: Exception
+  ) {
+    assertFailure<T>(updateFailingWith(error))
+  }
+
   private fun stubProfileDocument(reference: DocumentReference, profile: UserProfile?) =
       mockk<DocumentSnapshot>().also { snapshot ->
         every { snapshot.exists() } returns (profile != null)

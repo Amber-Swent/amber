@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.github.se.amber.data.invitation.InvitationError
@@ -22,15 +23,20 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionPreview
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
+import com.github.se.amber.ui.onboarding.invitationRedemption.PreviewInvitationRedemptionRepository
+import com.github.se.amber.ui.onboarding.invitationRedemption.TITLE_LABEL
 import com.github.se.amber.ui.onboarding.invitationRedemption.toActionableMessage
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -223,6 +229,23 @@ class InvitationRedemptionUITests {
         ),
     )
     composeTestRule.waitUntil(timeoutMillis = 3_000) { redeemSuccessCount == 1 }
+  }
+
+  @Test
+  fun previewShowsTheInvitationTitleAndCancel() {
+    composeTestRule.setContent { InvitationRedemptionPreview() }
+
+    composeTestRule.onNodeWithText(TITLE_LABEL).assertIsDisplayed()
+    composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
+  }
+
+  @Test
+  fun previewRepositoryRedeemsAsPatient() = runBlocking {
+    val result = PreviewInvitationRedemptionRepository.redeemInvitation("preview").getOrNull()
+
+    assertTrue(result != null)
+    assertEquals("preview", result?.careCircleId)
+    assertEquals(Role.PATIENT, result?.role)
   }
 
   private companion object {

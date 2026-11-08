@@ -414,6 +414,9 @@ class CreateInvitationViewModelTest {
 private class FakeProfileRepository(var result: Result<UserProfile?>) : ProfileRepository {
   override suspend fun createProfile(person: Person, role: Role): Result<Unit> = error("not used")
 
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+      error("not used")
+
   override suspend fun getCurrentProfile(): Result<UserProfile?> = result
 
   override suspend fun getProfile(uid: String): Result<UserProfile?> = result

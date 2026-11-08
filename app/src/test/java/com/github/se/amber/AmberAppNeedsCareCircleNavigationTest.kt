@@ -99,7 +99,7 @@ class AmberAppNeedsCareCircleNavigationTest {
     }
 
     val seen = recordRoutes(navController)
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertNotNull(navController.currentDestination)
@@ -177,6 +177,9 @@ class AmberAppNeedsCareCircleNavigationTest {
   private fun profileRepository(profile: UserProfile): ProfileRepository =
       object : ProfileRepository {
         override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
+
+        override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+            Result.success(Unit)
 
         override suspend fun getCurrentProfile() = Result.success(profile)
 

@@ -5,12 +5,16 @@ package com.github.se.amber.ui.onboarding.choice
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,6 +31,9 @@ class CaregiverChoiceUITests {
   private fun profileRepository(displayName: String = "Sahra"): ProfileRepository =
       object : ProfileRepository {
         override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
+
+        override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+            Result.success(Unit)
 
         override suspend fun getCurrentProfile() =
             Result.success(
@@ -62,10 +69,11 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun backButton_click_invokesOnBackOnly() {
+  fun cancel_callsOnBackOnceAndDoesNotCreateOrJoin() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -128,10 +136,42 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun backButton_isDisplay() {
+  fun cancel_isDisplayed() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewShowsWelcomeAndCancel() {
+    composeTestRule.setContent { CaregiverChoicePreview() }
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewRepositoryReturnsTheNamedCaregiver() = runBlocking {
+    val profile = PreviewChoiceProfileRepository.getCurrentProfile().getOrNull()
+
+    assertEquals("Ada", profile?.person?.firstName)
+    assertEquals(Role.CAREGIVER, profile?.role)
+    assertEquals(null, PreviewChoiceProfileRepository.getProfile("preview").getOrNull())
+    assertTrue(
+        PreviewChoiceProfileRepository.createProfile(
+                Person(firstName = "Ada", lastName = "Lovelace"),
+                Role.CAREGIVER,
+            )
+            .isSuccess
+    )
+    assertTrue(
+        PreviewChoiceProfileRepository.updateOnboardingProfile(
+                Person(firstName = "Ada", lastName = "Lovelace"),
+                Role.PATIENT,
+            )
+            .isSuccess
+    )
   }
 
   @Test

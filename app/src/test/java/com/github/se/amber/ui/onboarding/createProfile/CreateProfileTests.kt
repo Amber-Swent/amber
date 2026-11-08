@@ -58,6 +58,9 @@ class CreateProfileUITests {
                     override suspend fun createProfile(person: Person, role: Role) =
                         Result.success(Unit)
 
+                    override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                        Result.success(Unit)
+
                     override suspend fun getCurrentProfile() = Result.success(null)
 
                     override suspend fun getProfile(uid: String) = Result.success(null)
@@ -87,6 +90,9 @@ class CreateProfileUITests {
             return Result.success(Unit)
           }
 
+          override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+              Result.success(Unit)
+
           override suspend fun getCurrentProfile() = Result.success(null)
 
           override suspend fun getProfile(uid: String) = Result.success(null)
@@ -113,6 +119,9 @@ class CreateProfileUITests {
         object : ProfileRepository {
           override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
               Result.failure(ProfileCreationError.PermissionDenied)
+
+          override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+              Result.success(Unit)
 
           override suspend fun getCurrentProfile() = Result.success(null)
 

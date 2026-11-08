@@ -6,8 +6,10 @@ package com.github.se.amber.ui.onboarding.createProfile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.profile.ProfileCreationError
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,7 +61,7 @@ class CreateProfileViewModel(
   private val _uiState = MutableStateFlow(CreateProfileUIState())
   val uiState: StateFlow<CreateProfileUIState> = _uiState.asStateFlow()
 
-  private var createdRole: Role? = null
+  private var savedProfile: SavedOnboardingProfile? = null
 
   /** Updates [CreateProfileUIState.name]; field error clears automatically when non-blank. */
   fun onNameChange(value: String) {
@@ -72,18 +74,19 @@ class CreateProfileViewModel(
   }
 
   /**
-   * Validates name and surname, then creates the profile with [role] via [ProfileRepository].
+   * Validates name and surname, then saves the profile with [role].
    *
-   * [onSuccess] is invoked after a successful create (and again if the user returns and presses a
-   * role button), so the navigation owner can move forward without observing UI state. Does nothing
-   * while a save is already in progress. Does not call the repository when fields are blank after
-   * trim.
+   * The first successful choice creates the profile. Pressing the same role again only navigates.
+   * Pressing the other role updates the stored onboarding profile, so a wrong choice can be
+   * corrected after Cancel. If this screen is recreated and the profile already exists with no care
+   * circle, the selected role is written over that profile instead of failing with "already
+   * exists".
+   *
+   * [onSuccess] runs after the profile matches [role], so the navigation owner can move forward
+   * without observing UI state. Does nothing while a save is already in progress. Does not call the
+   * repository when fields are blank after trim.
    */
   fun onRoleSelected(role: Role, onSuccess: (Role) -> Unit = {}) {
-    createdRole?.let {
-      onSuccess(it)
-      return
-    }
     if (_uiState.value.isSaving) return
 
     val trimmedName = _uiState.value.name.trim()
@@ -100,28 +103,83 @@ class CreateProfileViewModel(
 
     if (trimmedName.isBlank() || trimmedSurname.isBlank()) return
 
+    val saved = savedProfile
+    if (
+        saved != null &&
+            saved.name == trimmedName &&
+            saved.surname == trimmedSurname &&
+            saved.role == role
+    ) {
+      onSuccess(role)
+      return
+    }
+
     viewModelScope.launch {
       _uiState.update { it.copy(isSaving = true, submitError = null) }
+      val person = Person(firstName = trimmedName, lastName = trimmedSurname)
       val result =
-          profileRepository.createProfile(
-              person = Person(firstName = trimmedName, lastName = trimmedSurname),
-              role = role,
-          )
-      result
-          .onSuccess {
-            createdRole = role
-            _uiState.update { it.copy(isSaving = false, submitError = null) }
-            onSuccess(role)
+          if (saved == null) {
+            profileRepository.createProfile(person = person, role = role)
+          } else {
+            profileRepository.updateOnboardingProfile(person = person, role = role)
           }
-          .onFailure { error ->
-            _uiState.update {
-              it.copy(
-                  isSaving = false,
-                  submitError = error.toActionableMessage(),
-              )
+      result.fold(
+          onSuccess = { rememberAndContinue(trimmedName, trimmedSurname, role, onSuccess) },
+          onFailure = { error ->
+            if (saved == null && error is ProfileCreationError.ProfileAlreadyExists) {
+              correctExistingProfile(person, role, onSuccess)
+            } else {
+              showFailure(error)
             }
-          }
+          },
+      )
     }
+  }
+
+  private suspend fun correctExistingProfile(
+      person: Person,
+      role: Role,
+      onSuccess: (Role) -> Unit,
+  ) {
+    val current =
+        profileRepository.getCurrentProfile().getOrElse { error ->
+          showFailure(error)
+          return
+        }
+    val alreadyJoined = current?.circleIds?.any { it.isNotBlank() } == true
+    if (current == null || alreadyJoined) {
+      showFailure(ProfileCreationError.ProfileAlreadyExists)
+      return
+    }
+    if (
+        current.role == role &&
+            current.person.firstName == person.firstName &&
+            current.person.lastName == person.lastName
+    ) {
+      rememberAndContinue(person.firstName, person.lastName, role, onSuccess)
+      return
+    }
+    profileRepository
+        .updateOnboardingProfile(person = person, role = role)
+        .fold(
+            onSuccess = { rememberAndContinue(person.firstName, person.lastName, role, onSuccess) },
+            onFailure = { showFailure(it) },
+        )
+  }
+
+  private fun rememberAndContinue(
+      name: String,
+      surname: String,
+      role: Role,
+      onSuccess: (Role) -> Unit,
+  ) {
+    savedProfile = SavedOnboardingProfile(name = name, surname = surname, role = role)
+    _uiState.update { it.copy(isSaving = false, submitError = null) }
+    onSuccess(role)
+  }
+
+  private fun showFailure(error: Throwable) {
+    _uiState.update { it.copy(isSaving = false, submitError = error.toActionableMessage()) }
   }
 
   private fun updateNameField(name: String? = null, surname: String? = null) {
@@ -135,14 +193,26 @@ class CreateProfileViewModel(
   }
 }
 
+private data class SavedOnboardingProfile(
+    val name: String,
+    val surname: String,
+    val role: Role,
+)
+
 private fun Throwable.toActionableMessage(): String =
     when (this) {
-      is ProfileCreationError.InvalidPersonDetails ->
-          "Enter your first and last name and try again."
-      is ProfileCreationError.NotAuthenticated -> "Your session expired. Sign in and try again."
-      is ProfileCreationError.ProfileAlreadyExists -> "A profile already exists for this account."
-      is ProfileCreationError.PermissionDenied -> "You don't have permission to create a profile."
-      is ProfileCreationError.Network -> "You're offline. Check your connection and try again."
-      is ProfileCreationError.Unknown -> "Couldn't create your profile. Please try again."
+      is ProfileCreationError.InvalidPersonDetails,
+      is ProfileUpdateError.InvalidPersonDetails -> "Enter your first and last name and try again."
+      is ProfileCreationError.NotAuthenticated,
+      is ProfileUpdateError.NotAuthenticated,
+      is ProfileReadError.NotAuthenticated -> "Your session expired. Sign in and try again."
+      is ProfileCreationError.ProfileAlreadyExists,
+      is ProfileUpdateError.AlreadyInCareCircle -> "A profile already exists for this account."
+      is ProfileCreationError.PermissionDenied,
+      is ProfileUpdateError.PermissionDenied,
+      is ProfileReadError.PermissionDenied -> "You don't have permission to create a profile."
+      is ProfileCreationError.Network,
+      is ProfileUpdateError.Network,
+      is ProfileReadError.Network -> "You're offline. Check your connection and try again."
       else -> "Couldn't create your profile. Please try again."
     }
