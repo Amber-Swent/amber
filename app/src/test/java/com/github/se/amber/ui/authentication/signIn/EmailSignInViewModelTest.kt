@@ -14,6 +14,7 @@ import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import io.mockk.coEvery
@@ -103,10 +104,20 @@ class EmailSignInViewModelTest {
   }
 
   @Test
-  fun emailChangeStoresExactInput() {
+  fun emailChangeRemovesSpacesAndStopsAtMaxLength() {
     viewModel.onEmailChange(" Person@example.com ")
+    assertEquals("Person@example.com", viewModel.uiState.value.email)
 
-    assertEquals(" Person@example.com ", viewModel.uiState.value.email)
+    viewModel.onEmailChange("a".repeat(300) + "@example.com")
+    assertEquals(InputValidation.EMAIL_MAX_LENGTH, viewModel.uiState.value.email.length)
+  }
+
+  @Test
+  fun malformedEmailIsRejectedWithError() {
+    viewModel.onEmailChange("person@example")
+
+    assertFalse(viewModel.validateEmail())
+    assertEquals(InputValidation.EMAIL.formatMessage, viewModel.uiState.value.errorMessage)
   }
 
   @Test
@@ -127,13 +138,13 @@ class EmailSignInViewModelTest {
 
   @Test
   fun clearingErrorPreservesEmail() {
-    viewModel.onEmailChange("  ")
+    viewModel.onEmailChange("person@")
     viewModel.validateEmail()
 
     viewModel.clearError()
 
     assertNull(viewModel.uiState.value.errorMessage)
-    assertEquals("  ", viewModel.uiState.value.email)
+    assertEquals("person@", viewModel.uiState.value.email)
   }
 
   @Test

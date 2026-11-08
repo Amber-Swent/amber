@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -10,6 +11,7 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.validation.InputValidation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +23,9 @@ internal const val FILL_OUT_MESSAGE = "Please fill this out"
 /**
  * UI state for the create-profile step.
  *
- * Field errors are derived from the value once validation has been attempted (blank + already
- * touched), matching the bootcamp B2 pattern. [submitError] carries mapped repository failures.
+ * Field errors are derived from the value: a name with characters a name can't have shows its error
+ * at once, while a blank one only does once validation has been attempted, matching the bootcamp B2
+ * pattern. [submitError] carries mapped repository failures.
  *
  * @param name first name entered by the user.
  * @param surname last name entered by the user.
@@ -37,13 +40,24 @@ data class CreateProfileUIState(
     val isSaving: Boolean = false,
     val submitError: String? = null,
 ) {
-  /** Fill-out message when validation ran and [name] is blank; otherwise null. */
+  /** Why [name] is refused, or null; a blank or unfinished one only once validation ran. */
   val nameError: String?
-    get() = if (validationAttempted && name.isBlank()) FILL_OUT_MESSAGE else null
+    get() = errorOf(name)
 
-  /** Fill-out message when validation ran and [surname] is blank; otherwise null. */
+  /** Why [surname] is refused, or null; a blank or unfinished one only once validation ran. */
   val surnameError: String?
-    get() = if (validationAttempted && surname.isBlank()) FILL_OUT_MESSAGE else null
+    get() = errorOf(surname)
+
+  /** Whether the role buttons can be pressed: no save in progress and no error shown. */
+  val canSubmit: Boolean
+    get() = !isSaving && nameError == null && surnameError == null
+
+  private fun errorOf(value: String): String? =
+      InputValidation.NAME.errorMessage(
+          value,
+          submitted = validationAttempted,
+          blankMessage = FILL_OUT_MESSAGE,
+      )
 }
 
 /**
@@ -61,14 +75,20 @@ class CreateProfileViewModel(
 
   private var createdRole: Role? = null
 
-  /** Updates [CreateProfileUIState.name]; field error clears automatically when non-blank. */
+  /**
+   * Updates [CreateProfileUIState.name], cut at [InputValidation.NAME_MAX_LENGTH]; field error
+   * clears automatically once the name is valid.
+   */
   fun onNameChange(value: String) {
-    updateNameField(name = value)
+    updateNameField(name = InputValidation.NAME.clean(value))
   }
 
-  /** Updates [CreateProfileUIState.surname]; field error clears automatically when non-blank. */
+  /**
+   * Updates [CreateProfileUIState.surname], cut at [InputValidation.NAME_MAX_LENGTH]; field error
+   * clears automatically once the surname is valid.
+   */
   fun onSurnameChange(value: String) {
-    updateNameField(surname = value)
+    updateNameField(surname = InputValidation.NAME.clean(value))
   }
 
   /**
@@ -76,8 +96,8 @@ class CreateProfileViewModel(
    *
    * [onSuccess] is invoked after a successful create (and again if the user returns and presses a
    * role button), so the navigation owner can move forward without observing UI state. Does nothing
-   * while a save is already in progress. Does not call the repository when fields are blank after
-   * trim.
+   * while a save is already in progress. Does not call the repository when a field is blank after
+   * trim or isn't a valid name.
    */
   fun onRoleSelected(role: Role, onSuccess: (Role) -> Unit = {}) {
     createdRole?.let {
@@ -98,7 +118,11 @@ class CreateProfileViewModel(
       )
     }
 
-    if (trimmedName.isBlank() || trimmedSurname.isBlank()) return
+    if (
+        !InputValidation.NAME.isValid(trimmedName) || !InputValidation.NAME.isValid(trimmedSurname)
+    ) {
+      return
+    }
 
     viewModelScope.launch {
       _uiState.update { it.copy(isSaving = true, submitError = null) }

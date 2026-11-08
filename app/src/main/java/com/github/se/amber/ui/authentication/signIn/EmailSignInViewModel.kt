@@ -14,6 +14,7 @@ import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.validation.InputValidation
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,29 +59,33 @@ class EmailSignInViewModel(
   val uiState = _uiState.asStateFlow() // Read-only
 
   /**
-   * Updates the email address displayed by the screen.
+   * Updates the email address displayed by the screen, without spaces and cut at
+   * [InputValidation.EMAIL_MAX_LENGTH].
    *
    * @param email New email value entered by the user.
    */
   fun onEmailChange(email: String) {
     _uiState.update { state ->
-      state.copy(email = email) // Change the email, keep the rest of the state unchanged
+      // Change the email, keep the rest of the state unchanged
+      state.copy(email = InputValidation.EMAIL.clean(email))
     }
   }
 
   /**
-   * Checks that an email address was entered before continuing with email sign-in.
+   * Checks that a well-formed email address was entered before continuing with email sign-in.
    *
-   * A blank email sets [EmailSignInUIState.errorMessage] so the screen can report it.
+   * A blank or malformed email sets [EmailSignInUIState.errorMessage] so the screen can report it.
    *
-   * @return true if the email is nonblank, false otherwise.
+   * @return true if the email is a valid address, false otherwise.
    */
   fun validateEmail(): Boolean {
-    if (_uiState.value.email.isBlank()) {
-      _uiState.update { it.copy(errorMessage = "Please enter your email address.") }
-      return false
-    }
-    return true
+    val message =
+        InputValidation.EMAIL.errorMessage(
+            _uiState.value.email,
+            blankMessage = "Please enter your email address.",
+        ) ?: return true
+    _uiState.update { it.copy(errorMessage = message) }
+    return false
   }
 
   /**

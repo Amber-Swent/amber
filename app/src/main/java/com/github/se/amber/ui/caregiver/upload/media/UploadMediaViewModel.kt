@@ -26,6 +26,7 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.model.validation.InputValidation
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
@@ -75,6 +76,7 @@ enum class MediaViewModelErrorMessage(val mess: String) {
   SELECT_DATE(mess = "date can't be empty"),
   PICK_A_PLACE(mess = "Pick the place from the suggestions"),
   FIRST_NAME_REQUIRED(mess = "A first name is required"),
+  INVALID_PERSON_NAME(mess = "Check the names: ${InputValidation.NAME.formatMessage}"),
   COULD_NOT_ADD_PERSON(mess = "Could not add person"),
   PERSON_WITHOUT_ID(mess = "This person wasn't saved, try again"),
   CANNOT_TAG_PERSON(
@@ -159,7 +161,31 @@ data class CommonMediaUIState(
    * already in progress. A screen state adds the check of its own content.
    */
   val canUpload: Boolean
-    get() = description.isNotBlank() && date != null && location.hasValidPlace && !isUploading
+    get() =
+        InputValidation.DESCRIPTION.isValid(description) &&
+            date != null &&
+            location.hasValidPlace &&
+            !isUploading
+
+  /** Why the first name typed in the add-person dialog is refused; null while it is blank. */
+  val personFirstNameError: String?
+    get() = InputValidation.NAME.errorMessage(personFirstName, blankMessage = null)
+
+  /** Why the surname typed in the add-person dialog is refused, or null. */
+  val personLastNameError: String?
+    get() = InputValidation.NAME.optional().errorMessage(personLastName)
+
+  /** Why the nickname typed in the add-person dialog is refused, or null. */
+  val personNicknameError: String?
+    get() = InputValidation.NAME.optional().errorMessage(personNickname)
+
+  /** Whether the add-person dialog can save: a valid first name, and valid optional names. */
+  val canAddPerson: Boolean
+    get() =
+        !isAddingPerson &&
+            InputValidation.NAME.isValid(personFirstName) &&
+            personLastNameError == null &&
+            personNicknameError == null
 }
 
 /**
@@ -422,7 +448,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       authorId == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.UNVERIFIED.mess)
       circle == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.STILL_LOADING.mess)
       contentError != null -> UploadCheck.Blocked(contentError)
-      state.common.description.isBlank() ->
+      !InputValidation.DESCRIPTION.isValid(state.common.description) ->
           UploadCheck.Blocked(MediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess)
       date == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.SELECT_DATE.mess)
       !state.common.location.hasValidPlace ->
@@ -443,11 +469,14 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val taggableIds = circle.taggableIds()
     val shownIds = state.common.shownIds.filter { it in taggableIds }
 
+    // Saved without the spaces and blank lines around it
+    val saved = state.withCommon(state.common.copy(description = state.common.description.trim()))
+
     updateCommon { it.copy(isUploading = true) }
     viewModelScope.launch {
       try {
         val id = mediaRepo.newMediaId(circle.id)
-        val item = createItem(id, state, ready.authorId, circle, ready.date, shownIds)
+        val item = createItem(id, saved, ready.authorId, circle, ready.date, shownIds)
         mediaRepo.addMedia(circle, item, fileOf(state))
         updateCommon { it.copy(isUploading = false) }
         _events.send(MediaEvent.Uploaded)
@@ -484,12 +513,13 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   }
 
   /**
-   * Updates the media description in the UI state.
+   * Updates the media description in the UI state, cut at [InputValidation.DESCRIPTION_MAX_LENGTH]
+   * and without control characters other than line breaks.
    *
    * @param description The new media description.
    */
   fun setDescription(description: String) {
-    updateCommon { it.copy(description = description) }
+    updateCommon { it.copy(description = InputValidation.DESCRIPTION.clean(description)) }
   }
 
   /**
@@ -505,13 +535,15 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * Updates the place search typed by the user; [searchPlacesAsTyped] looks it up once they stop
    * typing. Any place picked before is dropped: the text no longer names it.
    *
-   * @param query The text typed in the place field.
+   * @param query The text typed in the place field, cut at
+   *   [InputValidation.PLACE_QUERY_MAX_LENGTH].
    */
   fun setPlaceQuery(query: String) {
+    val cleaned = InputValidation.PLACE_QUERY.clean(query)
     // Nothing changed: no new search will come, so it mustn't look like one is running
-    if (query == _uiState.value.common.location.query) return
+    if (cleaned == _uiState.value.common.location.query) return
     updateCommon {
-      val location = MediaLocationUIState(query = query, suggestions = it.location.suggestions)
+      val location = MediaLocationUIState(query = cleaned, suggestions = it.location.suggestions)
       val willSearch = location.isLongEnoughToSearch
       it.copy(
           location =
@@ -521,7 +553,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
               )
       )
     }
-    placeQueries.tryEmit(query)
+    placeQueries.tryEmit(cleaned)
   }
 
   /**
@@ -670,16 +702,19 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     }
   }
 
+  /** Updates the first name typed in the add-person dialog, cut at the names' maximum length. */
   fun setPersonFirstName(firstName: String) {
-    updateCommon { it.copy(personFirstName = firstName) }
+    updateCommon { it.copy(personFirstName = InputValidation.NAME.clean(firstName)) }
   }
 
+  /** Updates the surname typed in the add-person dialog, cut at the names' maximum length. */
   fun setPersonLastName(lastName: String) {
-    updateCommon { it.copy(personLastName = lastName) }
+    updateCommon { it.copy(personLastName = InputValidation.NAME.clean(lastName)) }
   }
 
+  /** Updates the nickname typed in the add-person dialog, cut at the names' maximum length. */
   fun setPersonNickname(nickname: String) {
-    updateCommon { it.copy(personNickname = nickname) }
+    updateCommon { it.copy(personNickname = InputValidation.NAME.clean(nickname)) }
   }
 
   /** Saves a person in the care circle and makes them available for media tagging. */
@@ -696,6 +731,10 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       setErrorMsg(MediaViewModelErrorMessage.FIRST_NAME_REQUIRED.mess)
       return
     }
+    if (!state.canAddPerson) {
+      setErrorMsg(MediaViewModelErrorMessage.INVALID_PERSON_NAME.mess)
+      return
+    }
     updateCommon { it.copy(isAddingPerson = true) }
     viewModelScope.launch {
       try {
@@ -703,9 +742,9 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             .addPerson(
                 circle.id,
                 Person(
-                    firstName = state.personFirstName,
-                    lastName = state.personLastName,
-                    nickname = state.personNickname,
+                    firstName = state.personFirstName.trim(),
+                    lastName = state.personLastName.trim(),
+                    nickname = state.personNickname.trim(),
                 ),
             )
             .onSuccess { person ->
