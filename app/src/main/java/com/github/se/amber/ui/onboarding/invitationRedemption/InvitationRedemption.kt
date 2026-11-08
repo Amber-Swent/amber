@@ -1,6 +1,6 @@
-// this code was written by Alaabrine
-// with the aid of AI coding agent
+// Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
 import androidx.compose.foundation.layout.Arrangement
@@ -10,9 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -56,6 +58,7 @@ internal const val SUBMIT_LABEL = "Submit"
  * @param onRedeemSuccess called with the redeemed circle and role after a successful redeem.
  * @param onBack called when the user taps Cancel.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InvitationRedemptionScreen(
     modifier: Modifier = Modifier,
@@ -70,9 +73,13 @@ fun InvitationRedemptionScreen(
       containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
       topBar = {
-        TopNavigationMenu(
-            action = TopNavigationAction.CANCEL,
-            onBackClick = { if (!uiState.isRedeeming) onBack() },
+        TopAppBar(
+            title = {
+              TopNavigationMenu(
+                  action = TopNavigationAction.CANCEL,
+                  onBackClick = { if (!uiState.isRedeeming) onBack() },
+              )
+            }
         )
       },
   ) { innerPadding ->

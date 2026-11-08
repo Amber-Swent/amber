@@ -1,4 +1,4 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
@@ -39,7 +39,7 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signOut.SignOutScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
-import com.github.se.amber.ui.caregiver.parameters.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
@@ -203,9 +203,6 @@ fun AmberApp(
             // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
-            // For M1 we have decided that the back button on the top bar redirect to the Home
-            // Screen if we were on a top level destination
-            checkout = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
         )
       }
       @Suppress("java:S1135")

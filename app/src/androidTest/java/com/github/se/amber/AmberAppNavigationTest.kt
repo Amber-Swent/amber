@@ -1,4 +1,4 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
@@ -272,16 +272,6 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_TAB_PARAMETERS)
 
     assertRoute(CaregiverScreen.Parameters.route)
-  }
-
-  @Test
-  fun upload_back_navigatesToCaregiverHome() {
-    launch(NavGraphs.CAREGIVER)
-    goTo(CaregiverScreen.Upload.route)
-
-    click(Tags.UPLOAD_BACK)
-
-    assertRoute(CaregiverScreen.Home.route)
   }
 
   // ---------------------------------------------------------------------------------------------

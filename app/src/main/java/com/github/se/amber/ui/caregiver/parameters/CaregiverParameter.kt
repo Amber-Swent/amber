@@ -1,10 +1,7 @@
-/* Written by Yuhan YANG, with assistance from
- * Cursor.
- * Modify by Lou-Anne Maier, with assistance from
- * Claude Code.
- * Modified by Alaabrine, with assistance from Cursor.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- */
+// Written by Yuhan YANG, with assistance from Cursor.
+// Modify by Lou-Anne Maier, with assistance from Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.caregiver.parameters
 
 import android.widget.Toast
@@ -22,9 +19,11 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.DisplayButton
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags

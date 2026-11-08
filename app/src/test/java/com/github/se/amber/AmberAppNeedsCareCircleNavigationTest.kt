@@ -1,4 +1,5 @@
-// this code was written by Alaabrine, with assistance from Cursor
+// Written by Alaabrine, with assistance from Cursor
+
 package com.github.se.amber
 
 import androidx.compose.ui.test.assertIsDisplayed

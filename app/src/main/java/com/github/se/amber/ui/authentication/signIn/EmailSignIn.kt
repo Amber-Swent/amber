@@ -1,6 +1,6 @@
-/* This file was written with the aid of AI.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- */
+// Written by MeiliV, with assistance from OpenAI Codex
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context

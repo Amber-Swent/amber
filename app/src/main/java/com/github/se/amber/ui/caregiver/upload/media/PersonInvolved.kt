@@ -1,10 +1,8 @@
-/* Written by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- * Moved by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.border
@@ -63,7 +61,8 @@ object DisplayWhoIsInvolvedTestTags {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DisplayWhoIsInvolved(
-    options: Map<String, String> = emptyMap(), // id -> label
+    // id -> label
+    options: Map<String, String> = emptyMap(),
     shownIds: Set<String> = emptySet(),
     toggleShownId: (String) -> Unit = {},
     onAddPerson: () -> Unit = {},
@@ -72,7 +71,7 @@ fun DisplayWhoIsInvolved(
     Text(
         "Who is involved - optional",
         color = MaterialTheme.colorScheme.onBackground,
-        style = MaterialTheme.typography.bodyMedium,
+        style = MaterialTheme.typography.bodyLarge,
     )
     if (options.isEmpty()) {
       Row(
@@ -121,7 +120,11 @@ fun DisplayWhoIsInvolved(
               colors = selectableChipColors(),
           )
         }
-        DisplayAddPersonChip(onAddPerson = onAddPerson)
+        DisplayAddPersonChip(
+            // Extra space on top of the one between the chips, to set the "+" apart from them
+            modifier = Modifier.padding(start = CAREGIVER_PADDING_SMALL),
+            onAddPerson = onAddPerson,
+        )
       }
     }
   }
@@ -147,6 +150,11 @@ private fun DisplayAddPersonChip(
               containerColor = MaterialTheme.colorScheme.tertiary,
               labelColor = MaterialTheme.colorScheme.onTertiary,
           ),
+      border =
+          AssistChipDefaults.assistChipBorder(
+              enabled = true,
+              borderColor = MaterialTheme.colorScheme.tertiary,
+          ),
   )
 }
 
@@ -154,10 +162,10 @@ private fun DisplayAddPersonChip(
 @Composable
 internal fun selectableChipColors(): SelectableChipColors =
     FilterChipDefaults.filterChipColors(
-        containerColor = MaterialTheme.colorScheme.tertiary,
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
         labelColor = MaterialTheme.colorScheme.onTertiary,
-        selectedContainerColor = MaterialTheme.colorScheme.secondary,
-        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+        selectedLabelColor = MaterialTheme.colorScheme.onTertiary,
     )
 
 /** Preview of [DisplayWhoIsInvolved] using the Amber application theme. */

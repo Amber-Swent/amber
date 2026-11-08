@@ -1,6 +1,6 @@
-/* Written by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import android.widget.Toast
@@ -45,7 +45,7 @@ import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
@@ -105,19 +105,17 @@ fun UploadAudioScreen(
 
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-          TopAppBar(
-              title = {
-                Column {
-                  TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
-                  DisplayCaregiverTitle(
-                      Modifier.testTag(UploadAudioScreenTestTags.TITLE),
-                      "Upload Audio",
-                  )
-                }
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                DisplayCaregiverTitle(
+                    Modifier.testTag(UploadAudioScreenTestTags.TITLE),
+                    "Upload Audio",
+                )
               }
-          )
-        }
+            }
+        )
       },
       content = { paddingValues ->
         Column(
@@ -206,7 +204,7 @@ fun UploadAudioScreen(
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
             text = if (uiState.isUploading) "Uploading…" else "Upload Audio",
-            widthPercentage = CAREGIVER_BUTTON_WIDTH_BIG,
+            widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
         )
       },
   )

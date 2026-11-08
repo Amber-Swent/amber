@@ -1,7 +1,7 @@
-/* Written by Lou-Anne Maier and + , with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by Alaabrine, with assistance from Cursor.
- */
+// Written by Lou-Anne Maier and + , with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
@@ -9,8 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -54,7 +54,7 @@ data class CaregiverHomeUIState(
  * @property profileRepository The repository used to fetch the profile of the current user.
  */
 class CaregiverHomeViewModel(
-    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
 ) : ViewModel() {

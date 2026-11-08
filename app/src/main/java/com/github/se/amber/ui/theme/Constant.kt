@@ -1,7 +1,9 @@
-/**
- * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified by MeiliV,
- * with assistance from OpenAI Codex. Modified by Yuhan YANG, with assistance from Cursor.
- */
+// Written by LaMaier.
+// Modified by nehachak1, with assistance from Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Yuhan YANG, with assistance from Cursor
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,7 @@ val CAREGIVER_PADDING_MEDIUM = 16.dp
 val CAREGIVER_PADDING_BIG = 24.dp
 val CAREGIVER_PADDING_ENORMOUS = 48.dp
 
+val PATIENT_PADDING_MINI = 8.dp
 val PATIENT_PADDING_SMALL = 16.dp
 val PATIENT_PADDING_MEDIUM = 24.dp
 val PATIENT_PADDING_BIG = 32.dp
@@ -54,9 +57,8 @@ val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
 val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 
-// FIXME open a PR for renaming all the caregiver button width to small, medium, etc
-const val CAREGIVER_BUTTON_WIDTH = 0.5f
-const val CAREGIVER_BUTTON_WIDTH_BIG = 1f
+const val CAREGIVER_BUTTON_WIDTH_MEDIUM = 0.5f
+const val CAREGIVER_BUTTON_WIDTH_ENORMOUS = 1f
 
 // ------- PATIENT BUTTON -------
 val PATIENT_BUTTON_HEIGHT_SMALL = 52.dp
@@ -71,7 +73,16 @@ const val PATIENT_BUTTON_WIDTH_BIG = 1f
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
 val DIVIDER_THICKNESS = 1.dp
-val BORDER_THICKNESS = 1.dp
+
+// This constant will be renamed BORDER_THICKNESS_CAREGIVER when less Pr are open.
+// Currently, this would create too much conflicts.
+val BORDER_THICKNESS = 3.dp
+
+// This constant is intended for the person responsible for setting up the patient screens.
+// I’ll leave it to them to decide on a value that fits in with the rest.
+// If the thickness specified for caregiver is suitable,
+// you can delete it and rename the one for the caregiver.
+val BORDER_THICKNESS_PATIENT = 3.dp
 
 // ------- SURFACE -------
 
