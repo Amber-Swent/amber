@@ -4,7 +4,11 @@
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,11 +29,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.model.media.AudioRecordingState
@@ -86,6 +94,20 @@ fun UploadAudioScreen(
   val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
   val errorMessage = uiState.common.errorMsg
   val context = LocalContext.current
+
+  // Android remembers the answer, so nothing is stored here except that the popup was shown once
+  // rememberSaveable keeps it from coming back after a rotation.
+  val micLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+  var askedMic by rememberSaveable { mutableStateOf(false) }
+  LaunchedEffect(Unit) {
+    val granted =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+    if (!askedMic && !granted) {
+      askedMic = true
+      micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+  }
 
   LaunchedEffect(errorMessage) {
     if (errorMessage != null) {

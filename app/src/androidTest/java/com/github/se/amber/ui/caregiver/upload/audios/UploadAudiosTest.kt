@@ -1,4 +1,5 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -14,8 +15,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.media.AudioRecordingState
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.media.audio.AudioRecorderTestTags
 import io.mockk.every
 import io.mockk.mockk
@@ -49,6 +52,12 @@ class UploadAudiosTest {
 
   @Before
   fun setUp() {
+    // Already granted, so the permission popup of the screen doesn't cover the tests
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.uiAutomation.grantRuntimePermission(
+        instrumentation.targetContext.packageName,
+        android.Manifest.permission.RECORD_AUDIO,
+    )
     uiStateFlow = MutableStateFlow(UploadAudioUIState())
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow
@@ -158,6 +167,23 @@ class UploadAudiosTest {
     launchScreen(recorded)
     setState(UploadAudioUIState())
     tagged(UploadAudioScreenTestTags.RECORD_AUDIO).assertIsDisplayed()
+  }
+
+  // ---------- microphone error ----------
+
+  @Test
+  fun aMicrophoneErrorIsShownThenCleared() {
+    launchScreen()
+    setState(
+        UploadAudioUIState(
+            common =
+                CommonMediaUIState(
+                    errorMsg = UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess
+                )
+        )
+    )
+    composeTestRule.waitForIdle()
+    verify { viewModel.clearErrorMsg() }
   }
 
   // ---------- scrolling ----------

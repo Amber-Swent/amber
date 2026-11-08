@@ -206,7 +206,7 @@ class UploadAudioViewModelTest {
 
   @Test
   fun startRecordingFailureSetsTheStartError_andStaysIdle() {
-    recorder.startError = IOException("busy")
+    recorder.startError = IllegalStateException("busy")
     val vm = createViewModel()
     vm.startRecording()
     assertEquals(
@@ -230,6 +230,46 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun startRecordingWithoutPermissionStaysIdle() {
+    recorder.startError = SecurityException()
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun startRecordingWithoutPermissionDoesNotKeepARecording() {
+    recorder.startError = SecurityException()
+    val vm = createViewModel()
+    vm.startRecording()
+    assertNull(recorder.file)
+  }
+
+  @Test
+  fun startRecordingWithBusyMicrophoneSetsTheBusyError() {
+    recorder.startError = IOException("in use")
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.mess,
+        vm.uiState.value.common.errorMsg,
+    )
+  }
+
+  @Test
+  fun startRecordingWithBusyMicrophoneStaysIdle() {
+    recorder.startError = IOException("in use")
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun microphoneErrorsTellTheUserToUseTheAndroidSettings() {
+    assertTrue(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess.contains("settings"))
   }
 
   // ---------- stopRecording ----------

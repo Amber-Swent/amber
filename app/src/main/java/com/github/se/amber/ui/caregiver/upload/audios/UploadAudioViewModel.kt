@@ -26,6 +26,7 @@ import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
 import java.io.File
+import java.io.IOException
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
@@ -45,6 +46,8 @@ enum class UploadAudioViewModelErrorMessage(val mess: String) {
   COULD_NOT_START_RECORDING(mess = "Could not start the recording: "),
   COULD_NOT_STOP_RECORDING(mess = "Could not keep the recording: "),
   COULD_NOT_PLAY_RECORDING(mess = "Could not play the recording: "),
+
+    MICROPHONE_BUSY(mess = "Microphone used by another application")
 }
 
 /**
@@ -193,9 +196,10 @@ class UploadAudioViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: SecurityException) {
-        setErrorMsg(
-            UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess + (e.message ?: "")
-        )
+        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess)
+        return@launch
+      } catch (e: IOException) {
+        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.mess)
         return@launch
       } catch (e: Exception) {
         setErrorMsg(

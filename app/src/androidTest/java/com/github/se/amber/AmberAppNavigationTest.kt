@@ -3,6 +3,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.espresso.Espresso
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
@@ -92,7 +94,13 @@ class AmberAppNavigationTest {
 
   @Before
   fun setUp() {
-    // Nothing to do: the controller is created inside setContent (needs a Compose context)
+    // The controller is created inside setContent (needs a Compose context).
+    // The microphone is already allowed, so UploadAudioScreen shows no permission popup.
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.uiAutomation.grantRuntimePermission(
+        instrumentation.targetContext.packageName,
+        android.Manifest.permission.RECORD_AUDIO,
+    )
   }
 
   // ---------------------------------------------------------------------------------------------
