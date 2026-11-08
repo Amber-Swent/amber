@@ -225,6 +225,7 @@ fun UploadPictureScreen(
   AddPersonDialog(
       isOpen = uiState.common.isAddPersonOpen,
       isAddingPerson = uiState.common.isAddingPerson,
+      canAddPerson = uiState.common.canAddPerson,
       firstName = uiState.common.personFirstName,
       lastName = uiState.common.personLastName,
       nickname = uiState.common.personNickname,

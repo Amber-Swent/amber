@@ -1306,6 +1306,31 @@ class MediaViewModelTest {
   }
 
   @Test
+  fun unfinishedPersonNameShowsItsErrorOnlyOnceAddIsTapped() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne-")
+
+    assertNull(vm.uiState.value.common.personFirstNameError)
+    assertTrue(vm.uiState.value.common.canAddPerson)
+
+    vm.addPerson()
+
+    val common = vm.uiState.value.common
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals(InputValidation.NAME.formatMessage, common.personFirstNameError)
+    assertFalse(common.canAddPerson)
+    assertTrue(common.isAddPersonOpen)
+
+    vm.dismissAddPerson()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne-")
+
+    assertNull(vm.uiState.value.common.personFirstNameError)
+  }
+
+  @Test
   fun typedTextStopsAtEachFieldsMaxLength() {
     val vm = createViewModel()
 

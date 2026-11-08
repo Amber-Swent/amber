@@ -142,6 +142,8 @@ data class MediaLocationUIState(
  * @param personFirstName The first name typed in the add-person dialog.
  * @param personLastName The last name typed in the add-person dialog.
  * @param personNickname The nickname typed in the add-person dialog.
+ * @param isAddPersonSubmitted Whether the user tapped Add in the add-person dialog, after which an
+ *   unfinished name like "Anne-" shows its error too.
  */
 data class CommonMediaUIState(
     val description: String = "",
@@ -155,6 +157,7 @@ data class CommonMediaUIState(
     val personFirstName: String = "",
     val personLastName: String = "",
     val personNickname: String = "",
+    val isAddPersonSubmitted: Boolean = false,
 ) {
   /**
    * Whether the common fields allow an upload: a description, a date, a valid place, and no upload
@@ -169,23 +172,40 @@ data class CommonMediaUIState(
 
   /** Why the first name typed in the add-person dialog is refused; null while it is blank. */
   val personFirstNameError: String?
-    get() = InputValidation.NAME.errorMessage(personFirstName, blankMessage = null)
+    get() =
+        InputValidation.NAME.errorMessage(
+            personFirstName,
+            submitted = isAddPersonSubmitted,
+            blankMessage = null,
+        )
 
   /** Why the surname typed in the add-person dialog is refused, or null. */
   val personLastNameError: String?
-    get() = InputValidation.OPTIONAL_NAME.errorMessage(personLastName)
+    get() = InputValidation.OPTIONAL_NAME.errorMessage(personLastName, isAddPersonSubmitted)
 
   /** Why the nickname typed in the add-person dialog is refused, or null. */
   val personNicknameError: String?
-    get() = InputValidation.OPTIONAL_NAME.errorMessage(personNickname)
+    get() = InputValidation.OPTIONAL_NAME.errorMessage(personNickname, isAddPersonSubmitted)
 
-  /** Whether the add-person dialog can save: a valid first name, and valid optional names. */
+  /**
+   * Whether the add-person dialog's Add button is enabled: a first name is typed, no field shows an
+   * error, and no person is being saved. An unfinished name keeps it enabled until it is tapped, so
+   * that its error shows then instead of while the user is still typing.
+   */
   val canAddPerson: Boolean
     get() =
         !isAddingPerson &&
-            InputValidation.NAME.isValid(personFirstName) &&
+            personFirstName.isNotBlank() &&
+            personFirstNameError == null &&
             personLastNameError == null &&
             personNicknameError == null
+
+  /** Whether the names typed in the add-person dialog can be saved as they are. */
+  val arePersonNamesValid: Boolean
+    get() =
+        InputValidation.NAME.isValid(personFirstName) &&
+            InputValidation.OPTIONAL_NAME.isValid(personLastName) &&
+            InputValidation.OPTIONAL_NAME.isValid(personNickname)
 }
 
 /**
@@ -698,6 +718,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
           personFirstName = "",
           personLastName = "",
           personNickname = "",
+          isAddPersonSubmitted = false,
       )
     }
   }
@@ -731,7 +752,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       setErrorMsg(MediaViewModelErrorMessage.FIRST_NAME_REQUIRED.mess)
       return
     }
-    if (!state.canAddPerson) {
+    if (!state.arePersonNamesValid) {
+      updateCommon { it.copy(isAddPersonSubmitted = true) }
       setErrorMsg(MediaViewModelErrorMessage.INVALID_PERSON_NAME.mess)
       return
     }
@@ -756,6 +778,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
                     personFirstName = "",
                     personLastName = "",
                     personNickname = "",
+                    isAddPersonSubmitted = false,
                     shownIds = it.shownIds + person.id,
                 )
               }

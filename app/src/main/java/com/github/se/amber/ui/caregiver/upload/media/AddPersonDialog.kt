@@ -20,12 +20,13 @@ object AddPersonDialogTestTags {
 /**
  * Displays a controlled add-person form inside [PopupDialog] when [isOpen] is true.
  *
- * The action is enabled only when the first name is nonblank, no field shows an error, and no add
- * operation is in progress. On action, trimmed field values are sent through their change callbacks
- * before [onSave] runs.
+ * The action is enabled when [canAddPerson] is true; the ViewModel decides it, so the rule lives in
+ * one place. On action, trimmed field values are sent through their change callbacks before
+ * [onSave] runs.
  *
  * @param isOpen whether the dialog is visible.
  * @param isAddingPerson whether an add operation is in progress.
+ * @param canAddPerson whether the action is enabled.
  * @param firstName current required first name.
  * @param lastName current optional surname.
  * @param nickname current optional nickname.
@@ -42,6 +43,7 @@ object AddPersonDialogTestTags {
 fun AddPersonDialog(
     isOpen: Boolean = false,
     isAddingPerson: Boolean = false,
+    canAddPerson: Boolean = false,
     firstName: String = "",
     lastName: String = "",
     nickname: String = "",
@@ -66,10 +68,7 @@ fun AddPersonDialog(
         onNicknameChange(nickname.trim())
         onSave()
       },
-      actionEnabled =
-          firstName.isNotBlank() &&
-              !isAddingPerson &&
-              listOf(firstNameError, lastNameError, nicknameError).all { it == null },
+      actionEnabled = canAddPerson,
       dialogTestTag = AddPersonDialogTestTags.DIALOG,
       dismissTestTag = AddPersonDialogTestTags.CLOSE,
   ) {
