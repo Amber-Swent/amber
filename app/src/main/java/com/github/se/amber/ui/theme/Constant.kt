@@ -73,7 +73,9 @@ const val PATIENT_BUTTON_WIDTH_BIG = 1f
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
 val DIVIDER_THICKNESS = 1.dp
-val BORDER_THICKNESS = 1.dp
+val BORDER_THICKNESS = 3.dp
+
+val BORDER_THICKNESS_PATIENT = 3.dp
 
 // ------- SURFACE -------
 

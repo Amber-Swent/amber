@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -204,6 +205,7 @@ fun DisplayTextField(
   assert(maxChar > 0)
   assert(minLines > 0)
 
+  var isFocused by remember { mutableStateOf(false) }
   var hasBeenFocused by remember { mutableStateOf(false) }
 
   OutlinedTextField(
@@ -213,20 +215,31 @@ fun DisplayTextField(
         Text(
             text = label,
             color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
         )
       },
       placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyMedium) } },
       modifier =
           modifier
               .fillMaxWidth()
-              .onFocusChanged { focusState -> if (focusState.isFocused) hasBeenFocused = true }
+              .border(
+                  width = BORDER_THICKNESS,
+                  color =
+                      if (isFocused) MaterialTheme.colorScheme.secondary
+                      else MaterialTheme.colorScheme.tertiary,
+                  shape = RoundedCornerShape(ROUND_CORNER),
+              )
+              .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) hasBeenFocused = true
+              }
               .testTag(TEXT),
       shape = RoundedCornerShape(ROUND_CORNER),
+      // necessary, otherwise a double back border is visible
       colors =
           OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = MaterialTheme.colorScheme.secondary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.tertiary,
+              focusedBorderColor = Color.Transparent,
+              unfocusedBorderColor = Color.Transparent,
           ),
       singleLine = singleLine,
       minLines = minLines,
@@ -292,7 +305,7 @@ fun DisplayBoxWithIconText(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = MaterialTheme.colorScheme.outline,
+                  color = MaterialTheme.colorScheme.tertiary,
                   shape = RoundedCornerShape(ROUND_CORNER),
               )
               .clip(RoundedCornerShape(ROUND_CORNER))
