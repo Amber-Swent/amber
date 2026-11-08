@@ -104,9 +104,14 @@ class EmailSignInViewModelTest {
   }
 
   @Test
-  fun emailChangeRemovesSpacesAndStopsAtMaxLength() {
+  fun emailChangeKeepsSpacesAndStopsAtMaxLength() {
     viewModel.onEmailChange(" Person@example.com ")
-    assertEquals("Person@example.com", viewModel.uiState.value.email)
+    assertEquals(" Person@example.com ", viewModel.uiState.value.email)
+    assertTrue(viewModel.validateEmail())
+
+    viewModel.onEmailChange("per son@example.com")
+    assertFalse(viewModel.validateEmail())
+    assertEquals(InputValidation.EMAIL.formatMessage, viewModel.uiState.value.errorMessage)
 
     viewModel.onEmailChange("a".repeat(300) + "@example.com")
     assertEquals(InputValidation.EMAIL_MAX_LENGTH, viewModel.uiState.value.email.length)

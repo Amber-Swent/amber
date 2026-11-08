@@ -24,8 +24,8 @@ enum class InputError {
  *
  * A ViewModel uses a rule in two places:
  * - [clean] on every keystroke: it cuts the text at [maxLength] (so typing stops there), removes
- *   invisible control characters, which a user can only paste, and applies [removeSpaces] and
- *   [uppercase].
+ *   invisible control and formatting characters, which a user can only paste, and applies
+ *   [removeSpaces] and [uppercase].
  * - [check] or [errorMessage] before saving: they trim the text, then say why it is refused, or
  *   return null if it is fine. A text of only spaces counts as blank.
  *
@@ -33,7 +33,7 @@ enum class InputError {
  * @param minLength The fewest characters a nonblank value needs.
  * @param required Whether a blank value is refused; false for an optional field.
  * @param multiLine Whether the text may hold line breaks, e.g. a description.
- * @param allowedCharacters The characters the field can hold, or null for any but control ones.
+ * @param allowedCharacters The characters the field can hold, or null for any but invisible ones.
  *   Checked while typing, so a wrong character shows its error at once.
  * @param format The shape the whole trimmed value must have, or null for any.
  * @param formatMessage Shown when the value has a character or shape the field doesn't allow.
@@ -61,9 +61,7 @@ data class InputRule(
   /** [text] as the field should hold it after a keystroke or a paste. */
   fun clean(text: String): String {
     var cleaned = if (multiLine) text.replace("\r\n", "\n") else text
-    cleaned = cleaned.filterNot {
-      (it.isISOControl() && !(multiLine && it == '\n')) || (removeSpaces && it.isWhitespace())
-    }
+    cleaned = cleaned.filterNot { isInvisible(it) || (removeSpaces && it.isWhitespace()) }
     if (uppercase) cleaned = cleaned.uppercase()
     return limit(cleaned, maxLength)
   }
@@ -115,8 +113,13 @@ data class InputRule(
   fun isValid(text: String): Boolean = check(text) == null
 
   private fun hasOnlyAllowedCharacters(value: String): Boolean =
-      value.none { it.isISOControl() && !(multiLine && it == '\n') } &&
-          (allowedCharacters == null || allowedCharacters.matches(value))
+      value.none(::isInvisible) && (allowedCharacters == null || allowedCharacters.matches(value))
+
+  /**
+   * Whether [char] is a control character (other than an allowed line break) or unsafe formatting.
+   */
+  private fun isInvisible(char: Char): Boolean =
+      (char.isISOControl() && !(multiLine && char == '\n')) || char.isUnsafeFormatting()
 }
 
 /**
@@ -154,29 +157,33 @@ object InputValidation {
   /** A name that may be left blank, like a surname or a nickname in the Add Person dialog. */
   val OPTIONAL_NAME = NAME.optional()
 
-  /** A short title on one line, like a care circle's name: any characters but control ones. */
+  /** A short title on one line, like a care circle's name: any characters but invisible ones. */
   val SHORT_TEXT = InputRule(maxLength = SHORT_TEXT_MAX_LENGTH)
 
-  /** A media description: any characters but control ones, on several lines. */
+  /** A media description: any characters but invisible ones, on several lines. */
   val DESCRIPTION = InputRule(maxLength = DESCRIPTION_MAX_LENGTH, multiLine = true)
 
   /** A place typed to be searched for. */
   val PLACE_QUERY = InputRule(maxLength = PLACE_QUERY_MAX_LENGTH, required = false)
 
-  /** An email address, of the same shape as android.util.Patterns.EMAIL_ADDRESS accepts. */
+  /**
+   * An email address. Stricter than android.util.Patterns.EMAIL_ADDRESS (which doesn't exist in
+   * local unit tests anyway): the part before the @ holds at most 64 characters (RFC 5321) and has
+   * no dot at its start, at its end or next to another, and no part of the domain starts or ends
+   * with a hyphen. Spaces are kept as typed, so that "i love@otters.com" is refused rather than
+   * silently turned into another address; [InputRule.check] still trims the ends.
+   */
   val EMAIL =
       InputRule(
           maxLength = EMAIL_MAX_LENGTH,
-          // Patterns.EMAIL_ADDRESS itself doesn't exist in local unit tests, where rules are tested
           format =
               Regex(
-                  "[a-zA-Z0-9+._%\\-]{1,256}" +
+                  "(?=[^@]{1,64}@)[a-zA-Z0-9+_%\\-]+(\\.[a-zA-Z0-9+_%\\-]+)*" +
                       "@" +
-                      "[a-zA-Z0-9][a-zA-Z0-9\\-]{0,64}" +
-                      "(\\.[a-zA-Z0-9][a-zA-Z0-9\\-]{0,25})+"
+                      "[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?" +
+                      "(\\.[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?)+"
               ),
           formatMessage = "Enter a valid email address",
-          removeSpaces = true,
       )
 
   /** An invitation code, in capitals and without spaces, as they are generated. */
@@ -190,6 +197,22 @@ object InputValidation {
           uppercase = true,
       )
 }
+
+/**
+ * Whether this is an invisible formatting character that can hide or reorder text: zero-width
+ * spaces, the byte order mark, word joiner, and the marks, overrides and isolates that change the
+ * text's direction. The zero-width joiner (U+200D) is kept, since emojis made of several people,
+ * like a family, are built with it.
+ */
+private fun Char.isUnsafeFormatting(): Boolean =
+    this == '\u200B' || // Zero-width space
+        this == '\u200E' || // Left-to-right mark
+        this == '\u200F' || // Right-to-left mark
+        this == '\u061C' || // Arabic letter mark
+        this == '\u2060' || // Word joiner
+        this == '\uFEFF' || // Zero-width no-break space / byte order mark
+        this in '\u202A'..'\u202E' || // Bidirectional embeddings and overrides
+        this in '\u2066'..'\u2069' // Bidirectional isolates
 
 /**
  * Cuts [text] to [maxLength] characters, without splitting an emoji or other character stored as

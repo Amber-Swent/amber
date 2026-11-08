@@ -61,12 +61,43 @@ class InputValidationTest {
   }
 
   @Test
+  fun unsafeInvisibleCharactersAreRemovedAndRefused() {
+    val rule = InputValidation.SHORT_TEXT
+
+    assertEquals("Family", rule.clean("Fam\u200Bily"))
+    assertEquals("Family", rule.clean("Fam\u202Eily"))
+    assertEquals("Family", InputValidation.DESCRIPTION.clean("\uFEFFFam\u2066ily\u200F"))
+    assertEquals(InputError.WRONG_FORMAT, rule.check("Fam\u202Eily"))
+    assertEquals(InputError.WRONG_FORMAT, rule.check("Fam\u200Bily"))
+    // The zero-width joiner builds emojis of several people, so it stays
+    assertNull(rule.check("Family \uD83D\uDC68\u200D\uD83D\uDC67"))
+  }
+
+  @Test
   fun email_acceptsAddressesAndRefusesMalformedOnes() {
-    assertNull(InputValidation.EMAIL.check("person.name+tag@mail.example.ch"))
-    listOf("person", "person@", "@example.com", "person@example", "per son@example.com").forEach {
-      assertEquals(it, InputError.WRONG_FORMAT, InputValidation.EMAIL.check(it))
+    listOf("person.name+tag@mail.example.ch", "a@b-c.example.com").forEach {
+      assertNull(it, InputValidation.EMAIL.check(it))
     }
-    assertEquals("person@example.com", InputValidation.EMAIL.clean(" person @example.com "))
+    listOf(
+            "person",
+            "person@",
+            "@example.com",
+            "person@example",
+            "john..doe@example.com",
+            ".john@example.com",
+            "john.@example.com",
+            "a@-example.com",
+            "a@example-.com",
+            "${"a".repeat(65)}@example.com",
+        )
+        .forEach { assertEquals(it, InputError.WRONG_FORMAT, InputValidation.EMAIL.check(it)) }
+  }
+
+  @Test
+  fun email_keepsSpacesSoThatOneInsideIsRefused() {
+    assertEquals(" person@example.com", InputValidation.EMAIL.clean(" person@example.com"))
+    assertNull(InputValidation.EMAIL.check(" person@example.com "))
+    assertEquals(InputError.WRONG_FORMAT, InputValidation.EMAIL.check("per son@example.com"))
   }
 
   @Test

@@ -59,8 +59,8 @@ class EmailSignInViewModel(
   val uiState = _uiState.asStateFlow() // Read-only
 
   /**
-   * Updates the email address displayed by the screen, without spaces and cut at
-   * [InputValidation.EMAIL_MAX_LENGTH].
+   * Updates the email address displayed by the screen, cut at [InputValidation.EMAIL_MAX_LENGTH].
+   * Spaces are kept as typed, so that [validateEmail] refuses an address with a space inside.
    *
    * @param email New email value entered by the user.
    */
