@@ -1,9 +1,7 @@
-/* Written by Yuhan YANG, with assistance from
- * Cursor.
- * Modify by Lou-Anne Maier, with assistance from
- * Claude Code.
- * Modified by Alaabrine, with assistance from Cursor.
- */
+// Written by Yuhan YANG, with assistance from Cursor.
+// Modify by Lou-Anne Maier, with assistance from Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.caregiver.parameters
 
 import androidx.compose.ui.test.assertIsDisplayed

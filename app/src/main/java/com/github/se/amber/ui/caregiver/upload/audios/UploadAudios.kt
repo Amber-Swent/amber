@@ -1,6 +1,6 @@
-/* Written by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import android.widget.Toast
@@ -105,19 +105,17 @@ fun UploadAudioScreen(
 
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-          TopAppBar(
-              title = {
-                Column {
-                  TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
-                  DisplayCaregiverTitle(
-                      Modifier.testTag(UploadAudioScreenTestTags.TITLE),
-                      "Upload Audio",
-                  )
-                }
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                DisplayCaregiverTitle(
+                    Modifier.testTag(UploadAudioScreenTestTags.TITLE),
+                    "Upload Audio",
+                )
               }
-          )
-        }
+            }
+        )
       },
       content = { paddingValues ->
         Column(

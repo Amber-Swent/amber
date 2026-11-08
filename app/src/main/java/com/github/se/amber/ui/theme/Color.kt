@@ -1,4 +1,5 @@
-/** Written by Lou-Anne Maier */
+// Written by Lou-Anne Maier
+
 package com.github.se.amber.ui.theme
 
 import androidx.compose.ui.graphics.Color

@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty and assisted by Github Copilot.
+
 package com.github.se.amber.authorization
 
 import com.github.se.amber.model.circle.CareCircle

@@ -24,3 +24,9 @@
 
 ## PRs
 - Include a brief feature/fix summary and relevant check results in each PR description.
+
+## Crediting
+- Credit file authors using the following format: "// Written by [author], with assistance from [AI agent, if any]"
+- Credit developers who modified files, using the following format: "// Modified by [author], with assistance from [AI agent, if any]"
+- For several-line crediting, use // for each line
+

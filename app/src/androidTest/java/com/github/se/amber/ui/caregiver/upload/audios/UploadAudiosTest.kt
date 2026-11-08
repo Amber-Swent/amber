@@ -1,6 +1,5 @@
-/* Written by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import androidx.compose.runtime.CompositionLocalProvider

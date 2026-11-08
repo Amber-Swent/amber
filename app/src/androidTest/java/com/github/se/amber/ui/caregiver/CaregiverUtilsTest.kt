@@ -1,6 +1,6 @@
-/* Written by LaMaier, with the assistance of Claude Code.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with the assistance of Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.foundation.layout.Box

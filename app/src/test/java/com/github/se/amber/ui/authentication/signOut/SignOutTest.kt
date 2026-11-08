@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+
 package com.github.se.amber.ui.authentication.signOut
 
 import androidx.compose.ui.test.assertIsDisplayed

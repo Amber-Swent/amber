@@ -1,5 +1,5 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.model.media
 
 /** How far a media of the outbox has got on its way to Firebase. */

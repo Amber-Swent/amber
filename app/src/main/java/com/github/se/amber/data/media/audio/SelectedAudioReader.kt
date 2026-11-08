@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.media.audio
 
 import com.github.se.amber.data.media.MAX_FILE_BYTES

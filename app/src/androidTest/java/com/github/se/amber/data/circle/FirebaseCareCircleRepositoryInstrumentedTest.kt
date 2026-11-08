@@ -1,4 +1,5 @@
-// Written with assistance from OpenAI Codex.
+// Written by MeiliV, with assistance from OpenAI Codex
+
 package com.github.se.amber.data.circle
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
