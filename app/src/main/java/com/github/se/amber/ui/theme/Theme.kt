@@ -1,4 +1,4 @@
-// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.theme
 
@@ -35,9 +35,15 @@ private val DarkColorScheme =
         secondary = lightCyan,
         onSecondary = darkCyan,
 
+        /** Selected Chips */
+        onSecondaryContainer = lightCyan,
+
         /** Button, unselected icon */
         tertiary = lightGray,
         onTertiary = darkCyan,
+
+        /** Unselected Chips */
+        onTertiaryContainer = lightGray,
 
         /** Gray text, comments */
         outline = Color.White,
@@ -64,9 +70,15 @@ private val LightColorScheme =
         secondary = orange,
         onSecondary = Color.Black,
 
+        /** Selected chips */
+        onSecondaryContainer = backOrange,
+
         /** Button, unselected icon */
         tertiary = lightOrange,
         onTertiary = Color.Black,
+
+        /** Unselected Chips */
+        onTertiaryContainer = lightGray,
 
         /** Gray text, comments */
         outline = darkGray,

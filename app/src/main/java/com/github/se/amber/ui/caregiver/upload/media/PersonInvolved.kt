@@ -1,10 +1,9 @@
-/* Written by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- * Moved by LaMaier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from
+// Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Moved by LaMaier, with assistance from
+// Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.border
@@ -72,7 +71,7 @@ fun DisplayWhoIsInvolved(
     Text(
         "Who is involved - optional",
         color = MaterialTheme.colorScheme.onBackground,
-        style = MaterialTheme.typography.bodyMedium,
+        style = MaterialTheme.typography.bodyLarge,
     )
     if (options.isEmpty()) {
       Row(
@@ -147,6 +146,11 @@ private fun DisplayAddPersonChip(
               containerColor = MaterialTheme.colorScheme.tertiary,
               labelColor = MaterialTheme.colorScheme.onTertiary,
           ),
+      border =
+          AssistChipDefaults.assistChipBorder(
+              enabled = true,
+              borderColor = MaterialTheme.colorScheme.tertiary,
+          ),
   )
 }
 
@@ -154,10 +158,10 @@ private fun DisplayAddPersonChip(
 @Composable
 internal fun selectableChipColors(): SelectableChipColors =
     FilterChipDefaults.filterChipColors(
-        containerColor = MaterialTheme.colorScheme.tertiary,
+        containerColor = MaterialTheme.colorScheme.onTertiaryContainer,
         labelColor = MaterialTheme.colorScheme.onTertiary,
-        selectedContainerColor = MaterialTheme.colorScheme.secondary,
-        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+        selectedContainerColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        selectedLabelColor = MaterialTheme.colorScheme.onTertiary,
     )
 
 /** Preview of [DisplayWhoIsInvolved] using the Amber application theme. */
