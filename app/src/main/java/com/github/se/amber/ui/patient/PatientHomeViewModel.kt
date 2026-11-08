@@ -1,4 +1,4 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
@@ -6,8 +6,8 @@ package com.github.se.amber.ui.patient
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.github.se.amber.data.profile.FirebaseProfileRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -31,13 +31,12 @@ data class PatientHomeUIState(
 /**
  * ViewModel for the Patient Home screen.
  *
- * Responsible for managing the UI state. Sign-out lives on the shared
- * [com.github.se.amber.ui.authentication.signOut.SignOutViewModel].
+ * Responsible for managing the UI state
  *
  * @property profileRepository The repository used to fetch the Profile.
  */
 class PatientHomeViewModel(
-    private val profileRepository: ProfileRepository = FirebaseProfileRepository(),
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
 ) : ViewModel() {
 
   // Home UI state
@@ -73,7 +72,7 @@ class PatientHomeViewModel(
               },
               onFailure = { e ->
                 Log.e("PatientHomeViewModel", "Error fetching profile", e)
-                setErrorMsg("Failed to load the profile: ${e.message}")
+                setErrorMsg("Failed to load the profile: ${e.message ?: "unknown error"}")
               },
           )
     }

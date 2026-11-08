@@ -1,6 +1,6 @@
-/* Written by LaMaier, with the assistance of Claude Code.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with the assistance of Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver
 
 import androidx.compose.foundation.layout.Box
@@ -16,24 +16,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON_BUTTON
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.BOX
+import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.ERROR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_CHAR_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.MAX_LINES_MESSAGE
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
@@ -332,57 +337,116 @@ class DisplayCaregiverButtonTest {
   }
 }
 
-// --------------------- TEST DisplayBoxWithIcon -------------------
+// --------------------- TEST DisplayBoxWithIconAndText -------------------
 class DisplayBoxWithIconTextTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
   private val containerTag = "box_container"
   private val iconDescription = "Add icon"
+  private val label = "Box label"
 
-  private fun setBox(onClick: () -> Unit = {}) {
+  private fun setBox(
+      onClick: () -> Unit = {},
+  ) {
     composeTestRule.setContent {
-      DisplayBoxWithIconText(
-          modifier = Modifier.testTag(containerTag),
-          icon = Icons.Default.Add,
-          contentDescription = iconDescription,
-          label = "Box label",
-          onClick = onClick,
-      )
+      AmberAppTheme {
+        DisplayBoxWithIconText(
+            modifier = Modifier.testTag(containerTag),
+            icon = Icons.Default.Add,
+            contentDescription = iconDescription,
+            text = label,
+            onClick = onClick,
+        )
+      }
     }
   }
 
+  // ----- Display -----
   @Test
-  fun icon_isDisplayed() {
+  fun elements_areDisplayed() {
     setBox()
-    composeTestRule.onNodeWithContentDescription(iconDescription).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
+        .assertIsDisplayed()
   }
 
   @Test
-  fun label_isDisplayed() {
+  fun text_showsGivenLabel() {
     setBox()
-    composeTestRule.onNodeWithText("Box label").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
+        .assertTextEquals(label)
   }
 
   @Test
-  fun button_isDisplayed() {
+  fun icon_usesGivenContentDescription() {
     setBox()
-    composeTestRule.onNodeWithTag(ICON_BUTTON).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(ICON, useUnmergedTree = true)
+        .assertContentDescriptionEquals(iconDescription)
+  }
+
+  // ----- Default values (what the preview renders) -----
+
+  private fun setPreviewBox() {
+    composeTestRule.setContent { DisplayBoxWithIconTextPreview() }
   }
 
   @Test
-  fun onClick_isInvoked_whenIconButtonIsPressed() {
+  fun preview_elementAreDisplayed() {
+    setPreviewBox()
+    composeTestRule.onNodeWithTag(BOX, useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).assertIsDisplayed()
+  }
+
+  // ----- Click -----
+
+  @Test
+  fun container_hasClickAction() {
+    setBox()
+    composeTestRule.onNodeWithTag(containerTag).assertHasClickAction()
+  }
+
+  @Test
+  fun onClick_isInvokedOnce_whenContainerIsPressed() {
+    var callCount = 0
+    setBox(onClick = { callCount++ })
+    composeTestRule.onNodeWithTag(containerTag).performClick()
+    assertEquals(1, callCount)
+  }
+
+  @Test
+  fun onClick_isInvoked_whenIconIsPressed() {
     var clicked = false
     setBox(onClick = { clicked = true })
-    composeTestRule.onNodeWithTag(ICON_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(ICON, useUnmergedTree = true).performClick()
     assertTrue(clicked)
   }
 
   @Test
-  fun onClick_isInvokedOnce_whenIconButtonIsPressedOnce() {
+  fun onClick_isInvoked_whenTextIsPressed() {
+    var clicked = false
+    setBox(onClick = { clicked = true })
+    composeTestRule
+        .onNodeWithTag(DisplayBoxWithIconTextTestTags.TEXT, useUnmergedTree = true)
+        .performClick()
+    assertTrue(clicked)
+  }
+
+  @Test
+  fun onClick_isInvoked_whenEmptyAreaIsPressed() {
+    val arbitraryOffsetX = 0.95f
+    val arbitraryOffsetY = 0.5f
     var callCount = 0
     setBox(onClick = { callCount++ })
-    composeTestRule.onNodeWithTag(ICON_BUTTON).performClick()
+
+    composeTestRule.onNodeWithTag(containerTag).performTouchInput {
+      click(percentOffset(arbitraryOffsetX, arbitraryOffsetY))
+    }
+
     assertEquals(1, callCount)
   }
 }

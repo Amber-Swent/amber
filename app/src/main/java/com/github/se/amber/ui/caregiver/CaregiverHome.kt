@@ -1,7 +1,7 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by Alaabrine, with assistance from Cursor.
- */
+// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.caregiver
 
 import android.widget.Toast
@@ -14,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags.WELCOME_TEXT
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
@@ -55,6 +55,7 @@ fun CaregiverHomeScreen(
     onTabSelected: (Tab) -> Unit = {},
 ) {
   val context = LocalContext.current
+
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
   LaunchedEffect(uiState.errorMsg) {
@@ -66,18 +67,13 @@ fun CaregiverHomeScreen(
 
   Scaffold(
       topBar = {
-        Text(
-            text = "Home",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .padding(
-                        top = CAREGIVER_PADDING_SMALL,
-                        bottom = CAREGIVER_PADDING_MEDIUM,
-                    )
-                    .testTag(CaregiverHomeTestTags.TITLE),
+        TopAppBar(
+            title = {
+              DisplayCaregiverTitle(
+                  title = "Home",
+                  modifier = Modifier.testTag(CaregiverHomeTestTags.TITLE),
+              )
+            }
         )
       },
       bottomBar = {
@@ -91,13 +87,23 @@ fun CaregiverHomeScreen(
       content = { paddingValues ->
         Column(
             modifier =
-                Modifier.fillMaxSize().padding(paddingValues).padding(CAREGIVER_PADDING_MEDIUM),
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(
+                        horizontal = CAREGIVER_PADDING_MEDIUM,
+                        vertical = CAREGIVER_PADDING_SMALL,
+                    ),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           Text(
-              text = "Welcome ! You are with " + uiState.patient.person.firstName,
-              modifier = Modifier.testTag(WELCOME_TEXT),
+              text =
+                  if (uiState.patient.uid.isNotBlank()) {
+                    "Welcome! You are with " + uiState.patient.person.firstName + "!"
+                  } else {
+                    "Welcome! There is no patient linked to this care circle yet."
+                  },
+              modifier = Modifier.fillMaxWidth().testTag(CaregiverHomeTestTags.WELCOME_TEXT),
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.bodyLarge,
               textAlign = TextAlign.Center,

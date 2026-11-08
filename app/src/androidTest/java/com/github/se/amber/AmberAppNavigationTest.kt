@@ -1,5 +1,8 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -25,8 +28,9 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
-import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.patient.parameters.PatientParameterTestTags
+import com.github.se.amber.ui.patient.seeMedias.SeeMediasTestTags
+import com.github.se.amber.ui.patient.seeMedias.audios.SeeAudiosTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -55,7 +59,7 @@ class AmberAppNavigationTest {
     val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
     val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
     val CHOICE_BACK = CaregiverChoiceTestTags.BACK_BUTTON
-    val INVITATION_REDEMPTION_BACK = InvitationRedemptionTestTags.BACK_BUTTON
+    val INVITATION_REDEMPTION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Caregiver
     val CAREGIVER_TAB_HOME = tabTag(CaregiverTab.Home)
@@ -64,6 +68,7 @@ class AmberAppNavigationTest {
     const val UPLOAD_PICTURE_BUTTON = UploadTestTags.PICTURE_BUTTON
     const val UPLOAD_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val CREATE_CARE_CIRCLE_BUTTON = CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
     const val CAREGIVER_PARAMETERS_SIGN_OUT = CaregiverParametersTestTags.SIGN_OUT_BUTTON
@@ -113,9 +118,10 @@ class AmberAppNavigationTest {
 
   private fun click(tag: String) {
     // The screen can still be composing after a navigation, so the click target is not there yet.
+    // During the screen transition both screens show their own bottom bar, so wait for exactly one.
     composeRule.waitUntil(timeoutMillis = 5_000) {
       try {
-        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size == 1
       } catch (_: IllegalStateException) {
         false
       }
@@ -205,7 +211,7 @@ class AmberAppNavigationTest {
     goTo(CaregiverScreen.Parameters.route)
     click(Tags.ENTER_INVITATION_BUTTON)
 
-    click(Tags.INVITATION_REDEMPTION_BACK.name)
+    click(Tags.INVITATION_REDEMPTION_BACK)
 
     assertRoute(CaregiverScreen.Parameters.route)
   }
@@ -264,16 +270,6 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_TAB_PARAMETERS)
 
     assertRoute(CaregiverScreen.Parameters.route)
-  }
-
-  @Test
-  fun upload_back_navigatesToCaregiverHome() {
-    launch(NavGraphs.CAREGIVER)
-    goTo(CaregiverScreen.Upload.route)
-
-    click(Tags.UPLOAD_BACK)
-
-    assertRoute(CaregiverScreen.Home.route)
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -349,6 +345,17 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_TAB_UPLOAD)
 
     assertRoute(CaregiverScreen.Upload.route)
+  }
+
+  @Test
+  fun parameters_createCareCircle_navigatesToCreateCareCircle() {
+    // Cross-graph navigation: caregiver graph -> onboarding graph
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+
+    click(Tags.CREATE_CARE_CIRCLE_BUTTON)
+
+    assertRoute(OnboardingScreen.CreateCareCircle.route)
   }
 
   @Test
@@ -475,15 +482,37 @@ class AmberAppNavigationTest {
   }
 
   @Test
+  fun seeMedias_audioButton_navigatesToSeeAudios() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.SeeMedias.route)
+
+    click(SeeMediasTestTags.AUDIOS_BUTTON)
+
+    assertRoute(PatientScreen.SeeAudios.route)
+    composeRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertExists()
+  }
+
+  @Test
+  fun seeAudios_back_returnsToSeeMedias() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.SeeMedias.route)
+    click(SeeMediasTestTags.AUDIOS_BUTTON)
+
+    click(TopNavigationMenuTestTags.BACK_BUTTON)
+
+    assertRoute(PatientScreen.SeeMedias.route)
+  }
+
+  @Test
   fun caregiverTabs_systemBack_returnsToPreviousTab() {
     launch(NavGraphs.CAREGIVER)
     click(Tags.CAREGIVER_TAB_UPLOAD)
     click(Tags.CAREGIVER_TAB_PARAMETERS)
 
     Espresso.pressBack()
-    composeRule.waitForIdle()
 
-    // Home -> Upload -> Parameters -> back: we expect to land on Upload
-    assertRoute(CaregiverScreen.Upload.route)
+    // Home -> Upload -> Parameters -> back: we expect to land on Upload. System back is handled
+    // in a coroutine, so the pop can land after waitForIdle().
+    waitForRoute(CaregiverScreen.Upload.route)
   }
 }

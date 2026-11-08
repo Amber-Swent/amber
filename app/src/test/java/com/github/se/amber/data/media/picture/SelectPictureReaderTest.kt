@@ -1,7 +1,6 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- */
+// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.media.picture
 
 import android.content.ContentResolver

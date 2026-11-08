@@ -1,4 +1,7 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.authentication.signOut
 
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +26,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** No-op [AuthRepository] used by Compose previews (and preview-driven tests). */
@@ -31,6 +34,9 @@ internal object PreviewSignOutAuthRepository : AuthRepository {
   override val currentUser: AuthUser? = null
 
   override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+      Result.failure(UnsupportedOperationException("Preview auth repository"))
+
+  override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
       Result.failure(UnsupportedOperationException("Preview auth repository"))
 
   override suspend fun signOut(): Result<Unit> = Result.success(Unit)
@@ -60,7 +66,7 @@ fun SignOutButton(
     modifier: Modifier = Modifier,
     text: String = "Sign out",
     buttonHeight: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
-    buttonWidth: Float = CAREGIVER_BUTTON_WIDTH,
+    buttonWidth: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
     testTag: String = SignOutButtonTestTags.BUTTON,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()

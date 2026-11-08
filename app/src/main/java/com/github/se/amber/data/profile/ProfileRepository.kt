@@ -1,5 +1,6 @@
-// This file was written by Neha Chakraborty and Copilot
+// Written by Neha Chakraborty and Copilot
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.profile
 
 import com.github.se.amber.model.user.Person

@@ -1,3 +1,7 @@
+// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.navigation
 
 /**
@@ -162,6 +166,12 @@ sealed class PatientScreen(
       PatientScreen(
           route = "patient_see_pictures",
           name = "See Pictures",
+      )
+
+  data object SeeAudios :
+      PatientScreen(
+          route = "patient_see_audios",
+          name = "See Audios",
       )
 
   data object Parameters :

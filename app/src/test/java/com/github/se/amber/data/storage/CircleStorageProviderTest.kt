@@ -1,4 +1,5 @@
 // Written by GitHub Copilot.
+
 package com.github.se.amber.data.storage
 
 import com.github.se.amber.model.circle.CareCircle
