@@ -13,6 +13,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Cyan
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -32,14 +33,14 @@ private val DarkColorScheme =
         onPrimary = Color.Black,
 
         /** Secondary Title, selected icon */
-        secondary = lightCyan,
+        secondary = lightGray,
         onSecondary = darkCyan,
 
         /** Selected Chips */
-        onSecondaryContainer = lightCyan,
+        onSecondaryContainer = backCyan,
 
         /** Button, unselected icon */
-        tertiary = lightGray,
+        tertiary = lightCyan,
         onTertiary = darkCyan,
 
         /** Unselected Chips */

@@ -30,11 +30,14 @@ val orange = Color(0xFFCE5431)
  */
 val darkOrange = Color(0xFF9D3121)
 
-/** In darkMode, for : Secondary Title selected icon, selected chips */
-val lightCyan = Color(0xFFB8DEC1)
+/** In darkMode, for : selected chips */
+val backCyan = Color(0xFFD4FFE0)
+
+/** In darkMode, for : Secondary Title selected icon */
+val lightCyan = Color(0xFFA6D9B2)
 
 /** In darkMode, for : Main Title */
-val cyan = Color(0xFF89C9BE)
+val cyan = Color(0xFF94F5D6)
 
 /** In darkMode, for : Background */
 val darkCyan = Color(0xFF255556)
