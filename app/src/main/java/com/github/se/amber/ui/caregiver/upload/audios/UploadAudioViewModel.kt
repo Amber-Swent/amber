@@ -1,4 +1,5 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import androidx.lifecycle.viewModelScope
@@ -6,6 +7,8 @@ import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
+import com.github.se.amber.data.media.audio.AudioPlayer
+import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.media.audio.AudioRecorder
 import com.github.se.amber.data.media.audio.AudioRecorderProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -41,6 +44,7 @@ enum class UploadAudioViewModelErrorMessage(val mess: String) {
   MICROPHONE_NOT_ALLOWED(mess = "The use of the microphone isn't permitted"),
   COULD_NOT_START_RECORDING(mess = "Could not start the recording: "),
   COULD_NOT_STOP_RECORDING(mess = "Could not keep the recording: "),
+  COULD_NOT_PLAY_RECORDING(mess = "Could not play the recording: "),
 }
 
 /**
@@ -77,6 +81,7 @@ data class UploadAudioUIState(
  * @param circleRepo The repository used to load the user's care circle.
  * @param placeRepo The repository used to find real places from what the user types.
  * @param recorder The microphone recorder.
+ * @param player The app's audio player, used to listen to the recording before uploading it.
  */
 class UploadAudioViewModel(
     mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
@@ -85,6 +90,7 @@ class UploadAudioViewModel(
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val recorder: AudioRecorder = AudioRecorderProvider.recorder,
+    private val player: AudioPlayer = AudioPlayerProvider.player,
 ) :
     MediaViewModel<UploadAudioUIState>(
         initialState =
@@ -120,6 +126,9 @@ class UploadAudioViewModel(
    * to ignore a second tap on stop while it still runs, and to cancel it if the user deletes.
    */
   private var stoppingJob: Job? = null
+
+  /** The task started by [playRecording]. Canceled if the user plays again or deletes. */
+  private var playingJob: Job? = null
 
   /**
    * Checks whether an audio has been recorded for upload.
@@ -244,7 +253,9 @@ class UploadAudioViewModel(
     recordingJob?.cancel()
     amplitudeJob?.cancel()
     stoppingJob?.cancel()
+    playingJob?.cancel()
     recorder.cancel()
+    _uiState.value.audioFile?.let { player.stop(it) }
     _uiState.value.audioFile?.delete()
     resetRecording()
   }
@@ -260,7 +271,27 @@ class UploadAudioViewModel(
     }
   }
 
+  /** Plays the recorded audio from the start. It does nothing until the audio is recorded. */
+  fun playRecording() {
+    val state = _uiState.value
+    val file = state.audioFile ?: return
+    if (state.recordingState != AudioRecordingState.RECORDED) return
+    playingJob?.cancel()
+    playingJob = viewModelScope.launch {
+      try {
+        player.play(file)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        setErrorMsg(
+            UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.mess + (e.message ?: "")
+        )
+      }
+    }
+  }
+
   override fun onCleared() {
     recorder.cancel()
+    _uiState.value.audioFile?.let { player.stop(it) }
   }
 }

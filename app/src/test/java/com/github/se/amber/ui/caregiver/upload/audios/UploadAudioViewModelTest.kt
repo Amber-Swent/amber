@@ -1,9 +1,11 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.media.audio.FakeAudioPlayer
 import com.github.se.amber.data.media.audio.FakeAudioRecorder
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
@@ -24,6 +26,7 @@ import io.mockk.unmockkAll
 import java.io.File
 import java.io.IOException
 import java.time.LocalDate
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -58,6 +61,7 @@ class UploadAudioViewModelTest {
   private lateinit var circleRepo: CareCircleRepository
   private lateinit var placeRepo: PlaceSearchRepository
   private lateinit var recorder: FakeAudioRecorder
+  private lateinit var player: FakeAudioPlayer
 
   @Before
   fun setUp() {
@@ -68,6 +72,7 @@ class UploadAudioViewModelTest {
     circleRepo = mockk()
     placeRepo = mockk()
     recorder = FakeAudioRecorder(tempFolder.newFolder())
+    player = FakeAudioPlayer()
 
     every { authRepo.currentUser } returns mockk { every { uid } returns "user1" }
     coEvery { profileRepo.getProfile(any()) } returns
@@ -93,6 +98,7 @@ class UploadAudioViewModelTest {
           circleRepo = circleRepo,
           placeRepo = placeRepo,
           recorder = recorder,
+          player = player,
       )
 
   private fun recordedViewModel(): UploadAudioViewModel {
@@ -210,6 +216,22 @@ class UploadAudioViewModelTest {
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
+  @Test
+  fun startRecordingCanceledDoesNotShowAnError() {
+    recorder.startError = CancellationException("canceled")
+    val vm = createViewModel()
+    vm.startRecording()
+    assertNull(vm.uiState.value.common.errorMsg)
+  }
+
+  @Test
+  fun startRecordingCanceledDoesNotStartTheRecording() {
+    recorder.startError = CancellationException("canceled")
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
   // ---------- stopRecording ----------
 
   @Test
@@ -259,6 +281,24 @@ class UploadAudioViewModelTest {
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
+  @Test
+  fun stopRecordingCanceledDoesNotShowAnError() {
+    recorder.stopError = CancellationException("canceled")
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertNull(vm.uiState.value.common.errorMsg)
+  }
+
+  @Test
+  fun stopRecordingCanceledDoesNotResetTheRecording() {
+    recorder.stopError = CancellationException("canceled")
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
+  }
+
   // ---------- deleteRecording ----------
 
   @Test
@@ -292,6 +332,64 @@ class UploadAudioViewModelTest {
     vm.deleteRecording()
     vm.startRecording()
     assertEquals(2, recorder.startCalls)
+  }
+
+  // ---------- playRecording ----------
+
+  @Test
+  fun playRecordingPlaysTheRecordedFile() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    assertEquals(listOf(vm.uiState.value.audioFile), player.played)
+  }
+
+  @Test
+  fun playRecordingBeforeRecordingDoesNotPlay() {
+    createViewModel().playRecording()
+    assertTrue(player.played.isEmpty())
+  }
+
+  @Test
+  fun playRecordingWhileStillRecordingDoesNotPlay() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.playRecording()
+    assertTrue(player.played.isEmpty())
+  }
+
+  @Test
+  fun playRecordingFailureSetsThePlayError() {
+    player.playError = IOException("corrupted")
+    val vm = recordedViewModel()
+    vm.playRecording()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.mess + "corrupted",
+        vm.uiState.value.common.errorMsg,
+    )
+  }
+
+  @Test
+  fun playRecordingCanceledDoesNotShowAnError() {
+    player.playError = CancellationException("canceled")
+    val vm = recordedViewModel()
+    vm.playRecording()
+    assertNull(vm.uiState.value.common.errorMsg)
+  }
+
+  @Test
+  fun deleteRecordingStopsThePlayback() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    vm.deleteRecording()
+    assertNull(player.state.value.file)
+  }
+
+  @Test
+  fun clearingTheViewModelStopsThePlayback() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    vm.javaClass.getDeclaredMethod("onCleared").apply { isAccessible = true }.invoke(vm)
+    assertNull(player.state.value.file)
   }
 
   // ---------- upload ----------
