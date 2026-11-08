@@ -1,5 +1,4 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -31,7 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Compose tests for the recording part of [UploadAudioScreen]. The ViewModel is mocked. */
-class UploadAudiosTest {
+class UploadAudiosAndroidTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
