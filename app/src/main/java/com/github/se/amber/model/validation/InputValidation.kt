@@ -128,7 +128,7 @@ object InputValidation {
   // Lengths as constants, for the UI to show them (see theme/Constant.kt)
   const val NAME_MAX_LENGTH = 50
   const val SHORT_TEXT_MAX_LENGTH = 50
-  const val DESCRIPTION_MAX_LENGTH = 200
+  const val DESCRIPTION_MAX_LENGTH = 750
   const val PLACE_QUERY_MAX_LENGTH = 100
   // The longest address SMTP allows (RFC 5321)
   const val EMAIL_MAX_LENGTH = 254
