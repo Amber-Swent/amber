@@ -36,14 +36,14 @@ private val DarkColorScheme =
         onSecondary = darkCyan,
 
         /** Selected Chips */
-        onSecondaryContainer = backCyan,
+        secondaryContainer = backCyan,
 
         /** Button, unselected icon */
         tertiary = lightCyan,
         onTertiary = darkCyan,
 
         /** Unselected Chips */
-        onTertiaryContainer = lightGray,
+        tertiaryContainer = lightGray,
 
         /** Gray text, comments */
         outline = Color.White,
@@ -71,14 +71,14 @@ private val LightColorScheme =
         onSecondary = Color.Black,
 
         /** Selected chips */
-        onSecondaryContainer = backOrange,
+        secondaryContainer = backOrange,
 
         /** Button, unselected icon */
         tertiary = lightOrange,
         onTertiary = Color.Black,
 
         /** Unselected Chips */
-        onTertiaryContainer = lightGray,
+        tertiaryContainer = lightGray,
 
         /** Gray text, comments */
         outline = darkGray,
