@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
@@ -59,6 +62,7 @@ object CreateCareCircleTestTags {
  * @param onBack Called when the user taps Cancel, unless a create is in progress or finished.
  * @param viewModel ViewModel holding the form state and handling creation.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateCareCircleScreen(
     modifier: Modifier = Modifier,
@@ -92,9 +96,13 @@ fun CreateCareCircleScreen(
       containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
       topBar = {
-        TopNavigationMenu(
-            action = TopNavigationAction.CANCEL,
-            onBackClick = { if (canLeave) onBack() },
+        TopAppBar(
+            title = {
+              TopNavigationMenu(
+                  action = TopNavigationAction.CANCEL,
+                  onBackClick = { if (canLeave) onBack() },
+              )
+            }
         )
       },
   ) { innerPadding ->
@@ -109,13 +117,7 @@ fun CreateCareCircleScreen(
     ) {
       AmberHeader(horizontalAlignment = Alignment.CenterHorizontally)
 
-      Text(
-          text = "New Care Circle",
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
-          style = MaterialTheme.typography.headlineSmall,
-          textAlign = TextAlign.Center,
-          color = MaterialTheme.colorScheme.primary,
-      )
+      DisplayCaregiverTitle(title = "New Care Circle")
 
       OnboardingOutlinedTextField(
           value = uiState.name,

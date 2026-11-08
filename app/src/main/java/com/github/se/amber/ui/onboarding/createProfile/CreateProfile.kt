@@ -8,14 +8,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +40,7 @@ import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
@@ -73,6 +74,7 @@ object CreateProfileTestTags {
  *   composition; tests can pass a custom instance with a fake profile repository.
  * @param signOutViewModel shared sign-out action used by [SignOutButton].
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProfileScreen(
     modifier: Modifier = Modifier,
@@ -94,16 +96,25 @@ fun CreateProfileScreen(
 
   LaunchedEffect(signOutState.signedOut) { if (signOutState.signedOut) onSignedOut() }
 
-  Surface(
+  Scaffold(
       modifier = modifier.fillMaxSize(),
-      color = MaterialTheme.colorScheme.background,
+      containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
-  ) {
+      topBar = {
+        TopAppBar(
+            title = {
+              DisplayPatientTitle(
+                  title = "Create an account",
+                  titleStyle = MaterialTheme.typography.headlineMedium,
+              )
+            }
+        )
+      },
+  ) { innerPadding ->
     Column(
         modifier =
             Modifier.fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = CAREGIVER_PADDING_BIG, vertical = CAREGIVER_PADDING_BIG),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -111,13 +122,6 @@ fun CreateProfileScreen(
     ) {
       AmberHeader()
 
-      Text(
-          text = "Create an account",
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
-          style = MaterialTheme.typography.headlineMedium,
-          textAlign = TextAlign.Center,
-          color = MaterialTheme.colorScheme.primary,
-      )
       Text(
           text = "What should we call you?",
           modifier = Modifier.fillMaxWidth(WEIGHT_ONE),

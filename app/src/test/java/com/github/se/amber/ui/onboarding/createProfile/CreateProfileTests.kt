@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -33,6 +34,7 @@ import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
 import com.github.se.amber.ui.onboarding.createProfile.PreviewProfileRepository
 import com.github.se.amber.ui.onboarding.createProfile.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -194,17 +196,73 @@ class CreateProfileUITests {
   }
 
   @Test
-  fun previewRepositoriesReturnSafeResults() = runBlocking {
-    val person = Person(firstName = "Ada", lastName = "Lovelace")
-    val credential = CustomCredential("preview", Bundle())
+  fun previewSignOut_leavesTheFormOnScreen() {
+    composeTestRule.setContent { CreateProfilePreview() }
 
-    assertTrue(PreviewProfileRepository.createProfile(person, Role.PATIENT).isSuccess)
+    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(null, ShadowToast.getTextOfLatestToast())
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
+  }
+
+  @Test
+  fun roleButtonsStayDisabledWhileTheProfileIsSaving() {
+    val gate = CompletableDeferred<Unit>()
+    val viewModel =
+        CreateProfileViewModel(
+            object : ProfileRepository {
+              override suspend fun createProfile(person: Person, role: Role): Result<Unit> {
+                gate.await()
+                return Result.success(Unit)
+              }
+
+              override suspend fun getCurrentProfile() = Result.success(null)
+
+              override suspend fun getProfile(uid: String) = Result.success(null)
+            }
+        )
+    setCreateProfile(viewModel = viewModel)
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled()
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+        .performScrollTo()
+        .assertIsNotEnabled()
+    gate.cancel()
+  }
+
+  @Test
+  fun previewProfileRepository_readsNoStoredProfile() = runBlocking {
     assertEquals(null, PreviewProfileRepository.getCurrentProfile().getOrNull())
     assertEquals(null, PreviewProfileRepository.getProfile("uid").getOrNull())
+  }
+
+  @Test
+  fun previewAuthRepository_refusesGoogleSignIn() = runBlocking {
+    val credential = CustomCredential("preview", Bundle())
+
     assertEquals(null, PreviewSignOutAuthRepository.currentUser)
     assertTrue(PreviewSignOutAuthRepository.signInWithGoogle(credential).isFailure)
     assertTrue(PreviewSignOutAuthRepository.reauthenticateWithGoogle(credential).isFailure)
-    assertTrue(PreviewSignOutAuthRepository.signOut().isSuccess)
+  }
+
+  @Test
+  fun previewPatientRole_withBothNames_showsNoSubmitError() {
+    composeTestRule.setContent { CreateProfilePreview() }
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
   }
 
   @Test

@@ -3,6 +3,7 @@
 
 package com.github.se.amber.ui.onboarding
 
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -11,10 +12,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCirclePreview
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -32,6 +35,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowToast
 
 /** Tests the care circle form with a local repository and no emulator. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -153,6 +157,21 @@ class CreateCareCircleScreenTest {
   }
 
   @Test
+  fun repositoryFailure_showsTheOfflineToastAndLeavesCreateEnabled() {
+    repository.failure = OnboardingError.Network
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(
+        "You're offline. Check your connection and try again.",
+        ShadowToast.getTextOfLatestToast(),
+    )
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsEnabled()
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).assertIsEnabled()
+  }
+
+  @Test
   fun createdStateKeepsCreateButtonDisabled() {
     viewModel.onNameChange("Family")
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
@@ -163,11 +182,44 @@ class CreateCareCircleScreenTest {
   private class FakeOnboardingRepository : OnboardingRepository {
     val submittedNames = mutableListOf<String>()
     var gate: CompletableDeferred<Unit>? = null
+    var failure: Throwable? = null
 
     override suspend fun createInitialCareCircle(name: String): Result<CareCircle> {
       submittedNames.add(name)
       gate?.await()
+      failure?.let {
+        return Result.failure(it)
+      }
       return Result.success(CareCircle(id = "circle-1", name = name))
     }
+  }
+}
+
+/** Covers the preview's own repository, which the form tests cannot reach. */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+class CreateCareCirclePreviewTest {
+  @get:Rule val composeTestRule = createComposeRule()
+
+  @Before
+  fun setUp() {
+    Dispatchers.setMain(UnconfinedTestDispatcher())
+  }
+
+  @After
+  fun tearDown() {
+    Dispatchers.resetMain()
+  }
+
+  @Test
+  fun previewCreate_disablesTheCreateButton() {
+    composeTestRule.setContent { CreateCareCirclePreview() }
+
+    composeTestRule.onNodeWithText("New Care Circle").assertExists()
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 }
