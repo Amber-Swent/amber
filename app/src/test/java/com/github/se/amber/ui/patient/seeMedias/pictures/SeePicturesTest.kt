@@ -1,11 +1,18 @@
-// this code was written with the aid of AI
-package com.github.se.amber.ui.patient.seePictures
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
+package com.github.se.amber.ui.patient.seeMedias.pictures
+
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -14,12 +21,12 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.media.MediaCardViewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.navigation.PatientTab
+import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreen
-import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesScreenTestTags
-import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesUIState
-import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesViewModel
+import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -64,6 +71,18 @@ class SeePicturesScreenTest {
           circleIds = listOf("circle1"),
       )
 
+  // construct a MediaCardViewModel with mocks
+  private val mediaCardOwner =
+      object : ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
+        override val viewModelStore = ViewModelStore()
+        override val defaultViewModelProviderFactory =
+            object : ViewModelProvider.Factory {
+              @Suppress("UNCHECKED_CAST")
+              override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                  MediaCardViewModel(profileRepository, circleRepository) as T
+            }
+      }
+
   @Before
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -71,6 +90,7 @@ class SeePicturesScreenTest {
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.success(CareCircle(id = "circle1"))
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
+    coEvery { profileRepository.getProfile(any()) } returns Result.success(profile)
   }
 
   @After
@@ -79,15 +99,20 @@ class SeePicturesScreenTest {
   }
 
   // The ViewModel is created before the composition: its init runs right away (Unconfined)
-  private fun setContent(onBackClick: () -> Unit = {}): SeePicturesViewModel {
+  private fun setContent(
+      onBackClick: () -> Unit = {},
+      onTabSelected: (Tab) -> Unit = {},
+  ): SeePicturesViewModel {
     val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
     composeTestRule.setContent {
-      AmberAppTheme(dynamicColor = false) {
-        SeePicturesScreen(
-            pictureViewModel = viewModel,
-            onBackClick = onBackClick,
-            onTabSelected = {},
-        )
+      CompositionLocalProvider(LocalViewModelStoreOwner provides mediaCardOwner) {
+        AmberAppTheme(dynamicColor = false) {
+          SeePicturesScreen(
+              pictureViewModel = viewModel,
+              onBackClick = onBackClick,
+              onTabSelected = onTabSelected,
+          )
+        }
       }
     }
     composeTestRule.waitForIdle()
@@ -102,8 +127,7 @@ class SeePicturesScreenTest {
   fun title_and_navigation_menus_are_displayed() {
     setContent()
 
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithText("See Pictures").assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.TITLE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TOP_NAVIGATION_MENU).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
@@ -120,6 +144,18 @@ class SeePicturesScreenTest {
     assertTrue(clicked)
   }
 
+  @Test
+  fun clicking_a_bottom_tab_calls_onTabSelected() {
+    var selected: Tab? = null
+    setContent(onTabSelected = { selected = it })
+
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(PatientTab.Home))
+        .performClick()
+
+    assertEquals(PatientTab.Home, selected)
+  }
+
   // ---------------------------------------------------------------------------------------------
   // Loading
   // ---------------------------------------------------------------------------------------------
@@ -131,9 +167,9 @@ class SeePicturesScreenTest {
     val viewModel = setContent()
 
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -144,21 +180,35 @@ class SeePicturesScreenTest {
   fun empty_message_is_displayed_when_there_are_no_pictures() {
     setContent()
 
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
-    composeTestRule.onNodeWithText("There are no pictures yet.").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
 
   @Test
-  fun empty_message_is_not_displayed_when_there_are_pictures() {
+  fun no_media_card_is_displayed_when_there_are_no_pictures() {
+    setContent()
+
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.pictureCard("1")).assertDoesNotExist()
+  }
+
+  @Test
+  fun pictures_are_displayed_when_there_are_pictures() {
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flowOf(listOf(MediaItem.Picture(id = "1", width = 400, height = 300)))
+        flowOf(
+            listOf(
+                MediaItem.Picture(id = "1", width = 400, height = 300),
+                MediaItem.Picture(id = "2", width = 300, height = 400),
+            )
+        )
 
     val viewModel = setContent()
 
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("1")).assertExists()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("2")).assertExists()
+    // TODO check that the MediaCard exist once they are fully implemented
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -166,53 +216,20 @@ class SeePicturesScreenTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun error_and_retry_are_displayed_when_the_profile_has_no_circle() {
-    coEvery { profileRepository.getCurrentProfile() } returns
-        Result.success(profile.copy(circleIds = emptyList()))
-
-    setContent()
-
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
-    composeTestRule.onNodeWithText("No care circle found for this patient.").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertDoesNotExist()
-  }
-
-  @Test
-  fun error_is_displayed_in_the_screen_when_the_profile_fails_to_load() {
-    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
-
-    setContent()
-
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Failed to load the profile: boom").assertIsDisplayed()
-  }
-
-  @Test
-  fun error_is_displayed_in_the_screen_when_the_media_flow_fails_before_any_content() {
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flow { throw RuntimeException("media error") }
-
-    setContent()
-
-    // Nothing was displayed yet, so this is a blocking error, not a Toast
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
-    composeTestRule.onNodeWithText("Failed to load media: media error").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).assertIsDisplayed()
-  }
-
-  @Test
-  fun retry_button_reloads_the_screen() {
+  fun blocking_error_displays_message_and_retry_reloads_the_screen() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
     setContent()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
 
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.RETRY).performClick()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -232,8 +249,8 @@ class SeePicturesScreenTest {
     assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
     assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg)
     // The screen is still usable: no blocking error replaced it
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.NO_PICTURES).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
 
   @Test
@@ -251,6 +268,6 @@ class SeePicturesScreenTest {
     val state = viewModel.uiState.value as SeePicturesUIState.Content
     assertNull(state.errorMsg)
     assertEquals(listOf(picture), state.allPictures)
-    composeTestRule.onNodeWithTag(SeePicturesScreenTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
 }

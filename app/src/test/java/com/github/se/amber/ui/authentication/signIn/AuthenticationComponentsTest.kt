@@ -1,6 +1,5 @@
-/* Written by nehachak1, with assistance from
- * Claude Code
- */
+// Written by nehachak1, with assistance fromClaude Code
+
 package com.github.se.amber.ui.authentication
 
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,11 +29,11 @@ import com.github.se.amber.R
 import com.github.se.amber.ui.authentication.signIn.AuthenticationButton
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentsPreview
-import com.github.se.amber.ui.authentication.signIn.AuthenticationHeader
 import com.github.se.amber.ui.authentication.signIn.AuthenticationLayout
 import com.github.se.amber.ui.authentication.signIn.AuthenticationText
 import com.github.se.amber.ui.authentication.signIn.AuthenticationTextField
 import com.github.se.amber.ui.authentication.signIn.TermsFooter
+import com.github.se.amber.ui.onboarding.AmberHeaderTestTags
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -56,7 +55,7 @@ class AuthenticationComponentsTest {
   fun layoutWithDefaultsShowsHeaderAndFooter() {
     composeTestRule.setContent { AuthenticationLayout() }
 
-    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.HEADER).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER).assertIsDisplayed()
   }
 
@@ -70,13 +69,6 @@ class AuthenticationComponentsTest {
 
     composeTestRule.onNodeWithTag(ROOT).assertIsDisplayed()
     composeTestRule.onNodeWithTag(TEXT).assertIsDisplayed()
-  }
-
-  @Test
-  fun headerIsDisplayed() {
-    composeTestRule.setContent { AuthenticationHeader() }
-
-    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
   }
 
   @Test
@@ -207,7 +199,7 @@ class AuthenticationComponentsTest {
   fun previewShowsEveryComponent() {
     composeTestRule.setContent { AuthenticationComponentsPreview() }
 
-    composeTestRule.onNodeWithTag(AuthenticationComponentTestTags.HEADER).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AmberHeaderTestTags.HEADER).assertIsDisplayed()
     composeTestRule.onNodeWithText("Screen heading").assertIsDisplayed()
     composeTestRule.onNodeWithText("Disabled").assertIsNotEnabled()
   }

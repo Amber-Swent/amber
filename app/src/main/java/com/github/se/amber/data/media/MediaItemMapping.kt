@@ -1,7 +1,7 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.location.GeoLocation
@@ -13,8 +13,9 @@ import java.time.Month
 
 /*
  * How a MediaItem is stored, in its Firestore document and in the outbox (MediaOutbox): a map of
- * plain values (strings, numbers, lists of strings, nested maps), with a "type" field telling which
- * subclass it is. The id isn't in the map: it is the document's id, or the outbox file's name.
+ * plain values (strings, numbers, lists of strings or numbers, nested maps), with a "type" field
+ * telling which subclass it is. The id isn't in the map: it is the document's id, or the outbox
+ * file's name.
  *
  * Reading accepts any kind of number for a number field: Firestore gives integers as Long, and
  * JSON gives back a whole Double (e.g. a latitude of 46.0) as an integer.
@@ -51,7 +52,12 @@ fun MediaItem.toMap(): Map<String, Any?> {
       when (this) {
         is MediaItem.Picture -> mapOf(TYPE to TYPE_PICTURE, "width" to width, "height" to height)
         is MediaItem.Audio ->
-            mapOf(TYPE to TYPE_AUDIO, "durationMs" to durationMs, "transcript" to transcript)
+            mapOf(
+                TYPE to TYPE_AUDIO,
+                "durationMs" to durationMs,
+                "transcript" to transcript,
+                "waveform" to waveform,
+            )
         is MediaItem.Text -> mapOf(TYPE to TYPE_TEXT, "text" to text)
       }
   return common + own
@@ -118,6 +124,7 @@ private class Fields(private val map: Map<String, Any?>) {
               status = status,
               durationMs = long("durationMs"),
               transcript = stringOrNull("transcript"),
+              waveform = floats("waveform"),
           )
       TYPE_TEXT ->
           MediaItem.Text(
@@ -213,6 +220,14 @@ private class Fields(private val map: Map<String, Any?>) {
       when (val value = map[key]) {
         null -> emptyList()
         is List<*> -> value.map { it as? String ?: throw BadFieldException(key) }
+        else -> throw BadFieldException(key)
+      }
+
+  /** A list of numbers, given as any kind of number; empty if absent. */
+  fun floats(key: String): List<Float> =
+      when (val value = map[key]) {
+        null -> emptyList()
+        is List<*> -> value.map { (it as? Number)?.toFloat() ?: throw BadFieldException(key) }
         else -> throw BadFieldException(key)
       }
 

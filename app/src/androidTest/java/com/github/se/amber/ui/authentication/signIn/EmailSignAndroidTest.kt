@@ -1,4 +1,6 @@
-// This file was written with the aid of AI
+// Written by MeiliV, with assistance from OpenAI Codex
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.authentication
 
 import androidx.activity.ComponentActivity
@@ -17,9 +19,12 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import org.junit.Assert.assertSame
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+
+private const val EMAIL_HIDDEN = "Email sign-in is commented out until it is implemented"
 
 /** Verifies that email input remains visible after a real Android activity recreation. */
 @RunWith(AndroidJUnit4::class)
@@ -32,6 +37,9 @@ class EmailSignInInstrumentedTest {
 
         override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
             error("Google sign-in is outside this test")
+
+        override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
+            error("Re-authentication is outside this test")
 
         override suspend fun signOut(): Result<Unit> = error("Sign-out is outside this test")
       }
@@ -49,6 +57,7 @@ class EmailSignInInstrumentedTest {
     return viewModel
   }
 
+  @Ignore(EMAIL_HIDDEN)
   @Test
   fun emailRemainsVisibleAfterActivityRecreation() {
     lateinit var originalViewModel: EmailSignInViewModel

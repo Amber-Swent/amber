@@ -1,19 +1,28 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
 
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,11 +31,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.DISABLED_ALPHA
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
@@ -37,6 +53,7 @@ object PatientUtilsTestTags {
   const val BUTTON = "PatientUtils_test_tag_button"
   const val BUTTON_WITH_ICON = "PatientUtils_test_tag_button_with_icon"
   const val BUTTON_ICON = "PatientUtils_test_tag_button_icon"
+  const val ICON_BUTTON = "PatientUtils_test_tag_icon_button"
 }
 
 /**
@@ -190,45 +207,126 @@ fun DisplayPatientButton(
   }
 }
 
-// @Preview(showBackground = true)
-// @Composable
-// private fun DisplayPatientTitlePreview() {
-//  AmberAppTheme(dynamicColor = false) {
-//    DisplayPatientTitle(title = "Title Example", modifier = Modifier)
-//  }
-// }
-//
-// @Preview(showBackground = true)
-// @Composable
-// private fun DisplayButtonWithIconPreview() {
-//    AmberAppTheme(dynamicColor = false) {
-//        Column(
-//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//            horizontalAlignment = Alignment.CenterHorizontally,
-//        ) {
-//            DisplayPatientButtonWithIcon(
-//                icon = Icons.Default.Add,
-//                text = "Button with icon example",
-//                description = "click on the button",
-//                onClick = {},
-//            )
-//        }
-//    }
-// }
-//
-// @Preview(showBackground = true)
-// @Composable
-// private fun DisplayButtonPreview() {
-//  AmberAppTheme(dynamicColor = false) {
-//    Column(
-//        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//    ){
-//        DisplayPatientButton(
-//            modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-//            text = "Button example",
-//            onClick = {},
-//        )
-//    }
-//  }
-// }
+/**
+ * Displays a circular patient button holding an icon, or a loading spinner.
+ *
+ * [DisplayPatientButton] always includes a text label and a width fraction, so an icon-only control
+ * uses its own container color, content color, and height. The content description is set on the
+ * button itself so that screen readers announce the button, not its icon.
+ *
+ * @param modifier modifier applied to the button
+ * @param icon icon displayed on the button
+ * @param description content description of the button
+ * @param enabled say if the button is clickable or not
+ * @param showSpinner replaces the icon with a loading spinner when true
+ * @param onClick callback invoked when the button is selected
+ * @param testTag test tag of the button
+ * @param spinnerTestTag test tag of the spinner. No tag is set when empty.
+ */
+@Composable
+fun DisplayPatientIconButton(
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.Add,
+    description: String = "",
+    enabled: Boolean = true,
+    showSpinner: Boolean = false,
+    onClick: () -> Unit = {},
+    testTag: String = PatientUtilsTestTags.ICON_BUTTON,
+    spinnerTestTag: String = "",
+) {
+  val contentColor = MaterialTheme.colorScheme.onTertiary
+  FilledIconButton(
+      onClick = onClick,
+      enabled = enabled,
+      modifier =
+          modifier
+              .size(PATIENT_BUTTON_HEIGHT_SMALL)
+              .semantics { contentDescription = description }
+              .testTag(testTag),
+      shape = CircleShape,
+      colors =
+          IconButtonDefaults.filledIconButtonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = contentColor,
+              disabledContainerColor =
+                  MaterialTheme.colorScheme.tertiary.copy(alpha = DISABLED_ALPHA),
+              disabledContentColor = contentColor.copy(alpha = DISABLED_ALPHA),
+          ),
+  ) {
+    if (showSpinner) {
+      CircularProgressIndicator(
+          modifier =
+              Modifier.size(PATIENT_ICON_SIZE)
+                  .then(
+                      if (spinnerTestTag.isNotEmpty()) Modifier.testTag(spinnerTestTag)
+                      else Modifier
+                  ),
+          color = LocalContentColor.current,
+      )
+    } else {
+      Icon(
+          imageVector = icon,
+          contentDescription = null,
+          modifier = Modifier.size(PATIENT_ICON_SIZE),
+      )
+    }
+  }
+}
+
+@Preview(showBackground = true, name = "Patient utils light")
+@Composable
+internal fun DisplayPatientButtonsPreview() {
+  AmberAppTheme(darkTheme = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      DisplayPatientButton(
+          text = "Button",
+          onClick = {},
+          modifier = Modifier.weight(WEIGHT_ONE),
+      )
+      DisplayPatientButtonWithIcon(
+          text = "Add",
+          description = "Add patient",
+          onClick = {},
+      )
+      DisplayPatientIconButton(
+          description = "Add patient",
+          onClick = {},
+      )
+    }
+  }
+}
+
+@Preview(
+    showBackground = true,
+    name = "Patient utils dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+internal fun DisplayPatientButtonsDarkPreview() {
+  AmberAppTheme(darkTheme = true) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
+        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+      DisplayPatientButton(
+          text = "Button",
+          onClick = {},
+          modifier = Modifier.weight(WEIGHT_ONE),
+      )
+      DisplayPatientButtonWithIcon(
+          text = "Add",
+          description = "Add patient",
+          onClick = {},
+      )
+      DisplayPatientIconButton(
+          description = "Add patient",
+          onClick = {},
+      )
+    }
+  }
+}

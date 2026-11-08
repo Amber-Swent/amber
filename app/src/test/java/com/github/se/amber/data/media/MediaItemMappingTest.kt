@@ -1,9 +1,10 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.media
 
+import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
@@ -41,6 +42,7 @@ class MediaItemMappingTest {
           createdAt = 1_700_000_000_001L,
           durationMs = 93_000L,
           transcript = "Hello Arthur",
+          waveform = List(WAVEFORM_BARS) { it / (WAVEFORM_BARS - 1f) }, // from silence to loudest
       )
 
   private val text =
@@ -48,7 +50,8 @@ class MediaItemMappingTest {
 
   @Test
   fun everyKindOfMediaComesBackUnchanged() {
-    for (item in listOf(picture, audio, audio.copy(transcript = null), text)) {
+    val audioWithoutExtras = audio.copy(transcript = null, waveform = emptyList())
+    for (item in listOf(picture, audio, audioWithoutExtras, text)) {
       assertEquals(item, mediaItemFromMap(item.id, item.toMap()))
     }
   }
@@ -144,6 +147,26 @@ class MediaItemMappingTest {
     assertEquals(3024, read.height)
     assertEquals(46.0, read.location!!.lat!!, 0.0)
     assertEquals(6.6, read.location!!.lng!!, 1e-6)
+  }
+
+  @Test
+  fun anAudioStoredWithoutAWaveformHasAnEmptyOne() {
+    // documents written before the waveform existed
+    val read = mediaItemFromMap("m2", audio.toMap() - "waveform") as MediaItem.Audio
+
+    assertEquals(emptyList<Float>(), read.waveform)
+  }
+
+  @Test
+  fun aWaveformIsReadFromAnyKindOfNumberAndNothingElse() {
+    // JSON gives a whole value like 1.0 back as an Int
+    val read =
+        mediaItemFromMap("m2", audio.toMap() + ("waveform" to listOf(0.5, 1, 0.25f)))
+            as MediaItem.Audio
+
+    assertEquals(listOf(0.5f, 1f, 0.25f), read.waveform)
+    assertNull(mediaItemFromMap("m2", audio.toMap() + ("waveform" to listOf(0.5, "loud"))))
+    assertNull(mediaItemFromMap("m2", audio.toMap() + ("waveform" to "loud")))
   }
 
   @Test

@@ -1,5 +1,5 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
@@ -65,7 +65,7 @@ interface MediaFileStorage {
 private val CONTENT_TYPES = mapOf("jpg" to "image/jpeg", "png" to "image/png", "m4a" to "audio/mp4")
 
 /** Largest media file the Storage security rules accept, in bytes (25 MiB). */
-private const val MAX_FILE_BYTES = 25L * 1024 * 1024
+const val MAX_FILE_BYTES = 25L * 1024 * 1024
 
 /**
  * Checks what the Storage security rules check before accepting [file] as [item]'s file in [circle]

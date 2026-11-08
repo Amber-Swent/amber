@@ -1,7 +1,9 @@
-/**
- * Written by LaMaier. Modified by nehachak1, with assistance from Claude Code. Modified by MeiliV,
- * with assistance from OpenAI Codex. Modified by Yuhan YANG, with assistance from Cursor.
- */
+// Written by LaMaier.
+// Modified by nehachak1, with assistance from Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Yuhan YANG, with assistance from Cursor
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 package com.github.se.amber.ui.theme
 
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,7 @@ val CAREGIVER_PADDING_MEDIUM = 16.dp
 val CAREGIVER_PADDING_BIG = 24.dp
 val CAREGIVER_PADDING_ENORMOUS = 48.dp
 
+val PATIENT_PADDING_MINI = 8.dp
 val PATIENT_PADDING_SMALL = 16.dp
 val PATIENT_PADDING_MEDIUM = 24.dp
 val PATIENT_PADDING_BIG = 32.dp
@@ -54,9 +57,8 @@ val CAREGIVER_BUTTON_HEIGHT_SMALL = 32.dp
 val CAREGIVER_BUTTON_HEIGHT_MEDIUM = 52.dp
 val CAREGIVER_BUTTON_HEIGHT_BIG = 64.dp
 
-// FIXME open a PR for renaming all the caregiver button width to small, medium, etc
-const val CAREGIVER_BUTTON_WIDTH = 0.5f
-const val CAREGIVER_BUTTON_WIDTH_BIG = 1f
+const val CAREGIVER_BUTTON_WIDTH_MEDIUM = 0.5f
+const val CAREGIVER_BUTTON_WIDTH_ENORMOUS = 1f
 
 // ------- PATIENT BUTTON -------
 val PATIENT_BUTTON_HEIGHT_SMALL = 52.dp
@@ -66,6 +68,7 @@ val PATIENT_BUTTON_HEIGHT_BIG = 120.dp
 // It may be necessary to add some Small, Medium, Big Width.
 // If it's the case, do a specific Pr for this and remove this comment
 const val PATIENT_BUTTON_WIDTH = 0.7f
+const val PATIENT_BUTTON_WIDTH_BIG = 1f
 
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
@@ -99,14 +102,36 @@ const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pi
 // ------- DATE PICKER CONSTANTS -------
 
 const val DATE_PICKER_LIST_HEIGHT_FRACTION = 0.3f
-const val DATE_PICKER_DIALOG_WIDTH_FRACTION = 0.7f
+const val DATE_PICKER_WIDTH_FRACTION = 1f
 
 const val YEAR_RANGE = 100
 
+// ------- AUDIO PLAYBACK -------
+/** Opacity Material uses for a disabled control. */
+const val DISABLED_ALPHA = 0.38f
+
+/** Number of digits used to display the seconds of a playback clock (`m:ss`). */
+const val SECOND_FIELD_WIDTH = 2
+
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f
+const val HALF = 0.5f
 
 const val WEIGHT_TWO = 2f
+
+// ------- GENERAL WIDTH --------
+
+const val DIALOG_WIDTH = 0.8f
+const val CAREGIVER_TITLE_WIDTH = 1f
+
+// ------- AUDIO WAVEFORM -------
+val AUDIO_WAVEFORM_HEIGHT = 48.dp
+
+/** Share of a bar's slot that is filled; the rest is the gap between two bars. */
+const val AUDIO_WAVEFORM_BAR_FRACTION = 0.6f
+
+/** Smallest drawn level, so that silence still shows a small bar. */
+const val AUDIO_WAVEFORM_MIN_LEVEL = 0.05f
 
 // ------- LOGO -------
 val LOGO_SIZE = 48.dp

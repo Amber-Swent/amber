@@ -1,5 +1,6 @@
-// This code was written with the aid of AI
-package com.github.se.amber.ui.patient.seePictures
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
+package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -9,14 +10,13 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesUIState
-import com.github.se.amber.ui.patient.seeMedias.pictures.SeePicturesViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -132,6 +132,29 @@ class SeePicturesViewModelTest {
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
   }
 
+  @Test
+  fun `media updates are reflected live`() {
+    val media = MutableStateFlow<List<MediaItem>>(emptyList())
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns media
+    val viewModel = createViewModel()
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+
+    media.value = listOf(picture1)
+    assertEquals(
+        listOf(picture1),
+        (viewModel.uiState.value as SeePicturesUIState.Content).allPictures,
+    )
+
+    media.value = listOf(picture1, picture2)
+    assertEquals(
+        listOf(picture1, picture2),
+        (viewModel.uiState.value as SeePicturesUIState.Content).allPictures,
+    )
+
+    media.value = emptyList()
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+  }
+
   // ---------------------------------------------------------------------------------------------
   // Blocking errors
   // ---------------------------------------------------------------------------------------------
@@ -201,6 +224,17 @@ class SeePicturesViewModelTest {
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
     assertEquals("Failed to load media: media error", state.message)
+  }
+
+  @Test
+  fun `uses the first non-blank circle id`() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = listOf("", "circle1")))
+
+    val viewModel = createViewModel()
+
+    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+    coVerify { circleRepository.getCircle("circle1") }
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -340,5 +374,20 @@ class SeePicturesViewModelTest {
 
     val state = viewModel.uiState.value as SeePicturesUIState.Content
     assertEquals(listOf(picture1, picture2), state.allPictures)
+  }
+
+  @Test
+  fun `retry stops observing the previous media flow`() {
+    val oldMedia = MutableStateFlow<List<MediaItem>>(listOf(picture1))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns oldMedia
+    val viewModel = createViewModel()
+
+    val newMedia = MutableStateFlow<List<MediaItem>>(listOf(picture2))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns newMedia
+    viewModel.retry()
+
+    oldMedia.value = listOf(picture1, audio) // must be ignored
+    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    assertEquals(listOf(picture2), state.allPictures)
   }
 }

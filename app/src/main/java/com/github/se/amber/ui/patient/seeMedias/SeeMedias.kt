@@ -1,4 +1,4 @@
-// this code was written with the aid of AI
+// Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
 package com.github.se.amber.ui.patient.seeMedias
 
@@ -12,9 +12,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -31,10 +32,10 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
 object SeeMediasTestTags {
-  const val TITLE_SEE_MEDIAS = "title_see_medias"
-  const val SEE_PICTURES_BUTTON_SEE_MEDIAS = "see_pictures_button_see_medias"
-  const val SEE_TEXTS_BUTTON_SEE_MEDIAS = "see_medias_see_texts_button_see_medias"
-  const val SEE_AUDIO_BUTTON_SEE_MEDIAS = "see_audio_button_see_medias"
+  const val TITLE = "see_medias_title"
+  const val PICTURES_BUTTON = "see_medias_pictures_button"
+  const val TEXTS_BUTTON = "see_medias_texts_button"
+  const val AUDIOS_BUTTON = "see_medias_audios_button"
 }
 
 /**
@@ -46,6 +47,7 @@ object SeeMediasTestTags {
  * @param onSeeAudioClick callback invoked when see audio is selected.
  * @param onTabSelected callback invoked when one of the tab in the bottomBarMenu is selected
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SeeMediasScreen(
     viewModel: SeeMediasViewModel = viewModel(),
@@ -56,6 +58,16 @@ fun SeeMediasScreen(
 ) {
 
   Scaffold(
+      topBar = {
+        TopAppBar(
+            title = {
+              DisplayPatientTitle(
+                  title = "See Medias",
+                  testTag = SeeMediasTestTags.TITLE,
+              )
+            }
+        )
+      },
       bottomBar = {
         BottomNavigationMenu(
             Modifier.testTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU),
@@ -74,30 +86,26 @@ fun SeeMediasScreen(
             verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayPatientTitle(
-              title = "See Medias",
-              testTag = SeeMediasTestTags.TITLE_SEE_MEDIAS,
-          )
           DisplayPatientButtonWithIcon(
               text = "See Pictures",
               icon = Icons.Outlined.PhotoCamera,
               description = "Picture",
               onClick = onSeePictureClick,
-              testTag = SeeMediasTestTags.SEE_PICTURES_BUTTON_SEE_MEDIAS,
+              testTag = SeeMediasTestTags.PICTURES_BUTTON,
           )
           DisplayPatientButtonWithIcon(
               text = "See Texts",
               icon = Icons.Outlined.Description,
               description = "Text",
               onClick = onSeeTextClick,
-              testTag = SeeMediasTestTags.SEE_TEXTS_BUTTON_SEE_MEDIAS,
+              testTag = SeeMediasTestTags.TEXTS_BUTTON,
           )
           DisplayPatientButtonWithIcon(
               text = "See Audio",
               icon = Icons.Outlined.Mic,
               description = "Audios",
               onClick = onSeeAudioClick,
-              testTag = SeeMediasTestTags.SEE_AUDIO_BUTTON_SEE_MEDIAS,
+              testTag = SeeMediasTestTags.AUDIOS_BUTTON,
           )
         }
       },

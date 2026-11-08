@@ -1,5 +1,6 @@
-// Written by Viktor Jurczenko, with assistance from
-// Claude (Anthropic) via Claude Code.
+// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber
 
 import android.app.Application
@@ -7,9 +8,15 @@ import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
+import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
+import com.github.se.amber.data.account.DeletionMarker
+import com.github.se.amber.data.account.SharedPreferencesDeletionMarker
 import com.github.se.amber.data.media.image.MediaPictureFetcher
 import com.github.se.amber.data.media.image.MediaPictureKeyer
 import com.github.se.amber.model.media.MediaRepositoryProvider
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * The app itself, created by Android before any activity or background job.
@@ -21,8 +28,37 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
  * - WorkManager, so that background jobs are created by [MediaRepositoryProvider.workerFactory] and
  *   get what they need. Its automatic setup is turned off in the manifest, so it reads
  *   [workManagerConfiguration] instead.
+ *
+ * The only thing done at startup is finishing an interrupted account deletion, if there is one.
  */
 class AmberApplication : Application(), SingletonImageLoader.Factory, Configuration.Provider {
+
+  override fun onCreate() {
+    super.onCreate()
+    finishInterruptedDeletion()
+  }
+
+  /**
+   * Finishes a deletion started by an earlier launch, if [marker] says there was one. It doesn't
+   * wait for the UI: clearing stops Firestore and restarts the app, wherever it is.
+   *
+   * @param marker Tells whether a deletion was started.
+   * @param provider Builds the repository, only if [marker] is set.
+   * @param scope Runs the check in the background, so the app opens without waiting for the server.
+   */
+  internal fun finishInterruptedDeletion(
+      marker: DeletionMarker = SharedPreferencesDeletionMarker(this),
+      provider: AccountDeletionRepositoryProvider = AccountDeletionRepositoryProvider.default,
+      scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+  ) {
+    // The repository checks the marker too, but checking it first here means a normal launch
+    // doesn't build the repository, so it doesn't touch Firebase
+    if (!marker.isSet) return
+    scope.launch {
+      // A failure here must not stop the app from opening; the next launch tries again
+      runCatching { provider.repository.finishInterruptedDeletion() }
+    }
+  }
 
   override fun newImageLoader(context: PlatformContext): ImageLoader =
       ImageLoader.Builder(context)

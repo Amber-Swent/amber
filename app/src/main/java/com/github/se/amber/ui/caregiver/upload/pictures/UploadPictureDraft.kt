@@ -1,7 +1,6 @@
-/* Written by Neha Chakraborty, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
-package com.github.se.amber.ui.caregiver.upload.picture
+// Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
+package com.github.se.amber.ui.caregiver.upload.pictures
 
 import androidx.lifecycle.SavedStateHandle
 import com.github.se.amber.model.location.GeoLocation
@@ -29,20 +28,21 @@ private const val PLACE_ID = "draft_place_id"
  * kept, as a new search finds them again.
  */
 internal fun SavedStateHandle.saveDraft(state: UploadPictureUIState) {
-  val picked = state.location.pickedPlace
-  set(DESCRIPTION, state.description)
-  set(DATE_YEAR, state.date?.year)
-  set(DATE_MONTH, state.date?.month?.value)
-  set(DATE_DAY, state.date?.day)
-  set(SHOWN_IDS, ArrayList(state.shownIds))
+  val common = state.common
+  val picked = common.location.pickedPlace
+  set(DESCRIPTION, common.description)
+  set(DATE_YEAR, common.date?.year)
+  set(DATE_MONTH, common.date?.month?.value)
+  set(DATE_DAY, common.date?.day)
+  set(SHOWN_IDS, ArrayList(common.shownIds))
   set(PICTURE_PATH, state.pictureFile?.path)
   set(PICTURE_WIDTH, state.pictureWidth)
   set(PICTURE_HEIGHT, state.pictureHeight)
-  set(PLACE_QUERY, state.location.query)
+  set(PLACE_QUERY, common.location.query)
   set(PLACE_LAT, picked?.lat)
   set(PLACE_LNG, picked?.lng)
   set(PLACE_NAME, picked?.placeName)
-  set(PLACE_ID, state.location.selectedPlaceId)
+  set(PLACE_ID, common.location.selectedPlaceId)
 }
 
 /**
@@ -54,22 +54,26 @@ internal fun SavedStateHandle.restoreDraft(initial: UploadPictureUIState): Uploa
   val picture = get<String>(PICTURE_PATH)?.let(::File)?.takeIf { it.exists() }
   val hasPickedPlace = listOf(PLACE_LAT, PLACE_LNG, PLACE_NAME).any { get<Any>(it) != null }
   return initial.copy(
-      description = get(DESCRIPTION) ?: "",
-      date =
-          get<Int>(DATE_YEAR)?.let { year ->
-            MemoryDate(year, get<Int>(DATE_MONTH)?.let(Month::of), get(DATE_DAY))
-          },
-      shownIds = get<ArrayList<String>>(SHOWN_IDS).orEmpty().toSet(),
       pictureFile = picture,
       pictureWidth = if (picture != null) get(PICTURE_WIDTH) ?: 0 else 0,
       pictureHeight = if (picture != null) get(PICTURE_HEIGHT) ?: 0 else 0,
-      location =
-          initial.location.copy(
-              query = get(PLACE_QUERY) ?: "",
-              pickedPlace =
-                  if (hasPickedPlace) GeoLocation(get(PLACE_LAT), get(PLACE_LNG), get(PLACE_NAME))
-                  else null,
-              selectedPlaceId = get(PLACE_ID),
+      common =
+          initial.common.copy(
+              description = get(DESCRIPTION) ?: "",
+              date =
+                  get<Int>(DATE_YEAR)?.let { year ->
+                    MemoryDate(year, get<Int>(DATE_MONTH)?.let(Month::of), get(DATE_DAY))
+                  },
+              shownIds = get<ArrayList<String>>(SHOWN_IDS).orEmpty().toSet(),
+              location =
+                  initial.common.location.copy(
+                      query = get(PLACE_QUERY) ?: "",
+                      pickedPlace =
+                          if (hasPickedPlace) {
+                            GeoLocation(get(PLACE_LAT), get(PLACE_LNG), get(PLACE_NAME))
+                          } else null,
+                      selectedPlaceId = get(PLACE_ID),
+                  ),
           ),
   )
 }

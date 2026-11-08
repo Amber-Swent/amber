@@ -1,5 +1,5 @@
-// this code was written by Alaabrine
-// with the aid of an AI coding agent
+// Written by Alaabrine with the aid of an AI coding agent
+
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.lifecycle.ViewModel

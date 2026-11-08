@@ -1,5 +1,6 @@
-// this code was written by Alaabrine
-// with the aid of AI coding agent
+// Written by Alaabrine with the aid of AI coding agent.
+// Modified by Yuhan YANG, with assistance from Cursor.
+
 package com.github.se.amber.ui.invitationRedemption
 
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -18,6 +19,8 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
@@ -84,13 +87,13 @@ class InvitationRedemptionUITests {
     setScreen()
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .performTextInput(VALID_CODE)
     composeTestRule.waitForIdle()
 
     composeTestRule
         .onAllNodesWithTag(
-            InvitationRedemptionTestTags.CODE_PLACEHOLDER.name,
+            InvitationRedemptionTestTags.CODE_PLACEHOLDER,
             useUnmergedTree = true,
         )
         .assertCountEquals(0)
@@ -99,10 +102,13 @@ class InvitationRedemptionUITests {
   // ---------- Back navigation ----------
 
   @Test
-  fun backButton_click_invokesOnBackOnly() {
+  fun cancelButton_showsCancelAndLeaves() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name).performClick()
+    composeTestRule
+        .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
+        .assertTextEquals(TopNavigationAction.CANCEL.label)
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -117,17 +123,17 @@ class InvitationRedemptionUITests {
     setScreen()
 
     composeTestRule
-        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertCountEquals(0)
 
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .assert(hasErrorSemantics())
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(CODE_REQUIRED_MESSAGE)
     assertEquals(0, redeemSuccessCount)
@@ -137,17 +143,17 @@ class InvitationRedemptionUITests {
   fun typingAfterError_clearsCodeRequiredError() {
     val viewModel = setScreen()
 
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitForIdle()
     assertEquals(CODE_REQUIRED_MESSAGE, viewModel.uiState.value.errorMessage)
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .performTextInput(VALID_CODE)
     composeTestRule.waitForIdle()
 
     composeTestRule
-        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertCountEquals(0)
   }
 
@@ -159,9 +165,9 @@ class InvitationRedemptionUITests {
     setScreen(repository = stubRepository(Result.success(expected)))
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .performTextInput(VALID_CODE)
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) { redeemSuccessCount == 1 }
 
     assertEquals(1, redeemSuccessCount)
@@ -174,18 +180,18 @@ class InvitationRedemptionUITests {
     setScreen(repository = stubRepository(Result.failure(InvitationError.InvalidCode)))
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .performTextInput(VALID_CODE)
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) {
       composeTestRule
-          .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
+          .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
           .fetchSemanticsNodes()
           .isNotEmpty()
     }
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR.name, useUnmergedTree = true)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
         .assertTextEquals(InvitationError.InvalidCode.toActionableMessage())
     assertEquals(0, redeemSuccessCount)
@@ -201,17 +207,15 @@ class InvitationRedemptionUITests {
     val viewModel = setScreen(repository = repository)
 
     composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT.name)
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
         .performTextInput(VALID_CODE)
-    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name).performClick()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitUntil(timeoutMillis = 3_000) { viewModel.uiState.value.isRedeeming }
 
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON.name)
-        .assertIsNotEnabled()
-    composeTestRule
-        .onNodeWithTag(InvitationRedemptionTestTags.BACK_BUTTON.name)
-        .assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(0, backCount)
 
     pending.complete(
         Result.success(

@@ -1,5 +1,6 @@
-// This file was written by Neha Chakraborty and Claude Code
-// Modified with assistance from OpenAI Codex
+// Written by Neha Chakraborty and Claude Code
+// Modified by MeiliV, with assistance from OpenAI Codex
+
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
