@@ -169,9 +169,9 @@ object InputValidation {
   /**
    * An email address. Stricter than android.util.Patterns.EMAIL_ADDRESS (which doesn't exist in
    * local unit tests anyway): the part before the @ holds at most 64 characters (RFC 5321) and has
-   * no dot at its start, at its end or next to another, and no part of the domain starts or ends
-   * with a hyphen. Spaces are kept as typed, so that "i love@otters.com" is refused rather than
-   * silently turned into another address; [InputRule.check] still trims the ends.
+   * no dot at its start, at its end or next to another, and the domain's dots and hyphens each sit
+   * between two letters or digits. Spaces are kept as typed, so that "i love@otters.com" is refused
+   * rather than silently turned into another address; [InputRule.check] still trims the ends.
    */
   val EMAIL =
       InputRule(
@@ -180,8 +180,8 @@ object InputValidation {
               Regex(
                   "(?=[^@]{1,64}@)[a-zA-Z0-9+_%\\-]+(\\.[a-zA-Z0-9+_%\\-]+)*" +
                       "@" +
-                      "[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?" +
-                      "(\\.[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?)+"
+                      // Words joined by single dots or hyphens, ending in a dot and a last word
+                      "([a-zA-Z0-9]+[.\\-])*[a-zA-Z0-9]+\\.[a-zA-Z0-9]+"
               ),
           formatMessage = "Enter a valid email address",
       )

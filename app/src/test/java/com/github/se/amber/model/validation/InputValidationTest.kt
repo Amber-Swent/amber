@@ -88,6 +88,8 @@ class InputValidationTest {
             "john.@example.com",
             "a@-example.com",
             "a@example-.com",
+            "a@example..com",
+            "a@example.com.",
             "${"a".repeat(65)}@example.com",
         )
         .forEach { assertEquals(it, InputError.WRONG_FORMAT, InputValidation.EMAIL.check(it)) }
