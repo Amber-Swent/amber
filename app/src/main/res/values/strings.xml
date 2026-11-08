@@ -34,4 +34,26 @@
     <string name="screenTitlePatientSeeAudios">See Audios</string>
     <string name="screenTitlePatientParameters">Parameters</string>
     <string name="screenTitlePatientSignOut">Sign out</string>
+
+    <!-- EmailSignIn -->
+    <string name="signInWelcome">Welcome to Amber</string>
+    <string name="signInInstruction">Sign in with Google to access your account or create one.</string>
+    <string name="signInGoogle">Sign in with Google</string>
+    <string name="signInGoogleLoading">Signing in…</string>
+    <string name="signInTermsFooter">By signing in, you agree to our Terms of Service and Privacy Policy</string>
+    <string name="signInErrorEmailRequired">Please enter your email address.</string>
+    <string name="signInErrorNoGoogleAccount">No Google account found. Please add one to your device.</string>
+    <string name="signInErrorFailed">Sign-in failed. Please try again.</string>
+
+    <!-- RoleLoading -->
+    <string name="roleLoadingError">Could not load your profile.\nTry again.</string>
+    <string name="roleLoadingRetry">Retry</string>
+    <string name="roleLoadingBackToLogin">Back to login</string>
+
+    <!-- SignOut -->
+    <string name="signOutTitle">Sign out</string>
+    <string name="signOutExplanation">You will be signed out of Amber on this device. You can sign in again at any time.</string>
+    <string name="signOutButton">Sign out</string>
+    <string name="signOutSuccess">Logout successful</string>
+    <string name="signOutError">Could not sign out. Please try again.</string>
 </resources>

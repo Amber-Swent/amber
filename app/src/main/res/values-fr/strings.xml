@@ -30,4 +30,26 @@
     <string name="screenTitlePatientSeeAudios">Voir les audios</string>
     <string name="screenTitlePatientParameters">Paramètres</string>
     <string name="screenTitlePatientSignOut">Déconnexion</string>
+
+    <!-- EmailSignIn -->
+    <string name="signInWelcome">Bienvenue sur Amber</string>
+    <string name="signInInstruction">Connectez-vous avec Google pour accéder à votre compte ou en créer un.</string>
+    <string name="signInGoogle">Se connecter avec Google</string>
+    <string name="signInGoogleLoading">Connexion…</string>
+    <string name="signInTermsFooter">En vous connectant, vous acceptez nos conditions d\'utilisation et notre politique de confidentialité</string>
+    <string name="signInErrorEmailRequired">Veuillez saisir votre adresse e-mail.</string>
+    <string name="signInErrorNoGoogleAccount">Aucun compte Google trouvé. Ajoutez-en un à votre appareil.</string>
+    <string name="signInErrorFailed">La connexion a échoué. Veuillez réessayer.</string>
+
+    <!-- RoleLoading -->
+    <string name="roleLoadingError">Impossible de charger votre profil.\nRéessayez.</string>
+    <string name="roleLoadingRetry">Réessayer</string>
+    <string name="roleLoadingBackToLogin">Retour à la connexion</string>
+
+    <!-- SignOut -->
+    <string name="signOutTitle">Déconnexion</string>
+    <string name="signOutExplanation">Vous serez déconnecté d\'Amber sur cet appareil. Vous pourrez vous reconnecter à tout moment.</string>
+    <string name="signOutButton">Se déconnecter</string>
+    <string name="signOutSuccess">Déconnexion réussie</string>
+    <string name="signOutError">Impossible de se déconnecter. Veuillez réessayer.</string>
 </resources>

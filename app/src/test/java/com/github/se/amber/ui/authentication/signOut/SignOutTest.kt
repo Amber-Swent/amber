@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
@@ -107,7 +109,7 @@ class SignOutScreenTest {
 
   @Test
   fun errorMessageTriggersClearErrorMsg() {
-    stateFlow.value = SignOutUIState(errorMsg = "error")
+    stateFlow.value = SignOutUIState(errorMsgRes = R.string.signOutError)
     setScreen()
 
     composeTestRule.waitForIdle()

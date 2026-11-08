@@ -1,5 +1,6 @@
 // Written with the aid of AI
 // Modified by nehachak1, with assistance from Claude Code
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication
 
@@ -114,7 +115,7 @@ class EmailSignInViewModelTest {
     viewModel.onEmailChange("  \t")
 
     assertFalse(viewModel.validateEmail())
-    assertEquals("Please enter your email address.", viewModel.uiState.value.errorMessage)
+    assertEquals(R.string.signInErrorEmailRequired, viewModel.uiState.value.errorRes)
   }
 
   @Test
@@ -122,7 +123,7 @@ class EmailSignInViewModelTest {
     viewModel.onEmailChange("person@example.com")
 
     assertTrue(viewModel.validateEmail())
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorRes)
   }
 
   @Test
@@ -132,7 +133,7 @@ class EmailSignInViewModelTest {
 
     viewModel.clearError()
 
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorRes)
     assertEquals("  ", viewModel.uiState.value.email)
   }
 
@@ -145,7 +146,8 @@ class EmailSignInViewModelTest {
     advanceUntilIdle()
 
     assertFalse(viewModel.uiState.value.isLoading)
-    assertEquals("Credential provider unavailable", viewModel.uiState.value.errorMessage)
+    // The exception message is for logs; the user sees a translated message
+    assertEquals(R.string.signInErrorFailed, viewModel.uiState.value.errorRes)
     assertNull(viewModel.uiState.value.user)
   }
 
@@ -163,7 +165,7 @@ class EmailSignInViewModelTest {
     runCurrent()
 
     assertTrue(viewModel.uiState.value.isLoading)
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorRes)
     pending.complete(Unit)
     advanceUntilIdle()
   }
@@ -215,7 +217,7 @@ class EmailSignInViewModelTest {
   }
 
   @Test
-  fun repositoryFailureShowsItsMessage() = runTest {
+  fun repositoryFailureShowsGenericMessage() = runTest {
     val credential = stubCredential()
     coEvery { repository.signInWithGoogle(credential) } returns
         Result.failure(IllegalStateException("Repository failed"))
@@ -223,7 +225,7 @@ class EmailSignInViewModelTest {
     viewModel.signInWithGoogle(context, credentialManager)
     advanceUntilIdle()
 
-    assertEquals("Repository failed", viewModel.uiState.value.errorMessage)
+    assertEquals(R.string.signInErrorFailed, viewModel.uiState.value.errorRes)
   }
 
   @Test
@@ -245,7 +247,7 @@ class EmailSignInViewModelTest {
     viewModel.signInWithGoogle(context, credentialManager)
     advanceUntilIdle()
 
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorRes)
   }
 
   @Test
@@ -257,8 +259,8 @@ class EmailSignInViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        "No Google account found. Please add one to your device.",
-        viewModel.uiState.value.errorMessage,
+        R.string.signInErrorNoGoogleAccount,
+        viewModel.uiState.value.errorRes,
     )
   }
 
@@ -270,6 +272,6 @@ class EmailSignInViewModelTest {
     viewModel.signInWithGoogle(context, credentialManager)
     advanceUntilIdle()
 
-    assertEquals("Sign-in failed. Please try again.", viewModel.uiState.value.errorMessage)
+    assertEquals(R.string.signInErrorFailed, viewModel.uiState.value.errorRes)
   }
 }

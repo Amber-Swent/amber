@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.roleloading
 
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.github.se.amber.R
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.authentication.roleLoading.CareCircleDestination
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
@@ -251,7 +253,7 @@ class RoleLoadingScreenTest {
 
   @Test
   fun errorMsg_isClearedAfterBeingShown() {
-    setScreen(RoleLoadingUIState(roleState = RoleState.Error, errorMsg = "Something failed"))
+    setScreen(RoleLoadingUIState(roleState = RoleState.Error, errorMsgRes = R.string.signOutError))
     composeTestRule.waitForIdle()
 
     verify(exactly = 1) { viewModel.clearErrorMsg() }

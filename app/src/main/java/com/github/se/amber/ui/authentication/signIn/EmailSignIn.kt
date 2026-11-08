@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signIn
 
@@ -14,8 +15,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
@@ -36,9 +39,6 @@ internal object EmailSignInTestTags {
   const val GOOGLE_BUTTON = "email_sign_in_google_button"
   const val OR_DIVIDER = "email_sign_in_or_divider"
 }
-
-internal const val WELCOME_LABEL = "Welcome to Amber"
-internal const val INSTRUCTION_LABEL = "Sign in with Google to access your account or create one."
 
 /**
  * Displays the initial authentication screen where the user can enter an email address or
@@ -65,6 +65,8 @@ fun EmailSignInScreen(
     emailSignInViewModel: EmailSignInViewModel = viewModel(),
 ) {
   val uiState by emailSignInViewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   // Always call the latest callback, even if the caller recomposes with a new lambda
   val currentOnGoogleSignIn by rememberUpdatedState(onGoogleSignIn)
@@ -76,10 +78,10 @@ fun EmailSignInScreen(
     }
   }
 
-  // Display a Toast when the errorMessage of the uiState is not null
-  LaunchedEffect(uiState.errorMessage) {
-    uiState.errorMessage?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  // Display a Toast when the errorRes of the uiState is not null
+  LaunchedEffect(uiState.errorRes) {
+    uiState.errorRes?.let { errorRes ->
+      Toast.makeText(context, resources.getString(errorRes), Toast.LENGTH_SHORT).show()
       emailSignInViewModel.clearError()
     }
   }
@@ -152,7 +154,7 @@ internal fun EmailSignInContent(
     // Close the action group's Column after the Google button below
     AuthenticationText(
         modifier = Modifier.testTag(EmailSignInTestTags.WELCOME),
-        text = WELCOME_LABEL,
+        text = stringResource(R.string.signInWelcome),
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.headlineMedium,
         color = MaterialTheme.colorScheme.primary,
@@ -161,13 +163,16 @@ internal fun EmailSignInContent(
         modifier =
             Modifier.padding(bottom = CAREGIVER_PADDING_BIG)
                 .testTag(EmailSignInTestTags.INSTRUCTION),
-        text = INSTRUCTION_LABEL,
+        text = stringResource(R.string.signInInstruction),
         textAlign = TextAlign.Center,
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.secondary,
     )
     AuthenticationButton(
-        text = if (uiState.isLoading) "Signing in…" else "Sign in with Google",
+        text =
+            stringResource(
+                if (uiState.isLoading) R.string.signInGoogleLoading else R.string.signInGoogle
+            ),
         onClick = onGoogleSignIn,
         modifier = Modifier.testTag(EmailSignInTestTags.GOOGLE_BUTTON),
         enabled = !uiState.isLoading,
