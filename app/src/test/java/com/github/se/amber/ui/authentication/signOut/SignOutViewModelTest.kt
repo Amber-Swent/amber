@@ -1,8 +1,10 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.authentication.signOut
 
 import android.util.Log
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.coEvery
@@ -11,6 +13,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,13 +46,17 @@ class SignOutViewModelTest {
   @get:Rule val mainRule = MainDispatcherRule()
 
   private lateinit var authRepo: AuthRepository
+  private lateinit var activeCircles: ActiveCircleRepository
 
   @Before
   fun setup() {
     authRepo = mockk(relaxed = true)
+    activeCircles = mockk(relaxed = true)
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
+
+  private fun viewModel() = SignOutViewModel(authRepo, activeCircles)
 
   @After fun tearDown() = unmockkAll()
 
@@ -57,7 +64,7 @@ class SignOutViewModelTest {
   fun signOut_success_setsSignedOutAndStopsSigningOut() = runTest {
     coEvery { authRepo.signOut() } returns Result.success(Unit)
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.signedOut)
@@ -70,7 +77,7 @@ class SignOutViewModelTest {
     val pending = CompletableDeferred<Result<Unit>>()
     coEvery { authRepo.signOut() } coAnswers { pending.await() }
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.isSigningOut)
@@ -85,7 +92,7 @@ class SignOutViewModelTest {
     val pending = CompletableDeferred<Result<Unit>>()
     coEvery { authRepo.signOut() } coAnswers { pending.await() }
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
     viewModel.signOut()
 
@@ -100,7 +107,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns null
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.signedOut)
@@ -112,7 +119,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns AuthUser("uid")
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
 
     assertFalse(viewModel.uiState.value.signedOut)
@@ -124,7 +131,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns AuthUser("uid")
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
     assertFalse(viewModel.uiState.value.signedOut)
 
@@ -140,7 +147,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns AuthUser("uid")
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.signOut()
     assertEquals("Could not sign out. Please try again.", viewModel.uiState.value.errorMsg)
 
@@ -151,7 +158,7 @@ class SignOutViewModelTest {
 
   @Test
   fun setSignedOut_true_updatesUiState() {
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
 
     viewModel.setSignedOut(true)
 
@@ -160,11 +167,56 @@ class SignOutViewModelTest {
 
   @Test
   fun setSignedOut_false_clearsSignedOutFlag() {
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = viewModel()
     viewModel.setSignedOut(true)
 
     viewModel.setSignedOut(false)
 
     assertFalse(viewModel.uiState.value.signedOut)
+  }
+
+  @Test
+  fun signOut_success_clearsTheActiveCircle() = runTest {
+    every { authRepo.currentUser } returns AuthUser("caregiver")
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+
+    viewModel().signOut()
+
+    coVerify(exactly = 1) { activeCircles.clear("caregiver") }
+  }
+
+  @Test
+  fun signOut_failureWhileStillSignedIn_keepsTheActiveCircle() = runTest {
+    every { authRepo.currentUser } returns AuthUser("caregiver")
+    coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
+
+    viewModel().signOut()
+
+    coVerify(exactly = 0) { activeCircles.clear(any()) }
+  }
+
+  @Test
+  fun signOut_failureAfterTheSessionEnded_clearsTheActiveCircle() = runTest {
+    every { authRepo.currentUser } returnsMany listOf(AuthUser("caregiver"), null)
+    coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
+
+    val viewModel = viewModel()
+    viewModel.signOut()
+
+    assertTrue(viewModel.uiState.value.signedOut)
+    coVerify(exactly = 1) { activeCircles.clear("caregiver") }
+  }
+
+  @Test
+  fun signOut_success_stillSignsOutWhenClearingTheActiveCircleFails() = runTest {
+    every { authRepo.currentUser } returns AuthUser("caregiver")
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+    coEvery { activeCircles.clear("caregiver") } throws IOException("disk")
+
+    val viewModel = viewModel()
+    viewModel.signOut()
+
+    assertTrue(viewModel.uiState.value.signedOut)
+    assertFalse(viewModel.uiState.value.isSigningOut)
   }
 }
