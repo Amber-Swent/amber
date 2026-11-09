@@ -48,7 +48,7 @@ data class InvitationRedemptionUIState(
     get() = validationError ?: redemptionErrorRes?.let { UiText.Resource(it) }
 
   /**
-   * Why the code can't be sent: a character codes never use, at once, or a blank or incomplete code
+   * Why the code can't be sent: a character codes never use, a blank or incomplete code
    * once validation was attempted; null otherwise.
    */
   val validationError: UiText?
