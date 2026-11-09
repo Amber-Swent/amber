@@ -215,8 +215,8 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     assertEquals(
-        UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -226,8 +226,8 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     assertEquals(
-        UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.mess + "busy",
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
@@ -237,7 +237,7 @@ class UploadAudioViewModelTest {
     recorder.startError = CancellationException("canceled")
     val vm = createViewModel()
     vm.startRecording()
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -270,8 +270,8 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     assertEquals(
-        UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -326,8 +326,8 @@ class UploadAudioViewModelTest {
     vm.startRecording()
     vm.stopRecording()
     assertEquals(
-        UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.mess + "too short",
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
@@ -338,7 +338,7 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     vm.stopRecording()
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -414,8 +414,8 @@ class UploadAudioViewModelTest {
     val vm = recordedViewModel()
     vm.playRecording()
     assertEquals(
-        UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.mess + "corrupted",
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -424,7 +424,7 @@ class UploadAudioViewModelTest {
     player.playError = CancellationException("canceled")
     val vm = recordedViewModel()
     vm.playRecording()
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -450,8 +450,8 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.uploadMedia()
     assertEquals(
-        UploadAudioViewModelErrorMessage.RECORD_AUDIO.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.RECORD_AUDIO.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -461,8 +461,8 @@ class UploadAudioViewModelTest {
     vm.startRecording()
     vm.uploadMedia()
     assertEquals(
-        UploadAudioViewModelErrorMessage.RECORD_AUDIO.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadAudioViewModelErrorMessage.RECORD_AUDIO.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 

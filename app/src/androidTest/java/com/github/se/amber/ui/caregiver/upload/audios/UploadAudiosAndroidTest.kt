@@ -177,7 +177,7 @@ class UploadAudiosAndroidTest {
         UploadAudioUIState(
             common =
                 CommonMediaUIState(
-                    errorMsg = UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess
+                    errorMsgRes = UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.messageRes
                 )
         )
     )

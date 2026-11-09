@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import io.mockk.every
 import io.mockk.mockk
@@ -25,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 
 /**
  * Tests what [UploadAudioScreen] does around its form: asking for the microphone permission when
@@ -111,5 +113,17 @@ class UploadAudioTest {
     var uploads = 0
     launchScreen(onUpload = { uploads++ })
     assertEquals(1, uploads)
+  }
+
+  // ---------- French ----------
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun noAudioRecordedErrorIsTranslatedToFrench() {
+    launchScreen()
+    assertEquals(
+        "Veuillez d'abord enregistrer un audio",
+        composeTestRule.activity.getString(R.string.uploadAudioErrorRecord),
+    )
   }
 }

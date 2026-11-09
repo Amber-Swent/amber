@@ -2,7 +2,10 @@
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -40,14 +43,16 @@ import kotlinx.coroutines.launch
 /**
  * Error messages specific to the caregiver Upload Audio ViewModel; the ones shared with the other
  * upload screens are in [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelErrorMessage].
+ *
+ * @property messageRes the message shown to the user, as a string resource.
  */
-enum class UploadAudioViewModelErrorMessage(val mess: String) {
-  RECORD_AUDIO(mess = "No audio recorded"),
-  MICROPHONE_NOT_ALLOWED(mess = "The use of the microphone isn't permitted"),
-  COULD_NOT_START_RECORDING(mess = "Could not start the recording: "),
-  COULD_NOT_STOP_RECORDING(mess = "Could not keep the recording: "),
-  COULD_NOT_PLAY_RECORDING(mess = "Could not play the recording: "),
-  MICROPHONE_BUSY(mess = "Microphone used by another application"),
+enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int) {
+  RECORD_AUDIO(R.string.uploadAudioErrorRecord),
+  MICROPHONE_NOT_ALLOWED(R.string.uploadAudioErrorMicrophoneNotAllowed),
+  COULD_NOT_START_RECORDING(R.string.uploadAudioErrorStartRecording),
+  COULD_NOT_STOP_RECORDING(R.string.uploadAudioErrorStopRecording),
+  COULD_NOT_PLAY_RECORDING(R.string.uploadAudioErrorPlayRecording),
+  MICROPHONE_BUSY(R.string.uploadAudioErrorMicrophoneBusy),
 }
 
 /**
@@ -137,11 +142,12 @@ class UploadAudioViewModel(
    * Checks whether an audio has been recorded for upload.
    *
    * @param state The current audio upload UI state.
-   * @return The error message to show if no audio is recorded, or null if it is.
+   * @return The error to show if no audio is recorded, as a string resource, or null if it is.
    */
-  override fun checkContent(state: UploadAudioUIState): String? =
+  @StringRes
+  override fun checkContent(state: UploadAudioUIState): Int? =
       if (state.audioFile == null || state.recordingState != AudioRecordingState.RECORDED)
-          UploadAudioViewModelErrorMessage.RECORD_AUDIO.mess
+          UploadAudioViewModelErrorMessage.RECORD_AUDIO.messageRes
       else null
 
   /**
@@ -196,15 +202,14 @@ class UploadAudioViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: SecurityException) {
-        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.mess)
+        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.messageRes)
         return@launch
       } catch (e: IOException) {
-        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.mess)
+        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.messageRes)
         return@launch
       } catch (e: Exception) {
-        setErrorMsg(
-            UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.mess + (e.message ?: "")
-        )
+        Log.e(TAG, "Could not start the recording", e)
+        setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.messageRes)
         return@launch
       }
       _uiState.update {
@@ -251,10 +256,9 @@ class UploadAudioViewModel(
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
+      Log.e(TAG, "Could not keep the recording", e)
       resetRecording()
-      setErrorMsg(
-          UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.mess + (e.message ?: "")
-      )
+      setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.messageRes)
     }
   }
 
@@ -293,9 +297,8 @@ class UploadAudioViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        setErrorMsg(
-            UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.mess + (e.message ?: "")
-        )
+        Log.e(TAG, "Could not play the recording", e)
+        setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.messageRes)
       }
     }
   }
@@ -303,5 +306,9 @@ class UploadAudioViewModel(
   override fun onCleared() {
     recorder.cancel()
     _uiState.value.audioFile?.let { player.stop(it) }
+  }
+
+  private companion object {
+    const val TAG = "UploadAudioViewModel"
   }
 }

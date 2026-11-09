@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
@@ -32,11 +33,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
@@ -60,6 +64,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
+import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Audio components. */
@@ -89,8 +94,10 @@ fun UploadAudioScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
   val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
-  val errorMessage = uiState.common.errorMsg
+  val errorMsgRes = uiState.common.errorMsgRes
   val context = LocalContext.current
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   // Recording starts only once the microphone is allowed. The popup is shown on each click while
   // it is not (Android stops showing it by itself after the user refuses twice).
@@ -109,9 +116,9 @@ fun UploadAudioScreen(
     }
   }
 
-  LaunchedEffect(errorMessage) {
-    if (errorMessage != null) {
-      Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(errorMsgRes) {
+    if (errorMsgRes != null) {
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
@@ -134,7 +141,7 @@ fun UploadAudioScreen(
                 TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
                 DisplayCaregiverTitle(
                     Modifier.testTag(UploadAudioScreenTestTags.TITLE),
-                    "Upload Audio",
+                    stringResource(R.string.uploadAudioTitle),
                 )
               }
             }
@@ -171,8 +178,8 @@ fun UploadAudioScreen(
                 DisplayBoxWithIconText(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
                     icon = Icons.Outlined.Mic,
-                    contentDescription = "Micro",
-                    text = "Click to record an Audio",
+                    contentDescription = stringResource(R.string.uploadAudioRecordIcon),
+                    text = stringResource(R.string.uploadAudioRecord),
                     onClick = onRecordClick,
                 )
           }
@@ -182,15 +189,15 @@ fun UploadAudioScreen(
               modifier = Modifier.height(TEXT_FIELD_BIG),
               value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
-              label = "Description",
-              placeholder = "Enter a description of the Audio",
-              emptyErrorMessage = "Description cannot be empty",
+              label = stringResource(R.string.uploadAudioDescriptionLabel),
+              placeholder = stringResource(R.string.uploadAudioDescriptionPlaceholder),
+              emptyErrorMessage = stringResource(R.string.uploadAudioDescriptionEmpty),
               maxLines = MAX_LINE_DESCRIPTION,
               maxChar = MAX_CHAR_DESCRIPTION,
           )
 
           DisplayWhoIsInvolved(
-              options = options,
+              options = options.mapValues { (_, label) -> label.asString(resources) },
               shownIds = uiState.common.shownIds,
               toggleShownId = viewModel::toggleShownId,
               onAddPerson = viewModel::onAddPerson,
@@ -221,7 +228,11 @@ fun UploadAudioScreen(
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.common.isUploading) "Uploading…" else "Upload Audio",
+            text =
+                stringResource(
+                    if (uiState.common.isUploading) R.string.uploadAudioUploading
+                    else R.string.uploadAudioUpload
+                ),
             widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
         )
       },

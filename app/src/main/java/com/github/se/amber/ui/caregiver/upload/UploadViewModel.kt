@@ -1,8 +1,10 @@
 /* Written by Lou-Anne Maier, with assistance from
  * Claude (Anthropic) via Claude Code.
+ * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,10 +13,10 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * Represents the current state of the upload screen.
  *
- * @param errorMsg error message to display, or null when there is no error.
+ * @param errorMsgRes error to display, as a string resource, or null when there is no error.
  */
 data class UploadUIState(
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
 // TODO: implement repository
@@ -27,7 +29,7 @@ class UploadViewModel(
 
   /** Clears the error message in the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
+    _uiState.value = _uiState.value.copy(errorMsgRes = null)
   }
 
   /**
@@ -36,9 +38,9 @@ class UploadViewModel(
    * Note: internal instead of private; It stays hidden from other modules but is reachable from
    * tests in the same module.
    *
-   * @param errorMsg message describing the error.
+   * @param errorMsgRes string resource describing the error.
    */
-  internal fun setErrorMsg(errorMsg: String) {
-    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+  internal fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.value = _uiState.value.copy(errorMsgRes = errorMsgRes)
   }
 }
