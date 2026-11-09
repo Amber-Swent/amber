@@ -18,10 +18,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -47,6 +50,7 @@ import org.robolectric.annotation.Config
 class AuthRepositoryFirebaseTest {
   private lateinit var auth: FirebaseAuth
   private lateinit var helper: GoogleSignInHelper
+  private lateinit var manager: CredentialManager
   private lateinit var repository: AuthRepositoryFirebase
   private lateinit var user: FirebaseUser
   private var currentFirebaseUser: FirebaseUser? = null
@@ -72,7 +76,7 @@ class AuthRepositoryFirebaseTest {
         .`when`(auth)
         .signOut()
 
-    val manager =
+    manager =
         object :
             CredentialManager by CredentialManager.create(RuntimeEnvironment.getApplication()) {
           override suspend fun clearCredentialState(request: ClearCredentialStateRequest) {
@@ -222,6 +226,20 @@ class AuthRepositoryFirebaseTest {
     assertNull(repository.refreshCurrentUser())
     verify(auth).signOut()
     assertTrue(cleanupCompleted)
+  }
+
+  @Test
+  fun refreshCurrentUserKeepsTheAccountWhenTheServerTakesTooLong() = runBlocking {
+    currentFirebaseUser = user
+    // a reload that never answers, as on a very slow connection
+    `when`(user.reload()).thenReturn(TaskCompletionSource<Void>().task)
+    val impatient = AuthRepositoryFirebase(manager, helper, auth, SHORT_ACCOUNT_CHECK)
+
+    // fails instead of hanging if the repository waited for the reload
+    val refreshed = withTimeout(TEST_DEADLINE) { impatient.refreshCurrentUser() }
+
+    assertEquals(AuthUser("user-123"), refreshed)
+    verify(auth, never()).signOut()
   }
 
   @Test
@@ -381,5 +399,11 @@ class AuthRepositoryFirebaseTest {
     val result = mock(AuthResult::class.java)
     `when`(result.user).thenReturn(firebaseUser)
     return result
+  }
+
+  private companion object {
+    /** Short enough that the test doesn't wait for the real timeout. */
+    val SHORT_ACCOUNT_CHECK = 50.milliseconds
+    val TEST_DEADLINE = 2.seconds
   }
 }
