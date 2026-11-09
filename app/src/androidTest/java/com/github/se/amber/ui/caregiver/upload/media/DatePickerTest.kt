@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.platform.app.InstrumentationRegistry
+import com.github.se.amber.R
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.time.Month
@@ -40,6 +41,8 @@ class CaregiverUtilsAndroidTest {
   // ------------------DisplayScrollableDatePickerTest-------------------------
 
   @get:Rule val composeRule = createComposeRule()
+
+  private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
   private val listener = FakeDateSelectionListener()
 
@@ -104,7 +107,7 @@ class CaregiverUtilsAndroidTest {
     composeRule
         .onNodeWithTag(DatePickerTestTags.MONTH_REQUIRED_ERROR)
         .assertIsDisplayed()
-        .assertTextEquals("Select a month before selecting a day.")
+        .assertTextEquals(context.getString(R.string.datePickerMonthRequired))
     composeRule.onNodeWithTag(DatePickerTestTags.DIALOG).assertDoesNotExist()
   }
 
@@ -147,10 +150,10 @@ class CaregiverUtilsAndroidTest {
     launch(MemoryDate(2024))
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.MONTH), useUnmergedTree = true)
-        .assertTextEquals("Unknown")
+        .assertTextEquals(context.getString(R.string.datePickerUnknown))
     composeRule
         .onNodeWithTag(DatePickerTestTags.boxValue(DateField.DAY), useUnmergedTree = true)
-        .assertTextEquals("Unknown")
+        .assertTextEquals(context.getString(R.string.datePickerUnknown))
   }
 
   @Test

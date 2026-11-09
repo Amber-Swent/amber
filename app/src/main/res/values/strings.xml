@@ -142,4 +142,156 @@
     <string name="invitationRedemptionErrorPatientSlotTaken">This circle already has a patient. Ask the caregiver for help.</string>
     <string name="invitationRedemptionErrorOffline">You\'re offline. Check your connection and try again.</string>
     <string name="invitationRedemptionErrorUnknown">Couldn\'t redeem this invitation. Please try again.</string>
+
+    <!-- CaregiverParameter -->
+    <string name="caregiverParameterTitle">Parameters</string>
+    <string name="caregiverParameterCreateCareCircle">Create a new care circle</string>
+    <string name="caregiverParameterCreateInvitation">Create Invitation</string>
+    <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
+    <string name="caregiverParameterSignOut">Sign out</string>
+    <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
+
+    <!-- CreateInvitation -->
+    <string name="createInvitationTitle">Create Invitation</string>
+    <string name="createInvitationButton">Create invitation</string>
+    <string name="createInvitationPlaceholder">Click the left button to create a code</string>
+    <string name="createInvitationUsage">This code can only be used once.\nIt\'s active 30 days after its creation.</string>
+    <string name="createInvitationListHeader">Code | Creation Time | Status</string>
+    <string name="createInvitationListRow">%1$s | %2$s | %3$s</string>
+    <string name="createInvitationStatusActive">ACTIVE</string>
+    <string name="createInvitationStatusExpired">EXPIRED</string>
+    <string name="createInvitationStatusUsed">USED</string>
+    <string name="createInvitationCreated">Invitation created</string>
+    <string name="createInvitationErrorNotAuthenticated">Sign in to create an invitation</string>
+    <string name="createInvitationErrorPermissionDenied">You do not have permission to create an invitation</string>
+    <string name="createInvitationErrorNetwork">Network error. Check your connection and try again</string>
+    <string name="createInvitationErrorInvalidExpiry">The invitation expiration date is invalid</string>
+    <string name="createInvitationErrorCodesTaken">Every generated invitation code was already taken. Try again</string>
+    <string name="createInvitationErrorSave">Saving the invitation failed</string>
+    <string name="createInvitationErrorCreate">Could not create the invitation</string>
+    <string name="createInvitationErrorLoadInvitations">Could not load invitations</string>
+    <string name="createInvitationErrorRefreshAfterCreate">The invitation was created, but the list could not be refreshed</string>
+    <string name="createInvitationErrorLoadProfile">Could not load your profile</string>
+    <string name="createInvitationErrorProfileNotFound">Your profile was not found</string>
+    <string name="createInvitationErrorNoCircle">No care circle</string>
+
+    <!-- CaregiverHome -->
+    <string name="caregiverHomeTitle">Home</string>
+    <string name="caregiverHomeWelcomePatient">Welcome! You are with %1$s!</string>
+    <string name="caregiverHomeWelcomeNoPatient">Welcome! There is no patient linked to this care circle yet.</string>
+    <string name="caregiverHomeErrorNoProfile">No profile found.</string>
+    <string name="caregiverHomeErrorLoadProfile">Failed to load the profile.</string>
+    <string name="caregiverHomeErrorNoCircle">No care circle found for this caregiver.</string>
+    <string name="caregiverHomeErrorLoadCircle">Failed to load the care circle.</string>
+    <string name="caregiverHomeErrorNoPatient">No patient is linked to this care circle yet.</string>
+    <string name="caregiverHomeErrorNoPatientProfile">No patient profile found.</string>
+    <string name="caregiverHomeErrorLoadPatientProfile">Failed to load the patient profile.</string>
+
+    <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="caregiverButtonDefaultText">Text</string>
+
+    <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
+    <plurals name="textFieldMaxCharReached">
+        <item quantity="one">Maximum %1$d character reached</item>
+        <item quantity="other">Maximum %1$d characters reached</item>
+    </plurals>
+    <plurals name="textFieldMaxLinesReached">
+        <item quantity="one">Maximum %1$d line reached</item>
+        <item quantity="other">Maximum %1$d lines reached</item>
+    </plurals>
+
+    <!-- UploadMedia: shared by the picture and audio upload screens (ui/caregiver/upload/media) -->
+    <string name="unknownMember">Unknown member %1$d</string>
+    <string name="uploadMediaErrorUnverified">Your identity can\'t be verified</string>
+    <string name="uploadMediaErrorLoadProfile">Could not load your profile</string>
+    <string name="uploadMediaErrorLoadCircle">Could not load your care circle</string>
+    <string name="uploadMediaErrorStillLoading">Your care circle is still loading, try again</string>
+    <string name="uploadMediaErrorNoCircle">Your care circle isn\'t set up</string>
+    <string name="uploadMediaErrorUploadFailed">Upload failed, try again</string>
+    <string name="uploadMediaErrorDescriptionEmpty">The description is empty</string>
+    <string name="uploadMediaErrorSelectDate">The date can\'t be empty</string>
+    <string name="uploadMediaErrorPickPlace">Pick the place from the suggestions</string>
+    <string name="uploadMediaErrorFirstNameRequired">A first name is required</string>
+    <string name="uploadMediaErrorInvalidPersonName">Check the names: use only letters, spaces, hyphens (-) and apostrophes (\')</string>
+    <string name="uploadMediaErrorAddPerson">Could not add person</string>
+    <string name="uploadMediaErrorPersonWithoutId">This person wasn\'t saved, try again</string>
+    <string name="uploadMediaErrorCannotTagPerson">This person was saved but can\'t be tagged: your care circle isn\'t loaded</string>
+
+    <!-- Upload -->
+    <string name="uploadTitle">Upload Media</string>
+    <string name="uploadChoosePicture">Upload Picture</string>
+    <string name="uploadChoosePictureIcon">Picture</string>
+    <string name="uploadChooseAudio">Upload Audio</string>
+    <string name="uploadChooseAudioIcon">Audio</string>
+
+    <!-- UploadPicture -->
+    <string name="uploadPictureTitle">Upload Picture</string>
+    <string name="uploadPictureIcon">Photo</string>
+    <string name="uploadPictureTake">Take a new Picture</string>
+    <string name="uploadPictureChoose">Click to choose an existing Picture</string>
+    <string name="uploadPictureSelected">Picture selected</string>
+    <string name="uploadPictureDescriptionLabel">Description</string>
+    <string name="uploadPictureDescriptionPlaceholder">Enter a description of the picture</string>
+    <string name="uploadPictureDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadPictureUploading">Uploading…</string>
+    <string name="uploadPictureUpload">Upload Picture</string>
+    <string name="uploadPictureErrorSelect">Please select a picture first</string>
+    <string name="uploadPictureErrorRead">Could not read your picture</string>
+
+    <!-- UploadAudio -->
+    <string name="uploadAudioTitle">Upload Audio</string>
+    <string name="uploadAudioRecordIcon">Microphone</string>
+    <string name="uploadAudioRecord">Click to record an Audio</string>
+    <string name="uploadAudioDescriptionLabel">Description</string>
+    <string name="uploadAudioDescriptionPlaceholder">Enter a description of the Audio</string>
+    <string name="uploadAudioDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadAudioUploading">Uploading…</string>
+    <string name="uploadAudioUpload">Upload Audio</string>
+
+    <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
+    <string name="popupDialogClose">Close</string>
+
+    <!-- AddPersonDialog -->
+    <string name="addPersonTitle">Add a person</string>
+    <string name="addPersonAdd">Add person</string>
+    <string name="addPersonAdding">Adding…</string>
+    <string name="addPersonFirstName">First name</string>
+    <string name="addPersonSurname">Surname - optional</string>
+    <string name="addPersonNickname">Nickname - optional</string>
+
+    <!-- PersonInvolved -->
+    <string name="personInvolvedTitle">Who is involved - optional</string>
+    <string name="personInvolvedEmpty">No one is part of your care circle</string>
+
+    <!-- UploadMediaLocation -->
+    <string name="locationTitle">Location - optional</string>
+    <string name="locationSearchLabel">Another place</string>
+    <string name="locationSearchPlaceholder">Search a city, an address…</string>
+    <string name="locationSearching">Searching…</string>
+    <plurals name="locationQueryTooShort">
+        <item quantity="one">Type at least %1$d letter to search, or clear the field.</item>
+        <item quantity="other">Type at least %1$d letters to search, or clear the field.</item>
+    </plurals>
+    <string name="locationSearchFailed">Couldn\'t search places. Check your connection and try again, or clear the field to upload without a location.</string>
+    <string name="locationTryAgain">Try again</string>
+    <string name="locationNoPlaceFound">No places found. Try another search, or clear the field to upload without a location.</string>
+
+    <!-- DatePicker -->
+    <string name="datePickerYear">Year</string>
+    <string name="datePickerMonth">Month</string>
+    <string name="datePickerDay">Day</string>
+    <string name="datePickerSelectYear">Select Year</string>
+    <string name="datePickerSelectMonth">Select Month</string>
+    <string name="datePickerSelectDay">Select Day</string>
+    <string name="datePickerUnknown">Unknown</string>
+    <string name="datePickerMonthRequired">Select a month before selecting a day.</string>
+    <string name="datePickerDone">Done</string>
+
+    <!-- AudioRecorder -->
+    <string name="audioRecorderDelete">Delete the audio</string>
+    <string name="audioRecorderStop">Stop the recording</string>
+
+    <!-- MediaImage -->
+    <string name="mediaImageFallbackDescription">Photo</string>
+    <string name="mediaImageRetryDescription">Load the photo again</string>
 </resources>
