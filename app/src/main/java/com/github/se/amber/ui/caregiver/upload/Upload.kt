@@ -163,7 +163,7 @@ fun DisplayButton(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Outlined.Description,
     text: String = "",
-    description: String = "Text",
+    description: String = stringResource(R.string.caregiverButtonDefaultText),
     onClick: () -> Unit = {},
 ) {
   DisplayCaregiverButton(

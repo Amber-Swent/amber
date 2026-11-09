@@ -186,9 +186,20 @@
     <string name="caregiverHomeErrorNoPatientProfile">Aucun profil de patient trouvé.</string>
     <string name="caregiverHomeErrorLoadPatientProfile">Impossible de charger le profil du patient.</string>
 
+    <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="caregiverButtonDefaultText">Texte</string>
+
     <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
-    <string name="textFieldMaxCharReached">Maximum de %1$d caractères atteint</string>
-    <string name="textFieldMaxLinesReached">Maximum de %1$d lignes atteint</string>
+    <plurals name="textFieldMaxCharReached">
+        <item quantity="one">Maximum de %1$d caractère atteint</item>
+        <item quantity="many">Maximum de %1$d caractères atteint</item>
+        <item quantity="other">Maximum de %1$d caractères atteint</item>
+    </plurals>
+    <plurals name="textFieldMaxLinesReached">
+        <item quantity="one">Maximum de %1$d ligne atteint</item>
+        <item quantity="many">Maximum de %1$d lignes atteint</item>
+        <item quantity="other">Maximum de %1$d lignes atteint</item>
+    </plurals>
 
     <!-- UploadMedia: shared by the picture and audio upload screens (ui/caregiver/upload/media) -->
     <string name="unknownMember">Membre inconnu %1$d</string>
@@ -258,7 +269,11 @@
     <string name="locationSearchLabel">Autre lieu</string>
     <string name="locationSearchPlaceholder">Rechercher une ville, une adresse…</string>
     <string name="locationSearching">Recherche…</string>
-    <string name="locationQueryTooShort">Saisissez au moins %1$d lettres pour rechercher, ou videz le champ.</string>
+    <plurals name="locationQueryTooShort">
+        <item quantity="one">Saisissez au moins %1$d lettre pour rechercher, ou videz le champ.</item>
+        <item quantity="many">Saisissez au moins %1$d lettres pour rechercher, ou videz le champ.</item>
+        <item quantity="other">Saisissez au moins %1$d lettres pour rechercher, ou videz le champ.</item>
+    </plurals>
     <string name="locationSearchFailed">Impossible de rechercher des lieux. Vérifiez votre connexion, puis réessayez, ou videz le champ pour ajouter sans lieu.</string>
     <string name="locationTryAgain">Réessayer</string>
     <string name="locationNoPlaceFound">Aucun lieu trouvé. Essayez une autre recherche, ou videz le champ pour ajouter sans lieu.</string>

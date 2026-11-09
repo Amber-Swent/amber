@@ -192,4 +192,25 @@ class UploadTranslationTest {
         context.getString(MediaViewModelErrorMessage.STILL_LOADING.messageRes),
     )
   }
+
+  @Test
+  fun countedHintsUseTheFrenchPluralForms() {
+    val resources = context.resources
+    assertEquals(
+        "Maximum de 1 caractère atteint",
+        resources.getQuantityString(R.plurals.textFieldMaxCharReached, 1, 1),
+    )
+    assertEquals(
+        "Maximum de 50 caractères atteint",
+        resources.getQuantityString(R.plurals.textFieldMaxCharReached, 50, 50),
+    )
+    assertEquals(
+        "Maximum de 1 ligne atteint",
+        resources.getQuantityString(R.plurals.textFieldMaxLinesReached, 1, 1),
+    )
+    assertEquals(
+        "Saisissez au moins 1 lettre pour rechercher, ou videz le champ.",
+        resources.getQuantityString(R.plurals.locationQueryTooShort, 1, 1),
+    )
+  }
 }

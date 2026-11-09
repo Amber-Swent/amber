@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.github.se.amber.R
 import com.github.se.amber.model.location.GeoLocation
@@ -109,7 +110,11 @@ internal fun DisplayLocation(
             )
         !state.isLongEnoughToSearch ->
             DisplayLocationHint(
-                stringResource(R.string.locationQueryTooShort, MIN_PLACE_QUERY_LENGTH),
+                pluralStringResource(
+                    R.plurals.locationQueryTooShort,
+                    MIN_PLACE_QUERY_LENGTH,
+                    MIN_PLACE_QUERY_LENGTH,
+                ),
                 UploadMediaLocationTestTags.TOO_SHORT,
             )
         state.searchFailed ->
