@@ -70,7 +70,7 @@ The app is in English and French. Android picks `res/values-fr/strings.xml` when
 
 ### Text from ViewModels
 ViewModels have no `Context`, so they MUST NOT hold translated text. They expose what to show and the composable resolves it:
-- A fixed message: a `@StringRes Int`, e.g. `submitErrorRes = R.string.createProfileErrorExists`. The composable calls `stringResource(it)`.
+- A fixed message: a `@StringRes Int`, e.g. `errorMsgRes = R.string.createProfileErrorExists`. The composable calls `stringResource(it)`.
 - Text that depends on data only the ViewModel has: a `UiText` (`ui/utils/UiText.kt`).
   - `UiText.Resource(id, args)` is **app text**: a key from `strings.xml`, plus the values for its placeholders, if any. It is translated.
   - `UiText.Dynamic(value)` is **user data** shown exactly as typed, such as a name or a nickname. It is never translated.
