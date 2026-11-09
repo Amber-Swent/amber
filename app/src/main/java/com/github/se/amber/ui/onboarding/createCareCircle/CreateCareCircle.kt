@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createCareCircle
 
@@ -49,8 +50,9 @@ object CreateCareCircleTestTags {
 /**
  * Displays the first care circle form and connects it to [viewModel].
  *
- * A blank name appears below the field. Repository failures are shown as a toast, while successful
- * creation calls [onCreated] once. The caller decides where to navigate afterward.
+ * A blank or invalid name shows its error below the field and disables Create. Repository failures
+ * are shown as a toast, while successful creation calls [onCreated] once. The caller decides where
+ * to navigate afterward.
  *
  * @param modifier Modifier applied to the root care circle layout.
  * @param context Used to display repository failures as a toast.
@@ -120,7 +122,7 @@ fun CreateCareCircleScreen(
 
       DisplayCaregiverButton(
           text = if (uiState.isLoading) "Creation..." else "Create",
-          enabled = !uiState.isLoading && !uiState.isCreated,
+          enabled = uiState.canCreate,
           onClick = viewModel::createCareCircle,
       )
 

@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
@@ -9,6 +10,7 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
+import com.github.se.amber.model.validation.InputValidation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,8 +22,9 @@ internal const val CODE_REQUIRED_MESSAGE = "Enter an invitation code and try aga
 /**
  * UI state for the redeem-invite step.
  *
- * Blank-code errors are derived once validation has been attempted. [redemptionError] carries
- * mapped [InvitationError] messages from the repository.
+ * A code with characters codes never use shows its error at once; a blank or incomplete one only
+ * once validation has been attempted. [redemptionError] carries mapped [InvitationError] messages
+ * from the repository.
  *
  * @param inviteCode invitation code / link entered by the user.
  * @param validationAttempted true after the user has pressed Submit at least once.
@@ -35,15 +38,30 @@ data class InvitationRedemptionUIState(
     val isRedeeming: Boolean = false,
 ) {
   /**
-   * Message shown under the code field: blank-code validation when attempted, otherwise the latest
+   * Message shown under the code field: [validationError] if there is one, otherwise the latest
    * mapped redemption failure.
    */
   val errorMessage: String?
+    get() = validationError ?: redemptionError
+
+  /**
+   * Why the code can't be sent: a character codes never use, at once, or a blank or incomplete code
+   * once validation was attempted; null otherwise.
+   */
+  val validationError: String?
     get() =
-        when {
-          validationAttempted && inviteCode.isBlank() -> CODE_REQUIRED_MESSAGE
-          else -> redemptionError
-        }
+        InputValidation.INVITATION_CODE.errorMessage(
+            inviteCode,
+            submitted = validationAttempted,
+            blankMessage = CODE_REQUIRED_MESSAGE,
+        )
+
+  /**
+   * Whether Submit can be pressed: no redeem in progress and a code that can be sent. A failed
+   * redeem doesn't disable it, so that the user can retry, e.g. once back online.
+   */
+  val canSubmit: Boolean
+    get() = !isRedeeming && validationError == null
 }
 
 /**
@@ -64,10 +82,13 @@ class InvitationRedemptionViewModel(
 
   /**
    * Updates [InvitationRedemptionUIState.inviteCode] and clears a previous redemption error so the
-   * user can retry with a corrected code.
+   * user can retry with a corrected code. The code is put in capitals, without spaces, and cut at
+   * [InputValidation.INVITATION_CODE_LENGTH], the way codes are generated.
    */
   fun onInviteCodeChange(value: String) {
-    _uiState.update { it.copy(inviteCode = value, redemptionError = null) }
+    _uiState.update {
+      it.copy(inviteCode = InputValidation.INVITATION_CODE.clean(value), redemptionError = null)
+    }
   }
 
   /**
@@ -75,9 +96,9 @@ class InvitationRedemptionViewModel(
    *
    * [onSuccess] is invoked after a successful redeem (and again if the user returns and presses
    * Submit), so the navigation owner can route without observing UI state. Does nothing while a
-   * redeem is already in progress. Trims only the value sent to the repository so the entered code
-   * stays in the field after failure. Does not call the repository when the code is blank after
-   * trim; the derived [InvitationRedemptionUIState.errorMessage] is shown instead.
+   * redeem is already in progress. Does not call the repository when the code is blank or isn't in
+   * the format codes are generated in; the derived [InvitationRedemptionUIState.errorMessage] is
+   * shown instead.
    */
   fun onSubmit(onSuccess: (InvitationRedemptionResult) -> Unit = {}) {
     redeemedResult?.let {
@@ -93,7 +114,7 @@ class InvitationRedemptionViewModel(
           redemptionError = null,
       )
     }
-    if (trimmedCode.isBlank()) return
+    if (!InputValidation.INVITATION_CODE.isValid(trimmedCode)) return
 
     viewModelScope.launch {
       _uiState.update { it.copy(isRedeeming = true, redemptionError = null) }

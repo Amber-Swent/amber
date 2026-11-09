@@ -225,9 +225,13 @@ fun UploadPictureScreen(
   AddPersonDialog(
       isOpen = uiState.common.isAddPersonOpen,
       isAddingPerson = uiState.common.isAddingPerson,
+      canAddPerson = uiState.common.canAddPerson,
       firstName = uiState.common.personFirstName,
       lastName = uiState.common.personLastName,
       nickname = uiState.common.personNickname,
+      firstNameError = uiState.common.personFirstNameError,
+      lastNameError = uiState.common.personLastNameError,
+      nicknameError = uiState.common.personNicknameError,
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,

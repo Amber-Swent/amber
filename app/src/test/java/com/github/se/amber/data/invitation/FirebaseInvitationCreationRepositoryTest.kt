@@ -2,6 +2,7 @@
 
 package com.github.se.amber.data.invitation
 
+import com.github.se.amber.model.validation.InputValidation
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -18,6 +19,7 @@ import io.mockk.verify
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -48,6 +50,14 @@ class FirebaseInvitationCreationRepositoryTest {
     every { user.uid } returns uid
     every { auth.currentUser } returns user
     every { firestore.collection("invitations") } returns collection
+  }
+
+  @Test
+  fun generatedCodesAreInTheFormatTheRedemptionScreenAccepts() {
+    repeat(200) {
+      val code = generateSecureCode()
+      assertNull(code, InputValidation.INVITATION_CODE.check(code))
+    }
   }
 
   @Test
