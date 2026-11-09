@@ -57,11 +57,20 @@ data class RoleLoadingUIState(
     @param:StringRes val errorMsgRes: Int? = null,
 )
 
+/**
+ * Finds where the app opens for the signed-in user, from their role and circles, and signs them out
+ * from the error state.
+ *
+ * @param profileRepository Reads the signed-in user's profile.
+ * @param authRepository Checks the signed-in account with the server, and signs out.
+ * @param deletionRepositoryProvider Gives the repository that clears this device when the signed-in
+ *   account no longer exists. Unlike what the provider's KDoc asks of ViewModels, this takes the
+ *   provider on purpose: the repository is then only created in that rare case, as creating it sets
+ *   up Cloud Functions, the deletion marker and the image loader.
+ */
 class RoleLoadingViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
-    // A provider: its repository is only built for an account that is gone, as building it touches
-    // Firebase
     private val deletionRepositoryProvider: AccountDeletionRepositoryProvider =
         AccountDeletionRepositoryProvider.default,
 ) : ViewModel() {

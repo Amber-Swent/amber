@@ -28,7 +28,8 @@ class FirebaseAccountDeletionRepository(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance(),
 ) : AccountDeletionRepository {
   // The launch check and the role loading screen can both find the account gone at once: two
-  // clears would stop Firestore under each other, and a failed one ends the app without reopening
+  // clears would stop Firestore under each other, and a failed one ends the app without reopening.
+  // Both share the instance of AccountDeletionRepositoryProvider.default, which this lock relies on
   private val clearing = Mutex()
 
   override suspend fun deleteAccount(): Result<Unit> {
