@@ -21,8 +21,16 @@ import org.junit.Test
  * Tests [CapturedPictureSourceAndroid] against the app's real FileProvider, as a camera uses it.
  */
 class CapturedPictureSourceAndroidTest {
-  private val width = 40
-  private val height = 30
+  private companion object {
+    const val WIDTH = 40
+    const val HEIGHT = 30
+    const val JPEG_QUALITY = 90
+    // PNG is lossless, so the quality is ignored but must be given
+    const val PNG_QUALITY = 100
+    const val ROTATION_DEGREES = 90
+    const val LAUSANNE_LAT = 46.52
+    const val LAUSANNE_LNG = 6.63
+  }
 
   private lateinit var context: Context
   private lateinit var source: CapturedPictureSourceAndroid
@@ -35,9 +43,9 @@ class CapturedPictureSourceAndroidTest {
 
   /** Writes a JPEG through [uri], the way the camera app does. */
   private fun writeJpeg(uri: String) {
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
     context.contentResolver.openOutputStream(Uri.parse(uri)).use {
-      assertTrue(bitmap.compress(Bitmap.CompressFormat.JPEG, 90, requireNotNull(it)))
+      assertTrue(bitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, requireNotNull(it)))
     }
   }
 
@@ -55,8 +63,8 @@ class CapturedPictureSourceAndroidTest {
     val picture = source.read(uri)
 
     assertEquals(captureFile(uri), picture.file)
-    assertEquals(width, picture.width)
-    assertEquals(height, picture.height)
+    assertEquals(WIDTH, picture.width)
+    assertEquals(HEIGHT, picture.height)
   }
 
   @Test
@@ -68,17 +76,17 @@ class CapturedPictureSourceAndroidTest {
           ExifInterface.TAG_ORIENTATION,
           ExifInterface.ORIENTATION_ROTATE_90.toString(),
       )
-      setLatLong(46.52, 6.63)
+      setLatLong(LAUSANNE_LAT, LAUSANNE_LNG)
       saveAttributes()
     }
 
     val picture = source.read(uri)
 
-    assertEquals(height, picture.width)
-    assertEquals(width, picture.height)
+    assertEquals(HEIGHT, picture.width)
+    assertEquals(WIDTH, picture.height)
     val saved = ExifInterface(captureFile(uri))
     assertNull(saved.latLong)
-    assertEquals(90, saved.rotationDegrees)
+    assertEquals(ROTATION_DEGREES, saved.rotationDegrees)
   }
 
   @Test
@@ -86,15 +94,15 @@ class CapturedPictureSourceAndroidTest {
     val png = File(context.cacheDir, "gallery.png")
     png.outputStream().use {
       assertTrue(
-          Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-              .compress(Bitmap.CompressFormat.PNG, 100, it)
+          Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
+              .compress(Bitmap.CompressFormat.PNG, PNG_QUALITY, it)
       )
     }
 
     val picture = SelectedPictureReaderAndroid(context).read(Uri.fromFile(png).toString())
 
-    assertEquals(width, picture.width)
-    assertEquals(height, picture.height)
+    assertEquals(WIDTH, picture.width)
+    assertEquals(HEIGHT, picture.height)
     png.delete()
     picture.file.delete()
     Unit
