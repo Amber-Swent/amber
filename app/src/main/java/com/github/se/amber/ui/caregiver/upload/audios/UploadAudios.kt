@@ -29,10 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -95,17 +92,19 @@ fun UploadAudioScreen(
   val errorMessage = uiState.common.errorMsg
   val context = LocalContext.current
 
-  // Android remembers the answer, so nothing is stored here except that the popup was shown once
-  // rememberSaveable keeps it from coming back after a rotation.
+  // Recording starts only once the microphone is allowed. The popup is shown on each click while
+  // it is not (Android stops showing it by itself after the user refuses twice).
   val micLauncher =
-      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
-  var askedMic by rememberSaveable { mutableStateOf(false) }
-  LaunchedEffect(Unit) {
+      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.startRecording()
+      }
+  val onRecordClick = {
     val granted =
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
-    if (!askedMic && !granted) {
-      askedMic = true
+    if (granted) {
+      viewModel.startRecording()
+    } else {
       micLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
   }
@@ -174,7 +173,7 @@ fun UploadAudioScreen(
                     icon = Icons.Outlined.Mic,
                     contentDescription = "Micro",
                     text = "Click to record an Audio",
-                    onClick = viewModel::startRecording,
+                    onClick = onRecordClick,
                 )
           }
 
