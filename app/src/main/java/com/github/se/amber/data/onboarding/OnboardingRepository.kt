@@ -1,17 +1,19 @@
 // Written by Neha Chakraborty and Copilot
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.data.onboarding
 
 import com.github.se.amber.model.circle.CareCircle
 
-/** Creates the signed-in caregiver's first care circle during onboarding. */
+/** Creates a care circle for the signed-in caregiver. */
 fun interface OnboardingRepository {
 
   /**
-   * Creates the first care circle with a nonblank [name].
+   * Creates a care circle with a nonblank [name].
    *
-   * The implementation verifies that the signed-in user has a caregiver profile with no existing
-   * circles, then atomically writes the new circle and its ID to that profile.
+   * The implementation verifies that the signed-in user has a caregiver profile, then atomically
+   * writes the new circle and adds its ID to that profile with arrayUnion, including when the
+   * profile already lists other circles.
    */
   suspend fun createInitialCareCircle(name: String): Result<CareCircle>
 }
