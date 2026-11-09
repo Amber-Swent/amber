@@ -102,8 +102,7 @@ sealed class CaregiverTab(
       )
 
   /**
-   * Caregiver parameters. The label stays "Setting"; the destination is
-   * [CaregiverScreen.Parameters].
+   * Caregiver parameters. The key stays "Setting"; the destination is [CaregiverScreen.Parameters].
    */
   data object Setting :
       CaregiverTab(

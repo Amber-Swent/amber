@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
@@ -35,6 +36,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /** Tests the care circle form with a local repository and no emulator. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -127,13 +130,49 @@ class CreateCareCircleScreenTest {
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 
+  @Test
+  @Config(qualifiers = "fr")
+  fun validationErrorIsShownInFrench() {
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule
+        .onNodeWithTag(CreateCareCircleTestTags.NAME_ERROR, useUnmergedTree = true)
+        .assertTextEquals("Le nom du cercle ne peut pas être vide")
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun creationLabelIsShownInFrench() {
+    repository.gate = CompletableDeferred()
+    viewModel.onNameChange("Famille")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithText("Création…").assertExists()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun failureToastIsShownInFrench() {
+    repository.failure = OnboardingError.Network
+    viewModel.onNameChange("Famille")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(
+        "Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.",
+        ShadowToast.getTextOfLatestToast(),
+    )
+  }
+
   private class FakeOnboardingRepository : OnboardingRepository {
     val submittedNames = mutableListOf<String>()
     var gate: CompletableDeferred<Unit>? = null
+    var failure: Throwable? = null
 
     override suspend fun createInitialCareCircle(name: String): Result<CareCircle> {
       submittedNames.add(name)
       gate?.await()
+      failure?.let {
+        return Result.failure(it)
+      }
       return Result.success(CareCircle(id = "circle-1", name = name))
     }
   }

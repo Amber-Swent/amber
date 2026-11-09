@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -22,6 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
@@ -115,6 +117,38 @@ class SignOutScreenTest {
     composeTestRule.waitForIdle()
 
     verify { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithText("Déconnexion").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Se déconnecter").assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun errorToastIsShownInFrench() {
+    stateFlow.value = SignOutUIState(errorMsgRes = R.string.signOutError)
+    setScreen()
+    composeTestRule.waitForIdle()
+
+    assertEquals(
+        "Impossible de se déconnecter. Veuillez réessayer.",
+        ShadowToast.getTextOfLatestToast(),
+    )
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun successToastIsShownInFrench() {
+    stateFlow.value = SignOutUIState(signedOut = true)
+    setScreen()
+    composeTestRule.waitForIdle()
+
+    assertEquals("Déconnexion réussie", ShadowToast.getTextOfLatestToast())
   }
 
   @Test

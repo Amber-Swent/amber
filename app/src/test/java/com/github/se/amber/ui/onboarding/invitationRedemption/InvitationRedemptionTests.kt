@@ -41,6 +41,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class InvitationRedemptionUITests {
@@ -89,6 +90,50 @@ class InvitationRedemptionUITests {
 
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
+
+  // ---------- French ----------
+
+  private fun assertCodeErrorIs(text: String) {
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
+        .assertTextEquals(text)
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun emptyCodeErrorIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertCodeErrorIs("Saisissez un code d'invitation, puis réessayez.")
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun incompleteCodeErrorIsShownInFrenchWithTheCodeLength() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).performTextInput("ABCD")
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertCodeErrorIs("Saisissez les 8 caractères")
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun wrongCharacterErrorIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).performTextInput("ABC0")
+    composeTestRule.waitForIdle()
+
+    assertCodeErrorIs(
+        "Les codes n'utilisent que des lettres majuscules et les chiffres de 2 à 9, sans I ni O"
+    )
+  }
 
   // ---------- Placeholder behaviour ----------
 

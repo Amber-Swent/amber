@@ -20,6 +20,7 @@ import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInContent
 import com.github.se.amber.ui.authentication.signIn.EmailSignInContentPreview
@@ -43,6 +44,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 private const val EMAIL_HIDDEN = "Email sign-in is commented out until it is implemented"
 
@@ -277,6 +279,17 @@ class EmailSignInScreenTest {
     composeTestRule.waitForIdle()
 
     verify(exactly = 1) { model.clearError() }
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun errorToastIsShownInFrenchWithItsArguments() {
+    val error =
+        UiText.Resource(R.string.inputErrorTooLong, listOf(InputValidation.EMAIL_MAX_LENGTH))
+    setScreen(mockViewModel(EmailSignInUIState(error = error)))
+    composeTestRule.waitForIdle()
+
+    assertEquals("Utilisez au plus 254 caractères", ShadowToast.getTextOfLatestToast())
   }
 
   @Test

@@ -7,6 +7,7 @@ import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -16,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Covers the default arguments and click callbacks of the shared navigation menus. */
 @RunWith(RobolectricTestRunner::class)
@@ -51,6 +53,16 @@ class NavigationMenuTest {
         .assertIsDisplayed()
     CaregiverTab.caregiverTabs.forEach { tab ->
       composeTestRule.onNodeWithTag(BottomNavigationMenuTestTags.tabTag(tab)).assertIsDisplayed()
+    }
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun bottomMenuTabsAreDescribedInFrench() {
+    composeTestRule.setContent { BottomNavigationMenu() }
+
+    listOf("Accueil", "Ajouter", "Paramètres").forEach { label ->
+      composeTestRule.onNodeWithContentDescription(label, useUnmergedTree = true).assertExists()
     }
   }
 

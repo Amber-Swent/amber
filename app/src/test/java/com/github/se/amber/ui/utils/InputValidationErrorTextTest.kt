@@ -74,13 +74,38 @@ class InputValidationErrorTextTest {
   }
 
   @Test
-  @Config(qualifiers = "fr")
-  fun messagesAreTranslatedAndKeepTheLimit() {
-    val resources = ApplicationProvider.getApplicationContext<Context>().resources
+  fun blankValueWithoutBlankMessage_showsNothingWhileTyping() {
+    assertNull(code.errorText(" ", submitted = false, blankRes = null))
+  }
 
+  @Test
+  fun tooLongValueWithWrongCharacters_showsTheLengthFirst() {
     assertEquals(
-        "Utilisez au plus 3 caractères",
-        InputRule(maxLength = 3).errorText("abcd")?.asString(resources),
+        UiText.Resource(R.string.inputErrorTooLong, listOf(3)),
+        InputRule(maxLength = 3, allowedCharacters = Regex("[a-z]*")).errorText("ab1d", false),
     )
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun everyMessageIsTranslatedAndKeepsItsLimit() {
+    val resources = ApplicationProvider.getApplicationContext<Context>().resources
+    val expected =
+        mapOf(
+            InputRule(maxLength = 3).errorText("abcd") to "Utilisez au plus 3 caractères",
+            code.errorText("ABCD") to "Saisissez les 8 caractères",
+            InputRule(maxLength = 3, minLength = 2).errorText("a") to
+                "Utilisez au moins 2 caractères",
+            code.errorText(" ") to "Veuillez remplir ce champ",
+            InputValidation.NAME.errorText("Ada!") to
+                "Ce champ contient des caractères non autorisés",
+            InputValidation.NAME.errorText("Ada!", formatRes = R.string.inputErrorNameFormat) to
+                "Utilisez uniquement des lettres, des espaces, des traits d'union (-) et des " +
+                    "apostrophes (')",
+            InputValidation.EMAIL.errorText("a@", formatRes = R.string.inputErrorEmailFormat) to
+                "Saisissez une adresse e-mail valide",
+        )
+
+    expected.forEach { (text, french) -> assertEquals(french, text?.asString(resources)) }
   }
 }

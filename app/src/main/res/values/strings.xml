@@ -101,11 +101,11 @@
     <string name="createProfileErrorUnknown">Couldn\'t create your profile. Please try again.</string>
 
     <!-- CreateCareCircle -->
-    <string name="createCareCircleTitle">New Care Circle</string>
+    <string name="createCareCircleTitle">New care circle</string>
     <string name="createCareCircleNameLabel">Circle name</string>
     <string name="createCareCircleNamePlaceholder">Name your care circle</string>
     <string name="createCareCircleCreate">Create</string>
-    <string name="createCareCircleCreating">Creation...</string>
+    <string name="createCareCircleCreating">Creating…</string>
     <string name="createCareCircleInviteLater">You will be able to invite members to the circle after its creation.</string>
     <string name="createCareCircleNameRequired">Circle name cannot be empty</string>
     <string name="createCareCircleErrorInvalidName">Enter a care circle name and try again.</string>

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.se.amber.R
 import com.github.se.amber.model.user.Role
@@ -33,6 +34,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 class RoleLoadingScreenTest {
@@ -143,6 +146,29 @@ class RoleLoadingScreenTest {
     composeTestRule.waitForIdle()
 
     verify(exactly = 0) { viewModel.loadRole() }
+  }
+
+  // ---------- French ----------
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun error_isShownInFrench() {
+    setScreen(RoleState.Error)
+
+    composeTestRule.onNodeWithText("Réessayer").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Retour à la connexion").assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun errorToast_isShownInFrench() {
+    setScreen(RoleLoadingUIState(errorMsgRes = R.string.signOutError))
+    composeTestRule.waitForIdle()
+
+    assertEquals(
+        "Impossible de se déconnecter. Veuillez réessayer.",
+        ShadowToast.getTextOfLatestToast(),
+    )
   }
 
   // ---------- Error ----------
