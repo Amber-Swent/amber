@@ -1,4 +1,5 @@
 // Written by LaMaier
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.theme
 
@@ -26,7 +27,7 @@ val orange = Color(0xFFCE5431)
 
 /**
  * In lightMode, for : Main Title Text of the top navigation bar and the corresponding back arrow
- * (example : Checkout, Cancel)
+ * (example : Sign out, Cancel)
  */
 val darkOrange = Color(0xFF9D3121)
 

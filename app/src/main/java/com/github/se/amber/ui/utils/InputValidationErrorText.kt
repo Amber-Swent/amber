@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.utils
 
 import androidx.annotation.StringRes
@@ -57,11 +58,11 @@ fun InputRule.errorText(
       null -> null
       InputError.BLANK -> blankRes?.let { UiText.Resource(it) }
       InputError.TOO_SHORT ->
-          UiText.Resource(
-              if (minLength == maxLength) R.string.inputErrorIncomplete
-              else R.string.inputErrorTooShort,
-              listOf(minLength),
+          UiText.Plural(
+              if (minLength == maxLength) R.plurals.inputErrorIncomplete
+              else R.plurals.inputErrorTooShort,
+              minLength,
           )
-      InputError.TOO_LONG -> UiText.Resource(R.string.inputErrorTooLong, listOf(maxLength))
+      InputError.TOO_LONG -> UiText.Plural(R.plurals.inputErrorTooLong, maxLength)
       InputError.WRONG_FORMAT -> UiText.Resource(formatRes)
     }

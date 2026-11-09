@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.utils
 
 import android.content.Context
@@ -58,6 +59,37 @@ class UiTextTest {
     val text = UiText.Resource(RESOURCE_ID, listOf("Ana", 3))
 
     assertEquals("Ana has 3 pictures", text.asString(mockResources))
+  }
+
+  @Test
+  fun pluralPicksTheWordingForTheCountAndPassesItAsTheArg() {
+    val mockResources = mockk<Resources>()
+    every { mockResources.getQuantityString(RESOURCE_ID, 3, 3) } returns "3 characters"
+
+    assertEquals("3 characters", UiText.Plural(RESOURCE_ID, 3).asString(mockResources))
+  }
+
+  @Test
+  fun pluralPassesItsOwnArgsWhenGiven() {
+    val mockResources = mockk<Resources>()
+    every { mockResources.getQuantityString(RESOURCE_ID, 2, "Ana", 2) } returns "Ana has 2 pictures"
+
+    val text = UiText.Plural(RESOURCE_ID, 2, listOf("Ana", 2))
+
+    assertEquals("Ana has 2 pictures", text.asString(mockResources))
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun pluralResolvesInFrench() {
+    assertEquals(
+        "Utilisez au plus 1 caractère",
+        UiText.Plural(R.plurals.inputErrorTooLong, 1).asString(resources),
+    )
+    assertEquals(
+        "Utilisez au plus 3 caractères",
+        UiText.Plural(R.plurals.inputErrorTooLong, 3).asString(resources),
+    )
   }
 
   @Test

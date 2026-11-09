@@ -38,6 +38,12 @@ import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
+/** Stable tab keys, used in test tags. They are never shown; the visible text is [Tab.label]. */
+internal const val HOME_TAB_KEY = "Home"
+internal const val UPLOAD_TAB_KEY = "Upload"
+internal const val SETTING_TAB_KEY = "Setting"
+internal const val MEDIAS_TAB_KEY = "Medias"
+
 /** Stable tags for the bottom bar, its divider, and one tag per [Tab]. */
 object BottomNavigationMenuTestTags {
   const val BOTTOM_NAVIGATION_MENU = "BottomNavigationMenu_test_tag_menu"
@@ -90,12 +96,17 @@ sealed class CaregiverTab(
 ) : Tab {
   /** Caregiver home. */
   data object Home :
-      CaregiverTab("Home", R.string.navigationTabHome, Icons.Outlined.Home, CaregiverScreen.Home)
+      CaregiverTab(
+          HOME_TAB_KEY,
+          R.string.navigationTabHome,
+          Icons.Outlined.Home,
+          CaregiverScreen.Home,
+      )
 
   /** Caregiver upload. */
   data object Upload :
       CaregiverTab(
-          "Upload",
+          UPLOAD_TAB_KEY,
           R.string.navigationTabUpload,
           Icons.Outlined.PhotoCamera,
           CaregiverScreen.Upload,
@@ -106,7 +117,7 @@ sealed class CaregiverTab(
    */
   data object Setting :
       CaregiverTab(
-          "Setting",
+          SETTING_TAB_KEY,
           R.string.navigationTabSetting,
           Icons.Outlined.Settings,
           CaregiverScreen.Parameters,
@@ -139,12 +150,12 @@ sealed class PatientTab(
 ) : Tab {
   /** Patient home. */
   data object Home :
-      PatientTab("Home", R.string.navigationTabHome, Icons.Outlined.Home, PatientScreen.Home)
+      PatientTab(HOME_TAB_KEY, R.string.navigationTabHome, Icons.Outlined.Home, PatientScreen.Home)
 
   /** Patient picture list. */
   data object SeeMedias :
       PatientTab(
-          "Medias",
+          MEDIAS_TAB_KEY,
           R.string.navigationTabMedias,
           Icons.Outlined.Photo,
           PatientScreen.SeeMedias,
@@ -152,7 +163,7 @@ sealed class PatientTab(
 
   data object Setting :
       PatientTab(
-          "Setting",
+          SETTING_TAB_KEY,
           R.string.navigationTabSetting,
           Icons.Outlined.Settings,
           PatientScreen.Parameters,
