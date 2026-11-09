@@ -202,17 +202,69 @@ class AuthRepositoryFirebaseTest {
   }
 
   @Test
-  fun refreshCurrentUserKeepsAnAccountThatExistsOrCannotBeChecked() = runBlocking {
+  fun refreshCurrentUserReturnsNullWhenNobodyIsSignedIn() = runBlocking {
     assertNull(repository.refreshCurrentUser())
+    verify(auth, never()).signOut()
+  }
 
+  @Test
+  fun refreshCurrentUserKeepsAnAccountThatExists() = runBlocking {
     currentFirebaseUser = user
     `when`(user.reload()).thenReturn(Tasks.forResult(null))
-    assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
 
+    assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserKeepsTheAccountOffline() = runBlocking {
+    currentFirebaseUser = user
     // Offline, the app must still open on the signed-in account
     `when`(user.reload()).thenReturn(Tasks.forException(FirebaseNetworkException("Offline")))
+
     assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
-    assertFalse(cleanupCompleted)
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserSignsOutOfADisabledAccount() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reload())
+        .thenReturn(
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_DISABLED", "Disabled"))
+        )
+
+    assertNull(repository.refreshCurrentUser())
+    verify(auth).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserRethrowsACancelledCheck() {
+    currentFirebaseUser = user
+    `when`(user.reload()).thenThrow(CancellationException("Cancelled"))
+
+    assertThrows(CancellationException::class.java) {
+      runBlocking { repository.refreshCurrentUser() }
+    }
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun reauthenticationKeepsAMismatchAsWrongAccountWhenTheAccountCannotBeChecked() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reauthenticate(firebaseCredential))
+        .thenReturn(
+            Tasks.forException(
+                FirebaseAuthInvalidUserException("ERROR_USER_MISMATCH", "Other account")
+            )
+        )
+    `when`(user.reload()).thenReturn(Tasks.forException(FirebaseNetworkException("Offline")))
+
+    assertSame(
+        ReauthenticationError.WrongAccount,
+        repository.reauthenticateWithGoogle(credential).exceptionOrNull(),
+    )
+    verify(auth, never()).signOut()
   }
 
   @Test
