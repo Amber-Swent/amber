@@ -294,4 +294,58 @@
     <!-- MediaImage -->
     <string name="mediaImageFallbackDescription">Photo</string>
     <string name="mediaImageRetryDescription">Load the photo again</string>
+
+    <!-- PatientHome -->
+    <string name="patientHomeTitle">Home</string>
+    <string name="patientHomeGreeting">Hello %1$s!</string>
+    <string name="patientHomeErrorNoProfile">No profile found.</string>
+    <string name="patientHomeErrorLoadProfile">Failed to load the profile.</string>
+
+    <!-- PatientParameter -->
+    <string name="patientParameterTitle">Parameters</string>
+    <string name="patientParameterSignOut">Sign out</string>
+
+    <!-- SeeMedias -->
+    <string name="seeMediasTitle">See Medias</string>
+    <string name="seeMediasPictures">See Pictures</string>
+    <string name="seeMediasPicturesIcon">Picture</string>
+    <string name="seeMediasTexts">See Texts</string>
+    <string name="seeMediasTextsIcon">Text</string>
+    <string name="seeMediasAudios">See Audios</string>
+    <string name="seeMediasAudiosIcon">Audio</string>
+
+    <!-- SeePictures -->
+    <string name="seePicturesTitle">See Pictures</string>
+    <string name="seePicturesEmpty">There are no pictures yet.</string>
+    <string name="seePicturesRetry">Retry</string>
+    <string name="seePicturesErrorNoProfile">No profile found.</string>
+    <string name="seePicturesErrorLoadProfile">Failed to load the profile.</string>
+    <string name="seePicturesErrorNoCircle">No care circle found for this patient.</string>
+    <string name="seePicturesErrorLoadCircle">Failed to load the care circle.</string>
+    <string name="seePicturesErrorLoadMedia">Failed to load the media.</string>
+
+    <!-- SeeAudios -->
+    <string name="seeAudiosTitle">See Audios</string>
+    <string name="seeAudiosEmpty">There are no audios yet.</string>
+
+    <!-- MediaCard: the details under a picture or an audio (ui/media/MediaCard.kt) -->
+    <string name="mediaCardShowInfos">show infos</string>
+    <string name="mediaCardHideInfos">hide infos</string>
+    <string name="mediaCardUnknownDate">Unknown date</string>
+    <string name="mediaCardUnknownLocation">Unknown location</string>
+    <string name="mediaCardAddedBy">Added by %1$s</string>
+    <string name="mediaCardSharedWith">Memory shared with</string>
+    <string name="mediaCardErrorLoadAuthor">Failed to load the author profile.</string>
+    <string name="mediaCardErrorAuthorNotFound">Author not found.</string>
+    <string name="mediaCardErrorLoadProfile">Failed to load your profile.</string>
+    <string name="mediaCardErrorNoCircle">No care circle found.</string>
+    <string name="mediaCardErrorLoadCircle">Failed to load the care circle.</string>
+
+    <!-- AudioPlayback -->
+    <string name="audioPlaybackPlay">Play</string>
+    <string name="audioPlaybackPause">Pause</string>
+    <string name="audioPlaybackRestart">Restart</string>
+    <string name="audioPlaybackLoading">Loading</string>
+    <string name="audioPlaybackRetry">Retry</string>
+    <string name="audioPlaybackError">This memo could not be played.</string>
 </resources>
