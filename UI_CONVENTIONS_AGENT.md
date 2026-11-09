@@ -97,7 +97,9 @@ ViewModels have no `Context`, so they MUST NOT hold translated text. They expose
   | A name alone: "Mamie Jo"                  | `UiText.Dynamic(name)`                                | -                                  |
   | Fixed app text: "Anonymous"               | `UiText.Resource(R.string.anonymous)`                 | `UiText.Dynamic("Anonymous")`      |
   | A name in a sentence: "Welcome, Mamie Jo" | `UiText.Resource(R.string.welcomeName, listOf(name))` | `UiText.Dynamic("Welcome, $name")` |
-- Resolve a `UiText` with its one function, `asString(resources)`. In a composable, pass `LocalResources.current` so the text updates when the language changes. Outside composition, for example a `Toast` inside `LaunchedEffect`, pass `context.resources`. A plain `@StringRes` there uses `context.getString(res)`.
+- Resolve a `UiText` with its one function, `asString(resources)`. Always take the resources from `LocalResources.current`, so the text follows the app language. MUST NOT use `context.resources` or `context.getString(...)`.
+  - In a composable: `text.asString(LocalResources.current)`.
+  - In a `LaunchedEffect`, for example for a `Toast`: read `val resources = LocalResources.current` in the composable, then use `text.asString(resources)` (or `resources.getString(res)` for a plain `@StringRes`) inside the effect.
 - Errors: data-layer exceptions keep their English messages, which are for logs. The ViewModel maps the error type to a resource and MUST NOT show `e.message` to the user.
 
 ### Dates

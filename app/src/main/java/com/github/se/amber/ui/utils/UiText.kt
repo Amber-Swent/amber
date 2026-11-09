@@ -45,7 +45,8 @@ sealed interface UiText {
  * Resolves the text in the current app language.
  * - In a composable: `text.asString(LocalResources.current)`, which updates when the language
  *   changes.
- * - Outside composition, e.g. a `Toast` in `LaunchedEffect`: `text.asString(context.resources)`.
+ * - In a `LaunchedEffect`, e.g. for a `Toast`: read `val resources = LocalResources.current` in the
+ *   composable, then call `text.asString(resources)` inside the effect.
  *
  * @param resources the app resources, which carry the current language.
  * @return the text to show.
