@@ -284,7 +284,7 @@
     <string name="seeMediasTexts">Voir les textes</string>
     <string name="seeMediasTextsIcon">Texte</string>
     <string name="seeMediasAudios">Voir les audios</string>
-    <string name="seeMediasAudiosIcon">Audios</string>
+    <string name="seeMediasAudiosIcon">Audio</string>
 
     <!-- SeePictures -->
     <string name="seePicturesTitle">Voir les photos</string>
@@ -309,7 +309,7 @@
     <string name="mediaCardSharedWith">Souvenir partagé avec</string>
     <string name="mediaCardErrorLoadAuthor">Impossible de charger le profil de l\'auteur.</string>
     <string name="mediaCardErrorAuthorNotFound">Auteur introuvable.</string>
-    <string name="mediaCardErrorLoadProfile">Impossible de charger le profil actuel.</string>
+    <string name="mediaCardErrorLoadProfile">Impossible de charger votre profil.</string>
     <string name="mediaCardErrorNoCircle">Aucun cercle de soins trouvé.</string>
     <string name="mediaCardErrorLoadCircle">Impossible de charger le cercle de soins.</string>
 

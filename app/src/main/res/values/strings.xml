@@ -313,7 +313,7 @@
     <string name="mediaCardSharedWith">Memory shared with</string>
     <string name="mediaCardErrorLoadAuthor">Failed to load the author profile.</string>
     <string name="mediaCardErrorAuthorNotFound">Author not found.</string>
-    <string name="mediaCardErrorLoadProfile">Failed to load the current profile.</string>
+    <string name="mediaCardErrorLoadProfile">Failed to load your profile.</string>
     <string name="mediaCardErrorNoCircle">No care circle found.</string>
     <string name="mediaCardErrorLoadCircle">Failed to load the care circle.</string>
 
