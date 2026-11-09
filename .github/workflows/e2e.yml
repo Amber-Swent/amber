@@ -5,8 +5,8 @@ name: E2E - End-to-end tests
 # The end-to-end tests (package com.github.se.amber.e2e) drive the whole app against the Firebase
 # emulators. They are slow, so they only run on request:
 # - add the "e2e" label to a PR: it runs then, and again on each push while the label is there;
-# - or run this workflow by hand (Actions > E2E - End-to-end tests > Run workflow) with "Run the
-#   end-to-end tests" checked.
+# - or run this workflow by hand (Actions > E2E - End-to-end tests > Run workflow), e.g. on main
+#   at the end of a sprint.
 #
 # It is a workflow of its own, not a job of ci.yml, so a label never re-runs or skips the required
 # CI check, and it runs next to CI rather than after it.
@@ -19,12 +19,8 @@ on:
       # adding the "e2e" label starts the end-to-end tests
       - labeled
 
+  # a manual run is always a request to run the end-to-end tests
   workflow_dispatch:
-    inputs:
-      run_e2e:
-        description: "Run the end-to-end tests"
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -41,16 +37,19 @@ concurrency:
 jobs:
   e2e:
     name: End-to-end tests
-    # on a PR only with the "e2e" label; a label other than "e2e" is not a reason to run again
+    # always on a manual run; on a PR only with the "e2e" label, and a label other than "e2e" is not
+    # a reason to run again
     if: >-
-      (github.event_name == 'workflow_dispatch' && inputs.run_e2e) ||
-      (github.event_name == 'pull_request' &&
-        contains(github.event.pull_request.labels.*.name, 'e2e') &&
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'e2e') &&
         (github.event.action != 'labeled' || github.event.label.name == 'e2e'))
     runs-on: ubuntu-latest
     # a stuck emulator or Photo Picker must not hold the runner for hours
-    timeout-minutes: 45
+    timeout-minutes: 30
 
+    # The set-up steps, up to "Install Functions dependencies", are the same as in ci.yml: keep them
+    # in sync (versions of the actions, the AVD and firebase-tools), so both workflows test on the
+    # same set-up.
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7
@@ -135,8 +134,9 @@ jobs:
       - name: Install Functions dependencies
         run: npm ci --prefix functions --ignore-scripts
 
-      # Only the e2e package, with the Storage emulator too: the tests give their circle a bucket
-      # there, since the bucket trigger skips itself in the emulator.
+      # Only the e2e package. The Storage emulator is started too, for the upload picture e2e test
+      # that comes next: it gives its circle a bucket there, since the bucket trigger skips itself in
+      # the emulator. Until then, no test uses it.
       - name: End-to-end tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d #v2
         with:
