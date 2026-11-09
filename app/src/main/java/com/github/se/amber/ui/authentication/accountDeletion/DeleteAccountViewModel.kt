@@ -2,6 +2,7 @@
 package com.github.se.amber.ui.authentication.accountDeletion
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -28,20 +29,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal const val DELETE_ACCOUNT_TITLE = "Delete account"
-internal const val DELETE_ACCOUNT_EXPLANATION =
-    "Deletion is permanent. Your uploads and stories are removed for the whole family, and " +
-        "pictures of you are removed from other people's stories. Photos of you uploaded by " +
-        "others stay. You are also removed from appointments."
-internal const val DELETE_ACCOUNT_PROGRESS = "Deleting your account. This may take a few minutes."
-internal const val DELETE_ACCOUNT_CLEANUP_LABEL = "Finish deleting"
-internal const val DELETE_ACCOUNT_CHECKING_LABEL = "Checking your families..."
-internal const val DELETE_ACCOUNT_RETRY_LABEL = "Retry"
-private const val CLEANUP_ERROR =
-    "Your account was deleted, but this device could not be cleared. Tap Finish deleting to retry."
-private const val UNKNOWN_ERROR = "Could not delete the account. Please try again."
-private const val NETWORK_ERROR = "Check your connection and try again."
-
 /**
  * UI state for the caregiver account deletion screen.
  *
@@ -54,7 +41,7 @@ private const val NETWORK_ERROR = "Check your connection and try again."
  *   While true, the screen shows progress and blocks Cancel and system Back.
  * @param warningsLoaded Whether all family reads succeeded and deletion may be confirmed.
  * @param warnings Last-member or last-caregiver consequences to show before confirmation.
- * @param errorMessage A message for the screen to display once, then clear with
+ * @param errorMessageRes A string resource for the screen to display once, then clear with
  *   [DeleteAccountViewModel.clearError].
  * @param localCleanupNeeded Whether the remote account is already gone. The next confirmation calls
  *   [AccountDeletionRepository.clearLocalData] instead of deleting it again.
@@ -63,8 +50,8 @@ data class DeleteAccountUIState(
     val isLoading: Boolean = true,
     val isDeleting: Boolean = false,
     val warningsLoaded: Boolean = false,
-    val warnings: List<String> = emptyList(),
-    val errorMessage: String? = null,
+    val warnings: List<Int> = emptyList(),
+    @param:StringRes val errorMessageRes: Int? = null,
     val localCleanupNeeded: Boolean = false,
 )
 
@@ -93,7 +80,7 @@ class DeleteAccountViewModel(
 
   /** Clears an error after the screen shows it. */
   fun clearError() {
-    _uiState.update { it.copy(errorMessage = null) }
+    _uiState.update { it.copy(errorMessageRes = null) }
   }
 
   /** Reads every family before enabling confirmation; a failed read can be retried. */
@@ -103,22 +90,20 @@ class DeleteAccountViewModel(
     ) {
       return
     }
-    _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+    _uiState.update { it.copy(isLoading = true, errorMessageRes = null) }
     warningJob = viewModelScope.launch {
       try {
         val profile =
             profileRepository.getCurrentProfile().getOrThrow()
                 ?: error("The caregiver profile is unavailable")
         check(profile.role == Role.CAREGIVER) { "Only caregivers can use this screen" }
-        val warnings = mutableSetOf<String>()
+        val warnings = mutableSetOf<Int>()
         for (circleId in profile.circleIds) {
           val circle = circleRepository.getCircle(circleId).getOrThrow()
           if (circle.memberIds.size == 1) {
-            warnings +=
-                "You are this family's last member. The whole family and its media will be deleted."
+            warnings += R.string.deleteAccountLastMemberWarning
           } else if (circle.memberIds.filter { it != circle.patientId } == listOf(profile.uid)) {
-            warnings +=
-                "You are this family's last caregiver. The family will continue with no one to manage it."
+            warnings += R.string.deleteAccountLastCaregiverWarning
           }
         }
         _uiState.update {
@@ -130,7 +115,7 @@ class DeleteAccountViewModel(
         _uiState.update {
           it.copy(
               isLoading = false,
-              errorMessage = "Could not check your families. Please try again.",
+              errorMessageRes = R.string.deleteAccountCheckFamiliesError,
           )
         }
       }
@@ -149,7 +134,7 @@ class DeleteAccountViewModel(
   fun deleteAccount(context: Context, credentialManager: CredentialManager) {
     if (_uiState.value.isDeleting || !_uiState.value.warningsLoaded) return
     val clientId = context.getString(R.string.default_web_client_id)
-    _uiState.update { it.copy(isDeleting = true, errorMessage = null) }
+    _uiState.update { it.copy(isDeleting = true, errorMessageRes = null) }
     viewModelScope.launch {
       try {
         if (_uiState.value.localCleanupNeeded) {
@@ -173,7 +158,9 @@ class DeleteAccountViewModel(
         _uiState.update {
           it.copy(
               isDeleting = false,
-              errorMessage = if (it.localCleanupNeeded) CLEANUP_ERROR else UNKNOWN_ERROR,
+              errorMessageRes =
+                  if (it.localCleanupNeeded) R.string.deleteAccountCleanupError
+                  else R.string.deleteAccountUnknownError,
           )
         }
       }
@@ -186,31 +173,33 @@ class DeleteAccountViewModel(
       handleResult(deletionRepository.clearLocalData())
       return
     }
-    val message =
+    @StringRes
+    val messageRes =
         when (error) {
-          ReauthenticationError.WrongAccount -> "Use the Google account you're signed in with."
-          ReauthenticationError.Network -> NETWORK_ERROR
-          else -> "Could not confirm your Google account. Please try again."
+          ReauthenticationError.WrongAccount -> R.string.deleteAccountWrongAccountError
+          ReauthenticationError.Network -> R.string.deleteAccountNetworkError
+          else -> R.string.deleteAccountReauthenticationError
         }
-    _uiState.update { it.copy(isDeleting = false, errorMessage = message) }
+    _uiState.update { it.copy(isDeleting = false, errorMessageRes = messageRes) }
   }
 
   private fun handleResult(result: Result<Unit>) {
     result.onFailure { error ->
-      val message =
+      @StringRes
+      val messageRes =
           when (error) {
-            AccountDeletionError.Network -> NETWORK_ERROR
+            AccountDeletionError.Network -> R.string.deleteAccountNetworkError
             AccountDeletionError.ReauthenticationRequired ->
-                "Confirm your Google account again and retry."
-            is AccountDeletionError.LocalDataNotCleared -> CLEANUP_ERROR
-            else -> UNKNOWN_ERROR
+                R.string.deleteAccountReauthenticationRequiredError
+            is AccountDeletionError.LocalDataNotCleared -> R.string.deleteAccountCleanupError
+            else -> R.string.deleteAccountUnknownError
           }
       _uiState.update {
         it.copy(
             isDeleting = false,
             localCleanupNeeded =
                 it.localCleanupNeeded || error is AccountDeletionError.LocalDataNotCleared,
-            errorMessage = message,
+            errorMessageRes = messageRes,
         )
       }
     }

@@ -119,7 +119,7 @@ class DeleteAccountViewModelTest {
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.warningsLoaded)
-    assertTrue(viewModel.uiState.value.warnings.single().contains("last member"))
+    assertEquals(R.string.deleteAccountLastMemberWarning, viewModel.uiState.value.warnings.single())
   }
 
   @Test
@@ -132,7 +132,10 @@ class DeleteAccountViewModelTest {
     viewModel.loadWarnings()
     advanceUntilIdle()
 
-    assertTrue(viewModel.uiState.value.warnings.single().contains("last caregiver"))
+    assertEquals(
+        R.string.deleteAccountLastCaregiverWarning,
+        viewModel.uiState.value.warnings.single(),
+    )
   }
 
   @Test
@@ -209,7 +212,7 @@ class DeleteAccountViewModelTest {
     advanceUntilIdle()
 
     assertFalse(viewModel.uiState.value.isDeleting)
-    assertTrue(viewModel.uiState.value.errorMessage!!.contains("signed in with"))
+    assertEquals(R.string.deleteAccountWrongAccountError, viewModel.uiState.value.errorMessageRes)
     coVerify(exactly = 0) { deletionRepository.deleteAccount() }
   }
 
@@ -261,7 +264,7 @@ class DeleteAccountViewModelTest {
 
     viewModel.deleteAccount(context, credentialManager)
     advanceUntilIdle()
-    assertEquals("Check your connection and try again.", viewModel.uiState.value.errorMessage)
+    assertEquals(R.string.deleteAccountNetworkError, viewModel.uiState.value.errorMessageRes)
     assertFalse(viewModel.uiState.value.isDeleting)
 
     coEvery { deletionRepository.deleteAccount() } returns Result.success(Unit)
@@ -281,7 +284,10 @@ class DeleteAccountViewModelTest {
 
     viewModel.deleteAccount(context, credentialManager)
     advanceUntilIdle()
-    assertTrue(viewModel.uiState.value.errorMessage!!.contains("Confirm your Google account"))
+    assertEquals(
+        R.string.deleteAccountReauthenticationRequiredError,
+        viewModel.uiState.value.errorMessageRes,
+    )
 
     coEvery { deletionRepository.deleteAccount() } returns Result.success(Unit)
     viewModel.deleteAccount(context, credentialManager)
@@ -300,7 +306,7 @@ class DeleteAccountViewModelTest {
     advanceUntilIdle()
 
     assertFalse(viewModel.uiState.value.isDeleting)
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorMessageRes)
     coVerify(exactly = 0) { deletionRepository.deleteAccount() }
   }
 
@@ -331,11 +337,11 @@ class DeleteAccountViewModelTest {
     coEvery { circleRepository.getCircle("circle") } returns Result.failure(Exception("offline"))
     viewModel.loadWarnings()
     advanceUntilIdle()
-    assertTrue(viewModel.uiState.value.errorMessage != null)
+    assertEquals(R.string.deleteAccountCheckFamiliesError, viewModel.uiState.value.errorMessageRes)
 
     viewModel.clearError()
 
-    assertNull(viewModel.uiState.value.errorMessage)
+    assertNull(viewModel.uiState.value.errorMessageRes)
     assertFalse(viewModel.uiState.value.warningsLoaded)
   }
 }

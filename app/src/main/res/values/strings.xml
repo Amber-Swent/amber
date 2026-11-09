@@ -28,6 +28,7 @@
     <string name="screenTitleCaregiverParameters">Parameters</string>
     <string name="screenTitleCaregiverSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
+    <string name="screenTitleCaregiverDeleteAccount">Delete account</string>
     <string name="screenTitlePatientHome">Home</string>
     <string name="screenTitlePatientSeeMedias">See Medias</string>
     <string name="screenTitlePatientSeePictures">See Pictures</string>
@@ -150,6 +151,24 @@
     <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
     <string name="caregiverParameterSignOut">Sign out</string>
     <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
+    <string name="caregiverParameterDeleteAccount">Delete account</string>
+
+    <!-- DeleteAccount -->
+    <string name="deleteAccountTitle">Delete account</string>
+    <string name="deleteAccountExplanation">Deletion is permanent. Your uploads and stories are removed for the whole family, and pictures of you are removed from other people\'s stories. Photos of you uploaded by others stay. You are also removed from appointments.</string>
+    <string name="deleteAccountProgress">Deleting your account. This may take a few minutes.</string>
+    <string name="deleteAccountCleanupLabel">Finish deleting</string>
+    <string name="deleteAccountCheckingLabel">Checking your families...</string>
+    <string name="deleteAccountRetryLabel">Retry</string>
+    <string name="deleteAccountLastMemberWarning">You are this family\'s last member. The whole family and its media will be deleted.</string>
+    <string name="deleteAccountLastCaregiverWarning">You are this family\'s last caregiver. The family will continue with no one to manage it.</string>
+    <string name="deleteAccountCheckFamiliesError">Could not check your families. Please try again.</string>
+    <string name="deleteAccountCleanupError">Your account was deleted, but this device could not be cleared. Tap Finish deleting to retry.</string>
+    <string name="deleteAccountUnknownError">Could not delete the account. Please try again.</string>
+    <string name="deleteAccountNetworkError">Check your connection and try again.</string>
+    <string name="deleteAccountWrongAccountError">Use the Google account you\'re signed in with.</string>
+    <string name="deleteAccountReauthenticationError">Could not confirm your Google account. Please try again.</string>
+    <string name="deleteAccountReauthenticationRequiredError">Confirm your Google account again and retry.</string>
 
     <!-- CreateInvitation -->
     <string name="createInvitationTitle">Create Invitation</string>

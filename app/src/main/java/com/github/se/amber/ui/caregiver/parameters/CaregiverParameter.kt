@@ -2,6 +2,7 @@
 // Modify by Lou-Anne Maier, with assistance from Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver.parameters
 
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -49,7 +49,6 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 
 /** Test tags of [CaregiverParameterScreen]. */
 object CaregiverParametersTestTags {
@@ -76,6 +75,7 @@ object CaregiverParametersTestTags {
  * @param onSignOutClick Callback invoked when the user opens the sign-out confirmation screen.
  * @param onDeleteAccountClick Callback invoked when the user opens account deletion.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CaregiverParameterScreen(
     viewModel: CaregiverParameterViewModel = viewModel(),
@@ -161,13 +161,13 @@ fun CaregiverParameterScreen(
               onClick = onSignOutClick,
           )
           DisplayButton(
-            modifier = Modifier.testTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON),
-            icon = Icons.Outlined.Delete,
-            text = stringResource(R.string.caregiverParameterDeleteAccount),
-            description = stringResource(R.string.caregiverParameterDeleteAccount),
-            onClick = onDeleteAccountClick,
+              modifier = Modifier.testTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON),
+              icon = Icons.Outlined.Delete,
+              text = stringResource(R.string.caregiverParameterDeleteAccount),
+              description = stringResource(R.string.caregiverParameterDeleteAccount),
+              onClick = onDeleteAccountClick,
           )
-          
+
           // Tells a caregiver how to add someone else: it names the Create Invitation button on
           // this screen and says to send the code it creates.
           Text(

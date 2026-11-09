@@ -23,20 +23,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.PATIENT_PADDING_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
@@ -66,15 +67,16 @@ fun DeleteAccountScreen(
     onBack: () -> Unit = {},
 ) {
   val context = LocalContext.current
+  val resources = LocalResources.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
   // Consume system Back while the deletion request is in progress.
   BackHandler(enabled = uiState.isDeleting) {}
   LaunchedEffect(Unit) { viewModel.loadWarnings() }
 
-  LaunchedEffect(uiState.errorMessage) {
-    uiState.errorMessage?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+  LaunchedEffect(uiState.errorMessageRes) {
+    uiState.errorMessageRes?.let { messageRes ->
+      Toast.makeText(context, resources.getString(messageRes), Toast.LENGTH_LONG).show()
       viewModel.clearError()
     }
   }
@@ -86,11 +88,11 @@ fun DeleteAccountScreen(
           }
           TopAppBar(
               title = {
-                  DisplayPatientTitle(
-                      modifier = Modifier,
-                      title = DELETE_ACCOUNT_TITLE,
-                      testTag = DeleteAccountTestTags.TITLE,
-                  )
+                DisplayPatientTitle(
+                    modifier = Modifier,
+                    title = stringResource(R.string.deleteAccountTitle),
+                    testTag = DeleteAccountTestTags.TITLE,
+                )
               },
           )
         }
@@ -112,15 +114,15 @@ fun DeleteAccountScreen(
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
-                text = DELETE_ACCOUNT_EXPLANATION,
+                text = stringResource(R.string.deleteAccountExplanation),
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().testTag(DeleteAccountTestTags.EXPLANATION),
             )
-            uiState.warnings.forEach { warning ->
+            uiState.warnings.forEach { warningRes ->
               Text(
-                  text = warning,
+                  text = stringResource(warningRes),
                   color = MaterialTheme.colorScheme.error,
                   style = MaterialTheme.typography.bodyLarge,
                   textAlign = TextAlign.Center,
@@ -128,7 +130,7 @@ fun DeleteAccountScreen(
             }
             if (uiState.isDeleting) {
               Text(
-                  text = DELETE_ACCOUNT_PROGRESS,
+                  text = stringResource(R.string.deleteAccountProgress),
                   color = MaterialTheme.colorScheme.onBackground,
                   style = MaterialTheme.typography.bodyLarge,
                   textAlign = TextAlign.Center,
@@ -136,20 +138,21 @@ fun DeleteAccountScreen(
             } else if (uiState.warningsLoaded) {
               DisplayPatientButton(
                   text =
-                      if (uiState.localCleanupNeeded) DELETE_ACCOUNT_CLEANUP_LABEL
-                      else DELETE_ACCOUNT_TITLE,
+                      if (uiState.localCleanupNeeded)
+                          stringResource(R.string.deleteAccountCleanupLabel)
+                      else stringResource(R.string.deleteAccountTitle),
                   onClick = { viewModel.deleteAccount(context, credentialManager) },
                   modifier = Modifier.testTag(DeleteAccountTestTags.BUTTON),
               )
             } else if (uiState.isLoading) {
               Text(
-                  text = DELETE_ACCOUNT_CHECKING_LABEL,
+                  text = stringResource(R.string.deleteAccountCheckingLabel),
                   color = MaterialTheme.colorScheme.onBackground,
                   style = MaterialTheme.typography.bodyLarge,
               )
             } else {
               DisplayCaregiverButton(
-                  text = DELETE_ACCOUNT_RETRY_LABEL,
+                  text = stringResource(R.string.deleteAccountRetryLabel),
                   onClick = viewModel::loadWarnings,
               )
             }

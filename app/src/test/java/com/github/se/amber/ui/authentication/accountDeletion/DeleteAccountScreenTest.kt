@@ -1,13 +1,16 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 package com.github.se.amber.ui.authentication.accountDeletion
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.credentials.CredentialManager
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
@@ -25,6 +28,8 @@ import org.robolectric.shadows.ShadowToast
 @RunWith(RobolectricTestRunner::class)
 class DeleteAccountScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  private fun string(id: Int) = ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   private val credentialManager = mockk<CredentialManager>()
   private lateinit var viewModel: DeleteAccountViewModel
@@ -57,7 +62,7 @@ class DeleteAccountScreenTest {
 
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.EXPLANATION).assertIsDisplayed()
-    composeTestRule.onNodeWithText(DELETE_ACCOUNT_CHECKING_LABEL).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountCheckingLabel)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
     verify(exactly = 1) { viewModel.loadWarnings() }
   }
@@ -68,11 +73,13 @@ class DeleteAccountScreenTest {
         DeleteAccountUIState(
             warningsLoaded = true,
             isLoading = false,
-            warnings = listOf("Last caregiver"),
+            warnings = listOf(R.string.deleteAccountLastCaregiverWarning),
         )
     setScreen()
 
-    composeTestRule.onNodeWithText("Last caregiver").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(string(R.string.deleteAccountLastCaregiverWarning))
+        .assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed()
   }
 
@@ -82,10 +89,7 @@ class DeleteAccountScreenTest {
 
     composeTestRule
         .onNodeWithTag(DeleteAccountTestTags.EXPLANATION)
-        .assertTextContains("Deletion is permanent", substring = true)
-        .assertTextContains("Your uploads and stories are removed", substring = true)
-        .assertTextContains("Photos of you uploaded by others stay", substring = true)
-        .assertTextContains("removed from appointments", substring = true)
+        .assertTextEquals(string(R.string.deleteAccountExplanation))
   }
 
   @Test
@@ -97,13 +101,13 @@ class DeleteAccountScreenTest {
         DeleteAccountUIState(
             isLoading = false,
             warningsLoaded = true,
-            warnings = listOf("The family will continue with no one to manage it."),
+            warnings = listOf(R.string.deleteAccountLastCaregiverWarning),
         )
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithText(DELETE_ACCOUNT_CHECKING_LABEL).assertDoesNotExist()
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountCheckingLabel)).assertDoesNotExist()
     composeTestRule
-        .onNodeWithText("The family will continue with no one to manage it.")
+        .onNodeWithText(string(R.string.deleteAccountLastCaregiverWarning))
         .assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed()
   }
@@ -133,7 +137,7 @@ class DeleteAccountScreenTest {
         DeleteAccountUIState(warningsLoaded = true, isLoading = false, isDeleting = true)
     setScreen()
 
-    composeTestRule.onNodeWithText(DELETE_ACCOUNT_PROGRESS).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountProgress)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertDoesNotExist()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
   }
@@ -148,7 +152,7 @@ class DeleteAccountScreenTest {
     composeTestRule.waitForIdle()
 
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithText(DELETE_ACCOUNT_PROGRESS).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountProgress)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertDoesNotExist()
   }
@@ -158,7 +162,7 @@ class DeleteAccountScreenTest {
     stateFlow.value = DeleteAccountUIState(isLoading = false)
     setScreen()
 
-    composeTestRule.onNodeWithText(DELETE_ACCOUNT_RETRY_LABEL).performClick()
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountRetryLabel)).performClick()
 
     verify(exactly = 2) { viewModel.loadWarnings() }
   }
@@ -169,7 +173,7 @@ class DeleteAccountScreenTest {
         DeleteAccountUIState(warningsLoaded = true, isLoading = false, localCleanupNeeded = true)
     setScreen()
 
-    composeTestRule.onNodeWithText(DELETE_ACCOUNT_CLEANUP_LABEL).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountCleanupLabel)).assertIsDisplayed()
   }
 
   @Test
@@ -185,11 +189,11 @@ class DeleteAccountScreenTest {
 
   @Test
   fun errorIsClearedAfterBeingDisplayed() {
-    stateFlow.value = DeleteAccountUIState(errorMessage = "Network error")
+    stateFlow.value = DeleteAccountUIState(errorMessageRes = R.string.deleteAccountNetworkError)
     setScreen()
     composeTestRule.waitForIdle()
 
-    assertEquals("Network error", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.deleteAccountNetworkError), ShadowToast.getTextOfLatestToast())
     verify(exactly = 1) { viewModel.clearError() }
   }
 }

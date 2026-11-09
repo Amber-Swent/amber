@@ -138,7 +138,7 @@ sealed class CaregiverScreen(
   data object DeleteAccount :
       CaregiverScreen(
           route = "caregiver_delete_account",
-          name = "Delete account",
+          title = R.string.screenTitleCaregiverDeleteAccount,
       )
 
   data object CreateInvitationCode :
