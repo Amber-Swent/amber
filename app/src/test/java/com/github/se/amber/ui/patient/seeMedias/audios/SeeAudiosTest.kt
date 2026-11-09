@@ -1,12 +1,16 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
@@ -26,6 +30,10 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34])
 class SeeAudiosScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   private fun setContent(
       onBackClick: () -> Unit = {},
@@ -50,7 +58,7 @@ class SeeAudiosScreenTest {
     composeTestRule
         .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
         .assertIsDisplayed()
-        .assertTextEquals("There are no audios yet.")
+        .assertTextEquals(string(R.string.seeAudiosEmpty))
   }
 
   @Test
@@ -93,6 +101,6 @@ class SeeAudiosScreenTest {
     composeTestRule
         .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
         .assertIsDisplayed()
-        .assertTextEquals("There are no audios yet.")
+        .assertTextEquals(string(R.string.seeAudiosEmpty))
   }
 }

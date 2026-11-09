@@ -1,7 +1,9 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient
 
+import android.content.Context
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -13,6 +15,8 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -38,6 +42,10 @@ import org.robolectric.shadows.ShadowToast
 class PatientHomeScreenTest {
 
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   private lateinit var viewModel: PatientHomeViewModel
   private lateinit var stateFlow: MutableStateFlow<PatientHomeUIState>
@@ -79,7 +87,9 @@ class PatientHomeScreenTest {
     setScreen()
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertTextEquals("Home")
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.TITLE)
+        .assertTextEquals(string(R.string.patientHomeTitle))
   }
 
   @Test
@@ -87,18 +97,24 @@ class PatientHomeScreenTest {
     setScreen()
 
     composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice!")
+    composeTestRule
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
+        .assertTextEquals(string(R.string.patientHomeGreeting, "Alice"))
   }
 
   @Test
   fun greetingUpdatesWhenStateChanges() {
     setScreen()
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Alice!")
+    composeTestRule
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
+        .assertTextEquals(string(R.string.patientHomeGreeting, "Alice"))
 
     stateFlow.value = PatientHomeUIState(patientProfile = profileOf("Bob"))
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello Bob!")
+    composeTestRule
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
+        .assertTextEquals(string(R.string.patientHomeGreeting, "Bob"))
   }
 
   @Test
@@ -107,7 +123,9 @@ class PatientHomeScreenTest {
     setScreen()
 
     composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(PatientHomeTestTags.GREETINGS).assertTextEquals("Hello !")
+    composeTestRule
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
+        .assertTextEquals(string(R.string.patientHomeGreeting, ""))
   }
 
   @Test
@@ -207,10 +225,10 @@ class PatientHomeScreenTest {
   fun errorMessageIsClearedAfterBeingShown() {
     setScreen()
 
-    stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
+    stateFlow.value = stateFlow.value.copy(errorMsgRes = R.string.patientHomeErrorNoProfile)
     composeTestRule.waitForIdle()
 
-    assertEquals("Oops", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.patientHomeErrorNoProfile), ShadowToast.getTextOfLatestToast())
     verify { viewModel.clearErrorMsg() }
   }
 
@@ -218,24 +236,24 @@ class PatientHomeScreenTest {
   fun secondDifferentErrorShowsANewToast() {
     setScreen()
 
-    stateFlow.value = stateFlow.value.copy(errorMsg = "First")
+    stateFlow.value = stateFlow.value.copy(errorMsgRes = R.string.patientHomeErrorNoProfile)
     composeTestRule.waitForIdle()
-    assertEquals("First", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.patientHomeErrorNoProfile), ShadowToast.getTextOfLatestToast())
 
-    stateFlow.value = stateFlow.value.copy(errorMsg = "Second")
+    stateFlow.value = stateFlow.value.copy(errorMsgRes = R.string.patientHomeErrorLoadProfile)
     composeTestRule.waitForIdle()
-    assertEquals("Second", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.patientHomeErrorLoadProfile), ShadowToast.getTextOfLatestToast())
 
     verify(exactly = 2) { viewModel.clearErrorMsg() }
   }
 
   @Test
   fun errorPresentAtStartIsShownAndCleared() {
-    stateFlow.value = stateFlow.value.copy(errorMsg = "Boom")
+    stateFlow.value = stateFlow.value.copy(errorMsgRes = R.string.patientHomeErrorLoadProfile)
     setScreen()
     composeTestRule.waitForIdle()
 
-    assertEquals("Boom", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.patientHomeErrorLoadProfile), ShadowToast.getTextOfLatestToast())
     verify { viewModel.clearErrorMsg() }
   }
 
@@ -244,9 +262,9 @@ class PatientHomeScreenTest {
     setScreen()
 
     repeat(2) {
-      stateFlow.value = stateFlow.value.copy(errorMsg = "Oops")
+      stateFlow.value = stateFlow.value.copy(errorMsgRes = R.string.patientHomeErrorNoProfile)
       composeTestRule.waitForIdle()
-      stateFlow.value = stateFlow.value.copy(errorMsg = null)
+      stateFlow.value = stateFlow.value.copy(errorMsgRes = null)
       composeTestRule.waitForIdle()
     }
 

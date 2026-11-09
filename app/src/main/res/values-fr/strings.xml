@@ -266,4 +266,37 @@
     <!-- MediaImage -->
     <string name="mediaImageFallbackDescription">Photo</string>
     <string name="mediaImageRetryDescription">Charger la photo à nouveau</string>
+
+    <!-- PatientHome -->
+    <string name="patientHomeTitle">Accueil</string>
+    <string name="patientHomeGreeting">Bonjour %1$s&#160;!</string>
+    <string name="patientHomeErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="patientHomeErrorLoadProfile">Impossible de charger le profil.</string>
+
+    <!-- PatientParameter -->
+    <string name="patientParameterTitle">Paramètres</string>
+    <string name="patientParameterSignOut">Se déconnecter</string>
+
+    <!-- SeeMedias -->
+    <string name="seeMediasTitle">Voir les médias</string>
+    <string name="seeMediasPictures">Voir les photos</string>
+    <string name="seeMediasPicturesIcon">Photo</string>
+    <string name="seeMediasTexts">Voir les textes</string>
+    <string name="seeMediasTextsIcon">Texte</string>
+    <string name="seeMediasAudios">Voir les audios</string>
+    <string name="seeMediasAudiosIcon">Audios</string>
+
+    <!-- SeePictures -->
+    <string name="seePicturesTitle">Voir les photos</string>
+    <string name="seePicturesEmpty">Il n\'y a pas encore de photos.</string>
+    <string name="seePicturesRetry">Réessayer</string>
+    <string name="seePicturesErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="seePicturesErrorLoadProfile">Impossible de charger le profil.</string>
+    <string name="seePicturesErrorNoCircle">Aucun cercle de soins trouvé pour ce patient.</string>
+    <string name="seePicturesErrorLoadCircle">Impossible de charger le cercle de soins.</string>
+    <string name="seePicturesErrorLoadMedia">Impossible de charger les médias.</string>
+
+    <!-- SeeAudios -->
+    <string name="seeAudiosTitle">Voir les audios</string>
+    <string name="seeAudiosEmpty">Il n\'y a pas encore d\'audios.</string>
 </resources>

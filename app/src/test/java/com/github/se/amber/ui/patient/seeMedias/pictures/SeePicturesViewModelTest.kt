@@ -1,7 +1,9 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -79,7 +81,7 @@ class SeePicturesViewModelTest {
 
     val state = viewModel.uiState.value as SeePicturesUIState.Content
     assertEquals(profile, state.patientProfile)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   @Test
@@ -111,7 +113,7 @@ class SeePicturesViewModelTest {
     val state = viewModel.uiState.value as SeePicturesUIState.Empty
     assertEquals(profile, state.patientProfile)
     assertEquals(circle, state.careCircle)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   @Test
@@ -166,7 +168,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("No profile found.", state.message)
+    assertEquals(R.string.seePicturesErrorNoProfile, state.messageRes)
   }
 
   @Test
@@ -176,7 +178,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("Failed to load the profile: boom", state.message)
+    assertEquals(R.string.seePicturesErrorLoadProfile, state.messageRes)
   }
 
   @Test
@@ -187,7 +189,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("No care circle found for this patient.", state.message)
+    assertEquals(R.string.seePicturesErrorNoCircle, state.messageRes)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
@@ -200,7 +202,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("No care circle found for this patient.", state.message)
+    assertEquals(R.string.seePicturesErrorNoCircle, state.messageRes)
   }
 
   @Test
@@ -211,7 +213,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("Failed to load the care circle: circle error", state.message)
+    assertEquals(R.string.seePicturesErrorLoadCircle, state.messageRes)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
 
@@ -223,7 +225,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("Failed to load media: media error", state.message)
+    assertEquals(R.string.seePicturesErrorLoadMedia, state.messageRes)
   }
 
   @Test
@@ -253,7 +255,7 @@ class SeePicturesViewModelTest {
 
     val state = viewModel.uiState.value as SeePicturesUIState.Content
     assertEquals(listOf(picture1), state.allPictures)
-    assertEquals("Failed to load media: media error", state.errorMsg)
+    assertEquals(R.string.seePicturesErrorLoadMedia, state.errorMsgRes)
   }
 
   @Test
@@ -267,7 +269,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.Empty
-    assertEquals("Failed to load media: media error", state.errorMsg)
+    assertEquals(R.string.seePicturesErrorLoadMedia, state.errorMsgRes)
   }
 
   @Test
@@ -279,14 +281,14 @@ class SeePicturesViewModelTest {
         }
     val viewModel = createViewModel()
     assertEquals(
-        "Failed to load media: media error",
-        (viewModel.uiState.value as SeePicturesUIState.Content).errorMsg,
+        R.string.seePicturesErrorLoadMedia,
+        (viewModel.uiState.value as SeePicturesUIState.Content).errorMsgRes,
     )
 
     viewModel.clearErrorMsg()
 
     val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
     assertEquals(listOf(picture1), state.allPictures)
   }
 
@@ -299,13 +301,13 @@ class SeePicturesViewModelTest {
         }
     val viewModel = createViewModel()
     assertEquals(
-        "Failed to load media: media error",
-        (viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg,
+        R.string.seePicturesErrorLoadMedia,
+        (viewModel.uiState.value as SeePicturesUIState.Empty).errorMsgRes,
     )
 
     viewModel.clearErrorMsg()
 
-    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg)
+    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsgRes)
   }
 
   @Test
@@ -316,7 +318,7 @@ class SeePicturesViewModelTest {
     viewModel.clearErrorMsg()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals("No profile found.", state.message)
+    assertEquals(R.string.seePicturesErrorNoProfile, state.messageRes)
   }
 
   // ---------------------------------------------------------------------------------------------

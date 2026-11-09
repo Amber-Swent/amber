@@ -1,7 +1,9 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
+import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -13,6 +15,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -56,6 +60,9 @@ import org.robolectric.shadows.ShadowToast
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
 class SeePicturesScreenTest {
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   @get:Rule val composeTestRule = createComposeRule()
 
@@ -246,8 +253,8 @@ class SeePicturesScreenTest {
 
     val viewModel = setContent()
 
-    assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
-    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsg)
+    assertEquals(string(R.string.seePicturesErrorLoadMedia), ShadowToast.getTextOfLatestToast())
+    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsgRes)
     // The screen is still usable: no blocking error replaced it
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
@@ -264,9 +271,9 @@ class SeePicturesScreenTest {
 
     val viewModel = setContent()
 
-    assertEquals("Failed to load media: media error", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.seePicturesErrorLoadMedia), ShadowToast.getTextOfLatestToast())
     val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
     assertEquals(listOf(picture), state.allPictures)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
