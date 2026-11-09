@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.media.audio
 
@@ -24,6 +25,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_HEIGHT
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import org.junit.Assert.assertEquals
@@ -147,12 +149,15 @@ class AudioPlaybackTest {
   }
 
   @Test
-  fun progressDefault_isEmpty() {
-    composeTestRule.setContent { AmberAppTheme { PlaybackProgress() } }
+  fun progressDefault_isTheSharedWaveform() {
+    composeTestRule.setContent { AmberAppTheme { PlaybackTransport() } }
 
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
         .assertRangeInfoEquals(rangeInfo(0f))
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
+        .assertHeightIsEqualTo(AUDIO_WAVEFORM_HEIGHT)
   }
 
   @Test
