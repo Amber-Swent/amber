@@ -26,18 +26,18 @@ import kotlinx.coroutines.launch
  * UI state for the redeem-invite step.
  *
  * A code with characters codes never use shows its error at once; a blank or incomplete one only
- * once validation has been attempted. [redemptionErrorRes] carries mapped [InvitationError]
- * messages from the repository.
+ * once validation has been attempted. [errorMsgRes] carries mapped [InvitationError] messages from
+ * the repository.
  *
  * @param inviteCode invitation code / link entered by the user.
  * @param validationAttempted true after the user has pressed Submit at least once.
- * @param redemptionErrorRes actionable repository failure message, or null when there is none.
+ * @param errorMsgRes actionable repository failure message, or null when there is none.
  * @param isRedeeming true while a redeem request is in flight.
  */
 data class InvitationRedemptionUIState(
     val inviteCode: String = "",
     val validationAttempted: Boolean = false,
-    @param:StringRes val redemptionErrorRes: Int? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
     val isRedeeming: Boolean = false,
 ) {
   /**
@@ -45,7 +45,7 @@ data class InvitationRedemptionUIState(
    * mapped redemption failure.
    */
   val errorMessage: UiText?
-    get() = validationError ?: redemptionErrorRes?.let { UiText.Resource(it) }
+    get() = validationError ?: errorMsgRes?.let { UiText.Resource(it) }
 
   /**
    * Why the code can't be sent: a character codes never use, a blank or incomplete code once
@@ -91,7 +91,7 @@ class InvitationRedemptionViewModel(
    */
   fun onInviteCodeChange(value: String) {
     _uiState.update {
-      it.copy(inviteCode = InputValidation.INVITATION_CODE.clean(value), redemptionErrorRes = null)
+      it.copy(inviteCode = InputValidation.INVITATION_CODE.clean(value), errorMsgRes = null)
     }
   }
 
@@ -115,25 +115,25 @@ class InvitationRedemptionViewModel(
     _uiState.update {
       it.copy(
           validationAttempted = true,
-          redemptionErrorRes = null,
+          errorMsgRes = null,
       )
     }
     if (!InputValidation.INVITATION_CODE.isValid(trimmedCode)) return
 
     viewModelScope.launch {
-      _uiState.update { it.copy(isRedeeming = true, redemptionErrorRes = null) }
+      _uiState.update { it.copy(isRedeeming = true, errorMsgRes = null) }
       invitationRedemptionRepository
           .redeemInvitation(trimmedCode)
           .onSuccess { result ->
             redeemedResult = result
-            _uiState.update { it.copy(isRedeeming = false, redemptionErrorRes = null) }
+            _uiState.update { it.copy(isRedeeming = false, errorMsgRes = null) }
             onSuccess(result)
           }
           .onFailure { error ->
             _uiState.update {
               it.copy(
                   isRedeeming = false,
-                  redemptionErrorRes = error.errorMessage(),
+                  errorMsgRes = error.errorMessage(),
               )
             }
           }

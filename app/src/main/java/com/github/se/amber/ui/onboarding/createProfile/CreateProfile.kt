@@ -137,9 +137,9 @@ fun CreateProfileScreen(
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
 
-      uiState.submitErrorRes?.let { submitErrorRes ->
+      uiState.errorMsgRes?.let { errorMsgRes ->
         Text(
-            text = stringResource(submitErrorRes),
+            text = stringResource(errorMsgRes),
             modifier =
                 Modifier.fillMaxWidth()
                     .padding(top = CAREGIVER_PADDING_SMALL)

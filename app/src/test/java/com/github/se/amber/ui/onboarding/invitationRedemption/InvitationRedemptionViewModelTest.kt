@@ -132,7 +132,7 @@ class InvitationRedemptionViewModelTest {
 
     viewModel.onInviteCodeChange("ABCD2345")
 
-    assertNull(viewModel.uiState.value.redemptionErrorRes)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertNull(viewModel.uiState.value.errorMessage)
     assertEquals("ABCD2345", viewModel.uiState.value.inviteCode)
   }
