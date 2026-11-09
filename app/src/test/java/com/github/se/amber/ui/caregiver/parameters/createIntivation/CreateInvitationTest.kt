@@ -87,7 +87,7 @@ class CreateInvitationScreenTest {
                             status = InvitationStatus.ACTIVE,
                         ),
                     ),
-                errorMessageRes = R.string.createInvitationErrorNotAuthenticated,
+                errorMsgRes = R.string.createInvitationErrorNotAuthenticated,
                 isCreating = true,
             ),
         ),
@@ -137,7 +137,7 @@ class CreateInvitationScreenTest {
   @Config(qualifiers = "fr")
   fun screenAndErrorAreShownInFrench() {
     setScreen(
-        viewModel(CreateInvitationUiState(errorMessageRes = R.string.createInvitationErrorNetwork))
+        viewModel(CreateInvitationUiState(errorMsgRes = R.string.createInvitationErrorNetwork))
     )
 
     composeTestRule
