@@ -183,6 +183,8 @@ object DisplayTextFieldTestTags {
  * @param placeholder The optional placeholder displayed when the field is empty.
  * @param emptyErrorMessage The optional error message displayed when the field is empty after
  *   focus.
+ * @param error The optional error message displayed under the field, e.g. for a wrong format; it is
+ *   shown instead of [emptyErrorMessage].
  * @param minLines The minimum number of lines displayed by the text field.
  * @param maxLines The maximum number of lines displayed by the text field.
  * @param maxChar The maximum number of character displayed by the text field.
@@ -201,6 +203,7 @@ fun DisplayTextField(
     maxLines: Int = MAX_LINE_DEFAULT,
     maxChar: Int = MAX_CHAR_DEFAULT,
     singleLine: Boolean = false,
+    error: String? = null,
 ) {
   assert(maxChar > 0)
   assert(minLines > 0)
@@ -244,6 +247,7 @@ fun DisplayTextField(
       singleLine = singleLine,
       minLines = minLines,
       maxLines = if (singleLine) 1 else maxLines,
+      isError = error != null,
   )
 
   Column {
@@ -263,10 +267,11 @@ fun DisplayTextField(
           style = MaterialTheme.typography.bodySmall,
       )
     }
-    if (emptyErrorMessage != null && value.isBlank() && hasBeenFocused) {
+    val shownError = error ?: emptyErrorMessage?.takeIf { value.isBlank() && hasBeenFocused }
+    if (shownError != null) {
       Text(
           modifier = Modifier.testTag(ERROR_MESSAGE),
-          text = emptyErrorMessage,
+          text = shownError,
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )

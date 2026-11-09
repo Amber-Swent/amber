@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -112,12 +116,19 @@ fun InvitationRedemptionScreen(
           error = uiState.errorMessage,
           errorTestTag = InvitationRedemptionTestTags.CODE_ERROR,
           enabled = !uiState.isRedeeming,
+          // Codes are in capitals: no suggestions, which would change a code into a word
+          keyboardOptions =
+              KeyboardOptions(
+                  capitalization = KeyboardCapitalization.Characters,
+                  autoCorrectEnabled = false,
+                  keyboardType = KeyboardType.Ascii,
+              ),
       )
 
       DisplayCaregiverButton(
           modifier = Modifier.testTag(InvitationRedemptionTestTags.SUBMIT_BUTTON),
           text = SUBMIT_LABEL,
-          enabled = !uiState.isRedeeming,
+          enabled = uiState.canSubmit,
           onClick = { viewModel.onSubmit(onRedeemSuccess) },
       )
     }

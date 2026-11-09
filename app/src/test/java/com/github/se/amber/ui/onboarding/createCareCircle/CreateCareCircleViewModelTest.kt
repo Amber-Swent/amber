@@ -1,11 +1,13 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
 
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleUIState
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
 import kotlinx.coroutines.CompletableDeferred
@@ -58,6 +60,25 @@ class CreateCareCircleViewModelTest {
     viewModel.onNameChange("  Family  ")
     assertEquals("  Family  ", viewModel.uiState.value.name)
     assertNull(viewModel.uiState.value.nameError)
+  }
+
+  @Test
+  fun typingStopsAtMaxLengthAndDropsControlCharacters() {
+    viewModel.onNameChange("Fam\u0000ily\n" + "a".repeat(100))
+
+    val name = viewModel.uiState.value.name
+    assertEquals(InputValidation.SHORT_TEXT_MAX_LENGTH, name.length)
+    assertTrue(name.startsWith("Familya"))
+  }
+
+  @Test
+  fun blankSubmissionDisablesCreateUntilANameIsTyped() = runTest {
+    viewModel.createCareCircle()
+    advanceUntilIdle()
+    assertFalse(viewModel.uiState.value.canCreate)
+
+    viewModel.onNameChange("Family")
+    assertTrue(viewModel.uiState.value.canCreate)
   }
 
   @Test

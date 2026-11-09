@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -121,12 +122,12 @@ fun CreateProfileScreen(
 
       DisplayPatientButton(
           text = "Patient",
-          enabled = !uiState.isSaving,
+          enabled = uiState.canSubmit,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
       DisplayPatientButton(
           text = "Caregiver",
-          enabled = !uiState.isSaving,
+          enabled = uiState.canSubmit,
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )

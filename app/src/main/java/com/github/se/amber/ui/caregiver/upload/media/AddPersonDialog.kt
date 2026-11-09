@@ -1,4 +1,5 @@
 // Written by MeiliV with assistance from OpenAI Codex
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.MAX_CHAR_NAME
 import com.github.se.amber.ui.utils.PopupDialog
 
 /** Test tags for the dialog container and its close button. */
@@ -18,14 +20,19 @@ object AddPersonDialogTestTags {
 /**
  * Displays a controlled add-person form inside [PopupDialog] when [isOpen] is true.
  *
- * The action is enabled only when the first name is nonblank and no add operation is in progress.
- * On action, trimmed field values are sent through their change callbacks before [onSave] runs.
+ * The action is enabled when [canAddPerson] is true; the ViewModel decides it, so the rule lives in
+ * one place. On action, trimmed field values are sent through their change callbacks before
+ * [onSave] runs.
  *
  * @param isOpen whether the dialog is visible.
  * @param isAddingPerson whether an add operation is in progress.
+ * @param canAddPerson whether the action is enabled.
  * @param firstName current required first name.
  * @param lastName current optional surname.
  * @param nickname current optional nickname.
+ * @param firstNameError why [firstName] is refused, or null.
+ * @param lastNameError why [lastName] is refused, or null.
+ * @param nicknameError why [nickname] is refused, or null.
  * @param onFirstNameChange receives first name edits and its trimmed value on save.
  * @param onLastNameChange receives surname edits and its trimmed value on save.
  * @param onNicknameChange receives nickname edits and its trimmed value on save.
@@ -36,9 +43,13 @@ object AddPersonDialogTestTags {
 fun AddPersonDialog(
     isOpen: Boolean = false,
     isAddingPerson: Boolean = false,
+    canAddPerson: Boolean = false,
     firstName: String = "",
     lastName: String = "",
     nickname: String = "",
+    firstNameError: String? = null,
+    lastNameError: String? = null,
+    nicknameError: String? = null,
     onFirstNameChange: (String) -> Unit = {},
     onLastNameChange: (String) -> Unit = {},
     onNicknameChange: (String) -> Unit = {},
@@ -57,22 +68,32 @@ fun AddPersonDialog(
         onNicknameChange(nickname.trim())
         onSave()
       },
-      actionEnabled = firstName.isNotBlank() && !isAddingPerson,
+      actionEnabled = canAddPerson,
       dialogTestTag = AddPersonDialogTestTags.DIALOG,
       dismissTestTag = AddPersonDialogTestTags.CLOSE,
   ) {
     Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
-      DisplayTextField(value = firstName, onValueChange = onFirstNameChange, label = "First name")
-      DisplayTextField(
-          value = lastName,
-          onValueChange = onLastNameChange,
-          label = "Surname - optional",
-      )
-      DisplayTextField(
-          value = nickname,
-          onValueChange = onNicknameChange,
-          label = "Nickname - optional",
-      )
+      NameField(firstName, onFirstNameChange, "First name", firstNameError)
+      NameField(lastName, onLastNameChange, "Surname - optional", lastNameError)
+      NameField(nickname, onNicknameChange, "Nickname - optional", nicknameError)
     }
   }
+}
+
+/** One single-line name field of [AddPersonDialog], with the names' length limit. */
+@Composable
+private fun NameField(
+    value: String = "",
+    onValueChange: (String) -> Unit = {},
+    label: String = "",
+    error: String? = null,
+) {
+  DisplayTextField(
+      value = value,
+      onValueChange = onValueChange,
+      label = label,
+      maxChar = MAX_CHAR_NAME,
+      singleLine = true,
+      error = error,
+  )
 }
