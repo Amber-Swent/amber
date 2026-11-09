@@ -52,6 +52,7 @@ class AccountDeletionRepositoryProvider(
               stopApp = appProcess::stop,
           ),
           marker,
+          authRepository,
       )
     }
   }

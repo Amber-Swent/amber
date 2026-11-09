@@ -2,8 +2,7 @@
 
 package com.github.se.amber.data.account
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthException
+import com.github.se.amber.model.authentication.AuthRepository
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import java.io.IOException
@@ -19,14 +18,14 @@ import kotlinx.coroutines.tasks.await
  * @param localData What is cleared from the device once the backend confirms the deletion.
  * @param marker Set before calling the backend, as the app can die before hearing its answer. If it
  *   can't be saved, the backend isn't called. Removed again if the backend refuses to start.
+ * @param authRepository Tells whether the account is gone, for an interrupted deletion.
  * @param functions The Firebase Functions instance.
- * @param auth The Firebase Authentication instance.
  */
 class FirebaseAccountDeletionRepository(
     private val localData: LocalAccountData,
     private val marker: DeletionMarker,
+    private val authRepository: AuthRepository,
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance(),
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
 ) : AccountDeletionRepository {
   // The launch check and the role loading screen can both find the account gone at once: two
   // clears would stop Firestore under each other, and a failed one ends the app without reopening
@@ -81,20 +80,9 @@ class FirebaseAccountDeletionRepository(
   }
 
   override suspend fun finishInterruptedDeletion() {
-    if (marker.isSet && isAccountGone()) clearLocalData()
-  }
-
-  /** Nobody signed in counts: the wipe signs out, so it got that far and has nothing to protect. */
-  private suspend fun isAccountGone(): Boolean {
-    val user = auth.currentUser ?: return true
-    return try {
-      user.reload().await()
-      false
-    } catch (exception: CancellationException) {
-      throw exception
-    } catch (exception: Exception) {
-      (exception as? FirebaseAuthException)?.errorCode == ERROR_USER_NOT_FOUND
-    }
+    // Null also when nobody is signed in: the wipe signs out, so it got that far and has nothing to
+    // protect
+    if (marker.isSet && authRepository.refreshCurrentUser() == null) clearLocalData()
   }
 
   private fun malformedResponse(): Result<Unit> =
@@ -132,7 +120,6 @@ class FirebaseAccountDeletionRepository(
     const val DELETED_KEY = "deleted"
     const val REASON_KEY = "reason"
     const val RECENT_SIGN_IN_REQUIRED = "RECENT_SIGN_IN_REQUIRED"
-    const val ERROR_USER_NOT_FOUND = "ERROR_USER_NOT_FOUND"
     // Above the function's own 540 s limit, not the SDK's default of 70 s: a large circle would
     // otherwise look like a failure while the backend is still deleting it
     const val CALL_TIMEOUT_SECONDS = 550L
