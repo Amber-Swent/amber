@@ -82,4 +82,12 @@ class TopNavigationMenuRobolectricTest {
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Annuler")
   }
+
+  @Test
+  @Config(qualifiers = "de")
+  fun labelsFallBackToEnglishForAnUnsupportedLanguage() {
+    composeTestRule.setContent { AmberAppTheme { TopNavigationMenu() } }
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
+  }
 }

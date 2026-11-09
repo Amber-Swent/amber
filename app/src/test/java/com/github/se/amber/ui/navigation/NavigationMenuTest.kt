@@ -67,6 +67,18 @@ class NavigationMenuTest {
   }
 
   @Test
+  @Config(qualifiers = "fr")
+  fun patientBottomMenuTabsAreDescribedInFrench() {
+    composeTestRule.setContent {
+      BottomNavigationMenu(selectedTab = PatientTab.Home, tabs = PatientTab.patientTabs)
+    }
+
+    listOf("Accueil", "Médias", "Paramètres").forEach { label ->
+      composeTestRule.onNodeWithContentDescription(label, useUnmergedTree = true).assertExists()
+    }
+  }
+
+  @Test
   fun bottomMenuTabClickInvokesCallback() {
     var selected: Tab? = null
     composeTestRule.setContent { BottomNavigationMenu(onTabSelected = { selected = it }) }
