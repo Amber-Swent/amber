@@ -32,8 +32,8 @@ import kotlinx.coroutines.launch
 sealed interface SeePicturesUIState {
   data object Loading : SeePicturesUIState
 
-  /** Nothing can be shown: [messageRes] replaces the screen, with a Retry button. */
-  data class BlockingError(@param:StringRes val messageRes: Int) : SeePicturesUIState
+  /** Nothing can be shown: [errorMsgRes] replaces the screen, with a Retry button. */
+  data class BlockingError(@param:StringRes val errorMsgRes: Int) : SeePicturesUIState
 
   // everything was successful but there are no pictures to display
   data class Empty(
@@ -89,18 +89,18 @@ class SeePicturesViewModel(
    * Non-blocking error: if something is already displayed we keep it and add a message, otherwise
    * we fall back to a blocking error.
    */
-  private fun setNonBlockingErrorMsg(@StringRes messageRes: Int) {
+  private fun setNonBlockingErrorMsg(@StringRes errorMsgRes: Int) {
     when (val state = _uiState.value) {
-      is SeePicturesUIState.Empty -> _uiState.value = state.copy(errorMsgRes = messageRes)
-      is SeePicturesUIState.Content -> _uiState.value = state.copy(errorMsgRes = messageRes)
+      is SeePicturesUIState.Empty -> _uiState.value = state.copy(errorMsgRes = errorMsgRes)
+      is SeePicturesUIState.Content -> _uiState.value = state.copy(errorMsgRes = errorMsgRes)
       is SeePicturesUIState.Loading,
-      is SeePicturesUIState.BlockingError -> setBlockingErrorMsg(messageRes)
+      is SeePicturesUIState.BlockingError -> setBlockingErrorMsg(errorMsgRes)
     }
   }
 
   /** Blocking error: replaces the whole screen with an error message and a Retry button */
-  private fun setBlockingErrorMsg(@StringRes messageRes: Int) {
-    _uiState.value = SeePicturesUIState.BlockingError(messageRes)
+  private fun setBlockingErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.value = SeePicturesUIState.BlockingError(errorMsgRes)
   }
 
   /** Sequentially loads profile, circle id, care circle and then observes the media. */

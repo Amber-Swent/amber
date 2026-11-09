@@ -86,8 +86,8 @@ fun SeePicturesScreen(
 
   // Show error message if fetching pictures fails
   LaunchedEffect(errorMsgRes) {
-    errorMsgRes?.let { res ->
-      Toast.makeText(context, resources.getString(res), Toast.LENGTH_LONG).show()
+    if (errorMsgRes != null) {
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_LONG).show()
       pictureViewModel.clearErrorMsg()
     }
   }
@@ -142,7 +142,7 @@ fun SeePicturesScreen(
             ) {
               Text(
                   modifier = Modifier.testTag(SeePicturesTestTags.ERROR),
-                  text = stringResource(actualState.messageRes),
+                  text = stringResource(actualState.errorMsgRes),
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.error,
                   style = MaterialTheme.typography.titleLarge,

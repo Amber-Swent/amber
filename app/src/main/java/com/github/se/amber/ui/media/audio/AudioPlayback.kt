@@ -86,11 +86,11 @@ sealed interface AudioPlaybackState {
   ) : AudioPlaybackState
 
   /**
-   * Playback failed. [messageRes] is shown with a retry button. It is a string resource, so the
+   * Playback failed. [errorMsgRes] is shown with a retry button. It is a string resource, so the
    * screen shows it in the app language.
    */
   data class Error(
-      @param:StringRes val messageRes: Int = R.string.audioPlaybackError,
+      @param:StringRes val errorMsgRes: Int = R.string.audioPlaybackError,
       override val positionMs: Long = ZERO_MS,
       override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
@@ -112,7 +112,7 @@ object AudioPlaybackTestTags {
  * Play, pause, restart, and retry controls for one audio memo.
  *
  * Draws [state] only. Loading disables the buttons and shows a spinner. An error replaces the
- * controls with [AudioPlaybackState.Error.messageRes] and a retry button.
+ * controls with [AudioPlaybackState.Error.errorMsgRes] and a retry button.
  *
  * @param modifier modifier applied to the card.
  * @param state which controls are shown. Idle until playback starts.
@@ -145,7 +145,8 @@ fun DisplayAudioPlayback(
       verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
   ) {
     when (state) {
-      is AudioPlaybackState.Error -> PlaybackError(messageRes = state.messageRes, onRetry = onRetry)
+      is AudioPlaybackState.Error ->
+          PlaybackError(errorMsgRes = state.errorMsgRes, onRetry = onRetry)
       is AudioPlaybackState.Idle,
       is AudioPlaybackState.Loading,
       is AudioPlaybackState.Playing,
@@ -246,11 +247,11 @@ internal fun PlaybackTransport(
 
 @Composable
 internal fun PlaybackError(
-    @StringRes messageRes: Int = R.string.audioPlaybackError,
+    @StringRes errorMsgRes: Int = R.string.audioPlaybackError,
     onRetry: () -> Unit = {},
 ) {
   Text(
-      text = stringResource(messageRes),
+      text = stringResource(errorMsgRes),
       modifier = Modifier.fillMaxWidth(WEIGHT_ONE).testTag(AudioPlaybackTestTags.ERROR),
       style = MaterialTheme.typography.bodyMedium,
       color = MaterialTheme.colorScheme.error,

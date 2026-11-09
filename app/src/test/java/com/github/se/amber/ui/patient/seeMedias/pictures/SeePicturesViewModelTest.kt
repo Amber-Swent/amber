@@ -168,7 +168,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorNoProfile, state.messageRes)
+    assertEquals(R.string.seePicturesErrorNoProfile, state.errorMsgRes)
   }
 
   @Test
@@ -178,7 +178,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorLoadProfile, state.messageRes)
+    assertEquals(R.string.seePicturesErrorLoadProfile, state.errorMsgRes)
   }
 
   @Test
@@ -189,7 +189,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorNoCircle, state.messageRes)
+    assertEquals(R.string.seePicturesErrorNoCircle, state.errorMsgRes)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
@@ -202,7 +202,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorNoCircle, state.messageRes)
+    assertEquals(R.string.seePicturesErrorNoCircle, state.errorMsgRes)
   }
 
   @Test
@@ -213,7 +213,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorLoadCircle, state.messageRes)
+    assertEquals(R.string.seePicturesErrorLoadCircle, state.errorMsgRes)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
 
@@ -225,7 +225,7 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorLoadMedia, state.messageRes)
+    assertEquals(R.string.seePicturesErrorLoadMedia, state.errorMsgRes)
   }
 
   @Test
@@ -318,7 +318,7 @@ class SeePicturesViewModelTest {
     viewModel.clearErrorMsg()
 
     val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
-    assertEquals(R.string.seePicturesErrorNoProfile, state.messageRes)
+    assertEquals(R.string.seePicturesErrorNoProfile, state.errorMsgRes)
   }
 
   // ---------------------------------------------------------------------------------------------

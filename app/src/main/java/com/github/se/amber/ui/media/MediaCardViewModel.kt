@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
  * @property addedByNickname name of the person who added the media.
  * @property relatedNicknames names of the persons shown in the media.
  * @property isLoading whether the names are still loading.
- * @property errorMsgRes non-blocking error to show in a toast, as a string resource, or null.
+ * @property errorMsgRes the error to show in a toast, as a string resource, or null for none.
  */
 data class MediaCardUIState(
     val addedByNickname: String = "",
@@ -60,19 +60,19 @@ class MediaCardViewModel(
   }
 
   /**
-   * Returns the value of this [Result], or logs the failure, sets [errorRes] as the error message
-   * and calls [onFailure] to stop the load. The exception message is only logged, never shown. A
-   * [CancellationException] is always rethrown, so that the cancellation of the coroutine is not
-   * turned into an error message.
+   * Returns the value of this [Result], or logs the failure, sets [errorMsgRes] as the error
+   * message and calls [onFailure] to stop the load. The exception message is only logged, never
+   * shown. A [CancellationException] is always rethrown, so that the cancellation of the coroutine
+   * is not turned into an error message.
    */
   private inline fun <T> Result<T>.getOrSetError(
       logMessage: String,
-      @StringRes errorRes: Int,
+      @StringRes errorMsgRes: Int,
       onFailure: () -> Nothing,
   ): T = getOrElse { e ->
     if (e is CancellationException) throw e
     Log.e(TAG, logMessage, e)
-    setErrorMsg(errorRes)
+    setErrorMsg(errorMsgRes)
     onFailure()
   }
 
@@ -93,7 +93,7 @@ class MediaCardViewModel(
       val authorProfile =
           profileRepository.getProfile(media.authorId).getOrSetError(
               logMessage = "Error fetching author profile",
-              errorRes = R.string.mediaCardErrorLoadAuthor,
+              errorMsgRes = R.string.mediaCardErrorLoadAuthor,
           ) {
             return@launch
           }
