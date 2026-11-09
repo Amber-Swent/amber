@@ -62,6 +62,13 @@ object FirebaseEmulator {
   const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
   private const val FUNCTIONS_PORT = 5001
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
+  /**
+   * How long [requireOrSkip] keeps trying when the emulators are required. On a freshly booted
+   * Android emulator, the first connections to [HOST] can fail for a few seconds although the
+   * emulators are ready, as seen on CI.
+   */
+  private const val REQUIRED_WAIT_MILLIS = 15_000L
+  private const val RETRY_DELAY_MILLIS = 500L
 
   /**
    * A Firebase emulator a test may need, with the port `firebase.json` gives it.
@@ -124,6 +131,10 @@ object FirebaseEmulator {
    * [REQUIRE_EMULATORS_ARGUMENT] instrumentation argument is `true`, or skips it otherwise. Call it
    * first, before [useForDefaultApp].
    *
+   * When the emulators are required, it keeps trying for [REQUIRED_WAIT_MILLIS] before failing,
+   * since the first connections from a freshly booted Android emulator can fail. Otherwise it tries
+   * once, so a local run without emulators skips its tests without waiting.
+   *
    * @param services the emulators the test needs; Auth, Firestore and Functions by default
    * @param message why the test can't run, shown when it fails or is skipped
    */
@@ -133,8 +144,25 @@ object FirebaseEmulator {
   ) {
     val required =
         InstrumentationRegistry.getArguments().getString(REQUIRE_EMULATORS_ARGUMENT) == "true"
-    if (required) assertTrue(message, isRunning(services))
+    if (required) assertTrue(message, awaitRunning(services, REQUIRED_WAIT_MILLIS))
     else assumeTrue(message, isRunning(services))
+  }
+
+  /**
+   * Waits until every one of [services] accepts connections, trying again every
+   * [RETRY_DELAY_MILLIS].
+   *
+   * @param services the emulators the test needs
+   * @param timeoutMillis how long to keep trying
+   * @return true if all of them became reachable within [timeoutMillis]
+   */
+  private fun awaitRunning(services: Set<Service>, timeoutMillis: Long): Boolean {
+    val deadline = System.currentTimeMillis() + timeoutMillis
+    while (!isRunning(services)) {
+      if (System.currentTimeMillis() >= deadline) return false
+      Thread.sleep(RETRY_DELAY_MILLIS)
+    }
+    return true
   }
 
   /**
