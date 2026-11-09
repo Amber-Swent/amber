@@ -302,11 +302,16 @@ class FirebaseAccountDeletionRepositoryTest {
     val first = async(Dispatchers.Default) { repository.clearLocalData() }
     firstStarted.await()
     val second = async(Dispatchers.Default) { repository.clearLocalData() }
-    delay(100) // time for the second to start, were it not waiting
+    delay(SECOND_CLEAR_START_MS) // time for the second to start, were it not waiting
     firstMayFinish.complete(Unit)
 
     assertTrue(first.await().isSuccess && second.await().isSuccess)
-    assertEquals(2, clears)
+    assertEquals(BOTH_CLEARS, clears)
     assertEquals(1, mostAtOnce.get())
+  }
+
+  private companion object {
+    const val SECOND_CLEAR_START_MS = 100L
+    const val BOTH_CLEARS = 2
   }
 }

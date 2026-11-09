@@ -297,9 +297,11 @@ test("deleteAccount finishes the job when retried after any partial failure", as
 test("deleteAccount leaves the profile listing only circles that exist and still list the user", async (t) => {
   // the deletion screen reads every circle of the profile: one it can't read would block a retry
   // the profile's third update: after marking it, and leaving the shared circle
+  const FORGETTING_THE_LAST_CIRCLE_UPDATE = 3;
   const forgettingTheLastCircle = () => {
     let count = 0;
-    return (action, target) => action === "update" && target === "users/gone" && ++count === 3;
+    return (action, target) =>
+      action === "update" && target === "users/gone" && ++count === FORGETTING_THE_LAST_CIRCLE_UPDATE;
   };
   const failures = [
     ["leaving the shared circle", () => (action, target) =>
