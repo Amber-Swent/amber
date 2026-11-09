@@ -1,6 +1,7 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.roleLoading
 
@@ -13,11 +14,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.authentication.signIn.AuthenticationButton
 import com.github.se.amber.ui.authentication.signIn.AuthenticationLayout
@@ -53,6 +57,8 @@ fun RoleLoadingScreen(
     viewModel: RoleLoadingViewModel = viewModel(),
 ) {
   val state by viewModel.state.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
   val context = LocalContext.current
 
   LaunchedEffect(Unit) {
@@ -78,9 +84,9 @@ fun RoleLoadingScreen(
   }
 
   // Show error message
-  LaunchedEffect(state.errorMsg) {
-    state.errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(state.errorMsgRes) {
+    state.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
@@ -109,19 +115,19 @@ fun RoleLoadingScreen(
     is RoleState.Error ->
         AuthenticationLayout(modifier = modifier) {
           AuthenticationText(
-              text = "Could not load your profile.\nTry again.",
+              text = stringResource(R.string.roleLoadingError),
               modifier = Modifier.fillMaxWidth().testTag(RoleLoadingTestTags.ERROR_MESSAGE),
               textAlign = TextAlign.Center,
               style = MaterialTheme.typography.titleMedium,
               color = MaterialTheme.colorScheme.error,
           )
           AuthenticationButton(
-              text = "Retry",
+              text = stringResource(R.string.roleLoadingRetry),
               onClick = { viewModel.loadRole() },
               modifier = Modifier.testTag(RoleLoadingTestTags.RETRY_BUTTON),
           )
           AuthenticationButton(
-              text = "Back to login",
+              text = stringResource(R.string.roleLoadingBackToLogin),
               onClick = { viewModel.signOut() },
               enabled = (!state.signedOut && !state.isSigningOut),
               modifier = Modifier.testTag(RoleLoadingTestTags.BACK_TO_LOGIN_BUTTON),

@@ -1,5 +1,6 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.clickable
@@ -22,6 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.github.se.amber.R
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
@@ -40,18 +44,6 @@ object UploadMediaLocationTestTags {
   const val SEARCH_FAILED = "upload_media_location_search_failed"
   const val RETRY_SEARCH = "upload_media_location_retry_search"
 }
-
-/** Shown when a typed place matches nothing: the upload stays blocked until the user acts. */
-internal const val NO_PLACE_FOUND_HINT =
-    "No places found. Try another search, or clear the field to upload without a location."
-
-/** Shown while the typed place is too short to be searched: the upload is blocked until then. */
-internal const val PLACE_QUERY_TOO_SHORT_HINT =
-    "Type at least $MIN_PLACE_QUERY_LENGTH letters to search, or clear the field."
-
-/** Shown when the search itself failed, e.g. offline: the toast with the error is gone by then. */
-internal const val PLACE_SEARCH_FAILED_HINT =
-    "Couldn't search places. Check your connection and try again, or clear the field to upload without a location."
 
 /**
  * Displays where the media was captured: chips for the circle's saved places, and a field to search
@@ -80,7 +72,7 @@ internal fun DisplayLocation(
       verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
   ) {
     Text(
-        "Location - optional",
+        stringResource(R.string.locationTitle),
         color = MaterialTheme.colorScheme.onBackground,
         style = MaterialTheme.typography.bodyLarge,
     )
@@ -101,34 +93,48 @@ internal fun DisplayLocation(
       DisplayTextField(
           value = state.query,
           onValueChange = onQueryChange,
-          label = "Another place",
-          placeholder = "Search a city, an address...",
+          label = stringResource(R.string.locationSearchLabel),
+          placeholder = stringResource(R.string.locationSearchPlaceholder),
           maxChar = MAX_CHAR_PLACE_SEARCH,
           singleLine = true,
       )
     }
-    // Only shown while a typed place is still to be picked
+    // Only shown while a typed place is still to be picked. The hints block the upload until the
+    // user acts: the "search failed" one stays after the error toast is gone.
     if (state.pickedPlace == null && state.query.isNotBlank()) {
       when {
         state.isSearching ->
-            DisplayLocationHint("Searching…", UploadMediaLocationTestTags.SEARCHING)
+            DisplayLocationHint(
+                stringResource(R.string.locationSearching),
+                UploadMediaLocationTestTags.SEARCHING,
+            )
         !state.isLongEnoughToSearch ->
-            DisplayLocationHint(PLACE_QUERY_TOO_SHORT_HINT, UploadMediaLocationTestTags.TOO_SHORT)
+            DisplayLocationHint(
+                pluralStringResource(
+                    R.plurals.locationQueryTooShort,
+                    MIN_PLACE_QUERY_LENGTH,
+                    MIN_PLACE_QUERY_LENGTH,
+                ),
+                UploadMediaLocationTestTags.TOO_SHORT,
+            )
         state.searchFailed ->
             Column {
               DisplayLocationHint(
-                  PLACE_SEARCH_FAILED_HINT,
+                  stringResource(R.string.locationSearchFailed),
                   UploadMediaLocationTestTags.SEARCH_FAILED,
               )
               TextButton(
                   onClick = onRetrySearch,
                   modifier = Modifier.testTag(UploadMediaLocationTestTags.RETRY_SEARCH),
               ) {
-                Text("Try again")
+                Text(stringResource(R.string.locationTryAgain))
               }
             }
         state.suggestions.isEmpty() ->
-            DisplayLocationHint(NO_PLACE_FOUND_HINT, UploadMediaLocationTestTags.NO_RESULT)
+            DisplayLocationHint(
+                stringResource(R.string.locationNoPlaceFound),
+                UploadMediaLocationTestTags.NO_RESULT,
+            )
         else ->
             Column {
               state.suggestions.forEachIndexed { index, place ->

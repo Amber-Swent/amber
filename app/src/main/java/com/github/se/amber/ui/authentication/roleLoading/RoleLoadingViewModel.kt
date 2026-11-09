@@ -1,12 +1,15 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.roleLoading
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
@@ -51,7 +54,7 @@ data class RoleLoadingUIState(
     val roleState: RoleState = RoleState.Loading,
     val isSigningOut: Boolean = false,
     val signedOut: Boolean = false,
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
 class RoleLoadingViewModel(
@@ -69,12 +72,12 @@ class RoleLoadingViewModel(
 
   /** Clears the error message in the UI state. */
   fun clearErrorMsg() {
-    _state.update { it.copy(errorMsg = null) }
+    _state.update { it.copy(errorMsgRes = null) }
   }
 
-  /** Sets an error message in the UI state. */
-  private fun setErrorMsg(errorMsg: String) {
-    _state.update { it.copy(errorMsg = errorMsg) }
+  /** Sets an error message, as a string resource, in the UI state. */
+  private fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    _state.update { it.copy(errorMsgRes = errorMsgRes) }
   }
 
   private fun setRoleState(roleState: RoleState) {
@@ -149,7 +152,7 @@ class RoleLoadingViewModel(
                   _state.update { it.copy(signedOut = true, isSigningOut = false) }
                 } else {
                   _state.update { it.copy(isSigningOut = false) }
-                  setErrorMsg("Could not sign out. Please try again.")
+                  setErrorMsg(R.string.signOutError)
                 }
               },
           )

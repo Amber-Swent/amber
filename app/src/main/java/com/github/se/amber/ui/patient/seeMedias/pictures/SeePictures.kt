@@ -26,11 +26,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.media.MediaCard
 import com.github.se.amber.ui.media.MediaImage
 import com.github.se.amber.ui.media.aspectRatioOf
@@ -69,20 +72,22 @@ fun SeePicturesScreen(
 
   val context = LocalContext.current
   val uiState by pictureViewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   // Non-blocking error message: only Empty and Content can carry one
-  val errorMsg =
+  val errorMsgRes =
       when (val state = uiState) {
-        is SeePicturesUIState.Content -> state.errorMsg
-        is SeePicturesUIState.Empty -> state.errorMsg
+        is SeePicturesUIState.Content -> state.errorMsgRes
+        is SeePicturesUIState.Empty -> state.errorMsgRes
         is SeePicturesUIState.Loading,
         is SeePicturesUIState.BlockingError -> null
       }
 
   // Show error message if fetching pictures fails
-  LaunchedEffect(errorMsg) {
-    errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+  LaunchedEffect(errorMsgRes) {
+    if (errorMsgRes != null) {
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_LONG).show()
       pictureViewModel.clearErrorMsg()
     }
   }
@@ -98,7 +103,7 @@ fun SeePicturesScreen(
                     onBackClick = onBackClick,
                 )
                 DisplayPatientTitle(
-                    title = "See Pictures",
+                    title = stringResource(R.string.seePicturesTitle),
                     testTag = SeePicturesTestTags.TITLE,
                 )
               }
@@ -137,13 +142,13 @@ fun SeePicturesScreen(
             ) {
               Text(
                   modifier = Modifier.testTag(SeePicturesTestTags.ERROR),
-                  text = actualState.message,
+                  text = stringResource(actualState.errorMsgRes),
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.error,
                   style = MaterialTheme.typography.titleLarge,
               )
               DisplayPatientButton(
-                  text = "Retry",
+                  text = stringResource(R.string.seePicturesRetry),
                   onClick = pictureViewModel::retry,
               )
             }
@@ -157,7 +162,7 @@ fun SeePicturesScreen(
             ) {
               Text(
                   modifier = Modifier.testTag(SeePicturesTestTags.NO_PICTURES),
-                  text = "There are no pictures yet.",
+                  text = stringResource(R.string.seePicturesEmpty),
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.onBackground,
                   style = MaterialTheme.typography.titleLarge,

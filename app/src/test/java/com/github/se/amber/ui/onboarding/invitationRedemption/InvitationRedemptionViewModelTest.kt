@@ -1,16 +1,20 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.invitationRedemption
 
+import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionUIState
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
-import com.github.se.amber.ui.onboarding.invitationRedemption.toActionableMessage
+import com.github.se.amber.ui.onboarding.invitationRedemption.errorMessage
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -81,29 +85,53 @@ class InvitationRedemptionViewModelTest {
   // ---------- onInviteCodeChange ----------
 
   @Test
-  fun onInviteCodeChange_updatesInviteCodeInState() {
-    viewModel.onInviteCodeChange("ABC-123")
+  fun onInviteCodeChange_storesCodeInCapitalsWithoutSpacesCutAtCodeLength() {
+    viewModel.onInviteCodeChange(" abcd 2345 xyz")
 
-    assertEquals("ABC-123", viewModel.uiState.value.inviteCode)
+    assertEquals("ABCD2345", viewModel.uiState.value.inviteCode)
+  }
+
+  @Test
+  fun onInviteCodeChange_characterCodesNeverUse_showsErrorAtOnceAndDisablesSubmit() {
+    viewModel.onInviteCodeChange("AB0")
+
+    val state = viewModel.uiState.value
+    assertEquals(UiText.Resource(R.string.inputErrorInvitationCodeFormat), state.errorMessage)
+    assertFalse(state.canSubmit)
+  }
+
+  @Test
+  fun onSubmit_incompleteCode_setsErrorAndDoesNotCallRepository() = runTest {
+    viewModel.onInviteCodeChange("ABCD")
+    assertNull(viewModel.uiState.value.errorMessage) // still being typed
+
+    viewModel.onSubmit(onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(
+        UiText.Plural(R.plurals.inputErrorIncomplete, InputValidation.INVITATION_CODE_LENGTH),
+        viewModel.uiState.value.errorMessage,
+    )
+    coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }
   }
 
   @Test
   fun onInviteCodeChange_clearsRedemptionError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.InvalidCode)
-    viewModel.onInviteCodeChange("bad-code")
+    viewModel.onInviteCodeChange("BADC2345")
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(
-        InvitationError.InvalidCode.toActionableMessage(),
+        UiText.Resource(InvitationError.InvalidCode.errorMessage()),
         viewModel.uiState.value.errorMessage,
     )
 
-    viewModel.onInviteCodeChange("ABC-123")
+    viewModel.onInviteCodeChange("ABCD2345")
 
-    assertNull(viewModel.uiState.value.redemptionError)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertNull(viewModel.uiState.value.errorMessage)
-    assertEquals("ABC-123", viewModel.uiState.value.inviteCode)
+    assertEquals("ABCD2345", viewModel.uiState.value.inviteCode)
   }
 
   // ---------- Validation (no repository call) ----------
@@ -115,7 +143,7 @@ class InvitationRedemptionViewModelTest {
 
     val state = viewModel.uiState.value
     assertTrue(state.validationAttempted)
-    assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
+    assertEquals(UiText.Resource(R.string.invitationRedemptionCodeRequired), state.errorMessage)
     assertEquals("", state.inviteCode)
     assertFalse(state.isRedeeming)
     assertEquals(0, successCount)
@@ -123,15 +151,15 @@ class InvitationRedemptionViewModelTest {
   }
 
   @Test
-  fun onSubmit_whitespaceOnlyCode_treatedAsBlankAndRetainsEnteredCode() = runTest {
+  fun onSubmit_whitespaceOnlyCode_treatedAsBlank() = runTest {
     viewModel.onInviteCodeChange("   ")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertEquals(CODE_REQUIRED_MESSAGE, state.errorMessage)
-    assertEquals("   ", state.inviteCode)
+    assertEquals(UiText.Resource(R.string.invitationRedemptionCodeRequired), state.errorMessage)
+    assertEquals("", state.inviteCode)
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }
   }
 
@@ -142,7 +170,7 @@ class InvitationRedemptionViewModelTest {
     val result = InvitationRedemptionResult(careCircleId = "circle-1", role = Role.PATIENT)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
-    viewModel.onInviteCodeChange("  invite-code  ")
+    viewModel.onInviteCodeChange("  abcd2345  ")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
@@ -152,8 +180,8 @@ class InvitationRedemptionViewModelTest {
     assertNull(state.errorMessage)
     assertEquals(1, successCount)
     assertEquals(result, lastSuccessResult)
-    assertEquals("  invite-code  ", state.inviteCode)
-    coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("invite-code") }
+    assertEquals("ABCD2345", state.inviteCode)
+    coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("ABCD2345") }
   }
 
   @Test
@@ -161,7 +189,7 @@ class InvitationRedemptionViewModelTest {
     val result = InvitationRedemptionResult(careCircleId = "circle-2", role = Role.CAREGIVER)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
-    viewModel.onInviteCodeChange("caregiver-code")
+    viewModel.onInviteCodeChange("CARE2345")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
@@ -169,7 +197,7 @@ class InvitationRedemptionViewModelTest {
     assertEquals(1, successCount)
     assertEquals(result, lastSuccessResult)
     assertEquals(Role.CAREGIVER, lastSuccessResult?.role)
-    coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("caregiver-code") }
+    coVerify(exactly = 1) { invitationRedemptionRepository.redeemInvitation("CARE2345") }
   }
 
   // ---------- Repository failures ----------
@@ -178,14 +206,14 @@ class InvitationRedemptionViewModelTest {
   fun onSubmit_invalidCode_setsMappedError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.InvalidCode)
-    viewModel.onInviteCodeChange("bad-code")
+    viewModel.onInviteCodeChange("BADC2345")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
     assertFalse(state.isRedeeming)
-    assertEquals(InvitationError.InvalidCode.toActionableMessage(), state.errorMessage)
+    assertEquals(UiText.Resource(InvitationError.InvalidCode.errorMessage()), state.errorMessage)
     assertEquals(0, successCount)
   }
 
@@ -193,13 +221,13 @@ class InvitationRedemptionViewModelTest {
   fun onSubmit_invitationNotFound_setsMappedError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.InvitationNotFound)
-    viewModel.onInviteCodeChange("missing-code")
+    viewModel.onInviteCodeChange("MSNG2345")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     assertEquals(
-        InvitationError.InvitationNotFound.toActionableMessage(),
+        UiText.Resource(InvitationError.InvitationNotFound.errorMessage()),
         viewModel.uiState.value.errorMessage,
     )
     assertEquals(0, successCount)
@@ -209,13 +237,13 @@ class InvitationRedemptionViewModelTest {
   fun onSubmit_networkError_setsMappedOfflineError() = runTest {
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.failure(InvitationError.Network)
-    viewModel.onInviteCodeChange("net-code")
+    viewModel.onInviteCodeChange("NETW2345")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
 
     assertEquals(
-        InvitationError.Network.toActionableMessage(),
+        UiText.Resource(InvitationError.Network.errorMessage()),
         viewModel.uiState.value.errorMessage,
     )
     assertEquals(0, successCount)
@@ -237,7 +265,7 @@ class InvitationRedemptionViewModelTest {
                 InvitationError.Network,
                 InvitationError.Unknown(IllegalStateException("x")),
             )
-            .map { it.toActionableMessage() }
+            .map { it.errorMessage() }
 
     assertEquals(messages.size, messages.toSet().size)
   }
@@ -251,12 +279,12 @@ class InvitationRedemptionViewModelTest {
                 InvitationRedemptionResult(careCircleId = "circle-1", role = Role.PATIENT),
             ),
         )
-    viewModel.onInviteCodeChange("retry-code")
+    viewModel.onInviteCodeChange("RTRY2345")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()
     assertEquals(
-        InvitationError.InvalidCode.toActionableMessage(),
+        UiText.Resource(InvitationError.InvalidCode.errorMessage()),
         viewModel.uiState.value.errorMessage,
     )
 
@@ -274,7 +302,7 @@ class InvitationRedemptionViewModelTest {
   fun onSubmit_whileRedeeming_ignoresSecondCall() = runTest {
     val pending = CompletableDeferred<Result<InvitationRedemptionResult>>()
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } coAnswers { pending.await() }
-    viewModel.onInviteCodeChange("pending-code")
+    viewModel.onInviteCodeChange("PEND2345")
 
     viewModel.onSubmit(onSuccess)
     runCurrent()
@@ -300,7 +328,7 @@ class InvitationRedemptionViewModelTest {
     val result = InvitationRedemptionResult(careCircleId = "circle-1", role = Role.PATIENT)
     coEvery { invitationRedemptionRepository.redeemInvitation(any()) } returns
         Result.success(result)
-    viewModel.onInviteCodeChange("code")
+    viewModel.onInviteCodeChange("CDEF2345")
 
     viewModel.onSubmit(onSuccess)
     advanceUntilIdle()

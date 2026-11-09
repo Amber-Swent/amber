@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload
 
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -153,10 +155,10 @@ class UploadTest {
   fun errorMessageIsClearedOnceHandledByTheScreen() {
     val viewModel = UploadViewModel()
     setUpload(viewModel = viewModel)
-    assertNull(viewModel.uiState.value.errorMsg)
-    composeTestRule.runOnIdle { viewModel.setErrorMsg("Something went wrong") }
+    assertNull(viewModel.uiState.value.errorMsgRes)
+    composeTestRule.runOnIdle { viewModel.setErrorMsg(R.string.uploadMediaErrorUploadFailed) }
     composeTestRule.waitForIdle()
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
   }
 
   // ---------- DisplayButton Function----------
