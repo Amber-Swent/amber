@@ -1,4 +1,5 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
@@ -19,8 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import com.github.se.amber.R
 import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_LEFT
 import com.github.se.amber.ui.onboarding.DividerTestTags.HORIZONTAL_DIVIDER_RIGHT
 import com.github.se.amber.ui.onboarding.DividerTestTags.ROW
@@ -125,13 +128,13 @@ fun OnboardingOutlinedTextField(
  * Displays two horizontal dividers separated by a centered text label.
  *
  * @param modifier modifier applied to the divider row.
- * @param text the text display in between
+ * @param text the text display in between. Defaults to the translated "or".
  * @param style text style used for the "or" label.
  */
 @Composable
 fun Divider(
     modifier: Modifier = Modifier,
-    text: String = "or",
+    text: String = stringResource(R.string.onboardingDividerOr),
     style: TextStyle = MaterialTheme.typography.titleMedium,
 ) {
   Row(

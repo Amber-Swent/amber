@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.model.validation
 
@@ -139,6 +140,27 @@ class InputValidationTest {
     assertEquals("Use at most 3 characters", InputRule(maxLength = 3).errorMessage("abcd"))
     assertNull(InputValidation.NAME.errorMessage("Anne-Marie"))
     assertNull(InputValidation.NAME.errorMessage("", blankMessage = null))
+  }
+
+  @Test
+  fun visibleError_whileTypingOnlyShowsWhatTypingMoreCannotFix() {
+    val code = InputValidation.INVITATION_CODE
+
+    assertNull(code.visibleError("", submitted = false))
+    assertNull(code.visibleError("ABCD", submitted = false))
+    assertEquals(InputError.WRONG_FORMAT, code.visibleError("AB0", submitted = false))
+    assertEquals(InputError.TOO_LONG, InputRule(maxLength = 3).visibleError("abcd", false))
+    assertNull(InputValidation.NAME.visibleError("Anne-", submitted = false))
+  }
+
+  @Test
+  fun visibleError_onceSubmittedShowsEveryError() {
+    val code = InputValidation.INVITATION_CODE
+
+    assertEquals(InputError.BLANK, code.visibleError(" "))
+    assertEquals(InputError.TOO_SHORT, code.visibleError("ABCD"))
+    assertEquals(InputError.WRONG_FORMAT, InputValidation.NAME.visibleError("Anne-"))
+    assertNull(InputValidation.NAME.visibleError("Anne-Marie"))
   }
 
   @Test

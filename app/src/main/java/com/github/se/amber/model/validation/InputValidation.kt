@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.model.validation
 
@@ -80,6 +81,29 @@ data class InputRule(
   }
 
   /**
+   * The error the field should show now, or null to show nothing.
+   *
+   * While the user types ([submitted] false), only errors that typing more can't fix are shown: a
+   * character the field doesn't allow, and a text that is too long. After the user tries to save,
+   * every error is shown. The UI turns the error into a message in the app language (see
+   * `ui/utils/InputValidationErrorText.kt`).
+   *
+   * @param text The value as typed.
+   * @param submitted Whether the user has tried to save the value.
+   */
+  fun visibleError(text: String, submitted: Boolean = true): InputError? {
+    val error = check(text) ?: return null
+    val shown =
+        when (error) {
+          InputError.BLANK,
+          InputError.TOO_SHORT -> submitted
+          InputError.TOO_LONG -> true
+          InputError.WRONG_FORMAT -> submitted || !hasOnlyAllowedCharacters(text.trim())
+        }
+    return error.takeIf { shown }
+  }
+
+  /**
    * Why [text] is refused, as a message to show under the field, or null to show nothing.
    *
    * While the user is still typing ([submitted] false), only what can't be fixed by typing more is
@@ -96,12 +120,11 @@ data class InputRule(
       submitted: Boolean = true,
       blankMessage: String? = "Please fill this out",
   ): String? {
-    return when (check(text) ?: return null) {
-      InputError.BLANK -> blankMessage?.takeIf { submitted }
-      InputError.TOO_SHORT -> tooShortMessage().takeIf { submitted }
+    return when (visibleError(text, submitted) ?: return null) {
+      InputError.BLANK -> blankMessage
+      InputError.TOO_SHORT -> tooShortMessage()
       InputError.TOO_LONG -> "Use at most $maxLength characters"
-      InputError.WRONG_FORMAT ->
-          formatMessage.takeIf { submitted || !hasOnlyAllowedCharacters(text.trim()) }
+      InputError.WRONG_FORMAT -> formatMessage
     }
   }
 

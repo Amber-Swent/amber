@@ -73,6 +73,7 @@ ViewModels have no `Context`, so they MUST NOT hold translated text. They expose
 - A fixed message: a `@StringRes Int`, e.g. `errorMsgRes = R.string.createProfileErrorExists`. The composable calls `stringResource(it)`.
 - Text that depends on data only the ViewModel has: a `UiText` (`ui/utils/UiText.kt`).
   - `UiText.Resource(id, args)` is **app text**: a key from `strings.xml`, plus the values for its placeholders, if any. It is translated.
+  - `UiText.Plural(id, count)` is **app text with a number**: a `<plurals>` key from `strings.xml`. The number picks the wording ("1 character", "3 characters"). Use it whenever a number is followed by a word that changes with it. In a composable, the same key is read with `pluralStringResource(R.plurals.key, count, count)`. French needs the `one`, `many` and `other` items.
   - `UiText.Dynamic(value)` is **user data** shown exactly as typed, such as a name or a nickname. It is never translated.
   - ⚠️ `Dynamic` is ONLY for user data that fills the whole text. Data inside a sentence is an argument of `Resource`. A string literal or a constant in `Dynamic` is hardcoded English.
 

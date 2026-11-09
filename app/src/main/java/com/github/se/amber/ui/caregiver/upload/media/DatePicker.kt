@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.model.media.MemoryDate
@@ -114,10 +116,10 @@ enum class DateField(val label: String) {
    * days use two digits, and years remain unchanged.
    *
    * @param value The numeric year, month (1 to 12), or day to display.
-   * @param locale The locale used for month names.
+   * @param locale The locale used for month names: the app locale, so they are translated.
    * @return The label shown for this value in the selection dialog.
    */
-  fun format(value: Int, locale: Locale = Locale.ENGLISH): String =
+  fun format(value: Int, locale: Locale): String =
       when (this) {
         YEAR -> "$value"
         MONTH -> Month.of(value).getDisplayName(TextStyle.FULL, locale)
@@ -129,10 +131,10 @@ enum class DateField(val label: String) {
    * years and days use the same labels as [format].
    *
    * @param value The numeric year, month (1 to 12), or day to display.
-   * @param locale The locale used for month names.
+   * @param locale The locale used for month names: the app locale, so they are translated.
    * @return The label shown in the date box.
    */
-  fun formatCompact(value: Int, locale: Locale = Locale.ENGLISH): String =
+  fun formatCompact(value: Int, locale: Locale): String =
       if (this == MONTH) Month.of(value).getDisplayName(TextStyle.SHORT, locale)
       else format(value, locale)
 }
@@ -157,6 +159,8 @@ fun DisplayScrollableDatePicker(
 ) {
   var date by remember { mutableStateOf(initialDate) }
   var openField by remember { mutableStateOf<DateField?>(null) }
+  // Month names follow the app language
+  val locale = LocalConfiguration.current.locales[0]
 
   // Day cannot be chosen until month is specified
   var showMonthRequiredError by remember { mutableStateOf(false) }
@@ -179,7 +183,7 @@ fun DisplayScrollableDatePicker(
       DateField.entries.forEach { field ->
         DateBox(
             field = field,
-            value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
+            value = field.valueIn(date)?.let { field.formatCompact(it, locale) } ?: "Unknown",
             // Disabling the day button when month is not selected would not detect tentative clicks
             // On the day button, so we use onClick to show an error instead
             onClick = {
@@ -215,8 +219,8 @@ fun DisplayScrollableDatePicker(
     ScrollablePickerDialog(
         field = field,
         items =
-            if (allowsUnknown) listOf("Unknown") + range.map { field.format(it) }
-            else range.map { field.format(it) },
+            if (allowsUnknown) listOf("Unknown") + range.map { field.format(it, locale) }
+            else range.map { field.format(it, locale) },
         initialIndex =
             field.valueIn(date)?.let { it - range.first + if (allowsUnknown) 1 else 0 } ?: 0,
         onDismiss = { openField = null },
