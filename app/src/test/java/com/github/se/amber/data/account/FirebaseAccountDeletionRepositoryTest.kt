@@ -288,6 +288,33 @@ class FirebaseAccountDeletionRepositoryTest {
   }
 
   @Test
+  fun aGoneAccountThatCouldNotBeClearedIsClearedAgainOnTheNextLaunch() = runBlocking {
+    clearLocalData = { throw IOException("Files left") }
+
+    val error = repository.clearGoneAccount().exceptionOrNull()
+
+    assertTrue(error is AccountDeletionError.LocalDataNotCleared)
+    assertTrue("the next launch must find the marker", marker.isSet)
+
+    // the next launch: the user was signed out, so nobody is signed in
+    `when`(auth.currentUser).thenReturn(null)
+    clearLocalData = {}
+    repository.finishInterruptedDeletion()
+
+    assertEquals(2, clears)
+    verifyNoInteractions(callable)
+  }
+
+  @Test
+  fun aGoneAccountIsClearedEvenIfTheMarkerCannotBeSaved() = runBlocking {
+    markerSaves = false
+
+    assertTrue(repository.clearGoneAccount().isSuccess)
+
+    assertEquals(1, clears)
+  }
+
+  @Test
   fun twoClearsAtOnceRunOneAfterTheOther() = runBlocking {
     val firstStarted = CompletableDeferred<Unit>()
     val firstMayFinish = CompletableDeferred<Unit>()

@@ -64,7 +64,7 @@ class RoleLoadingViewModelTest {
     every { authRepository.currentUser } returns AuthUser("uid123")
     coEvery { authRepository.refreshCurrentUser() } returns AuthUser("uid123")
     deletionRepository = mockk()
-    coEvery { deletionRepository.clearLocalData() } returns Result.success(Unit)
+    coEvery { deletionRepository.clearGoneAccount() } returns Result.success(Unit)
 
     viewModel =
         RoleLoadingViewModel(
@@ -126,7 +126,7 @@ class RoleLoadingViewModelTest {
     viewModel.loadRole()
     advanceUntilIdle()
 
-    coVerify(exactly = 1) { deletionRepository.clearLocalData() }
+    coVerify(exactly = 1) { deletionRepository.clearGoneAccount() }
     assertTrue(viewModel.state.value.signedOut)
     assertEquals(RoleState.Loading, viewModel.state.value.roleState)
   }
@@ -135,7 +135,7 @@ class RoleLoadingViewModelTest {
   fun loadRole_accountGoneAndDeviceNotCleared_stillSignsOut() = runTest {
     stubProfile(null)
     coEvery { authRepository.refreshCurrentUser() } returns null
-    coEvery { deletionRepository.clearLocalData() } returns
+    coEvery { deletionRepository.clearGoneAccount() } returns
         Result.failure(AccountDeletionError.LocalDataNotCleared(Exception("Files left")))
 
     viewModel.loadRole()
@@ -153,7 +153,7 @@ class RoleLoadingViewModelTest {
     viewModel.loadRole()
     advanceUntilIdle()
 
-    coVerify(exactly = 0) { deletionRepository.clearLocalData() }
+    coVerify(exactly = 0) { deletionRepository.clearGoneAccount() }
     assertTrue(viewModel.state.value.signedOut)
   }
 

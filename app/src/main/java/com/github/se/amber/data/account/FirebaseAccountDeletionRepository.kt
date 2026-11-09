@@ -73,6 +73,13 @@ class FirebaseAccountDeletionRepository(
         Result.failure(AccountDeletionError.LocalDataNotCleared(exception))
       }
 
+  override suspend fun clearGoneAccount(): Result<Unit> {
+    // Without the marker, a failed clear would never run again: the user is already signed out, so
+    // the next launch has no gone account to find. If it can't be saved, clearing still goes ahead
+    runCatching { marker.set() }
+    return clearLocalData()
+  }
+
   override suspend fun finishInterruptedDeletion() {
     if (marker.isSet && isAccountGone()) clearLocalData()
   }

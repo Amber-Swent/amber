@@ -123,10 +123,10 @@ class RoleLoadingViewModel(
    * Clears what an account the server no longer accepts left on this device: its cached documents,
    * pending uploads and temporary files. It may have been deleted from another phone, or by a
    * deletion that stopped before clearing this one. On success the app restarts on its first
-   * screen; if clearing fails, the user is still signed out.
+   * screen; if clearing fails, the user is still signed out, and the next launch tries again.
    */
   private suspend fun clearGoneAccount() {
-    deletionRepositoryProvider.repository.clearLocalData().onFailure { e ->
+    deletionRepositoryProvider.repository.clearGoneAccount().onFailure { e ->
       Log.e(TAG, "Could not clear the data of an account that is gone", e)
     }
   }
