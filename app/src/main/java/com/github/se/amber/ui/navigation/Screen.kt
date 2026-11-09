@@ -1,78 +1,82 @@
 // Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.navigation
+
+import androidx.annotation.StringRes
+import com.github.se.amber.R
 
 /**
  * Base interface for all navigation destinations (Screen). Ensures consistent structure across all
  * user roles
  *
  * @property route The unique route used to identify the destination in navigation.
- * @property name The title associated with the destination.
+ * @property title The title of the destination, as a string resource.
  * @property isTopLevelDestination Whether the destination is a top-level destination.
  */
 sealed interface Screen {
   val route: String
-  val name: String
+  @get:StringRes val title: Int
   val isTopLevelDestination: Boolean
 }
 
 /** Authentification navigation Screen */
 sealed class AuthScreen(
     override val route: String,
-    override val name: String,
+    @param:StringRes override val title: Int,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
   data object Auth :
       AuthScreen(
           route = "auth",
-          name = "Authentification",
+          title = R.string.screenTitleAuth,
       )
 }
 
 /** Intermediate screens that only redirect the user to another destination. */
 sealed class TransitionScreen(
     override val route: String,
-    override val name: String,
+    @param:StringRes override val title: Int,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
   data object RoleLoading :
       TransitionScreen(
           route = "role_loading",
-          name = "Role loading",
+          title = R.string.screenTitleRoleLoading,
       )
 }
 
 /** Screens of the onboarding flow, shown to a signed-in user who has no profile yet. */
 sealed class OnboardingScreen(
     override val route: String,
-    override val name: String,
+    @param:StringRes override val title: Int,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
 
   data object CreateProfile :
       OnboardingScreen(
           route = "create_profile",
-          name = "Create a profile",
+          title = R.string.screenTitleCreateProfile,
       )
 
   data object CaregiverChoice :
       OnboardingScreen(
           route = "caregiver_choice",
-          name = "Create CareCircle or Enter Invitation",
+          title = R.string.screenTitleCaregiverChoice,
       )
 
   data object CreateCareCircle :
       OnboardingScreen(
           route = "create_carecircle",
-          name = "Create a CareCircle",
+          title = R.string.screenTitleCreateCareCircle,
       )
 
   data object EnterInvitation :
       OnboardingScreen(
           route = "enter_invitation",
-          name = "Enter an invitation",
+          title = R.string.screenTitleEnterInvitation,
       )
 }
 
@@ -83,58 +87,58 @@ sealed class OnboardingScreen(
  */
 sealed class CaregiverScreen(
     override val route: String,
-    override val name: String,
+    @param:StringRes override val title: Int,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
   data object Home :
       CaregiverScreen(
           route = "caregiver_home",
-          name = "Home",
+          title = R.string.screenTitleCaregiverHome,
           isTopLevelDestination = true,
       )
 
   data object Upload :
       CaregiverScreen(
           route = "caregiver_upload",
-          name = "Upload Texts, Pictures or Audios",
+          title = R.string.screenTitleCaregiverUpload,
           isTopLevelDestination = true,
       )
 
   data object UploadText :
       CaregiverScreen(
           route = "caregiver_upload_text",
-          name = "Upload Text",
+          title = R.string.screenTitleCaregiverUploadText,
       )
 
   data object UploadPicture :
       CaregiverScreen(
           route = "caregiver_upload_picture",
-          name = "Upload Picture",
+          title = R.string.screenTitleCaregiverUploadPicture,
       )
 
   data object UploadAudio :
       CaregiverScreen(
           route = "caregiver_upload_audio",
-          name = "Upload Audio",
+          title = R.string.screenTitleCaregiverUploadAudio,
       )
 
   data object Parameters :
       CaregiverScreen(
           route = "parameters",
-          name = "Parameters",
+          title = R.string.screenTitleCaregiverParameters,
           isTopLevelDestination = true,
       )
 
   data object SignOut :
       CaregiverScreen(
           route = "caregiver_sign_out",
-          name = "Sign out",
+          title = R.string.screenTitleCaregiverSignOut,
       )
 
   data object CreateInvitationCode :
       CaregiverScreen(
           route = "create_invitation_code",
-          name = "Create an invitation code",
+          title = R.string.screenTitleCaregiverCreateInvitationCode,
       )
 }
 
@@ -145,46 +149,46 @@ sealed class CaregiverScreen(
  */
 sealed class PatientScreen(
     override val route: String,
-    override val name: String,
+    @param:StringRes override val title: Int,
     override val isTopLevelDestination: Boolean = false,
 ) : Screen {
   data object Home :
       PatientScreen(
           route = "patient_home",
-          name = "Home",
+          title = R.string.screenTitlePatientHome,
           isTopLevelDestination = true,
       )
 
   data object SeeMedias :
       PatientScreen(
           route = "patient_see_medias",
-          name = "See Medias",
+          title = R.string.screenTitlePatientSeeMedias,
           isTopLevelDestination = true,
       )
 
   data object SeePictures :
       PatientScreen(
           route = "patient_see_pictures",
-          name = "See Pictures",
+          title = R.string.screenTitlePatientSeePictures,
       )
 
   data object SeeAudios :
       PatientScreen(
           route = "patient_see_audios",
-          name = "See Audios",
+          title = R.string.screenTitlePatientSeeAudios,
       )
 
   data object Parameters :
       PatientScreen(
           route = "patient_parameters",
-          name = "Parameters",
+          title = R.string.screenTitlePatientParameters,
           isTopLevelDestination = true,
       )
 
   data object SignOut :
       PatientScreen(
           route = "patient_sign_out",
-          name = "Sign out",
+          title = R.string.screenTitlePatientSignOut,
       )
 }
 

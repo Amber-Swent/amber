@@ -1,6 +1,7 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.pictures
 
@@ -30,6 +31,7 @@ import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import com.github.se.amber.ui.caregiver.upload.media.UploadMediaLocationTestTags
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -52,7 +54,7 @@ class UploadPicturesTest {
 
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
   private lateinit var careCircleFlow: MutableStateFlow<CareCircle?>
-  private lateinit var involvedOptionsFlow: MutableStateFlow<Map<String, String>>
+  private lateinit var involvedOptionsFlow: MutableStateFlow<Map<String, UiText>>
   private lateinit var placeOptionsFlow: MutableStateFlow<Map<String, String>>
 
   @Before
@@ -196,7 +198,8 @@ class UploadPicturesTest {
     toggleShownIdsForReal()
     launchScreen()
     composeTestRule.runOnIdle {
-      involvedOptionsFlow.value = mapOf("uid123" to "Marie", "p1" to "Anne")
+      involvedOptionsFlow.value =
+          mapOf("uid123" to UiText.Dynamic("Marie"), "p1" to UiText.Dynamic("Anne"))
     }
     composeTestRule
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.NO_PERSON_INVOLVED)

@@ -1,8 +1,10 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by nehachak1, with assistance from Claude Code
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -13,9 +15,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.CredentialManager
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.authentication.signIn.AuthenticationComponentTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInContent
 import com.github.se.amber.ui.authentication.signIn.EmailSignInContentPreview
@@ -23,9 +28,8 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
-import com.github.se.amber.ui.authentication.signIn.INSTRUCTION_LABEL
-import com.github.se.amber.ui.authentication.signIn.WELCOME_LABEL
 import com.github.se.amber.ui.onboarding.AmberHeaderTestTags
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -39,6 +43,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 private const val EMAIL_HIDDEN = "Email sign-in is commented out until it is implemented"
 
@@ -52,6 +58,10 @@ private const val EMAIL_HIDDEN = "Email sign-in is commented out until it is imp
 @RunWith(RobolectricTestRunner::class)
 class EmailSignInScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   private val repository = mockk<AuthRepository>()
   private val credentialManager = mockk<CredentialManager>()
@@ -141,10 +151,12 @@ class EmailSignInScreenTest {
   fun theScreenWelcomesTheUserAndGoogleIsTheOnlySignInOption() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(EmailSignInTestTags.WELCOME).assertTextEquals(WELCOME_LABEL)
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.WELCOME)
+        .assertTextEquals(string(R.string.signInWelcome))
     composeTestRule
         .onNodeWithTag(EmailSignInTestTags.INSTRUCTION)
-        .assertTextEquals(INSTRUCTION_LABEL)
+        .assertTextEquals(string(R.string.signInInstruction))
     composeTestRule.onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.HEADING).assertDoesNotExist()
     composeTestRule.onNodeWithTag(EmailSignInTestTags.EMAIL_FIELD).assertDoesNotExist()
@@ -152,7 +164,20 @@ class EmailSignInScreenTest {
     composeTestRule.onNodeWithTag(EmailSignInTestTags.OR_DIVIDER).assertDoesNotExist()
     composeTestRule
         .onNodeWithTag(AuthenticationComponentTestTags.TERMS_FOOTER)
-        .assertTextContains("By signing in", substring = true)
+        .assertTextEquals(string(R.string.signInTermsFooter))
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun theScreenIsInFrenchWhenThePhoneIsInFrench() {
+    setScreen()
+
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.WELCOME)
+        .assertTextEquals("Bienvenue sur Amber")
+    composeTestRule
+        .onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON)
+        .assertTextEquals("Se connecter avec Google")
   }
 
   @Test
@@ -173,7 +198,7 @@ class EmailSignInScreenTest {
     setScreen(mockViewModel(EmailSignInUIState(isLoading = true)))
     composeTestRule
         .onNodeWithTag(EmailSignInTestTags.GOOGLE_BUTTON)
-        .assertTextContains("Signing in…", substring = true)
+        .assertTextEquals(string(R.string.signInGoogleLoading))
   }
 
   @Ignore(EMAIL_HIDDEN)
@@ -248,11 +273,22 @@ class EmailSignInScreenTest {
 
   @Test
   fun displayedErrorIsClearedInViewModel() {
-    val model = mockViewModel(EmailSignInUIState(errorMessage = "Something failed"))
+    val model =
+        mockViewModel(EmailSignInUIState(error = UiText.Resource(R.string.signInErrorFailed)))
     setScreen(model)
     composeTestRule.waitForIdle()
 
     verify(exactly = 1) { model.clearError() }
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun errorToastIsShownInFrenchWithItsArguments() {
+    val error = UiText.Plural(R.plurals.inputErrorTooLong, InputValidation.EMAIL_MAX_LENGTH)
+    setScreen(mockViewModel(EmailSignInUIState(error = error)))
+    composeTestRule.waitForIdle()
+
+    assertEquals("Utilisez au plus 254 caractères", ShadowToast.getTextOfLatestToast())
   }
 
   @Test

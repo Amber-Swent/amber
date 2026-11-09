@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.parameters
 
@@ -18,10 +19,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
@@ -56,10 +60,12 @@ fun PatientParameterScreen(
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
-  LaunchedEffect(uiState.errorMsg) {
-    uiState.errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(uiState.errorMsgRes) {
+    uiState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
@@ -69,7 +75,7 @@ fun PatientParameterScreen(
         TopAppBar(
             title = {
               DisplayPatientTitle(
-                  title = "Parameters",
+                  title = stringResource(R.string.patientParameterTitle),
                   testTag = PatientParameterTestTags.TITLE,
               )
             }
@@ -95,7 +101,7 @@ fun PatientParameterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           DisplayPatientButton(
-              text = "Sign out",
+              text = stringResource(R.string.patientParameterSignOut),
               onClick = onSignOutClick,
               testTag = PatientParameterTestTags.SIGN_OUT_BUTTON,
           )

@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -26,7 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.DATE_PICKER_LIST_HEIGHT_FRACTION
 import com.github.se.amber.ui.theme.MAX_VISIBLE_ITEM
@@ -62,9 +65,9 @@ internal fun ScrollablePickerDialog(
   val itemHeight = listHeight / MAX_VISIBLE_ITEM
 
   PopupDialog(
-      title = "Select ${field.label}",
+      title = stringResource(field.dialogTitleRes),
       onDismiss = onDismiss,
-      actionText = "Done",
+      actionText = stringResource(R.string.datePickerDone),
       onAction = { onSelected(selectedIndex) },
       dialogTestTag = DatePickerTestTags.DIALOG,
       titleTestTag = DatePickerTestTags.dialogTitle(field),
