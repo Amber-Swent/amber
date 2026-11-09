@@ -1,6 +1,7 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modify by Lou-Anne Maier, with assistance from Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.parameters
 
@@ -31,11 +32,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.DisplayButton
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
@@ -57,25 +61,6 @@ object CaregiverParametersTestTags {
   const val DELETE_ACCOUNT_BUTTON = "CaregiverParameter_test_tag_delete_account_button"
   const val INVITATION_HINT = "CaregiverParameter_test_tag_invitation_hint"
 }
-
-internal const val PARAMETERS_TITLE = "Parameters"
-
-internal const val CREATE_CARE_CIRCLE_LABEL = "Create a new care circle"
-
-internal const val CREATE_INVITATION_LABEL = "Create Invitation"
-
-internal const val ENTER_INVITATION_LABEL = "Enter Invitation"
-
-internal const val SIGN_OUT_LABEL = "Sign out"
-
-/**
- * Tells a caregiver who already belongs to a circle how to add someone else.
- *
- * The sentence names [CREATE_INVITATION_LABEL], the button on this screen, and says to send the
- * code that button creates. It does not ask an unnamed "second person" to obtain a code.
- */
-internal const val INVITATION_HINT_LABEL =
-    "To add someone to your circle, tap $CREATE_INVITATION_LABEL and send them the code."
 
 /**
  * Displays the caregiver parameters screen.
@@ -103,29 +88,29 @@ fun CaregiverParameterScreen(
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
+  val createCareCircleLabel = stringResource(R.string.caregiverParameterCreateCareCircle)
+  val createInvitationLabel = stringResource(R.string.caregiverParameterCreateInvitation)
+  val enterInvitationLabel = stringResource(R.string.caregiverParameterEnterInvitation)
+  val signOutLabel = stringResource(R.string.caregiverParameterSignOut)
 
-  LaunchedEffect(uiState.errorMsg) {
-    uiState.errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(uiState.errorMsgRes) {
+    uiState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
 
   Scaffold(
       topBar = {
-        Text(
-            text = PARAMETERS_TITLE,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineSmall,
-            textAlign = TextAlign.Center,
-            modifier =
-                Modifier.fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(
-                        top = CAREGIVER_PADDING_SMALL,
-                        bottom = CAREGIVER_PADDING_MEDIUM,
-                    )
-                    .testTag(CaregiverParametersTestTags.TITLE),
+        TopAppBar(
+            title = {
+              DisplayCaregiverTitle(
+                  modifier = Modifier.testTag(CaregiverParametersTestTags.TITLE),
+                  title = stringResource(R.string.caregiverParameterTitle),
+              )
+            }
         )
       },
       bottomBar = {
@@ -150,40 +135,44 @@ fun CaregiverParameterScreen(
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON),
               icon = Icons.Outlined.Add,
-              text = CREATE_CARE_CIRCLE_LABEL,
-              description = CREATE_CARE_CIRCLE_LABEL,
+              text = createCareCircleLabel,
+              description = createCareCircleLabel,
               onClick = onCreateCareCircleClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
               icon = Icons.Outlined.PersonAdd,
-              text = CREATE_INVITATION_LABEL,
-              description = CREATE_INVITATION_LABEL,
+              text = createInvitationLabel,
+              description = createInvitationLabel,
               onClick = onCreateInvitationClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.ENTER_INVITATION_BUTTON),
               icon = Icons.Outlined.Mail,
-              text = ENTER_INVITATION_LABEL,
-              description = ENTER_INVITATION_LABEL,
+              text = enterInvitationLabel,
+              description = enterInvitationLabel,
               onClick = onEnterInvitationClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON),
               icon = Icons.AutoMirrored.Outlined.Logout,
-              text = SIGN_OUT_LABEL,
-              description = SIGN_OUT_LABEL,
+              text = signOutLabel,
+              description = signOutLabel,
               onClick = onSignOutClick,
           )
           DisplayButton(
-              modifier = Modifier.testTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON),
-              icon = Icons.Outlined.Delete,
-              text = "Delete account",
-              description = "Delete account",
-              onClick = onDeleteAccountClick,
+            modifier = Modifier.testTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON),
+            icon = Icons.Outlined.Delete,
+            text = stringResource(R.string.caregiverParameterDeleteAccount),
+            description = stringResource(R.string.caregiverParameterDeleteAccount),
+            onClick = onDeleteAccountClick,
           )
+          
+          // Tells a caregiver how to add someone else: it names the Create Invitation button on
+          // this screen and says to send the code it creates.
           Text(
-              text = INVITATION_HINT_LABEL,
+              text =
+                  stringResource(R.string.caregiverParameterInvitationHint, createInvitationLabel),
               modifier =
                   Modifier.fillMaxWidth()
                       .padding(bottom = CAREGIVER_PADDING_ENORMOUS)

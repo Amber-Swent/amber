@@ -2,9 +2,11 @@
 // Modify by Lou-Anne Maier, with assistance from Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.parameters
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -12,6 +14,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -23,6 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 /** Tests the caregiver parameters screen: displayed elements, click callbacks and error toast. */
@@ -30,9 +35,16 @@ import org.robolectric.shadows.ShadowToast
 class CaregiverParameterScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
-  private companion object {
-    const val ERROR_MESSAGE = "error"
-  }
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
+
+  private val invitationHint: String
+    get() =
+        string(
+            R.string.caregiverParameterInvitationHint,
+            string(R.string.caregiverParameterCreateInvitation),
+        )
 
   private fun setScreen(
       viewModel: CaregiverParameterViewModel = CaregiverParameterViewModel(),
@@ -112,7 +124,7 @@ class CaregiverParameterScreenTest {
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
         .assertIsDisplayed()
-        .assertTextEquals(INVITATION_HINT_LABEL)
+        .assertTextEquals(invitationHint)
   }
 
   @Test
@@ -170,12 +182,22 @@ class CaregiverParameterScreenTest {
 
   @Test
   fun errorMessageIsClearedFromTheStateAfterTheToast() {
-    val viewModel = CaregiverParameterViewModel().apply { setErrorMsg(ERROR_MESSAGE) }
+    val viewModel = CaregiverParameterViewModel().apply { setErrorMsg(R.string.signOutError) }
     setScreen(viewModel = viewModel)
 
     composeTestRule.waitForIdle()
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
+  }
+
+  @Test
+  fun errorToastShowsTheTranslatedMessage() {
+    val viewModel = CaregiverParameterViewModel().apply { setErrorMsg(R.string.signOutError) }
+    setScreen(viewModel = viewModel)
+
+    composeTestRule.waitForIdle()
+
+    assertEquals(string(R.string.signOutError), ShadowToast.getTextOfLatestToast())
   }
 
   @Test
@@ -213,47 +235,73 @@ class CaregiverParameterScreenTest {
 
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.TITLE)
-        .assertTextEquals(PARAMETERS_TITLE)
+        .assertTextEquals(string(R.string.caregiverParameterTitle))
   }
 
   @Test
   fun createCareCircleButtonShowsItsLabel() {
     setScreen()
 
-    composeTestRule.onNodeWithText(CREATE_CARE_CIRCLE_LABEL).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(string(R.string.caregiverParameterCreateCareCircle))
+        .assertIsDisplayed()
   }
 
   @Test
   fun createInvitationButtonShowsItsLabel() {
     setScreen()
 
-    composeTestRule.onNodeWithText(CREATE_INVITATION_LABEL).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(string(R.string.caregiverParameterCreateInvitation))
+        .assertIsDisplayed()
   }
 
   @Test
   fun enterInvitationButtonShowsItsLabel() {
     setScreen()
 
-    composeTestRule.onNodeWithText(ENTER_INVITATION_LABEL).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(string(R.string.caregiverParameterEnterInvitation))
+        .assertIsDisplayed()
   }
 
   @Test
   fun signOutButtonShowsItsLabel() {
     setScreen()
 
-    composeTestRule.onNodeWithText(SIGN_OUT_LABEL).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.caregiverParameterSignOut)).assertIsDisplayed()
   }
 
+  // Checks the English wording itself, so it is pinned to English
   @Test
+  @Config(qualifiers = "en")
   fun invitationHintPointsAtTheCreateInvitationButton() {
-    assertTrue(INVITATION_HINT_LABEL.contains(CREATE_INVITATION_LABEL))
-    assertTrue(INVITATION_HINT_LABEL.contains("send them the code"))
+    assertTrue(invitationHint.contains(string(R.string.caregiverParameterCreateInvitation)))
+    assertTrue(invitationHint.contains("send them the code"))
   }
 
   @Test
+  @Config(qualifiers = "en")
   fun invitationHintDoesNotAskAboutASecondPerson() {
-    assertFalse(INVITATION_HINT_LABEL.contains("second person"))
-    assertFalse(INVITATION_HINT_LABEL.contains("a new code from a caregiver"))
+    assertFalse(invitationHint.contains("second person"))
+    assertFalse(invitationHint.contains("a new code from a caregiver"))
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.TITLE).assertTextEquals("Paramètres")
+    composeTestRule.onNodeWithText("Créer un nouveau cercle de soins").assertExists()
+    composeTestRule.onNodeWithText("Saisir une invitation").assertExists()
+    composeTestRule.onNodeWithText("Se déconnecter").assertExists()
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
+        .assertTextEquals(
+            "Pour ajouter quelqu'un à votre cercle, appuyez sur «\u00A0Créer une invitation\u00A0» et " +
+                "envoyez-lui le code."
+        )
   }
 
   @Test
@@ -299,7 +347,9 @@ class CaregiverParameterScreenTest {
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON)
         .assertIsDisplayed()
-    composeTestRule.onNodeWithText(CREATE_CARE_CIRCLE_LABEL).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(string(R.string.caregiverParameterCreateCareCircle))
+        .assertIsDisplayed()
   }
 
   @Test
@@ -309,7 +359,7 @@ class CaregiverParameterScreenTest {
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
         .assertIsDisplayed()
-        .assertTextEquals(INVITATION_HINT_LABEL)
+        .assertTextEquals(invitationHint)
   }
 
   private fun topOf(tag: String) = composeTestRule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top

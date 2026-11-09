@@ -1,8 +1,10 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modify by Lou-Anne Maier, with assistance from Claude Code
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.parameters
 
+import com.github.se.amber.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -34,11 +36,11 @@ class CaregiverParameterViewModelTest {
   fun clearErrorMsgRemovesAnExistingMessage() =
       runTest(dispatcher) {
         val viewModel = CaregiverParameterViewModel()
-        viewModel.setErrorMsg("boom")
+        viewModel.setErrorMsg(R.string.signOutError)
 
         viewModel.clearErrorMsg()
 
-        assertNull(viewModel.uiState.value.errorMsg)
+        assertNull(viewModel.uiState.value.errorMsgRes)
       }
 
   @Test
@@ -46,8 +48,8 @@ class CaregiverParameterViewModelTest {
       runTest(dispatcher) {
         val viewModel = CaregiverParameterViewModel()
 
-        viewModel.setErrorMsg("boom")
+        viewModel.setErrorMsg(R.string.signOutError)
 
-        assertEquals("boom", viewModel.uiState.value.errorMsg)
+        assertEquals(R.string.signOutError, viewModel.uiState.value.errorMsgRes)
       }
 }

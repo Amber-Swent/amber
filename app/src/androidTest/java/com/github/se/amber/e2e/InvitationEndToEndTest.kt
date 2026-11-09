@@ -4,6 +4,7 @@
 
 package com.github.se.amber.e2e
 
+import android.content.Context
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -23,12 +24,12 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.AmberApp
+import com.github.se.amber.R
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
-import com.github.se.amber.ui.caregiver.parameters.createInvitation.CREATE_CODE_PLACEHOLDER
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.CaregiverTab
@@ -177,10 +178,12 @@ class InvitationEndToEndTest {
     click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
     click(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
     click(CreateInvitationTestTags.CREATE_CARD)
+    val placeholder =
+        ApplicationProvider.getApplicationContext<Context>()
+            .getString(R.string.createInvitationPlaceholder)
     composeTestRule.waitUntil(TIMEOUT_MILLIS) {
-      textOf(CreateInvitationTestTags.HINT_BOX)?.let {
-        it.isNotBlank() && it != CREATE_CODE_PLACEHOLDER
-      } == true
+      textOf(CreateInvitationTestTags.HINT_BOX)?.let { it.isNotBlank() && it != placeholder } ==
+          true
     }
     val code = checkNotNull(textOf(CreateInvitationTestTags.HINT_BOX))
     waitFor(CreateInvitationTestTags.codeRow(code)) // the new invitation also reached the list
