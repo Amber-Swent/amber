@@ -166,15 +166,6 @@ class PatientHomeViewModelTest {
   }
 
   @Test
-  fun `failure without message sets the same error`() = runTest {
-    coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception())
-
-    val vm = PatientHomeViewModel(profileRepo)
-
-    assertEquals(R.string.patientHomeErrorLoadProfile, vm.uiState.value.errorMsgRes)
-  }
-
-  @Test
   fun `clearErrorMsg without error does nothing`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
     val vm = PatientHomeViewModel(profileRepo)

@@ -103,4 +103,15 @@ class SeeAudiosScreenTest {
         .assertIsDisplayed()
         .assertTextEquals(string(R.string.seeAudiosEmpty))
   }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    setContent()
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertTextEquals("Voir les audios")
+    composeTestRule
+        .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
+        .assertTextEquals("Il n'y a pas encore d'audios.")
+  }
 }

@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
@@ -97,18 +98,6 @@ class PatientParameterScreenTest {
   }
 
   @Test
-  fun titleAndSignOutButtonShowTheirText() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(PatientParameterTestTags.TITLE)
-        .assertTextEquals(string(R.string.patientParameterTitle))
-    composeTestRule
-        .onNodeWithTag(PatientParameterTestTags.SIGN_OUT_BUTTON)
-        .assertTextEquals(string(R.string.patientParameterSignOut))
-  }
-
-  @Test
   fun noToastIsShownWhenThereIsNoError() {
     setScreen()
 
@@ -135,5 +124,16 @@ class PatientParameterScreenTest {
     composeTestRule.setContent { PatientParameterScreenPreview() }
 
     composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertTextEquals("Paramètres")
+    composeTestRule
+        .onNodeWithTag(PatientParameterTestTags.SIGN_OUT_BUTTON)
+        .assertTextEquals("Se déconnecter")
   }
 }

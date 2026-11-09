@@ -36,6 +36,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 private const val TRANSITION_DURATION_MS = 190_000L
@@ -511,4 +512,17 @@ class AudioPlaybackTest {
   }
 
   private fun rangeInfo(progress: Float) = ProgressBarRangeInfo(progress, 0f..1f)
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun playbackIsShownInFrench() {
+    composeTestRule.setContent { AmberAppTheme { DisplayAudioPlayback() } }
+
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
+        .assertContentDescriptionEquals("Lire")
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.RESTART)
+        .assertContentDescriptionEquals("Recommencer")
+  }
 }

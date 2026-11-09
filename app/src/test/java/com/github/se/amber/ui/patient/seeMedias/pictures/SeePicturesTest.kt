@@ -6,8 +6,10 @@ package com.github.se.amber.ui.patient.seeMedias.pictures
 import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
 import androidx.lifecycle.ViewModel
@@ -276,5 +278,18 @@ class SeePicturesScreenTest {
     assertNull(state.errorMsgRes)
     assertEquals(listOf(picture), state.allPictures)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
+    setContent()
+
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.TITLE).assertTextEquals("Voir les photos")
+    composeTestRule
+        .onNodeWithTag(SeePicturesTestTags.ERROR)
+        .assertTextEquals("Impossible de charger le profil.")
+    composeTestRule.onNodeWithText("Réessayer").assertExists()
   }
 }

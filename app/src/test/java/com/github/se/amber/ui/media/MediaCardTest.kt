@@ -360,4 +360,23 @@ class MediaCardTest {
 
     assertEquals(1, ShadowToast.shownToastCount())
   }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun cardIsShownInFrench() {
+    setCard(picture(location = GeoLocation(lat = null, lng = null, placeName = null)))
+
+    composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).assertTextEquals("Date inconnue")
+    composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).assertTextEquals("Lieu inconnu")
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("m1"))
+        .assertTextEquals("voir les infos")
+    toggle()
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1"))
+        .assertTextEquals("masquer les infos")
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.addedBy("m1"))
+        .assertTextEquals("Ajouté par Alice")
+  }
 }

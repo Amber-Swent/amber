@@ -36,6 +36,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
@@ -282,5 +283,16 @@ class PatientHomeScreenTest {
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertTextEquals("Accueil")
+    composeTestRule
+        .onNodeWithTag(PatientHomeTestTags.GREETINGS)
+        .assertTextEquals("Bonjour Alice\u00A0!")
   }
 }
