@@ -5,6 +5,7 @@
 
 package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -37,13 +38,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
+import com.github.se.amber.data.invitation.InvitationStatus
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -60,6 +65,7 @@ import com.github.se.amber.ui.theme.SMALL_ROUND_CORNER
 import com.github.se.amber.ui.theme.lightOrange
 import java.text.DateFormat
 import java.util.Date
+import java.util.Locale
 
 // Define A lot of values here to adjust the components more easily
 private val screenHorizontalPadding = 30.dp
@@ -106,8 +112,6 @@ fun CreateInvitationScreen(
   )
 }
 
-internal const val CREATE_CODE_PLACEHOLDER = "Click the left button to create a code"
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CreateInvitationContent(
@@ -129,7 +133,7 @@ private fun CreateInvitationContent(
                 )
                 DisplayCaregiverTitle(
                     Modifier.testTag(CreateInvitationTestTags.TITLE),
-                    "Create Invitation",
+                    stringResource(R.string.createInvitationTitle),
                 )
               }
             }
@@ -144,6 +148,7 @@ private fun CreateInvitationContent(
         )
       },
       content = { paddingValues ->
+        val locale = LocalConfiguration.current.locales[0]
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
           Column(
               modifier =
@@ -199,12 +204,12 @@ private fun CreateInvitationContent(
                 ) {
                   Icon(
                       Icons.Outlined.GroupAdd,
-                      contentDescription = "Create invitation",
+                      contentDescription = stringResource(R.string.createInvitationButton),
                       modifier = Modifier.size(createIconSize),
                       tint = Color.Black,
                   )
                   Text(
-                      text = "Create invitation",
+                      text = stringResource(R.string.createInvitationButton),
                       color = Color.Black,
                       fontSize = 16.sp,
                       fontWeight = FontWeight.SemiBold,
@@ -213,7 +218,8 @@ private fun CreateInvitationContent(
               }
 
               Text(
-                  text = uiState.generatedCode ?: CREATE_CODE_PLACEHOLDER,
+                  text =
+                      uiState.generatedCode ?: stringResource(R.string.createInvitationPlaceholder),
                   modifier =
                       Modifier.padding(top = PADDING_SMALL)
                           .width(hintBoxWidth)
@@ -232,16 +238,16 @@ private fun CreateInvitationContent(
             }
             Spacer(modifier = Modifier.height(sectionGap))
             Text(
-                text = "This code can only be used once.\nIt's active 30 days after its creation.",
+                text = stringResource(R.string.createInvitationUsage),
                 modifier = Modifier.fillMaxWidth().testTag(CreateInvitationTestTags.USAGE_TEXT),
                 color = Color.Black,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 lineHeight = 22.sp,
             )
-            uiState.errorMessage?.let { message ->
+            uiState.errorMessageRes?.let { messageRes ->
               Text(
-                  text = message,
+                  text = stringResource(messageRes),
                   modifier =
                       Modifier.fillMaxWidth()
                           .padding(top = PADDING_SMALL)
@@ -268,7 +274,7 @@ private fun CreateInvitationContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
               Text(
-                  text = "Code | Creation  Time | Status",
+                  text = stringResource(R.string.createInvitationListHeader),
                   color = Color.Black,
                   fontSize = 20.sp,
                   fontWeight = FontWeight.SemiBold,
@@ -277,7 +283,12 @@ private fun CreateInvitationContent(
               uiState.invitations.forEach { invitation ->
                 Text(
                     text =
-                        "${invitation.code} | ${formatCreatedAt(invitation.createdAt)} | ${invitation.status}",
+                        stringResource(
+                            R.string.createInvitationListRow,
+                            invitation.code,
+                            formatCreatedAt(invitation.createdAt, locale),
+                            stringResource(invitation.status.labelRes()),
+                        ),
                     modifier = Modifier.testTag(CreateInvitationTestTags.codeRow(invitation.code)),
                     color = Color.Black,
                     fontSize = 16.sp,
@@ -291,8 +302,24 @@ private fun CreateInvitationContent(
   )
 }
 
-private fun formatCreatedAt(createdAtMillis: Long): String =
-    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(createdAtMillis))
+/**
+ * Formats when an invitation was created, in the app language.
+ *
+ * @param createdAtMillis the creation time, in milliseconds since the epoch.
+ * @param locale the app locale, from `LocalConfiguration.current.locales[0]`.
+ */
+internal fun formatCreatedAt(createdAtMillis: Long, locale: Locale): String =
+    DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, locale)
+        .format(Date(createdAtMillis))
+
+/** The status shown in the invitation list, in the app language. */
+@StringRes
+internal fun InvitationStatus.labelRes(): Int =
+    when (this) {
+      InvitationStatus.ACTIVE -> R.string.createInvitationStatusActive
+      InvitationStatus.EXPIRED -> R.string.createInvitationStatusExpired
+      InvitationStatus.USED -> R.string.createInvitationStatusUsed
+    }
 
 /** Preview of [CreateInvitationScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = false)

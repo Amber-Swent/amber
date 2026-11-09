@@ -133,4 +133,48 @@
     <string name="invitationRedemptionErrorPatientSlotTaken">This circle already has a patient. Ask the caregiver for help.</string>
     <string name="invitationRedemptionErrorOffline">You\'re offline. Check your connection and try again.</string>
     <string name="invitationRedemptionErrorUnknown">Couldn\'t redeem this invitation. Please try again.</string>
+
+    <!-- CaregiverParameter -->
+    <string name="caregiverParameterTitle">Parameters</string>
+    <string name="caregiverParameterCreateCareCircle">Create a new care circle</string>
+    <string name="caregiverParameterCreateInvitation">Create Invitation</string>
+    <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
+    <string name="caregiverParameterSignOut">Sign out</string>
+    <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
+
+    <!-- CreateInvitation -->
+    <string name="createInvitationTitle">Create Invitation</string>
+    <string name="createInvitationButton">Create invitation</string>
+    <string name="createInvitationPlaceholder">Click the left button to create a code</string>
+    <string name="createInvitationUsage">This code can only be used once.\nIt\'s active 30 days after its creation.</string>
+    <string name="createInvitationListHeader">Code | Creation Time | Status</string>
+    <string name="createInvitationListRow">%1$s | %2$s | %3$s</string>
+    <string name="createInvitationStatusActive">ACTIVE</string>
+    <string name="createInvitationStatusExpired">EXPIRED</string>
+    <string name="createInvitationStatusUsed">USED</string>
+    <string name="createInvitationCreated">Invitation created</string>
+    <string name="createInvitationErrorNotAuthenticated">Sign in to create an invitation</string>
+    <string name="createInvitationErrorPermissionDenied">You do not have permission to create an invitation</string>
+    <string name="createInvitationErrorNetwork">Network error. Check your connection and try again</string>
+    <string name="createInvitationErrorInvalidExpiry">The invitation expiration date is invalid</string>
+    <string name="createInvitationErrorCodesTaken">Every generated invitation code was already taken. Try again</string>
+    <string name="createInvitationErrorSave">Saving the invitation failed</string>
+    <string name="createInvitationErrorCreate">Could not create the invitation</string>
+    <string name="createInvitationErrorLoadInvitations">Could not load invitations</string>
+    <string name="createInvitationErrorRefreshAfterCreate">The invitation was created, but the list could not be refreshed</string>
+    <string name="createInvitationErrorLoadProfile">Could not load your profile</string>
+    <string name="createInvitationErrorProfileNotFound">Your profile was not found</string>
+    <string name="createInvitationErrorNoCircle">No care circle</string>
+
+    <!-- CaregiverHome -->
+    <string name="caregiverHomeTitle">Home</string>
+    <string name="caregiverHomeWelcomePatient">Welcome! You are with %1$s!</string>
+    <string name="caregiverHomeWelcomeNoPatient">Welcome! There is no patient linked to this care circle yet.</string>
+    <string name="caregiverHomeErrorNoProfile">No profile found.</string>
+    <string name="caregiverHomeErrorLoadProfile">Failed to load the profile.</string>
+    <string name="caregiverHomeErrorNoCircle">No care circle found for this caregiver.</string>
+    <string name="caregiverHomeErrorLoadCircle">Failed to load the care circle.</string>
+    <string name="caregiverHomeErrorNoPatient">No patient is linked to this care circle yet.</string>
+    <string name="caregiverHomeErrorNoPatientProfile">No patient profile found.</string>
+    <string name="caregiverHomeErrorLoadPatientProfile">Failed to load the patient profile.</string>
 </resources>

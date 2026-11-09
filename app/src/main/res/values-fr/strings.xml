@@ -129,4 +129,48 @@
     <string name="invitationRedemptionErrorPatientSlotTaken">Ce cercle a déjà un patient. Demandez de l\'aide à l\'aidant.</string>
     <string name="invitationRedemptionErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
     <string name="invitationRedemptionErrorUnknown">Impossible d\'utiliser cette invitation. Veuillez réessayer.</string>
+
+    <!-- CaregiverParameter -->
+    <string name="caregiverParameterTitle">Paramètres</string>
+    <string name="caregiverParameterCreateCareCircle">Créer un nouveau cercle de soins</string>
+    <string name="caregiverParameterCreateInvitation">Créer une invitation</string>
+    <string name="caregiverParameterEnterInvitation">Saisir une invitation</string>
+    <string name="caregiverParameterSignOut">Se déconnecter</string>
+    <string name="caregiverParameterInvitationHint">Pour ajouter quelqu\'un à votre cercle, appuyez sur «&#160;%1$s&#160;» et envoyez-lui le code.</string>
+
+    <!-- CreateInvitation -->
+    <string name="createInvitationTitle">Créer une invitation</string>
+    <string name="createInvitationButton">Créer une invitation</string>
+    <string name="createInvitationPlaceholder">Appuyez sur le bouton de gauche pour créer un code</string>
+    <string name="createInvitationUsage">Ce code ne peut être utilisé qu\'une seule fois.\nIl reste actif 30 jours après sa création.</string>
+    <string name="createInvitationListHeader">Code | Date de création | Statut</string>
+    <string name="createInvitationListRow">%1$s | %2$s | %3$s</string>
+    <string name="createInvitationStatusActive">ACTIVE</string>
+    <string name="createInvitationStatusExpired">EXPIRÉE</string>
+    <string name="createInvitationStatusUsed">UTILISÉE</string>
+    <string name="createInvitationCreated">Invitation créée</string>
+    <string name="createInvitationErrorNotAuthenticated">Connectez-vous pour créer une invitation</string>
+    <string name="createInvitationErrorPermissionDenied">Vous n\'avez pas l\'autorisation de créer une invitation</string>
+    <string name="createInvitationErrorNetwork">Erreur réseau. Vérifiez votre connexion, puis réessayez</string>
+    <string name="createInvitationErrorInvalidExpiry">La date d\'expiration de l\'invitation n\'est pas valide</string>
+    <string name="createInvitationErrorCodesTaken">Tous les codes d\'invitation générés étaient déjà pris. Réessayez</string>
+    <string name="createInvitationErrorSave">L\'enregistrement de l\'invitation a échoué</string>
+    <string name="createInvitationErrorCreate">Impossible de créer l\'invitation</string>
+    <string name="createInvitationErrorLoadInvitations">Impossible de charger les invitations</string>
+    <string name="createInvitationErrorRefreshAfterCreate">L\'invitation a été créée, mais la liste n\'a pas pu être actualisée</string>
+    <string name="createInvitationErrorLoadProfile">Impossible de charger votre profil</string>
+    <string name="createInvitationErrorProfileNotFound">Votre profil est introuvable</string>
+    <string name="createInvitationErrorNoCircle">Aucun cercle de soins</string>
+
+    <!-- CaregiverHome -->
+    <string name="caregiverHomeTitle">Accueil</string>
+    <string name="caregiverHomeWelcomePatient">Bienvenue&#160;! Vous êtes avec %1$s&#160;!</string>
+    <string name="caregiverHomeWelcomeNoPatient">Bienvenue&#160;! Aucun patient n\'est encore lié à ce cercle de soins.</string>
+    <string name="caregiverHomeErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="caregiverHomeErrorLoadProfile">Impossible de charger le profil.</string>
+    <string name="caregiverHomeErrorNoCircle">Aucun cercle de soins trouvé pour cet aidant.</string>
+    <string name="caregiverHomeErrorLoadCircle">Impossible de charger le cercle de soins.</string>
+    <string name="caregiverHomeErrorNoPatient">Aucun patient n\'est encore lié à ce cercle de soins.</string>
+    <string name="caregiverHomeErrorNoPatientProfile">Aucun profil de patient trouvé.</string>
+    <string name="caregiverHomeErrorLoadPatientProfile">Impossible de charger le profil du patient.</string>
 </resources>

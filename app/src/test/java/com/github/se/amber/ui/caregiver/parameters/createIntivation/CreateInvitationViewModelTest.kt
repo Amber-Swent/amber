@@ -1,9 +1,11 @@
 // Written by Yuhan YANG, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepository
@@ -72,7 +74,10 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals("No care circle", viewModel.uiState.value.errorMessage)
+        assertEquals(
+            R.string.createInvitationErrorNoCircle,
+            viewModel.uiState.value.errorMessageRes,
+        )
         assertEquals(emptyList<CareCircleChoice>(), viewModel.uiState.value.circles)
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
         assertEquals(emptyList<String>(), creation.requestedCircleIds)
@@ -86,7 +91,10 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals("Your profile was not found", viewModel.uiState.value.errorMessage)
+        assertEquals(
+            R.string.createInvitationErrorProfileNotFound,
+            viewModel.uiState.value.errorMessageRes,
+        )
         assertNull(viewModel.uiState.value.selectedCircleId)
       }
 
@@ -98,7 +106,10 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals("Could not load your profile", viewModel.uiState.value.errorMessage)
+        assertEquals(
+            R.string.createInvitationErrorLoadProfile,
+            viewModel.uiState.value.errorMessageRes,
+        )
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
       }
 
@@ -110,7 +121,10 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals("Could not load your profile", viewModel.uiState.value.errorMessage)
+        assertEquals(
+            R.string.createInvitationErrorLoadProfile,
+            viewModel.uiState.value.errorMessageRes,
+        )
       }
 
   @Test
@@ -128,7 +142,7 @@ class CreateInvitationViewModelTest {
         )
         assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
         assertEquals(listOf(stored), viewModel.uiState.value.invitations)
-        assertNull(viewModel.uiState.value.errorMessage)
+        assertNull(viewModel.uiState.value.errorMessageRes)
         assertNull(viewModel.uiState.value.generatedCode)
       }
 
@@ -221,7 +235,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals("AB12CD34", viewModel.uiState.value.generatedCode)
         assertEquals(listOf(created), viewModel.uiState.value.invitations)
-        assertNull(viewModel.uiState.value.errorMessage)
+        assertNull(viewModel.uiState.value.errorMessageRes)
         assertEquals(listOf("circle-1"), creation.requestedCircleIds)
         assertTrue(!viewModel.uiState.value.isCreating)
       }
@@ -235,28 +249,28 @@ class CreateInvitationViewModelTest {
         advanceUntilIdle()
         val cases =
             listOf(
-                InvitationCreationResult.NotAuthenticated to "Sign in to create an invitation",
+                InvitationCreationResult.NotAuthenticated to
+                    R.string.createInvitationErrorNotAuthenticated,
                 InvitationCreationResult.PermissionDenied to
-                    "You do not have permission to create an invitation",
-                InvitationCreationResult.NetworkFailure to
-                    "Network error. Check your connection and try again",
+                    R.string.createInvitationErrorPermissionDenied,
+                InvitationCreationResult.NetworkFailure to R.string.createInvitationErrorNetwork,
                 InvitationCreationResult.InvalidExpiry to
-                    "The invitation expiration date is invalid",
+                    R.string.createInvitationErrorInvalidExpiry,
                 InvitationCreationResult.CollisionRetryLimitExceeded to
-                    "Every generated invitation code was already taken. Try again",
+                    R.string.createInvitationErrorCodesTaken,
                 InvitationCreationResult.FirestoreFailure(IllegalStateException(" ")) to
-                    "Saving the invitation failed",
+                    R.string.createInvitationErrorSave,
                 InvitationCreationResult.FirestoreFailure(
                     IllegalStateException("quota exceeded")
-                ) to "Saving the invitation failed",
+                ) to R.string.createInvitationErrorSave,
             )
 
-        cases.forEach { (result, message) ->
+        cases.forEach { (result, messageRes) ->
           creation.result = result
           viewModel.createInvitation()
           advanceUntilIdle()
 
-          assertEquals(message, viewModel.uiState.value.errorMessage)
+          assertEquals(messageRes, viewModel.uiState.value.errorMessageRes)
           assertNull(viewModel.uiState.value.generatedCode)
           assertEquals(listOf(existing), viewModel.uiState.value.invitations)
         }
@@ -273,12 +287,18 @@ class CreateInvitationViewModelTest {
             )
         val withMessage = viewModel()
         advanceUntilIdle()
-        assertEquals("Could not load invitations", withMessage.uiState.value.errorMessage)
+        assertEquals(
+            R.string.createInvitationErrorLoadInvitations,
+            withMessage.uiState.value.errorMessageRes,
+        )
 
         lookup.results = mapOf("circle-1" to Result.failure(IllegalStateException(" ")))
         val withoutMessage = viewModel()
         advanceUntilIdle()
-        assertEquals("Could not load invitations", withoutMessage.uiState.value.errorMessage)
+        assertEquals(
+            R.string.createInvitationErrorLoadInvitations,
+            withoutMessage.uiState.value.errorMessageRes,
+        )
       }
 
   @Test
@@ -297,8 +317,8 @@ class CreateInvitationViewModelTest {
         assertEquals("AB12CD34", viewModel.uiState.value.generatedCode)
         assertEquals(listOf(existing), viewModel.uiState.value.invitations)
         assertEquals(
-            "The invitation was created, but the list could not be refreshed",
-            viewModel.uiState.value.errorMessage,
+            R.string.createInvitationErrorRefreshAfterCreate,
+            viewModel.uiState.value.errorMessageRes,
         )
       }
 
@@ -380,7 +400,7 @@ class CreateInvitationViewModelTest {
         viewModel.createInvitation()
         advanceUntilIdle()
 
-        assertEquals("Could not create the invitation", viewModel.uiState.value.errorMessage)
+        assertEquals(R.string.createInvitationErrorCreate, viewModel.uiState.value.errorMessageRes)
         assertTrue(!viewModel.uiState.value.isCreating)
       }
 
