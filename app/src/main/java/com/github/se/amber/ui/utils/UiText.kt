@@ -1,7 +1,9 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.utils
 
 import android.content.res.Resources
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 
 /**
@@ -25,6 +27,24 @@ sealed interface UiText {
    * @property args the values for the placeholders, in order.
    */
   data class Resource(@param:StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
+
+  /**
+   * App text that changes with a number: a plurals resource. It is translated, and the wording
+   * follows the plural rules of the language ("1 character", "3 characters").
+   *
+   * Example: with `<plurals name="inputErrorTooLong">` holding "Use at most %1$d character" (`one`)
+   * and "Use at most %1$d characters" (`other`), `UiText.Plural(R.plurals.inputErrorTooLong, 3)`
+   * shows "Use at most 3 characters" in English and "Utilisez au plus 3 caractères" in French.
+   *
+   * @property id the plurals resource, defined in `values/strings.xml` and `values-fr/strings.xml`.
+   * @property count the number that picks the wording.
+   * @property args the values for the placeholders, in order. By default, only [count].
+   */
+  data class Plural(
+      @param:PluralsRes val id: Int,
+      val count: Int,
+      val args: List<Any> = listOf(count),
+  ) : UiText
 
   /**
    * User data shown as is (a name, a nickname) that fills the whole text.
@@ -54,5 +74,6 @@ sealed interface UiText {
 fun UiText.asString(resources: Resources): String =
     when (this) {
       is UiText.Resource -> resources.getString(id, *args.toTypedArray())
+      is UiText.Plural -> resources.getQuantityString(id, count, *args.toTypedArray())
       is UiText.Dynamic -> value
     }

@@ -109,10 +109,7 @@ class InvitationRedemptionViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        UiText.Resource(
-            R.string.inputErrorIncomplete,
-            listOf(InputValidation.INVITATION_CODE_LENGTH),
-        ),
+        UiText.Plural(R.plurals.inputErrorIncomplete, InputValidation.INVITATION_CODE_LENGTH),
         viewModel.uiState.value.errorMessage,
     )
     coVerify(exactly = 0) { invitationRedemptionRepository.redeemInvitation(any()) }

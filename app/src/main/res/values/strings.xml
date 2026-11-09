@@ -62,9 +62,18 @@
 
     <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
     <string name="inputErrorBlank">Please fill this out</string>
-    <string name="inputErrorIncomplete">Enter all %1$d characters</string>
-    <string name="inputErrorTooShort">Use at least %1$d characters</string>
-    <string name="inputErrorTooLong">Use at most %1$d characters</string>
+    <plurals name="inputErrorIncomplete">
+        <item quantity="one">Enter %1$d character</item>
+        <item quantity="other">Enter all %1$d characters</item>
+    </plurals>
+    <plurals name="inputErrorTooShort">
+        <item quantity="one">Use at least %1$d character</item>
+        <item quantity="other">Use at least %1$d characters</item>
+    </plurals>
+    <plurals name="inputErrorTooLong">
+        <item quantity="one">Use at most %1$d character</item>
+        <item quantity="other">Use at most %1$d characters</item>
+    </plurals>
     <string name="inputErrorFormat">This has characters that aren\'t allowed</string>
     <string name="inputErrorNameFormat">Use only letters, spaces, hyphens (-) and apostrophes (\')</string>
     <string name="inputErrorEmailFormat">Enter a valid email address</string>
