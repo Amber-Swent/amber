@@ -156,7 +156,17 @@ class UploadMediaLocationTest {
     composeTestRule
         .onNodeWithTag(UploadMediaLocationTestTags.TOO_SHORT)
         .assertIsDisplayed()
-        .assert(hasOnlyText(string(R.string.locationQueryTooShort, MIN_PLACE_QUERY_LENGTH)))
+        .assert(
+            hasOnlyText(
+                ApplicationProvider.getApplicationContext<Context>()
+                    .resources
+                    .getQuantityString(
+                        R.plurals.locationQueryTooShort,
+                        MIN_PLACE_QUERY_LENGTH,
+                        MIN_PLACE_QUERY_LENGTH,
+                    )
+            )
+        )
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
 
     // a search still running only shows searching

@@ -305,6 +305,9 @@ private fun CreateInvitationContent(
 /**
  * Formats when an invitation was created, in the app language.
  *
+ * The parameters have no default values on purpose. A default time of 0 would show a date in 1970,
+ * and `Locale.getDefault()` would ignore the app language that the screen passes in.
+ *
  * @param createdAtMillis the creation time, in milliseconds since the epoch.
  * @param locale the app locale, from `LocalConfiguration.current.locales[0]`.
  */

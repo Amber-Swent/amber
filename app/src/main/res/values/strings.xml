@@ -187,9 +187,18 @@
     <string name="caregiverHomeErrorNoPatientProfile">No patient profile found.</string>
     <string name="caregiverHomeErrorLoadPatientProfile">Failed to load the patient profile.</string>
 
+    <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="caregiverButtonDefaultText">Text</string>
+
     <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
-    <string name="textFieldMaxCharReached">Maximum %1$d characters reached</string>
-    <string name="textFieldMaxLinesReached">Maximum %1$d lines reached</string>
+    <plurals name="textFieldMaxCharReached">
+        <item quantity="one">Maximum %1$d character reached</item>
+        <item quantity="other">Maximum %1$d characters reached</item>
+    </plurals>
+    <plurals name="textFieldMaxLinesReached">
+        <item quantity="one">Maximum %1$d line reached</item>
+        <item quantity="other">Maximum %1$d lines reached</item>
+    </plurals>
 
     <!-- UploadMedia: shared by the picture and audio upload screens (ui/caregiver/upload/media) -->
     <string name="unknownMember">Unknown member %1$d</string>
@@ -257,9 +266,12 @@
     <!-- UploadMediaLocation -->
     <string name="locationTitle">Location - optional</string>
     <string name="locationSearchLabel">Another place</string>
-    <string name="locationSearchPlaceholder">Search a city, an address...</string>
+    <string name="locationSearchPlaceholder">Search a city, an address…</string>
     <string name="locationSearching">Searching…</string>
-    <string name="locationQueryTooShort">Type at least %1$d letters to search, or clear the field.</string>
+    <plurals name="locationQueryTooShort">
+        <item quantity="one">Type at least %1$d letter to search, or clear the field.</item>
+        <item quantity="other">Type at least %1$d letters to search, or clear the field.</item>
+    </plurals>
     <string name="locationSearchFailed">Couldn\'t search places. Check your connection and try again, or clear the field to upload without a location.</string>
     <string name="locationTryAgain">Try again</string>
     <string name="locationNoPlaceFound">No places found. Try another search, or clear the field to upload without a location.</string>

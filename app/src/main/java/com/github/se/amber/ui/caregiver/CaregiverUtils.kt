@@ -39,6 +39,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -121,7 +122,7 @@ fun DisplayCaregiverButton(
     enabled: Boolean = true,
     icon: ImageVector? = null,
     description: String = "",
-    text: String = "Text",
+    text: String = stringResource(R.string.caregiverButtonDefaultText),
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
     widthPercentage: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
@@ -257,7 +258,7 @@ fun DisplayTextField(
     if (value.length >= maxChar && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_CHAR_MESSAGE),
-          text = stringResource(R.string.textFieldMaxCharReached, maxChar),
+          text = pluralStringResource(R.plurals.textFieldMaxCharReached, maxChar, maxChar),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
@@ -265,7 +266,7 @@ fun DisplayTextField(
     if (!singleLine && value.lines().size >= maxLines && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_LINES_MESSAGE),
-          text = stringResource(R.string.textFieldMaxLinesReached, maxLines),
+          text = pluralStringResource(R.plurals.textFieldMaxLinesReached, maxLines, maxLines),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )

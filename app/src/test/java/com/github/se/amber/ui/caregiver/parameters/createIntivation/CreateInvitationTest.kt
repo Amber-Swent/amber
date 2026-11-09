@@ -72,6 +72,7 @@ class CreateInvitationScreenTest {
   }
 
   @Test
+  @Config(qualifiers = "+en-rUS")
   fun showsCodeInvitationAndErrorAndDisablesCreateWhileCreating() {
     val createdAt = 1_700_000_000_000L
     setScreen(
