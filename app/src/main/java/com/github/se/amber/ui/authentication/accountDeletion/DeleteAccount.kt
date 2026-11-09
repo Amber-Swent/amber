@@ -32,9 +32,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.PATIENT_PADDING_BIG
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
 /** Tags for the title, explanation, and confirmation button. */
 object DeleteAccountTestTags {
@@ -76,18 +79,17 @@ fun DeleteAccountScreen(
   }
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL)) {
           if (!uiState.isDeleting) {
             TopNavigationMenu(action = TopNavigationAction.CANCEL, onBackClick = onBack)
           }
           TopAppBar(
               title = {
-                Text(
-                    text = DELETE_ACCOUNT_TITLE,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.testTag(DeleteAccountTestTags.TITLE),
-                )
+                  DisplayPatientTitle(
+                      modifier = Modifier,
+                      title = DELETE_ACCOUNT_TITLE,
+                      testTag = DeleteAccountTestTags.TITLE,
+                  )
               },
           )
         }
@@ -99,9 +101,13 @@ fun DeleteAccountScreen(
                   Modifier.fillMaxWidth()
                       .verticalScroll(rememberScrollState())
                       .heightIn(min = maxHeight)
-                      .padding(horizontal = CAREGIVER_PADDING_BIG),
+                      .padding(
+                          start = PATIENT_PADDING_BIG,
+                          end = PATIENT_PADDING_BIG,
+                          bottom = maxHeight * 0.15f,
+                      ),
               verticalArrangement =
-                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
+                  Arrangement.spacedBy(PATIENT_PADDING_BIG, Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
