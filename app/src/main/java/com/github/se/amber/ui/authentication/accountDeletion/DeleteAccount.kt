@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
@@ -133,7 +134,7 @@ fun DeleteAccountScreen(
                   textAlign = TextAlign.Center,
               )
             } else if (uiState.warningsLoaded) {
-              DisplayCaregiverButton(
+              DisplayPatientButton(
                   text =
                       if (uiState.localCleanupNeeded) DELETE_ACCOUNT_CLEANUP_LABEL
                       else DELETE_ACCOUNT_TITLE,
