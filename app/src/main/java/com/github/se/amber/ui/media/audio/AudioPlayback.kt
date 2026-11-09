@@ -261,41 +261,45 @@ internal fun PlaybackError(message: String = "", onRetry: () -> Unit = {}) {
   )
 }
 
+/** The states shown by [AudioPlaybackPreview] and [AudioPlaybackDarkPreview]. */
+@Composable
+private fun AudioPlaybackPreviewStates() {
+  Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
+    DisplayAudioPlayback(
+        state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(
+        state =
+            AudioPlaybackState.Playing(
+                positionMs = PREVIEW_PLAYING_POSITION_MS,
+                durationMs = PREVIEW_DURATION_MS,
+            ),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(
+        state =
+            AudioPlaybackState.Paused(
+                positionMs = PREVIEW_PAUSED_POSITION_MS,
+                durationMs = PREVIEW_DURATION_MS,
+            ),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(
+        state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(
+        state = AudioPlaybackState.Error(message = "This memo could not be played.")
+    )
+  }
+}
+
 /** Preview of [DisplayAudioPlayback] in each state. */
 @Preview(showBackground = true, name = "Audio playback light")
 @Composable
 internal fun AudioPlaybackPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = false) {
-    Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Playing(
-                  positionMs = PREVIEW_PLAYING_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              ),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Paused(
-                  positionMs = PREVIEW_PAUSED_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              ),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Error(message = "This memo could not be played.")
-      )
-    }
-  }
+  AmberAppTheme(dynamicColor = false, darkTheme = false) { AudioPlaybackPreviewStates() }
 }
 
 @Preview(
@@ -305,35 +309,5 @@ internal fun AudioPlaybackPreview() {
 )
 @Composable
 internal fun AudioPlaybackDarkPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = true) {
-    Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Playing(
-                  positionMs = PREVIEW_PLAYING_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              ),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Paused(
-                  positionMs = PREVIEW_PAUSED_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              ),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS),
-          waveform = PREVIEW_WAVEFORM,
-      )
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Error(message = "This memo could not be played.")
-      )
-    }
-  }
+  AmberAppTheme(dynamicColor = false, darkTheme = true) { AudioPlaybackPreviewStates() }
 }
