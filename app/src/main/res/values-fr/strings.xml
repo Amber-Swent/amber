@@ -6,7 +6,7 @@
     <string name="navigationTabSetting">Paramètres</string>
     <string name="navigationTabMedias">Médias</string>
     <string name="navigationCancel">Annuler</string>
-    <string name="navigationCheckout">Valider</string>
+    <string name="navigationSignOut">Déconnexion</string>
     <string name="navigationBack">Retour</string>
 
     <!-- Screen titles -->

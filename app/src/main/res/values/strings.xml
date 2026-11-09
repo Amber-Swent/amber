@@ -10,7 +10,7 @@
     <string name="navigationTabSetting">Setting</string>
     <string name="navigationTabMedias">Medias</string>
     <string name="navigationCancel">Cancel</string>
-    <string name="navigationCheckout">Checkout</string>
+    <string name="navigationSignOut">Sign out</string>
     <string name="navigationBack">Back</string>
 
     <!-- Screen titles -->
