@@ -82,6 +82,9 @@ class UploadPictureViewModelTest {
   private val pictureUri = "content://pictures/123"
   private val CAPTURE_URI = "content://com.github.se.amber.fileprovider/captured_pictures/1.jpg"
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
+  private val MEMORY_DATE = MemoryDate(2024, Month.MAY, 12)
+  private val CAPTURE_WIDTH = 1440
+  private val CAPTURE_HEIGHT = 1920
 
   @Before
   fun setUp() {
@@ -128,7 +131,7 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.setPicture(pictureFile, 640, 480)
     vm.setDescription("A description")
-    vm.setDate(MemoryDate(2024, Month.MAY, 12))
+    vm.setDate(MEMORY_DATE)
     return vm
   }
 
@@ -143,7 +146,7 @@ class UploadPictureViewModelTest {
           common =
               CommonMediaUIState(
                   description = "A description",
-                  date = MemoryDate(2024, Month.MAY, 12),
+                  date = MEMORY_DATE,
               ),
           pictureFile = File("picture.jpg"),
       )
@@ -391,13 +394,13 @@ class UploadPictureViewModelTest {
   @Test
   fun theFormAndTheSelectedCaptureSurviveAndroidKillingTheApp() {
     val realPicture = File.createTempFile("capture", ".jpg").apply { deleteOnExit() }
-    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns PickedImage(realPicture, 30, 40)
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns
+        PickedImage(realPicture, CAPTURE_WIDTH, CAPTURE_HEIGHT)
     coEvery { capturedPictureSource.newCaptureUri(any()) } returns "content://next"
-    val date = MemoryDate(2024, Month.MAY, 12)
     val savedState = SavedStateHandle()
     val before = createViewModel(savedState)
     before.setDescription("At the lake")
-    before.setDate(date)
+    before.setDate(MEMORY_DATE)
     before.toggleShownId("user2")
     before.selectPlace(lausanne)
     before.onPictureCaptured(CAPTURE_URI)
@@ -408,12 +411,12 @@ class UploadPictureViewModelTest {
 
     val state = after.uiState.value
     assertEquals("At the lake", state.common.description)
-    assertEquals(date, state.common.date)
+    assertEquals(MEMORY_DATE, state.common.date)
     assertEquals(setOf("user2"), state.common.shownIds)
     assertEquals(lausanne, state.common.location.pickedPlace)
     assertEquals(realPicture, state.pictureFile)
-    assertEquals(30, state.pictureWidth)
-    assertEquals(40, state.pictureHeight)
+    assertEquals(CAPTURE_WIDTH, state.pictureWidth)
+    assertEquals(CAPTURE_HEIGHT, state.pictureHeight)
     after.onTakePicture()
     coVerify(exactly = 1) { capturedPictureSource.newCaptureUri(CAPTURE_URI) }
   }
@@ -423,7 +426,7 @@ class UploadPictureViewModelTest {
     val gone = File("/no/such/picture.jpg")
     val savedState = SavedStateHandle()
     val before = createViewModel(savedState)
-    before.setPicture(gone, 30, 40)
+    before.setPicture(gone, CAPTURE_WIDTH, CAPTURE_HEIGHT)
     before.setDate(null)
 
     val state = createViewModel(savedState).uiState.value
@@ -483,15 +486,16 @@ class UploadPictureViewModelTest {
 
   @Test
   fun onPictureCapturedStoresThePictureAndKeepsItsFile() {
-    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns PickedImage(pictureFile, 1440, 1920)
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns
+        PickedImage(pictureFile, CAPTURE_WIDTH, CAPTURE_HEIGHT)
     val vm = createViewModel()
 
     vm.onPictureCaptured(CAPTURE_URI)
 
     val state = vm.uiState.value
     assertEquals(pictureFile, state.pictureFile)
-    assertEquals(1440, state.pictureWidth)
-    assertEquals(1920, state.pictureHeight)
+    assertEquals(CAPTURE_WIDTH, state.pictureWidth)
+    assertEquals(CAPTURE_HEIGHT, state.pictureHeight)
     coVerify(exactly = 0) { capturedPictureSource.discard(any()) }
   }
 
