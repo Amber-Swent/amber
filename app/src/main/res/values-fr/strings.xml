@@ -226,6 +226,9 @@
     <string name="uploadAudioUploading">Envoi…</string>
     <string name="uploadAudioUpload">Ajouter l\'audio</string>
 
+    <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
+    <string name="popupDialogClose">Fermer</string>
+
     <!-- AddPersonDialog -->
     <string name="addPersonTitle">Ajouter une personne</string>
     <string name="addPersonAdd">Ajouter</string>
