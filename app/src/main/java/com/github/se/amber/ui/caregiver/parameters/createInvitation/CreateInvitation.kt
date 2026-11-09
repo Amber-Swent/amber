@@ -245,9 +245,9 @@ private fun CreateInvitationContent(
                 fontWeight = FontWeight.SemiBold,
                 lineHeight = 22.sp,
             )
-            uiState.errorMessageRes?.let { messageRes ->
+            uiState.errorMsgRes?.let { errorMsgRes ->
               Text(
-                  text = stringResource(messageRes),
+                  text = stringResource(errorMsgRes),
                   modifier =
                       Modifier.fillMaxWidth()
                           .padding(top = PADDING_SMALL)

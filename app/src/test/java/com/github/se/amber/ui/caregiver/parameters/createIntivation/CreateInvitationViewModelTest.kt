@@ -76,7 +76,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals(
             R.string.createInvitationErrorNoCircle,
-            viewModel.uiState.value.errorMessageRes,
+            viewModel.uiState.value.errorMsgRes,
         )
         assertEquals(emptyList<CareCircleChoice>(), viewModel.uiState.value.circles)
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
@@ -93,7 +93,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals(
             R.string.createInvitationErrorProfileNotFound,
-            viewModel.uiState.value.errorMessageRes,
+            viewModel.uiState.value.errorMsgRes,
         )
         assertNull(viewModel.uiState.value.selectedCircleId)
       }
@@ -108,7 +108,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals(
             R.string.createInvitationErrorLoadProfile,
-            viewModel.uiState.value.errorMessageRes,
+            viewModel.uiState.value.errorMsgRes,
         )
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
       }
@@ -123,7 +123,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals(
             R.string.createInvitationErrorLoadProfile,
-            viewModel.uiState.value.errorMessageRes,
+            viewModel.uiState.value.errorMsgRes,
         )
       }
 
@@ -142,7 +142,7 @@ class CreateInvitationViewModelTest {
         )
         assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
         assertEquals(listOf(stored), viewModel.uiState.value.invitations)
-        assertNull(viewModel.uiState.value.errorMessageRes)
+        assertNull(viewModel.uiState.value.errorMsgRes)
         assertNull(viewModel.uiState.value.generatedCode)
       }
 
@@ -235,7 +235,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals("AB12CD34", viewModel.uiState.value.generatedCode)
         assertEquals(listOf(created), viewModel.uiState.value.invitations)
-        assertNull(viewModel.uiState.value.errorMessageRes)
+        assertNull(viewModel.uiState.value.errorMsgRes)
         assertEquals(listOf("circle-1"), creation.requestedCircleIds)
         assertTrue(!viewModel.uiState.value.isCreating)
       }
@@ -270,7 +270,7 @@ class CreateInvitationViewModelTest {
           viewModel.createInvitation()
           advanceUntilIdle()
 
-          assertEquals(messageRes, viewModel.uiState.value.errorMessageRes)
+          assertEquals(messageRes, viewModel.uiState.value.errorMsgRes)
           assertNull(viewModel.uiState.value.generatedCode)
           assertEquals(listOf(existing), viewModel.uiState.value.invitations)
         }
@@ -289,7 +289,7 @@ class CreateInvitationViewModelTest {
         advanceUntilIdle()
         assertEquals(
             R.string.createInvitationErrorLoadInvitations,
-            withMessage.uiState.value.errorMessageRes,
+            withMessage.uiState.value.errorMsgRes,
         )
 
         lookup.results = mapOf("circle-1" to Result.failure(IllegalStateException(" ")))
@@ -297,7 +297,7 @@ class CreateInvitationViewModelTest {
         advanceUntilIdle()
         assertEquals(
             R.string.createInvitationErrorLoadInvitations,
-            withoutMessage.uiState.value.errorMessageRes,
+            withoutMessage.uiState.value.errorMsgRes,
         )
       }
 
@@ -318,7 +318,7 @@ class CreateInvitationViewModelTest {
         assertEquals(listOf(existing), viewModel.uiState.value.invitations)
         assertEquals(
             R.string.createInvitationErrorRefreshAfterCreate,
-            viewModel.uiState.value.errorMessageRes,
+            viewModel.uiState.value.errorMsgRes,
         )
       }
 
@@ -400,7 +400,7 @@ class CreateInvitationViewModelTest {
         viewModel.createInvitation()
         advanceUntilIdle()
 
-        assertEquals(R.string.createInvitationErrorCreate, viewModel.uiState.value.errorMessageRes)
+        assertEquals(R.string.createInvitationErrorCreate, viewModel.uiState.value.errorMsgRes)
         assertTrue(!viewModel.uiState.value.isCreating)
       }
 

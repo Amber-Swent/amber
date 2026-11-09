@@ -230,6 +230,9 @@
     <string name="uploadAudioUploading">Uploading…</string>
     <string name="uploadAudioUpload">Upload Audio</string>
 
+    <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
+    <string name="popupDialogClose">Close</string>
+
     <!-- AddPersonDialog -->
     <string name="addPersonTitle">Add a person</string>
     <string name="addPersonAdd">Add person</string>

@@ -28,20 +28,20 @@ import kotlinx.coroutines.launch
  *
  * Field errors are derived from the value: a name with characters a name can't have shows its error
  * at once, while a blank one only does once validation has been attempted, matching the bootcamp B2
- * pattern. [submitErrorRes] carries mapped repository failures.
+ * pattern. [errorMsgRes] carries mapped repository failures.
  *
  * @param name first name entered by the user.
  * @param surname last name entered by the user.
  * @param validationAttempted true after the user has pressed Patient or Caregiver at least once.
  * @param isSaving true while a create-profile request is in flight.
- * @param submitErrorRes actionable repository failure message, or null when there is none.
+ * @param errorMsgRes actionable repository failure message, or null when there is none.
  */
 data class CreateProfileUIState(
     val name: String = "",
     val surname: String = "",
     val validationAttempted: Boolean = false,
     val isSaving: Boolean = false,
-    @param:StringRes val submitErrorRes: Int? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 ) {
   /** Why [name] is refused, or null; a blank or unfinished one only once validation ran. */
   val nameError: UiText?
@@ -118,7 +118,7 @@ class CreateProfileViewModel(
           name = trimmedName,
           surname = trimmedSurname,
           validationAttempted = true,
-          submitErrorRes = null,
+          errorMsgRes = null,
       )
     }
 
@@ -129,7 +129,7 @@ class CreateProfileViewModel(
     }
 
     viewModelScope.launch {
-      _uiState.update { it.copy(isSaving = true, submitErrorRes = null) }
+      _uiState.update { it.copy(isSaving = true, errorMsgRes = null) }
       val result =
           profileRepository.createProfile(
               person = Person(firstName = trimmedName, lastName = trimmedSurname),
@@ -138,14 +138,14 @@ class CreateProfileViewModel(
       result
           .onSuccess {
             createdRole = role
-            _uiState.update { it.copy(isSaving = false, submitErrorRes = null) }
+            _uiState.update { it.copy(isSaving = false, errorMsgRes = null) }
             onSuccess(role)
           }
           .onFailure { error ->
             _uiState.update {
               it.copy(
                   isSaving = false,
-                  submitErrorRes = error.errorMessage(),
+                  errorMsgRes = error.errorMessage(),
               )
             }
           }
@@ -157,7 +157,7 @@ class CreateProfileViewModel(
       it.copy(
           name = name ?: it.name,
           surname = surname ?: it.surname,
-          submitErrorRes = null,
+          errorMsgRes = null,
       )
     }
   }

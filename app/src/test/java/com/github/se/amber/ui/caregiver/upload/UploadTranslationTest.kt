@@ -3,6 +3,7 @@
 package com.github.se.amber.ui.caregiver.upload
 
 import android.content.Context
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -137,6 +138,9 @@ class UploadTranslationTest {
 
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.DIALOG).assertIsDisplayed()
     composeTestRule.onNodeWithText("Ajouter une personne").assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(AddPersonDialogTestTags.CLOSE)
+        .assertContentDescriptionEquals("Fermer")
     composeTestRule.onNodeWithText("Prénom").assertIsDisplayed()
     composeTestRule.onNodeWithText("Surnom - facultatif").assertIsDisplayed()
     composeTestRule
