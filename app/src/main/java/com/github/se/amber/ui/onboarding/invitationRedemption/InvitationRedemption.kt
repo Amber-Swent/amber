@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -20,8 +22,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,6 +39,7 @@ import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.utils.asString
 
 /** Stable tags for locating the invite form controls and validation message in UI tests. */
 object InvitationRedemptionTestTags {
@@ -107,15 +113,22 @@ fun InvitationRedemptionScreen(
           modifier = Modifier.testTag(InvitationRedemptionTestTags.CODE_INPUT),
           placeholder = stringResource(R.string.invitationRedemptionCodePlaceholder),
           placeholderTestTag = InvitationRedemptionTestTags.CODE_PLACEHOLDER,
-          error = uiState.errorMessageRes?.let { stringResource(it) },
+          error = uiState.errorMessage?.asString(LocalResources.current),
           errorTestTag = InvitationRedemptionTestTags.CODE_ERROR,
           enabled = !uiState.isRedeeming,
+          // Codes are in capitals: no suggestions, which would change a code into a word
+          keyboardOptions =
+              KeyboardOptions(
+                  capitalization = KeyboardCapitalization.Characters,
+                  autoCorrectEnabled = false,
+                  keyboardType = KeyboardType.Ascii,
+              ),
       )
 
       DisplayCaregiverButton(
           modifier = Modifier.testTag(InvitationRedemptionTestTags.SUBMIT_BUTTON),
           text = stringResource(R.string.invitationRedemptionSubmit),
-          enabled = !uiState.isRedeeming,
+          enabled = uiState.canSubmit,
           onClick = { viewModel.onSubmit(onRedeemSuccess) },
       )
     }

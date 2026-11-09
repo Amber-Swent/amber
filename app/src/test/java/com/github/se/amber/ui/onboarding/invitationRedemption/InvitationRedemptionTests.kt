@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent.
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.invitationRedemption
 
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -29,6 +31,7 @@ import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedempti
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
 import com.github.se.amber.ui.onboarding.invitationRedemption.errorMessage
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -152,7 +155,10 @@ class InvitationRedemptionUITests {
 
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitForIdle()
-    assertEquals(R.string.invitationRedemptionCodeRequired, viewModel.uiState.value.errorMessageRes)
+    assertEquals(
+        UiText.Resource(R.string.invitationRedemptionCodeRequired),
+        viewModel.uiState.value.errorMessage,
+    )
 
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
@@ -162,6 +168,26 @@ class InvitationRedemptionUITests {
     composeTestRule
         .onAllNodesWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertCountEquals(0)
+  }
+
+  @Test
+  fun typingCharacterCodesNeverUse_showsErrorAndDisablesSubmit() {
+    setScreen()
+
+    // Lower case is put in capitals, but 0 is never in a code
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).performTextInput("abc0")
+    composeTestRule.waitForIdle()
+
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
+        .assert(hasErrorSemantics())
+        .assertTextContains("ABC0")
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
+        .assertIsDisplayed()
+        .assertTextEquals(string(R.string.inputErrorInvitationCodeFormat))
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
+    assertEquals(0, redeemSuccessCount)
   }
 
   // ---------- Redeem success / failure ----------
@@ -233,6 +259,6 @@ class InvitationRedemptionUITests {
   }
 
   private companion object {
-    const val VALID_CODE = "invite-abc-123"
+    const val VALID_CODE = "ABCD2345"
   }
 }

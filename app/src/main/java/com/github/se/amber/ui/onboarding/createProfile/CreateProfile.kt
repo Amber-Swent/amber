@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +35,7 @@ import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.utils.asString
 
 /** Stable tags for locating the form controls and validation messages in UI tests. */
 object CreateProfileTestTags {
@@ -102,7 +105,7 @@ fun CreateProfileScreen(
           onValueChange = viewModel::onNameChange,
           label = stringResource(R.string.createProfileName),
           fieldTag = CreateProfileTestTags.NAME_INPUT,
-          error = uiState.nameErrorRes?.let { stringResource(it) },
+          error = uiState.nameError?.asString(LocalResources.current),
           errorTag = CreateProfileTestTags.NAME_ERROR,
       )
       ProfileNameField(
@@ -110,7 +113,7 @@ fun CreateProfileScreen(
           onValueChange = viewModel::onSurnameChange,
           label = stringResource(R.string.createProfileSurname),
           fieldTag = CreateProfileTestTags.SURNAME_INPUT,
-          error = uiState.surnameErrorRes?.let { stringResource(it) },
+          error = uiState.surnameError?.asString(LocalResources.current),
           errorTag = CreateProfileTestTags.SURNAME_ERROR,
       )
 
@@ -124,12 +127,12 @@ fun CreateProfileScreen(
 
       DisplayPatientButton(
           text = stringResource(R.string.createProfilePatient),
-          enabled = !uiState.isSaving,
+          enabled = uiState.canSubmit,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
       DisplayPatientButton(
           text = stringResource(R.string.createProfileCaregiver),
-          enabled = !uiState.isSaving,
+          enabled = uiState.canSubmit,
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )

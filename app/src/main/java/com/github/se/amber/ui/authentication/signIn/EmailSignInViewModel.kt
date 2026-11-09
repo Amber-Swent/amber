@@ -6,7 +6,6 @@ package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
 import android.util.Log
-import androidx.annotation.StringRes
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -17,6 +16,9 @@ import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.validation.InputValidation
+import com.github.se.amber.ui.utils.UiText
+import com.github.se.amber.ui.utils.errorText
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,13 +34,13 @@ private const val TAG = "EmailSignInViewModel"
  * @param email Email address currently entered by the user.
  * @param isLoading Whether a Google sign-in operation is currently running.
  * @param user Authenticated user after a successful Google sign-in, or null otherwise.
- * @param errorRes String resource of the latest sign-in error, or null when there is no error.
+ * @param error Message describing the latest sign-in error, or null when there is no error.
  */
 data class EmailSignInUIState(
     val email: String = "",
     val isLoading: Boolean = false,
     val user: AuthUser? = null,
-    @param:StringRes val errorRes: Int? = null,
+    val error: UiText? = null,
 )
 
 /**
@@ -63,29 +65,34 @@ class EmailSignInViewModel(
   val uiState = _uiState.asStateFlow() // Read-only
 
   /**
-   * Updates the email address displayed by the screen.
+   * Updates the email address displayed by the screen, cut at [InputValidation.EMAIL_MAX_LENGTH].
+   * Spaces are kept as typed, so that [validateEmail] refuses an address with a space inside.
    *
    * @param email New email value entered by the user.
    */
   fun onEmailChange(email: String) {
     _uiState.update { state ->
-      state.copy(email = email) // Change the email, keep the rest of the state unchanged
+      // Change the email, keep the rest of the state unchanged
+      state.copy(email = InputValidation.EMAIL.clean(email))
     }
   }
 
   /**
-   * Checks that an email address was entered before continuing with email sign-in.
+   * Checks that a well-formed email address was entered before continuing with email sign-in.
    *
-   * A blank email sets [EmailSignInUIState.errorRes] so the screen can report it.
+   * A blank or malformed email sets [EmailSignInUIState.error] so the screen can report it.
    *
-   * @return true if the email is nonblank, false otherwise.
+   * @return true if the email is a valid address, false otherwise.
    */
   fun validateEmail(): Boolean {
-    if (_uiState.value.email.isBlank()) {
-      _uiState.update { it.copy(errorRes = R.string.signInErrorEmailRequired) }
-      return false
-    }
-    return true
+    val error =
+        InputValidation.EMAIL.errorText(
+            _uiState.value.email,
+            blankRes = R.string.signInErrorEmailRequired,
+            formatRes = R.string.inputErrorEmailFormat,
+        ) ?: return true
+    _uiState.update { it.copy(error = error) }
+    return false
   }
 
   /**
@@ -94,7 +101,7 @@ class EmailSignInViewModel(
    * This allows a later sign-in attempt to show the same error again.
    */
   fun clearError() {
-    _uiState.update { it.copy(errorRes = null) }
+    _uiState.update { it.copy(error = null) }
   }
 
   /**
@@ -113,7 +120,7 @@ class EmailSignInViewModel(
   ) {
     if (_uiState.value.isLoading) return
 
-    _uiState.update { state -> state.copy(isLoading = true, errorRes = null) }
+    _uiState.update { state -> state.copy(isLoading = true, error = null) }
 
     /*
        Extract the context.getString outside of viewModelScope.launch
@@ -144,7 +151,7 @@ class EmailSignInViewModel(
           state.copy(
               isLoading = false,
               user = user,
-              errorRes = null,
+              error = null,
           )
         }
       } catch (_: GetCredentialCancellationException) {
@@ -153,7 +160,7 @@ class EmailSignInViewModel(
         _uiState.update { state ->
           state.copy(
               isLoading = false,
-              errorRes = R.string.signInErrorNoGoogleAccount,
+              error = UiText.Resource(R.string.signInErrorNoGoogleAccount),
           )
         }
       } catch (e: CancellationException) { // Propagate to caller
@@ -164,7 +171,7 @@ class EmailSignInViewModel(
         _uiState.update { state ->
           state.copy(
               isLoading = false,
-              errorRes = R.string.signInErrorFailed,
+              error = UiText.Resource(R.string.signInErrorFailed),
           )
         }
       }

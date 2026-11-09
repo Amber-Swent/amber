@@ -60,6 +60,16 @@
     <!-- AmberHeader -->
     <string name="amberHeaderLogo">Amber logo</string>
 
+    <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
+    <string name="inputErrorBlank">Please fill this out</string>
+    <string name="inputErrorIncomplete">Enter all %1$d characters</string>
+    <string name="inputErrorTooShort">Use at least %1$d characters</string>
+    <string name="inputErrorTooLong">Use at most %1$d characters</string>
+    <string name="inputErrorFormat">This has characters that aren\'t allowed</string>
+    <string name="inputErrorNameFormat">Use only letters, spaces, hyphens (-) and apostrophes (\')</string>
+    <string name="inputErrorEmailFormat">Enter a valid email address</string>
+    <string name="inputErrorInvitationCodeFormat">Codes only use capital letters and the digits 2 to 9, without I or O</string>
+
     <!-- Onboarding -->
     <string name="onboardingDividerOr">or</string>
 

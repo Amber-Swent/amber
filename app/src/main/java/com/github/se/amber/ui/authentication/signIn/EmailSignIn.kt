@@ -28,6 +28,7 @@ import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_REGULAR
+import com.github.se.amber.ui.utils.asString
 
 /** Test tags of [EmailSignInScreen] and of its private helpers. */
 internal object EmailSignInTestTags {
@@ -78,10 +79,10 @@ fun EmailSignInScreen(
     }
   }
 
-  // Display a Toast when the errorRes of the uiState is not null
-  LaunchedEffect(uiState.errorRes) {
-    uiState.errorRes?.let { errorRes ->
-      Toast.makeText(context, resources.getString(errorRes), Toast.LENGTH_SHORT).show()
+  // Display a Toast when the error of the uiState is not null
+  LaunchedEffect(uiState.error) {
+    uiState.error?.let { error ->
+      Toast.makeText(context, error.asString(resources), Toast.LENGTH_SHORT).show()
       emailSignInViewModel.clearError()
     }
   }

@@ -1,6 +1,7 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createCareCircle
 
@@ -43,6 +44,7 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.utils.asString
 
 /** Stable tags for locating the form controls and validation message in UI tests. */
 object CreateCareCircleTestTags {
@@ -53,8 +55,9 @@ object CreateCareCircleTestTags {
 /**
  * Displays the first care circle form and connects it to [viewModel].
  *
- * A blank name appears below the field. Repository failures are shown as a toast, while successful
- * creation calls [onCreated] once. The caller decides where to navigate afterward.
+ * A blank or invalid name shows its error below the field and disables Create. Repository failures
+ * are shown as a toast, while successful creation calls [onCreated] once. The caller decides where
+ * to navigate afterward.
  *
  * @param modifier Modifier applied to the root care circle layout.
  * @param context Used to display repository failures as a toast.
@@ -119,7 +122,7 @@ fun CreateCareCircleScreen(
           label = stringResource(R.string.createCareCircleNameLabel),
           modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_FIELD),
           placeholder = stringResource(R.string.createCareCircleNamePlaceholder),
-          error = uiState.nameErrorRes?.let { stringResource(it) },
+          error = uiState.nameError?.asString(resources),
           errorTestTag = CreateCareCircleTestTags.NAME_ERROR,
           enabled = !uiState.isLoading && !uiState.isCreated,
       )
@@ -130,7 +133,7 @@ fun CreateCareCircleScreen(
                   if (uiState.isLoading) R.string.createCareCircleCreating
                   else R.string.createCareCircleCreate
               ),
-          enabled = !uiState.isLoading && !uiState.isCreated,
+          enabled = uiState.canCreate,
           onClick = viewModel::createCareCircle,
       )
 

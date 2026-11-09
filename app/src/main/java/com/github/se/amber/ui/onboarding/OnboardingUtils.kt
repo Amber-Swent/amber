@@ -1,5 +1,6 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
 
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -73,6 +75,7 @@ fun onboardingOutlinedTextFieldColors(): TextFieldColors =
  * @param error supporting error text, or null when the field is valid.
  * @param errorTestTag optional test tag on the supporting error text.
  * @param enabled whether the field accepts input.
+ * @param keyboardOptions the keyboard to show, e.g. one in capitals for a code.
  */
 @Composable
 fun OnboardingOutlinedTextField(
@@ -85,12 +88,14 @@ fun OnboardingOutlinedTextField(
     error: String? = null,
     errorTestTag: String? = null,
     enabled: Boolean = true,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
   OutlinedTextField(
       value = value,
       onValueChange = onValueChange,
       modifier = modifier.fillMaxWidth(),
       enabled = enabled,
+      keyboardOptions = keyboardOptions,
       label = { Text(text = label, style = MaterialTheme.typography.labelMedium) },
       placeholder =
           placeholder?.let { hint ->

@@ -15,8 +15,10 @@ import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -104,10 +106,25 @@ class EmailSignInViewModelTest {
   }
 
   @Test
-  fun emailChangeStoresExactInput() {
+  fun emailChangeKeepsSpacesAndStopsAtMaxLength() {
     viewModel.onEmailChange(" Person@example.com ")
-
     assertEquals(" Person@example.com ", viewModel.uiState.value.email)
+    assertTrue(viewModel.validateEmail())
+
+    viewModel.onEmailChange("per son@example.com")
+    assertFalse(viewModel.validateEmail())
+    assertEquals(UiText.Resource(R.string.inputErrorEmailFormat), viewModel.uiState.value.error)
+
+    viewModel.onEmailChange("a".repeat(300) + "@example.com")
+    assertEquals(InputValidation.EMAIL_MAX_LENGTH, viewModel.uiState.value.email.length)
+  }
+
+  @Test
+  fun malformedEmailIsRejectedWithError() {
+    viewModel.onEmailChange("person@example")
+
+    assertFalse(viewModel.validateEmail())
+    assertEquals(UiText.Resource(R.string.inputErrorEmailFormat), viewModel.uiState.value.error)
   }
 
   @Test
@@ -115,7 +132,7 @@ class EmailSignInViewModelTest {
     viewModel.onEmailChange("  \t")
 
     assertFalse(viewModel.validateEmail())
-    assertEquals(R.string.signInErrorEmailRequired, viewModel.uiState.value.errorRes)
+    assertEquals(UiText.Resource(R.string.signInErrorEmailRequired), viewModel.uiState.value.error)
   }
 
   @Test
@@ -123,18 +140,18 @@ class EmailSignInViewModelTest {
     viewModel.onEmailChange("person@example.com")
 
     assertTrue(viewModel.validateEmail())
-    assertNull(viewModel.uiState.value.errorRes)
+    assertNull(viewModel.uiState.value.error)
   }
 
   @Test
   fun clearingErrorPreservesEmail() {
-    viewModel.onEmailChange("  ")
+    viewModel.onEmailChange("person@")
     viewModel.validateEmail()
 
     viewModel.clearError()
 
-    assertNull(viewModel.uiState.value.errorRes)
-    assertEquals("  ", viewModel.uiState.value.email)
+    assertNull(viewModel.uiState.value.error)
+    assertEquals("person@", viewModel.uiState.value.email)
   }
 
   @Test
@@ -147,7 +164,7 @@ class EmailSignInViewModelTest {
 
     assertFalse(viewModel.uiState.value.isLoading)
     // The exception message is for logs; the user sees a translated message
-    assertEquals(R.string.signInErrorFailed, viewModel.uiState.value.errorRes)
+    assertEquals(UiText.Resource(R.string.signInErrorFailed), viewModel.uiState.value.error)
     assertNull(viewModel.uiState.value.user)
   }
 
@@ -165,7 +182,7 @@ class EmailSignInViewModelTest {
     runCurrent()
 
     assertTrue(viewModel.uiState.value.isLoading)
-    assertNull(viewModel.uiState.value.errorRes)
+    assertNull(viewModel.uiState.value.error)
     pending.complete(Unit)
     advanceUntilIdle()
   }
@@ -225,7 +242,7 @@ class EmailSignInViewModelTest {
     viewModel.signInWithGoogle(context, credentialManager)
     advanceUntilIdle()
 
-    assertEquals(R.string.signInErrorFailed, viewModel.uiState.value.errorRes)
+    assertEquals(UiText.Resource(R.string.signInErrorFailed), viewModel.uiState.value.error)
   }
 
   @Test
@@ -247,7 +264,7 @@ class EmailSignInViewModelTest {
     viewModel.signInWithGoogle(context, credentialManager)
     advanceUntilIdle()
 
-    assertNull(viewModel.uiState.value.errorRes)
+    assertNull(viewModel.uiState.value.error)
   }
 
   @Test
@@ -259,8 +276,8 @@ class EmailSignInViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        R.string.signInErrorNoGoogleAccount,
-        viewModel.uiState.value.errorRes,
+        UiText.Resource(R.string.signInErrorNoGoogleAccount),
+        viewModel.uiState.value.error,
     )
   }
 
@@ -272,6 +289,6 @@ class EmailSignInViewModelTest {
     viewModel.signInWithGoogle(context, credentialManager)
     advanceUntilIdle()
 
-    assertEquals(R.string.signInErrorFailed, viewModel.uiState.value.errorRes)
+    assertEquals(UiText.Resource(R.string.signInErrorFailed), viewModel.uiState.value.error)
   }
 }

@@ -28,6 +28,7 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
 import com.github.se.amber.ui.authentication.signIn.EmailSignInUIState
 import com.github.se.amber.ui.authentication.signIn.EmailSignInViewModel
 import com.github.se.amber.ui.onboarding.AmberHeaderTestTags
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -270,7 +271,8 @@ class EmailSignInScreenTest {
 
   @Test
   fun displayedErrorIsClearedInViewModel() {
-    val model = mockViewModel(EmailSignInUIState(errorRes = R.string.signInErrorFailed))
+    val model =
+        mockViewModel(EmailSignInUIState(error = UiText.Resource(R.string.signInErrorFailed)))
     setScreen(model)
     composeTestRule.waitForIdle()
 

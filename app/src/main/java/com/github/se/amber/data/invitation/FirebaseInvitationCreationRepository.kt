@@ -2,6 +2,8 @@
 
 package com.github.se.amber.data.invitation
 
+import com.github.se.amber.model.validation.InputValidation.INVITATION_CODE_ALPHABET
+import com.github.se.amber.model.validation.InputValidation.INVITATION_CODE_LENGTH
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -109,13 +111,12 @@ internal fun universalInvitationPayload(
         "usedBy" to null,
     )
 
-private const val INVITATION_CODE_LENGTH = 8
-private const val INVITATION_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 private val secureRandom = SecureRandom()
 
 private class InvitationCodeCollisionException : Exception()
 
-private fun generateSecureCode(): String =
+// The format InputValidation.INVITATION_CODE checks the typed codes against
+internal fun generateSecureCode(): String =
     buildString(INVITATION_CODE_LENGTH) {
       repeat(INVITATION_CODE_LENGTH) {
         append(INVITATION_CODE_ALPHABET[secureRandom.nextInt(INVITATION_CODE_ALPHABET.length)])
