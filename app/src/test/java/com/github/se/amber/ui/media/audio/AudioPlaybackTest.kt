@@ -445,7 +445,7 @@ class AudioPlaybackTest {
 
     composeTestRule.onNodeWithText("0:42 / 3:10").assertIsDisplayed()
     composeTestRule.onNodeWithText("1:35 / 3:10").assertIsDisplayed()
-    composeTestRule.onNodeWithText("This memo could not be played.").assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackError)).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(1)
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(4)
   }
@@ -456,7 +456,7 @@ class AudioPlaybackTest {
 
     composeTestRule.onNodeWithText("0:42 / 3:10").assertIsDisplayed()
     composeTestRule.onNodeWithText("1:35 / 3:10").assertIsDisplayed()
-    composeTestRule.onNodeWithText("This memo could not be played.").assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackError)).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(1)
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(4)
   }

@@ -311,8 +311,8 @@
     <string name="seeMediasPicturesIcon">Picture</string>
     <string name="seeMediasTexts">See Texts</string>
     <string name="seeMediasTextsIcon">Text</string>
-    <string name="seeMediasAudios">See Audio</string>
-    <string name="seeMediasAudiosIcon">Audios</string>
+    <string name="seeMediasAudios">See Audios</string>
+    <string name="seeMediasAudiosIcon">Audio</string>
 
     <!-- SeePictures -->
     <string name="seePicturesTitle">See Pictures</string>
