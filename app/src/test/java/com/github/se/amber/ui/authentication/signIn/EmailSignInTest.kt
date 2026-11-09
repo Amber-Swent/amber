@@ -284,8 +284,7 @@ class EmailSignInScreenTest {
   @Test
   @Config(qualifiers = "fr")
   fun errorToastIsShownInFrenchWithItsArguments() {
-    val error =
-        UiText.Resource(R.string.inputErrorTooLong, listOf(InputValidation.EMAIL_MAX_LENGTH))
+    val error = UiText.Plural(R.plurals.inputErrorTooLong, InputValidation.EMAIL_MAX_LENGTH)
     setScreen(mockViewModel(EmailSignInUIState(error = error)))
     composeTestRule.waitForIdle()
 

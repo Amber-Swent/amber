@@ -79,11 +79,11 @@ class TopNavigationMenuTest {
   }
 
   @Test
-  fun checkoutActionDisplaysCheckoutText() {
-    setMenu(action = TopNavigationAction.CHECKOUT)
+  fun signOutActionDisplaysSignOutText() {
+    setMenu(action = TopNavigationAction.SIGN_OUT)
     composeTestRule
         .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
-        .assertTextEquals(string(R.string.navigationCheckout))
+        .assertTextEquals(string(R.string.navigationSignOut))
   }
 
   // ---------- Back button state ----------
@@ -114,9 +114,9 @@ class TopNavigationMenuTest {
   }
 
   @Test
-  fun clickingBackWithCheckoutActionInvokesCallbackOnce() {
+  fun clickingBackWithSignOutActionInvokesCallbackOnce() {
     val handler = FakeBackHandler()
-    setMenu(action = TopNavigationAction.CHECKOUT, handler = handler)
+    setMenu(action = TopNavigationAction.SIGN_OUT, handler = handler)
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 

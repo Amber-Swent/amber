@@ -46,12 +46,12 @@ class TopNavigationMenuRobolectricTest {
   }
 
   @Test
-  fun checkoutActionIsDisplayedWhenProvided() {
+  fun signOutActionIsDisplayedWhenProvided() {
     var backClicks = 0
     composeTestRule.setContent {
       AmberAppTheme {
         TopNavigationMenu(
-            action = TopNavigationAction.CHECKOUT,
+            action = TopNavigationAction.SIGN_OUT,
             onBackClick = { backClicks++ },
         )
       }
@@ -59,7 +59,7 @@ class TopNavigationMenuRobolectricTest {
 
     composeTestRule
         .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
-        .assertTextEquals(string(R.string.navigationCheckout))
+        .assertTextEquals(string(R.string.navigationSignOut))
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
     assertEquals(1, backClicks)
@@ -81,5 +81,13 @@ class TopNavigationMenuRobolectricTest {
     composeTestRule.setContent { AmberAppTheme { TopNavigationMenu() } }
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Annuler")
+  }
+
+  @Test
+  @Config(qualifiers = "de")
+  fun labelsFallBackToEnglishForAnUnsupportedLanguage() {
+    composeTestRule.setContent { AmberAppTheme { TopNavigationMenu() } }
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.TITLE).assertTextEquals("Cancel")
   }
 }

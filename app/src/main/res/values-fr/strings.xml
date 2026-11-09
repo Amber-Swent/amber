@@ -6,7 +6,7 @@
     <string name="navigationTabSetting">Paramètres</string>
     <string name="navigationTabMedias">Médias</string>
     <string name="navigationCancel">Annuler</string>
-    <string name="navigationCheckout">Valider</string>
+    <string name="navigationSignOut">Déconnexion</string>
     <string name="navigationBack">Retour</string>
 
     <!-- Screen titles -->
@@ -58,9 +58,21 @@
 
     <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
     <string name="inputErrorBlank">Veuillez remplir ce champ</string>
-    <string name="inputErrorIncomplete">Saisissez les %1$d caractères</string>
-    <string name="inputErrorTooShort">Utilisez au moins %1$d caractères</string>
-    <string name="inputErrorTooLong">Utilisez au plus %1$d caractères</string>
+    <plurals name="inputErrorIncomplete">
+        <item quantity="one">Saisissez %1$d caractère</item>
+        <item quantity="many">Saisissez les %1$d caractères</item>
+        <item quantity="other">Saisissez les %1$d caractères</item>
+    </plurals>
+    <plurals name="inputErrorTooShort">
+        <item quantity="one">Utilisez au moins %1$d caractère</item>
+        <item quantity="many">Utilisez au moins %1$d caractères</item>
+        <item quantity="other">Utilisez au moins %1$d caractères</item>
+    </plurals>
+    <plurals name="inputErrorTooLong">
+        <item quantity="one">Utilisez au plus %1$d caractère</item>
+        <item quantity="many">Utilisez au plus %1$d caractères</item>
+        <item quantity="other">Utilisez au plus %1$d caractères</item>
+    </plurals>
     <string name="inputErrorFormat">Ce champ contient des caractères non autorisés</string>
     <string name="inputErrorNameFormat">Utilisez uniquement des lettres, des espaces, des traits d\'union (-) et des apostrophes (\')</string>
     <string name="inputErrorEmailFormat">Saisissez une adresse e-mail valide</string>

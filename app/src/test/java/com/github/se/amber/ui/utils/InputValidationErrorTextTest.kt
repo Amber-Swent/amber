@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.utils
 
 import android.content.Context
@@ -37,7 +38,7 @@ class InputValidationErrorTextTest {
   @Test
   fun tooLongValue_showsTheRuleLimitEvenWhileTyping() {
     assertEquals(
-        UiText.Resource(R.string.inputErrorTooLong, listOf(3)),
+        UiText.Plural(R.plurals.inputErrorTooLong, 3),
         InputRule(maxLength = 3).errorText("abcd", submitted = false),
     )
   }
@@ -46,14 +47,11 @@ class InputValidationErrorTextTest {
   fun tooShortValue_asksForAllCharactersWhenTheLengthIsFixed() {
     assertNull(code.errorText("ABCD", submitted = false))
     assertEquals(
-        UiText.Resource(
-            R.string.inputErrorIncomplete,
-            listOf(InputValidation.INVITATION_CODE_LENGTH),
-        ),
+        UiText.Plural(R.plurals.inputErrorIncomplete, InputValidation.INVITATION_CODE_LENGTH),
         code.errorText("ABCD"),
     )
     assertEquals(
-        UiText.Resource(R.string.inputErrorTooShort, listOf(2)),
+        UiText.Plural(R.plurals.inputErrorTooShort, 2),
         InputRule(maxLength = 3, minLength = 2).errorText("a"),
     )
   }
@@ -81,7 +79,7 @@ class InputValidationErrorTextTest {
   @Test
   fun tooLongValueWithWrongCharacters_showsTheLengthFirst() {
     assertEquals(
-        UiText.Resource(R.string.inputErrorTooLong, listOf(3)),
+        UiText.Plural(R.plurals.inputErrorTooLong, 3),
         InputRule(maxLength = 3, allowedCharacters = Regex("[a-z]*")).errorText("ab1d", false),
     )
   }
@@ -93,6 +91,7 @@ class InputValidationErrorTextTest {
     val expected =
         mapOf(
             InputRule(maxLength = 3).errorText("abcd") to "Utilisez au plus 3 caractères",
+            InputRule(maxLength = 1).errorText("ab") to "Utilisez au plus 1 caractère",
             code.errorText("ABCD") to "Saisissez les 8 caractères",
             InputRule(maxLength = 3, minLength = 2).errorText("a") to
                 "Utilisez au moins 2 caractères",
@@ -107,5 +106,19 @@ class InputValidationErrorTextTest {
         )
 
     expected.forEach { (text, french) -> assertEquals(french, text?.asString(resources)) }
+  }
+
+  @Test
+  fun lengthMessagesUseTheSingularForOneCharacter() {
+    val resources = ApplicationProvider.getApplicationContext<Context>().resources
+
+    assertEquals(
+        "Use at most 1 character",
+        InputRule(maxLength = 1).errorText("ab")?.asString(resources),
+    )
+    assertEquals(
+        "Use at most 3 characters",
+        InputRule(maxLength = 3).errorText("abcd")?.asString(resources),
+    )
   }
 }

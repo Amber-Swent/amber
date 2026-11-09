@@ -45,7 +45,7 @@ object TopNavigationMenuTestTags {
  */
 enum class TopNavigationAction(@param:StringRes val label: Int) {
   CANCEL(R.string.navigationCancel),
-  CHECKOUT(R.string.navigationCheckout),
+  SIGN_OUT(R.string.navigationSignOut),
 }
 
 /**
