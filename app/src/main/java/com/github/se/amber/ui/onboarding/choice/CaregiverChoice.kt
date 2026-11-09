@@ -45,7 +45,6 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_MINI
-import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /** Test tags for [CaregiverChoiceScreen]. */
 object CaregiverChoiceTestTags {
@@ -110,7 +109,7 @@ fun CaregiverChoiceScreen(
       AmberHeader()
 
       Column(
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE),
+          modifier = Modifier.fillMaxWidth(),
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
       ) {
@@ -125,7 +124,7 @@ fun CaregiverChoiceScreen(
               modifier = Modifier.testTag(CaregiverChoiceTestTags.QUESTION),
               text = INSTRUCTION_LABEL,
               style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.onBackground,
+              color = MaterialTheme.colorScheme.secondary,
               textAlign = TextAlign.Center,
           )
         }
@@ -137,7 +136,6 @@ fun CaregiverChoiceScreen(
           DisplayCaregiverButton(
               onClick = onCreateCircle,
               text = CREATE_CIRCLE_LABEL,
-              style = MaterialTheme.typography.labelLarge,
               modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
           )
 
@@ -146,7 +144,6 @@ fun CaregiverChoiceScreen(
           DisplayCaregiverButton(
               onClick = onJoinCircle,
               text = JOIN_CIRCLE_LABEL,
-              style = MaterialTheme.typography.labelLarge,
               modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
           )
         }
@@ -158,18 +155,18 @@ fun CaregiverChoiceScreen(
           Icon(
               imageVector = Icons.Default.Info,
               contentDescription = "Info",
-              tint = MaterialTheme.colorScheme.outline,
+              tint = MaterialTheme.colorScheme.onBackground,
           )
           Column {
             Text(
                 text = INVITE_LINK_HINT_LABEL_CONDITION,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
                 text = INVITE_LINK_HINT_LABEL_SOLUTION,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
+                color = MaterialTheme.colorScheme.onBackground,
             )
           }
         }
