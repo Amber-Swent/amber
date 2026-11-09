@@ -12,13 +12,13 @@ import com.google.firebase.functions.HttpsCallableReference
 import com.google.firebase.functions.HttpsCallableResult
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -306,30 +306,21 @@ class FirebaseAccountDeletionRepositoryTest {
   }
 
   @Test
-  fun twoClearsAtOnceRunOneAfterTheOther() = runBlocking {
-    val firstStarted = CompletableDeferred<Unit>()
+  fun aSecondClearWaitsForTheFirstToFinish() = runTest {
     val firstMayFinish = CompletableDeferred<Unit>()
-    val running = AtomicInteger()
-    val mostAtOnce = AtomicInteger()
-    clearLocalData = {
-      mostAtOnce.accumulateAndGet(running.incrementAndGet(), ::maxOf)
-      if (firstStarted.complete(Unit)) firstMayFinish.await()
-      running.decrementAndGet()
-    }
+    clearLocalData = { if (clears == 1) firstMayFinish.await() }
 
-    val first = async(Dispatchers.Default) { repository.clearLocalData() }
-    firstStarted.await()
-    val second = async(Dispatchers.Default) { repository.clearLocalData() }
-    delay(SECOND_CLEAR_START_MS) // time for the second to start, were it not waiting
+    launch { repository.clearLocalData() }
+    launch { repository.clearLocalData() }
+    runCurrent()
+    assertEquals("the second clear waits for the lock", 1, clears)
+
     firstMayFinish.complete(Unit)
-
-    assertTrue(first.await().isSuccess && second.await().isSuccess)
+    advanceUntilIdle()
     assertEquals(BOTH_CLEARS, clears)
-    assertEquals(1, mostAtOnce.get())
   }
 
   private companion object {
-    const val SECOND_CLEAR_START_MS = 100L
     const val BOTH_CLEARS = 2
   }
 }
