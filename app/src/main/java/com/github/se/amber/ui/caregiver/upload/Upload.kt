@@ -2,6 +2,7 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by Alaabrine, with assistance from Cursor.
  * Modified by MeiliV, with assistance from OpenAI Codex.
+ * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload
 
@@ -26,10 +27,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags.AUDIO_BUTTON
@@ -70,12 +74,14 @@ fun UploadScreen(
     onTabSelected: (Tab) -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-  val errorMessage = uiState.errorMsg
+  val errorMsgRes = uiState.errorMsgRes
   val context = LocalContext.current
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
-  LaunchedEffect(errorMessage) {
-    if (errorMessage != null) {
-      Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(errorMsgRes) {
+    if (errorMsgRes != null) {
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
@@ -86,7 +92,7 @@ fun UploadScreen(
             title = {
               DisplayCaregiverTitle(
                   modifier = Modifier.testTag(UploadTestTags.TITLE),
-                  title = "Upload Media",
+                  title = stringResource(R.string.uploadTitle),
               )
             }
         )
@@ -124,8 +130,8 @@ fun UploadScreen(
               modifier = Modifier.testTag(PICTURE_BUTTON),
               widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
               icon = Icons.Outlined.PhotoCamera,
-              text = "Upload Picture",
-              description = "Picture",
+              text = stringResource(R.string.uploadChoosePicture),
+              description = stringResource(R.string.uploadChoosePictureIcon),
               onClick = { onUploadPictureClick() },
           )
 
@@ -133,8 +139,8 @@ fun UploadScreen(
               modifier = Modifier.testTag(AUDIO_BUTTON),
               widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
               icon = Icons.Outlined.Mic,
-              text = "Upload Audio",
-              description = "Audio",
+              text = stringResource(R.string.uploadChooseAudio),
+              description = stringResource(R.string.uploadChooseAudioIcon),
               onClick = { onUploadAudioClick() },
           )
         }

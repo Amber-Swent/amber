@@ -1,6 +1,7 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver
 
@@ -38,11 +39,13 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.BOX
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags.BUTTON
@@ -254,7 +257,7 @@ fun DisplayTextField(
     if (value.length >= maxChar && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_CHAR_MESSAGE),
-          text = "Maximum $maxChar characters reached",
+          text = stringResource(R.string.textFieldMaxCharReached, maxChar),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
@@ -262,7 +265,7 @@ fun DisplayTextField(
     if (!singleLine && value.lines().size >= maxLines && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_LINES_MESSAGE),
-          text = "Maximum $maxLines lines reached",
+          text = stringResource(R.string.textFieldMaxLinesReached, maxLines),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )

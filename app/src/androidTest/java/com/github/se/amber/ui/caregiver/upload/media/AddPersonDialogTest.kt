@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -17,6 +18,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
+import androidx.test.platform.app.InstrumentationRegistry
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -27,7 +30,6 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
@@ -48,6 +50,16 @@ import org.junit.Test
  */
 class AddPersonDialogTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** The dialog's Add button label, in the device language. */
+  private val addLabel: String =
+      InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.addPersonAdd)
+
+  /** The error shown under a name with a character it doesn't allow, in the device language. */
+  private val nameFormatError: String =
+      InstrumentationRegistry.getInstrumentation()
+          .targetContext
+          .getString(R.string.inputErrorNameFormat)
 
   private lateinit var viewModel: UploadPictureViewModel
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
@@ -123,7 +135,7 @@ class AddPersonDialogTest {
         )
     launchScreen()
 
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).performClick()
 
     verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
     verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
@@ -137,19 +149,19 @@ class AddPersonDialogTest {
     uiStateFlow.value = uiStateFlow.value.copy(common = blank)
     launchScreen()
 
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).assertIsNotEnabled()
 
     // "Anne-" may be on its way to "Anne-Marie": no error until Add is tapped
     val typing = blank.copy(personFirstName = "Anne-")
     uiStateFlow.value = uiStateFlow.value.copy(common = typing)
 
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsEnabled()
-    composeTestRule.onNode(hasText(InputValidation.NAME.formatMessage)).assertDoesNotExist()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).assertIsEnabled()
+    composeTestRule.onNode(hasText(nameFormatError)).assertDoesNotExist()
 
     uiStateFlow.value = uiStateFlow.value.copy(common = typing.copy(isAddPersonSubmitted = true))
 
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
-    composeTestRule.onNode(hasText(InputValidation.NAME.formatMessage)).assertIsDisplayed()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).assertIsNotEnabled()
+    composeTestRule.onNode(hasText(nameFormatError)).assertIsDisplayed()
   }
 
   @Test
@@ -217,7 +229,7 @@ class AddPersonDialogTest {
                 hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
         )[0]
         .performTextInput("Anne")
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).performClick()
 
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.common.shownIds.isNotEmpty() }
     val savedId = viewModel.uiState.value.common.shownIds.single()

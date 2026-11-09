@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -30,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
@@ -69,7 +72,7 @@ fun DisplayWhoIsInvolved(
 ) {
   Column {
     Text(
-        "Who is involved - optional",
+        stringResource(R.string.personInvolvedTitle),
         color = MaterialTheme.colorScheme.onBackground,
         style = MaterialTheme.typography.bodyLarge,
     )
@@ -96,7 +99,7 @@ fun DisplayWhoIsInvolved(
             contentAlignment = Alignment.Center,
         ) {
           Text(
-              text = "No one is part of your care circle",
+              text = stringResource(R.string.personInvolvedEmpty),
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.bodyMedium,
           )

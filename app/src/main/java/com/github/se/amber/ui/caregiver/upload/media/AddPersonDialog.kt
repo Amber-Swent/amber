@@ -1,11 +1,14 @@
 // Written by MeiliV with assistance from OpenAI Codex
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_NAME
@@ -59,9 +62,10 @@ fun AddPersonDialog(
   if (!isOpen) return
 
   PopupDialog(
-      title = "Add a person",
+      title = stringResource(R.string.addPersonTitle),
       onDismiss = onDismiss,
-      actionText = if (isAddingPerson) "Adding…" else "Add person",
+      actionText =
+          stringResource(if (isAddingPerson) R.string.addPersonAdding else R.string.addPersonAdd),
       onAction = {
         onFirstNameChange(firstName.trim())
         onLastNameChange(lastName.trim())
@@ -73,9 +77,24 @@ fun AddPersonDialog(
       dismissTestTag = AddPersonDialogTestTags.CLOSE,
   ) {
     Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
-      NameField(firstName, onFirstNameChange, "First name", firstNameError)
-      NameField(lastName, onLastNameChange, "Surname - optional", lastNameError)
-      NameField(nickname, onNicknameChange, "Nickname - optional", nicknameError)
+      NameField(
+          firstName,
+          onFirstNameChange,
+          stringResource(R.string.addPersonFirstName),
+          firstNameError,
+      )
+      NameField(
+          lastName,
+          onLastNameChange,
+          stringResource(R.string.addPersonSurname),
+          lastNameError,
+      )
+      NameField(
+          nickname,
+          onNicknameChange,
+          stringResource(R.string.addPersonNickname),
+          nicknameError,
+      )
     }
   }
 }

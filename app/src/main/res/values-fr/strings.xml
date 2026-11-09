@@ -173,4 +173,97 @@
     <string name="caregiverHomeErrorNoPatient">Aucun patient n\'est encore lié à ce cercle de soins.</string>
     <string name="caregiverHomeErrorNoPatientProfile">Aucun profil de patient trouvé.</string>
     <string name="caregiverHomeErrorLoadPatientProfile">Impossible de charger le profil du patient.</string>
+
+    <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="textFieldMaxCharReached">Maximum de %1$d caractères atteint</string>
+    <string name="textFieldMaxLinesReached">Maximum de %1$d lignes atteint</string>
+
+    <!-- UploadMedia: shared by the picture and audio upload screens (ui/caregiver/upload/media) -->
+    <string name="unknownMember">Membre inconnu %1$d</string>
+    <string name="uploadMediaErrorUnverified">Votre identité ne peut pas être vérifiée</string>
+    <string name="uploadMediaErrorLoadProfile">Impossible de charger votre profil</string>
+    <string name="uploadMediaErrorLoadCircle">Impossible de charger votre cercle de soins</string>
+    <string name="uploadMediaErrorStillLoading">Votre cercle de soins est encore en cours de chargement, réessayez</string>
+    <string name="uploadMediaErrorNoCircle">Votre cercle de soins n\'est pas configuré</string>
+    <string name="uploadMediaErrorUploadFailed">L\'envoi a échoué, réessayez</string>
+    <string name="uploadMediaErrorDescriptionEmpty">La description est vide</string>
+    <string name="uploadMediaErrorSelectDate">La date ne peut pas être vide</string>
+    <string name="uploadMediaErrorPickPlace">Choisissez le lieu parmi les suggestions</string>
+    <string name="uploadMediaErrorFirstNameRequired">Un prénom est requis</string>
+    <string name="uploadMediaErrorInvalidPersonName">Vérifiez les noms&#160;: utilisez uniquement des lettres, des espaces, des traits d\'union (-) et des apostrophes (\')</string>
+    <string name="uploadMediaErrorAddPerson">Impossible d\'ajouter la personne</string>
+    <string name="uploadMediaErrorPersonWithoutId">Cette personne n\'a pas été enregistrée, réessayez</string>
+    <string name="uploadMediaErrorCannotTagPerson">Cette personne a été enregistrée, mais ne peut pas être identifiée&#160;: votre cercle de soins n\'est pas chargé</string>
+
+    <!-- Upload -->
+    <string name="uploadTitle">Ajouter un média</string>
+    <string name="uploadChoosePicture">Ajouter une photo</string>
+    <string name="uploadChoosePictureIcon">Photo</string>
+    <string name="uploadChooseAudio">Ajouter un audio</string>
+    <string name="uploadChooseAudioIcon">Audio</string>
+
+    <!-- UploadPicture -->
+    <string name="uploadPictureTitle">Ajouter une photo</string>
+    <string name="uploadPictureIcon">Photo</string>
+    <string name="uploadPictureTake">Prendre une nouvelle photo</string>
+    <string name="uploadPictureChoose">Appuyez pour choisir une photo existante</string>
+    <string name="uploadPictureSelected">Photo sélectionnée</string>
+    <string name="uploadPictureDescriptionLabel">Description</string>
+    <string name="uploadPictureDescriptionPlaceholder">Saisissez une description de la photo</string>
+    <string name="uploadPictureDescriptionEmpty">La description ne peut pas être vide</string>
+    <string name="uploadPictureUploading">Envoi…</string>
+    <string name="uploadPictureUpload">Ajouter la photo</string>
+    <string name="uploadPictureErrorSelect">Veuillez d\'abord sélectionner une photo</string>
+    <string name="uploadPictureErrorRead">Impossible de lire votre photo</string>
+
+    <!-- UploadAudio -->
+    <string name="uploadAudioTitle">Ajouter un audio</string>
+    <string name="uploadAudioRecordIcon">Micro</string>
+    <string name="uploadAudioRecord">Appuyez pour enregistrer un audio</string>
+    <string name="uploadAudioDescriptionLabel">Description</string>
+    <string name="uploadAudioDescriptionPlaceholder">Saisissez une description de l\'audio</string>
+    <string name="uploadAudioDescriptionEmpty">La description ne peut pas être vide</string>
+    <string name="uploadAudioUploading">Envoi…</string>
+    <string name="uploadAudioUpload">Ajouter l\'audio</string>
+
+    <!-- AddPersonDialog -->
+    <string name="addPersonTitle">Ajouter une personne</string>
+    <string name="addPersonAdd">Ajouter</string>
+    <string name="addPersonAdding">Ajout…</string>
+    <string name="addPersonFirstName">Prénom</string>
+    <string name="addPersonSurname">Nom - facultatif</string>
+    <string name="addPersonNickname">Surnom - facultatif</string>
+
+    <!-- PersonInvolved -->
+    <string name="personInvolvedTitle">Qui est concerné - facultatif</string>
+    <string name="personInvolvedEmpty">Personne ne fait partie de votre cercle de soins</string>
+
+    <!-- UploadMediaLocation -->
+    <string name="locationTitle">Lieu - facultatif</string>
+    <string name="locationSearchLabel">Autre lieu</string>
+    <string name="locationSearchPlaceholder">Rechercher une ville, une adresse…</string>
+    <string name="locationSearching">Recherche…</string>
+    <string name="locationQueryTooShort">Saisissez au moins %1$d lettres pour rechercher, ou videz le champ.</string>
+    <string name="locationSearchFailed">Impossible de rechercher des lieux. Vérifiez votre connexion, puis réessayez, ou videz le champ pour ajouter sans lieu.</string>
+    <string name="locationTryAgain">Réessayer</string>
+    <string name="locationNoPlaceFound">Aucun lieu trouvé. Essayez une autre recherche, ou videz le champ pour ajouter sans lieu.</string>
+
+    <!-- DatePicker -->
+    <string name="datePickerYear">Année</string>
+    <string name="datePickerMonth">Mois</string>
+    <string name="datePickerDay">Jour</string>
+    <string name="datePickerSelectYear">Choisir l\'année</string>
+    <string name="datePickerSelectMonth">Choisir le mois</string>
+    <string name="datePickerSelectDay">Choisir le jour</string>
+    <string name="datePickerUnknown">Inconnu</string>
+    <string name="datePickerMonthRequired">Choisissez un mois avant de choisir un jour.</string>
+    <string name="datePickerDone">OK</string>
+
+    <!-- AudioRecorder -->
+    <string name="audioRecorderDelete">Supprimer l\'audio</string>
+    <string name="audioRecorderStop">Arrêter l\'enregistrement</string>
+
+    <!-- MediaImage -->
+    <string name="mediaImageFallbackDescription">Photo</string>
+    <string name="mediaImageRetryDescription">Charger la photo à nouveau</string>
 </resources>

@@ -177,4 +177,97 @@
     <string name="caregiverHomeErrorNoPatient">No patient is linked to this care circle yet.</string>
     <string name="caregiverHomeErrorNoPatientProfile">No patient profile found.</string>
     <string name="caregiverHomeErrorLoadPatientProfile">Failed to load the patient profile.</string>
+
+    <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="textFieldMaxCharReached">Maximum %1$d characters reached</string>
+    <string name="textFieldMaxLinesReached">Maximum %1$d lines reached</string>
+
+    <!-- UploadMedia: shared by the picture and audio upload screens (ui/caregiver/upload/media) -->
+    <string name="unknownMember">Unknown member %1$d</string>
+    <string name="uploadMediaErrorUnverified">Your identity can\'t be verified</string>
+    <string name="uploadMediaErrorLoadProfile">Could not load your profile</string>
+    <string name="uploadMediaErrorLoadCircle">Could not load your care circle</string>
+    <string name="uploadMediaErrorStillLoading">Your care circle is still loading, try again</string>
+    <string name="uploadMediaErrorNoCircle">Your care circle isn\'t set up</string>
+    <string name="uploadMediaErrorUploadFailed">Upload failed, try again</string>
+    <string name="uploadMediaErrorDescriptionEmpty">The description is empty</string>
+    <string name="uploadMediaErrorSelectDate">The date can\'t be empty</string>
+    <string name="uploadMediaErrorPickPlace">Pick the place from the suggestions</string>
+    <string name="uploadMediaErrorFirstNameRequired">A first name is required</string>
+    <string name="uploadMediaErrorInvalidPersonName">Check the names: use only letters, spaces, hyphens (-) and apostrophes (\')</string>
+    <string name="uploadMediaErrorAddPerson">Could not add person</string>
+    <string name="uploadMediaErrorPersonWithoutId">This person wasn\'t saved, try again</string>
+    <string name="uploadMediaErrorCannotTagPerson">This person was saved but can\'t be tagged: your care circle isn\'t loaded</string>
+
+    <!-- Upload -->
+    <string name="uploadTitle">Upload Media</string>
+    <string name="uploadChoosePicture">Upload Picture</string>
+    <string name="uploadChoosePictureIcon">Picture</string>
+    <string name="uploadChooseAudio">Upload Audio</string>
+    <string name="uploadChooseAudioIcon">Audio</string>
+
+    <!-- UploadPicture -->
+    <string name="uploadPictureTitle">Upload Picture</string>
+    <string name="uploadPictureIcon">Photo</string>
+    <string name="uploadPictureTake">Take a new Picture</string>
+    <string name="uploadPictureChoose">Click to choose an existing Picture</string>
+    <string name="uploadPictureSelected">Picture selected</string>
+    <string name="uploadPictureDescriptionLabel">Description</string>
+    <string name="uploadPictureDescriptionPlaceholder">Enter a description of the picture</string>
+    <string name="uploadPictureDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadPictureUploading">Uploading…</string>
+    <string name="uploadPictureUpload">Upload Picture</string>
+    <string name="uploadPictureErrorSelect">Please select a picture first</string>
+    <string name="uploadPictureErrorRead">Could not read your picture</string>
+
+    <!-- UploadAudio -->
+    <string name="uploadAudioTitle">Upload Audio</string>
+    <string name="uploadAudioRecordIcon">Microphone</string>
+    <string name="uploadAudioRecord">Click to record an Audio</string>
+    <string name="uploadAudioDescriptionLabel">Description</string>
+    <string name="uploadAudioDescriptionPlaceholder">Enter a description of the Audio</string>
+    <string name="uploadAudioDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadAudioUploading">Uploading…</string>
+    <string name="uploadAudioUpload">Upload Audio</string>
+
+    <!-- AddPersonDialog -->
+    <string name="addPersonTitle">Add a person</string>
+    <string name="addPersonAdd">Add person</string>
+    <string name="addPersonAdding">Adding…</string>
+    <string name="addPersonFirstName">First name</string>
+    <string name="addPersonSurname">Surname - optional</string>
+    <string name="addPersonNickname">Nickname - optional</string>
+
+    <!-- PersonInvolved -->
+    <string name="personInvolvedTitle">Who is involved - optional</string>
+    <string name="personInvolvedEmpty">No one is part of your care circle</string>
+
+    <!-- UploadMediaLocation -->
+    <string name="locationTitle">Location - optional</string>
+    <string name="locationSearchLabel">Another place</string>
+    <string name="locationSearchPlaceholder">Search a city, an address...</string>
+    <string name="locationSearching">Searching…</string>
+    <string name="locationQueryTooShort">Type at least %1$d letters to search, or clear the field.</string>
+    <string name="locationSearchFailed">Couldn\'t search places. Check your connection and try again, or clear the field to upload without a location.</string>
+    <string name="locationTryAgain">Try again</string>
+    <string name="locationNoPlaceFound">No places found. Try another search, or clear the field to upload without a location.</string>
+
+    <!-- DatePicker -->
+    <string name="datePickerYear">Year</string>
+    <string name="datePickerMonth">Month</string>
+    <string name="datePickerDay">Day</string>
+    <string name="datePickerSelectYear">Select Year</string>
+    <string name="datePickerSelectMonth">Select Month</string>
+    <string name="datePickerSelectDay">Select Day</string>
+    <string name="datePickerUnknown">Unknown</string>
+    <string name="datePickerMonthRequired">Select a month before selecting a day.</string>
+    <string name="datePickerDone">Done</string>
+
+    <!-- AudioRecorder -->
+    <string name="audioRecorderDelete">Delete the audio</string>
+    <string name="audioRecorderStop">Stop the recording</string>
+
+    <!-- MediaImage -->
+    <string name="mediaImageFallbackDescription">Photo</string>
+    <string name="mediaImageRetryDescription">Load the photo again</string>
 </resources>
