@@ -5,6 +5,7 @@
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -27,6 +28,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
@@ -109,19 +111,6 @@ class AddPersonDialogTest {
   }
 
   @Test
-  fun addPersonSaveButtonCallsViewModelForValidName() {
-    uiStateFlow.value =
-        uiStateFlow.value.copy(
-            common = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "Anne")
-        )
-    launchScreen()
-
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
-
-    verify(exactly = 1) { viewModel.addPerson() }
-  }
-
-  @Test
   fun addPersonSaveTrimsNames() {
     uiStateFlow.value =
         uiStateFlow.value.copy(
@@ -144,14 +133,24 @@ class AddPersonDialogTest {
   }
 
   @Test
-  fun addPersonSaveButtonIsDisabledForBlankName() {
-    uiStateFlow.value =
-        uiStateFlow.value.copy(
-            common = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "  ")
-        )
+  fun addPersonButton_disabledForBlankName_enabledForUnfinishedNameUntilTapped() {
+    val blank = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "  ")
+    uiStateFlow.value = uiStateFlow.value.copy(common = blank)
     launchScreen()
 
     composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
+
+    // "Anne-" may be on its way to "Anne-Marie": no error until Add is tapped
+    val typing = blank.copy(personFirstName = "Anne-")
+    uiStateFlow.value = uiStateFlow.value.copy(common = typing)
+
+    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsEnabled()
+    composeTestRule.onNode(hasText(InputValidation.NAME.formatMessage)).assertDoesNotExist()
+
+    uiStateFlow.value = uiStateFlow.value.copy(common = typing.copy(isAddPersonSubmitted = true))
+
+    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
+    composeTestRule.onNode(hasText(InputValidation.NAME.formatMessage)).assertIsDisplayed()
   }
 
   @Test

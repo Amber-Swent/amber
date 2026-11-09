@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.createProfile
 
@@ -10,6 +11,7 @@ import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileUIState
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
 import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
@@ -74,6 +76,40 @@ class CreateProfileViewModelTests {
     assertEquals(CreateProfileUIState(), viewModel.uiState.value)
     assertNull(viewModel.uiState.value.nameError)
     assertNull(viewModel.uiState.value.surnameError)
+  }
+
+  // ---------- Name format ----------
+
+  @Test
+  fun nameWithDigitsOrSymbols_showsFormatErrorAtOnceAndDisablesRoles() {
+    viewModel.onNameChange("Ada2")
+    viewModel.onSurnameChange("Love!ace")
+
+    val state = viewModel.uiState.value
+    assertEquals(InputValidation.NAME.formatMessage, state.nameError)
+    assertEquals(InputValidation.NAME.formatMessage, state.surnameError)
+    assertFalse(state.canSubmit)
+  }
+
+  @Test
+  fun typingStopsAtNameMaxLength() {
+    viewModel.onNameChange("A".repeat(InputValidation.NAME_MAX_LENGTH + 20))
+
+    assertEquals(InputValidation.NAME_MAX_LENGTH, viewModel.uiState.value.name.length)
+  }
+
+  @Test
+  fun onRoleSelected_unfinishedName_showsErrorWithoutCallingRepository() = runTest {
+    viewModel.onNameChange("Anne-")
+    viewModel.onSurnameChange("Hopper")
+    assertNull(viewModel.uiState.value.nameError) // may still become "Anne-Marie"
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(InputValidation.NAME.formatMessage, viewModel.uiState.value.nameError)
+    assertEquals(0, successCount)
+    coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
 
   // ---------- onNameChange / onSurnameChange ----------

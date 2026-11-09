@@ -16,6 +16,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.model.validation.InputValidation
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -1280,6 +1281,77 @@ class MediaViewModelTest {
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
     assertEquals("A first name is required", vm.uiState.value.common.errorMsg)
     assertTrue(vm.uiState.value.common.isAddPersonOpen)
+  }
+
+  @Test
+  fun personNameWithDigitsIsRefusedWithErrorUnderTheFieldAndNotSaved() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonNickname("Nana2")
+
+    val common = vm.uiState.value.common
+    assertEquals(InputValidation.NAME.formatMessage, common.personNicknameError)
+    assertNull(common.personFirstNameError)
+    assertFalse(common.canAddPerson)
+
+    vm.addPerson()
+
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals(
+        MediaViewModelErrorMessage.INVALID_PERSON_NAME.mess,
+        vm.uiState.value.common.errorMsg,
+    )
+  }
+
+  @Test
+  fun unfinishedPersonNameShowsItsErrorOnlyOnceAddIsTapped() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne-")
+
+    assertNull(vm.uiState.value.common.personFirstNameError)
+    assertTrue(vm.uiState.value.common.canAddPerson)
+
+    vm.addPerson()
+
+    val common = vm.uiState.value.common
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals(InputValidation.NAME.formatMessage, common.personFirstNameError)
+    assertFalse(common.canAddPerson)
+    assertTrue(common.isAddPersonOpen)
+
+    vm.dismissAddPerson()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne-")
+
+    assertNull(vm.uiState.value.common.personFirstNameError)
+  }
+
+  @Test
+  fun typedTextStopsAtEachFieldsMaxLength() {
+    val vm = createViewModel()
+
+    vm.setDescription("a".repeat(InputValidation.DESCRIPTION_MAX_LENGTH + 1))
+    vm.setPlaceQuery("b".repeat(InputValidation.PLACE_QUERY_MAX_LENGTH + 1))
+    vm.setPersonFirstName("c".repeat(InputValidation.NAME_MAX_LENGTH + 1))
+
+    val common = vm.uiState.value.common
+    assertEquals(InputValidation.DESCRIPTION_MAX_LENGTH, common.description.length)
+    assertEquals(InputValidation.PLACE_QUERY_MAX_LENGTH, common.location.query.length)
+    assertEquals(InputValidation.NAME_MAX_LENGTH, common.personFirstName.length)
+  }
+
+  @Test
+  fun descriptionIsSavedTrimmedAndWithoutControlCharacters() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = readyViewModel(description = "  Beach\u0000 day\r\nwith Nana \n")
+
+    vm.uploadMedia()
+
+    assertEquals("Beach day\nwith Nana", captureUploadedItem().description)
   }
 
   @Test

@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.invitationRedemption
 
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -20,6 +22,7 @@ import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
@@ -163,6 +166,26 @@ class InvitationRedemptionUITests {
         .assertCountEquals(0)
   }
 
+  @Test
+  fun typingCharacterCodesNeverUse_showsErrorAndDisablesSubmit() {
+    setScreen()
+
+    // Lower case is put in capitals, but 0 is never in a code
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).performTextInput("abc0")
+    composeTestRule.waitForIdle()
+
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
+        .assert(hasErrorSemantics())
+        .assertTextContains("ABC0")
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
+        .assertIsDisplayed()
+        .assertTextEquals(InputValidation.INVITATION_CODE.formatMessage)
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
+    assertEquals(0, redeemSuccessCount)
+  }
+
   // ---------- Redeem success / failure ----------
 
   @Test
@@ -249,6 +272,6 @@ class InvitationRedemptionUITests {
   }
 
   private companion object {
-    const val VALID_CODE = "invite-abc-123"
+    const val VALID_CODE = "ABCD2345"
   }
 }

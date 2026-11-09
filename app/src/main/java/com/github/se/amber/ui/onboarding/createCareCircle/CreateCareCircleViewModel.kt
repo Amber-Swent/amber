@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createCareCircle
 
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.data.onboarding.OnboardingRepositoryProvider
+import com.github.se.amber.model.validation.InputValidation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +19,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val NAME_REQUIRED_ERROR = "Circle name cannot be empty"
+
+/** The message shown under the name field for [name], or null when it is valid. */
+private fun nameErrorOf(name: String): String? =
+    InputValidation.SHORT_TEXT.errorMessage(name, blankMessage = NAME_REQUIRED_ERROR)
 
 /**
  * State displayed by [CreateCareCircleScreen].
@@ -31,7 +37,11 @@ data class CreateCareCircleUIState(
     val nameError: String? = null,
     val isLoading: Boolean = false,
     val isCreated: Boolean = false,
-)
+) {
+  /** Whether Create can be pressed: not running, not done, and no error shown. */
+  val canCreate: Boolean
+    get() = !isLoading && !isCreated && nameError == null
+}
 
 /**
  * Owns the UI state and creation action of [CreateCareCircleScreen].
@@ -64,26 +74,24 @@ class CreateCareCircleViewModel(
   /**
    * Updates the name displayed by the screen and its validation message.
    *
-   * Changes are ignored during submission and after creation.
+   * Changes are ignored during submission and after creation. The name is cut at
+   * [InputValidation.SHORT_TEXT_MAX_LENGTH] and loses any control character.
    *
    * @param name New care circle name entered by the user.
    */
   fun onNameChange(name: String) {
     if (_uiState.value.isLoading || _uiState.value.isCreated) return
+    val cleaned = InputValidation.SHORT_TEXT.clean(name)
     // Updates the supporting error while the user edits
-    _uiState.update {
-      it.copy(
-          name = name,
-          nameError = if (name.isBlank()) NAME_REQUIRED_ERROR else null,
-      )
-    }
+    _uiState.update { it.copy(name = cleaned, nameError = nameErrorOf(cleaned)) }
   }
 
   /**
    * Validates the trimmed name, then asks the repository to create the first care circle.
    *
-   * A blank name sets a field error without contacting the repository. While creation is running or
-   * after it succeeds, further submissions are ignored. Failures leave the form ready for a retry.
+   * A blank or invalid name sets a field error without contacting the repository. While creation is
+   * running or after it succeeds, further submissions are ignored. Failures leave the form ready
+   * for a retry.
    */
   fun createCareCircle() {
     val state = _uiState.value
@@ -91,10 +99,11 @@ class CreateCareCircleViewModel(
 
     val name = state.name.trim()
 
-    // Checks name is not empty before calling the repository
+    // Checks the name before calling the repository
     // Covers the case where the user presses Create without touching the text field before
-    if (name.isEmpty()) {
-      _uiState.update { it.copy(name = state.name, nameError = NAME_REQUIRED_ERROR) }
+    val nameError = nameErrorOf(name)
+    if (nameError != null) {
+      _uiState.update { it.copy(name = state.name, nameError = nameError) }
       return
     }
 
