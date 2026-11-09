@@ -299,4 +299,25 @@
     <!-- SeeAudios -->
     <string name="seeAudiosTitle">Voir les audios</string>
     <string name="seeAudiosEmpty">Il n\'y a pas encore d\'audios.</string>
+
+    <!-- MediaCard: the details under a picture or an audio (ui/media/MediaCard.kt) -->
+    <string name="mediaCardShowInfos">voir les infos</string>
+    <string name="mediaCardHideInfos">masquer les infos</string>
+    <string name="mediaCardUnknownDate">Date inconnue</string>
+    <string name="mediaCardUnknownLocation">Lieu inconnu</string>
+    <string name="mediaCardAddedBy">Ajouté par %1$s</string>
+    <string name="mediaCardSharedWith">Souvenir partagé avec</string>
+    <string name="mediaCardErrorLoadAuthor">Impossible de charger le profil de l\'auteur.</string>
+    <string name="mediaCardErrorAuthorNotFound">Auteur introuvable.</string>
+    <string name="mediaCardErrorLoadProfile">Impossible de charger le profil actuel.</string>
+    <string name="mediaCardErrorNoCircle">Aucun cercle de soins trouvé.</string>
+    <string name="mediaCardErrorLoadCircle">Impossible de charger le cercle de soins.</string>
+
+    <!-- AudioPlayback -->
+    <string name="audioPlaybackPlay">Lire</string>
+    <string name="audioPlaybackPause">Pause</string>
+    <string name="audioPlaybackRestart">Recommencer</string>
+    <string name="audioPlaybackLoading">Chargement</string>
+    <string name="audioPlaybackRetry">Réessayer</string>
+    <string name="audioPlaybackError">Cet audio n\'a pas pu être lu.</string>
 </resources>

@@ -1,13 +1,17 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media
 
+import android.content.Context
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -44,6 +48,10 @@ import org.robolectric.shadows.ShadowToast
 class MediaCardTest {
 
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   private val profileRepository = mockk<ProfileRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
@@ -166,7 +174,9 @@ class MediaCardTest {
   @Test
   fun date_null_isUnknownDate() {
     setCard(picture(date = null))
-    composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).assertTextEquals("Unknown date")
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.date("m1"))
+        .assertTextEquals(string(R.string.mediaCardUnknownDate))
   }
 
   // ---------- loading ----------
@@ -219,7 +229,7 @@ class MediaCardTest {
         .assertTextEquals("A nice day")
     composeTestRule
         .onNodeWithTag(MediaCardTestTags.addedBy("m1"))
-        .assertTextEquals("Added by Alice")
+        .assertTextEquals(string(R.string.mediaCardAddedBy, "Alice"))
   }
 
   // ---------- related persons ----------
@@ -293,7 +303,7 @@ class MediaCardTest {
     toggle()
     composeTestRule
         .onNodeWithTag(MediaCardTestTags.location("m1"))
-        .assertTextEquals("Unknown location")
+        .assertTextEquals(string(R.string.mediaCardUnknownLocation))
   }
 
   @Test
@@ -302,7 +312,7 @@ class MediaCardTest {
     toggle()
     composeTestRule
         .onNodeWithTag(MediaCardTestTags.location("m1"))
-        .assertTextEquals("Unknown location")
+        .assertTextEquals(string(R.string.mediaCardUnknownLocation))
   }
 
   @Test
@@ -321,7 +331,7 @@ class MediaCardTest {
     setCard(picture())
     toggle()
 
-    assertEquals("Author not found.", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.mediaCardErrorAuthorNotFound), ShadowToast.getTextOfLatestToast())
   }
 
   @Test

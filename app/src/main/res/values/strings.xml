@@ -303,4 +303,25 @@
     <!-- SeeAudios -->
     <string name="seeAudiosTitle">See Audios</string>
     <string name="seeAudiosEmpty">There are no audios yet.</string>
+
+    <!-- MediaCard: the details under a picture or an audio (ui/media/MediaCard.kt) -->
+    <string name="mediaCardShowInfos">show infos</string>
+    <string name="mediaCardHideInfos">hide infos</string>
+    <string name="mediaCardUnknownDate">Unknown date</string>
+    <string name="mediaCardUnknownLocation">Unknown location</string>
+    <string name="mediaCardAddedBy">Added by %1$s</string>
+    <string name="mediaCardSharedWith">Memory shared with</string>
+    <string name="mediaCardErrorLoadAuthor">Failed to load the author profile.</string>
+    <string name="mediaCardErrorAuthorNotFound">Author not found.</string>
+    <string name="mediaCardErrorLoadProfile">Failed to load the current profile.</string>
+    <string name="mediaCardErrorNoCircle">No care circle found.</string>
+    <string name="mediaCardErrorLoadCircle">Failed to load the care circle.</string>
+
+    <!-- AudioPlayback -->
+    <string name="audioPlaybackPlay">Play</string>
+    <string name="audioPlaybackPause">Pause</string>
+    <string name="audioPlaybackRestart">Restart</string>
+    <string name="audioPlaybackLoading">Loading</string>
+    <string name="audioPlaybackRetry">Retry</string>
+    <string name="audioPlaybackError">This memo could not be played.</string>
 </resources>
