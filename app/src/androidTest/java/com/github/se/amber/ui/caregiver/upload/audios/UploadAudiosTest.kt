@@ -46,6 +46,8 @@ class UploadAudiosTest {
           waveform = List(WAVEFORM_BARS) { 0.5f },
       )
 
+  private val listening = recorded.copy(recordingState = AudioRecordingState.LISTENING)
+
   @Before
   fun setUp() {
     uiStateFlow = MutableStateFlow(UploadAudioUIState())
@@ -132,6 +134,65 @@ class UploadAudiosTest {
     tagged(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
     tagged(AudioRecorderTestTags.STOP_BUTTON).assertDoesNotExist()
     tagged(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun onceRecordedThePlayButtonIsDisplayed() {
+    launchScreen(recorded)
+    tagged(AudioRecorderTestTags.PLAY_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun onceRecordedTheStopButtonIsNotDisplayed() {
+    launchScreen(recorded)
+    tagged(AudioRecorderTestTags.STOP_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
+  fun clickingPlayOnceRecordedStartsListening() {
+    launchScreen(recorded)
+    tagged(AudioRecorderTestTags.PLAY_BUTTON).performScrollTo().performClick()
+    verify(exactly = 1) { viewModel.startListening() }
+  }
+
+  // ---------- listening ----------
+
+  @Test
+  fun whileListeningOnlyTheListeningAudioIsDisplayed() {
+    launchScreen(listening)
+    tagged(UploadAudioScreenTestTags.LISTENING).assertIsDisplayed()
+  }
+
+  @Test
+  fun whileListeningTheRecordedAudioIsNotDisplayed() {
+    launchScreen(listening)
+    tagged(UploadAudioScreenTestTags.AUDIO_RECORDED).assertDoesNotExist()
+  }
+
+  @Test
+  fun whileListeningTheDeleteAndStopButtonsAreDisplayed() {
+    launchScreen(listening)
+    tagged(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun whileListeningThePlayButtonIsNotDisplayed() {
+    launchScreen(listening)
+    tagged(AudioRecorderTestTags.PLAY_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
+  fun clickingStopWhileListeningStopsListening() {
+    launchScreen(listening)
+    tagged(AudioRecorderTestTags.STOP_BUTTON).performScrollTo().performClick()
+    verify(exactly = 1) { viewModel.stopListening() }
+  }
+
+  @Test
+  fun clickingDeleteWhileListeningDeletesTheAudio() {
+    launchScreen(listening)
+    tagged(AudioRecorderTestTags.DELETE_BUTTON).performScrollTo().performClick()
+    verify(exactly = 1) { viewModel.deleteRecording() }
   }
 
   @Test

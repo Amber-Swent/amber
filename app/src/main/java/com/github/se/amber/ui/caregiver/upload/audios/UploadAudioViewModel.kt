@@ -34,7 +34,9 @@ import kotlinx.coroutines.flow.asStateFlow
  * @param shownIds The IDs of the people tagged in the picture.
  * @param audioFile The recorded audio, once the recording is over.
  * @param waveform The levels of the audio so far (while recording) or in full (once recorded).
- * @param recordingState Whether the audio is not yet recorded, being recorded, or recorded.
+ * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
+ *   listened to.
+ * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
  * @param isUploading Whether an upload is currently in progress.
  * @param errorMsg The error message to display, if any.
  */
@@ -47,6 +49,7 @@ data class UploadAudioUIState(
     val waveform: List<Float> = emptyList(),
     val isUploading: Boolean = false,
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
+    val playedFraction: Float = 0f,
     val errorMsg: String? = null,
     val isAddPersonOpen: Boolean = false,
     val isAddingPerson: Boolean = false,
@@ -179,6 +182,16 @@ class UploadAudioViewModel(
 
   /** Stops the recording and keeps it: [UploadAudioUIState.waveform] then holds the full audio. */
   fun stopRecording() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
+
+  /** Plays the recorded audio: the state goes from RECORDED to LISTENING. */
+  fun startListening() {
+    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  }
+
+  /** Stops playing the recorded audio: the state goes from LISTENING back to RECORDED. */
+  fun stopListening() {
     TODO("Will be implemented once a global ViewModel is defined and can be extended.")
   }
 

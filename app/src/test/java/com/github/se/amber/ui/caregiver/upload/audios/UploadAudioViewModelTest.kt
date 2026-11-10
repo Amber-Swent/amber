@@ -44,6 +44,11 @@ class UploadAudioViewModelTest {
     assertFalse(viewModel.uiState.value.canUpload)
   }
 
+  @Test
+  fun initialState_hasHeardNothing() {
+    assertEquals(0f, viewModel.uiState.value.playedFraction, 0f)
+  }
+
   // ---------- actions: TODO(), so they throw until implemented ----------
 
   @Test
@@ -109,6 +114,16 @@ class UploadAudioViewModelTest {
   @Test
   fun stopRecording_isNotImplementedYet_throws() {
     assertThrows(NotImplementedError::class.java) { viewModel.stopRecording() }
+  }
+
+  @Test
+  fun startListening_isNotImplementedYet_throws() {
+    assertThrows(NotImplementedError::class.java) { viewModel.startListening() }
+  }
+
+  @Test
+  fun stopListening_isNotImplementedYet_throws() {
+    assertThrows(NotImplementedError::class.java) { viewModel.stopListening() }
   }
 
   @Test

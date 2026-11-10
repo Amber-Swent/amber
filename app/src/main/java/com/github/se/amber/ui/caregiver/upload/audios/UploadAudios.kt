@@ -1,6 +1,7 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -48,7 +49,7 @@ import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
@@ -62,6 +63,7 @@ object UploadAudioScreenTestTags {
   const val RECORD_AUDIO = "upload_audio_record"
   const val RECORDING = "upload_audio_recording"
   const val AUDIO_RECORDED = "upload_audio_recorded"
+  const val LISTENING = "upload_audio_listening"
   const val SELECT_DATE = "upload_audio_selected_date"
   const val UPLOAD_BUTTON = "upload_audio_button"
 }
@@ -93,8 +95,7 @@ fun UploadAudioScreen(
     }
   }
 
-  // FIXME : will be unExtract once the ViewModel is implemented.
-  //  for the moment, I let it to avoid forgetting
+  // FIXME: will be unExtract in PR#375
 
   //      // The upload is over: leave the screen only once it really succeeded
   //      val currentOnUpload by rememberUpdatedState(onUpload)
@@ -131,22 +132,8 @@ fun UploadAudioScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
-          // Record button, then the recording in progress, then the recorded audio
+          // One state at a time: idle, recording, recorded, or listening to the recording
           when (uiState.recordingState) {
-            AudioRecordingState.RECORDING ->
-                DisplayAudioRecorder(
-                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING),
-                    isRecording = true,
-                    waveform = uiState.waveform,
-                    onDelete = viewModel::deleteRecording,
-                    onStop = viewModel::stopRecording, // must update uiState.audioFile
-                )
-            AudioRecordingState.RECORDED ->
-                DisplayAudioRecorder(
-                    modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
-                    waveform = uiState.waveform,
-                    onDelete = viewModel::deleteRecording,
-                )
             AudioRecordingState.IDLE ->
                 DisplayBoxWithIconText(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
@@ -154,6 +141,31 @@ fun UploadAudioScreen(
                     contentDescription = stringResource(R.string.uploadAudioRecordIcon),
                     text = stringResource(R.string.uploadAudioRecord),
                     onClick = viewModel::startRecording,
+                )
+            AudioRecordingState.RECORDING ->
+                DisplayAudioRecorder(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING),
+                    recordingState = AudioRecordingState.RECORDING,
+                    waveform = uiState.waveform,
+                    onDelete = viewModel::deleteRecording,
+                    onStop = viewModel::stopRecording, // must update uiState.audioFile
+                )
+            AudioRecordingState.RECORDED ->
+                DisplayAudioRecorder(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
+                    recordingState = AudioRecordingState.RECORDED,
+                    waveform = uiState.waveform,
+                    onDelete = viewModel::deleteRecording,
+                    onPlay = viewModel::startListening,
+                )
+            AudioRecordingState.LISTENING ->
+                DisplayAudioRecorder(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.LISTENING),
+                    recordingState = AudioRecordingState.LISTENING,
+                    waveform = uiState.waveform,
+                    playedFraction = uiState.playedFraction,
+                    onDelete = viewModel::deleteRecording,
+                    onStop = viewModel::stopListening,
                 )
           }
 
@@ -176,10 +188,7 @@ fun UploadAudioScreen(
               onAddPerson = viewModel::onAddPerson,
           )
 
-          // FIXME: will be unExtract once the global Location logic is implemented.
-          //  This will come in another PR.
-          //  I don't want to create a new UploadAudioLocation file that duplicate the
-          //  UploadPictureLocation.
+          // FIXME: will be unExtract in PR#375
 
           //          DisplayLocation(
           //              savedPlaceNamesById = placeOptions,
@@ -211,7 +220,7 @@ fun UploadAudioScreen(
                     if (uiState.isUploading) R.string.uploadAudioUploading
                     else R.string.uploadAudioUpload
                 ),
-            widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
+            widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
         )
       },
   )

@@ -93,13 +93,14 @@ sealed interface MediaItem {
 }
 
 /**
- * Where an [MediaItem.Audio] is in its recording: not started yet, being recorded, or finished and
- * kept.
+ * Where an [MediaItem.Audio] is in its recording: not started yet, being recorded, finished and
+ * kept, or finished and being listened to.
  */
 enum class AudioRecordingState {
   IDLE,
   RECORDING,
   RECORDED,
+  LISTENING,
 }
 
 /**
