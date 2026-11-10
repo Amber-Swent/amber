@@ -67,16 +67,22 @@ class SelectedPictureReaderAndroid(
                 appContext.cacheDir,
             )
 
-        val input =
-            requireNotNull(appContext.contentResolver.openInputStream(parsedUri)) {
-              "Could not open selected picture"
-            }
+        try {
+          val input =
+              requireNotNull(appContext.contentResolver.openInputStream(parsedUri)) {
+                "Could not open selected picture"
+              }
 
-        input.use { source ->
-          file.outputStream().use { destination -> source.copyTo(destination) }
+          input.use { source ->
+            file.outputStream().use { destination -> source.copyTo(destination) }
+          }
+
+          decodePickedImage(file)
+        } catch (e: Throwable) {
+          // nothing else knows about the copy, so it would stay in the cache
+          file.delete()
+          throw e
         }
-
-        decodePickedImage(file)
       }
 }
 
