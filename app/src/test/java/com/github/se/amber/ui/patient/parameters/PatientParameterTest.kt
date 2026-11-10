@@ -1,11 +1,16 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.parameters
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -15,15 +20,16 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 class PatientParameterScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
-  private companion object {
-    const val ERROR_MESSAGE = "error"
-  }
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   private fun setScreen(
       viewModel: PatientParameterViewModel = PatientParameterViewModel(),
@@ -73,12 +79,22 @@ class PatientParameterScreenTest {
 
   @Test
   fun errorMessageIsClearedFromTheStateAfterTheToast() {
-    val viewModel = PatientParameterViewModel().apply { setErrorMsg(ERROR_MESSAGE) }
+    val viewModel = PatientParameterViewModel().apply { setErrorMsg(R.string.signOutError) }
     setScreen(viewModel = viewModel)
 
     composeTestRule.waitForIdle()
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
+  }
+
+  @Test
+  fun errorToastShowsTheTranslatedMessage() {
+    val viewModel = PatientParameterViewModel().apply { setErrorMsg(R.string.signOutError) }
+    setScreen(viewModel = viewModel)
+
+    composeTestRule.waitForIdle()
+
+    assertEquals(string(R.string.signOutError), ShadowToast.getTextOfLatestToast())
   }
 
   @Test
@@ -108,5 +124,16 @@ class PatientParameterScreenTest {
     composeTestRule.setContent { PatientParameterScreenPreview() }
 
     composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.TITLE).assertTextEquals("Paramètres")
+    composeTestRule
+        .onNodeWithTag(PatientParameterTestTags.SIGN_OUT_BUTTON)
+        .assertTextEquals("Se déconnecter")
   }
 }

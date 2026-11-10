@@ -1,5 +1,7 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createCareCircle
 
@@ -25,11 +27,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
@@ -42,6 +47,7 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.utils.asString
 
 /** Stable tags for locating the form controls and validation message in UI tests. */
 object CreateCareCircleTestTags {
@@ -52,9 +58,9 @@ object CreateCareCircleTestTags {
 /**
  * Displays the first care circle form and connects it to [viewModel].
  *
- * A blank name appears below the field. Repository failures are shown as a toast, while successful
- * creation calls [onCreated] once. The top Cancel calls [onBack]. Cancel does nothing while a
- * create is in progress or after the circle has been created.
+ * A blank or invalid name shows its error below the field and disables Create. Repository failures
+ * are shown as a toast, while successful creation calls [onCreated] once. The top Cancel calls
+ * [onBack]. Cancel does nothing while a create is in progress or after the circle has been created.
  *
  * @param modifier Modifier applied to the root care circle layout.
  * @param context Used to display repository failures as a toast.
@@ -72,6 +78,8 @@ fun CreateCareCircleScreen(
     viewModel: CreateCareCircleViewModel = viewModel(),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   // Keep one stable reference for the effect, but always update the value inside it to the newest
   // onCreated
@@ -79,8 +87,8 @@ fun CreateCareCircleScreen(
 
   // Display submit errors when creating the circle
   LaunchedEffect(viewModel) {
-    viewModel.errorEvents.collect { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    viewModel.errorEvents.collect { errorRes ->
+      Toast.makeText(context, resources.getString(errorRes), Toast.LENGTH_SHORT).show()
     }
   }
 
@@ -117,27 +125,31 @@ fun CreateCareCircleScreen(
     ) {
       AmberHeader(horizontalAlignment = Alignment.CenterHorizontally)
 
-      DisplayCaregiverTitle(title = "New Care Circle")
+      DisplayCaregiverTitle(title = stringResource(R.string.createCareCircleTitle))
 
       OnboardingOutlinedTextField(
           value = uiState.name,
           onValueChange = viewModel::onNameChange,
-          label = "Circle name",
+          label = stringResource(R.string.createCareCircleNameLabel),
           modifier = Modifier.testTag(CreateCareCircleTestTags.NAME_FIELD),
-          placeholder = "Name your care circle",
-          error = uiState.nameError,
+          placeholder = stringResource(R.string.createCareCircleNamePlaceholder),
+          error = uiState.nameError?.asString(resources),
           errorTestTag = CreateCareCircleTestTags.NAME_ERROR,
           enabled = !uiState.isLoading && !uiState.isCreated,
       )
 
       DisplayCaregiverButton(
-          text = if (uiState.isLoading) "Creation..." else "Create",
-          enabled = !uiState.isLoading && !uiState.isCreated,
+          text =
+              stringResource(
+                  if (uiState.isLoading) R.string.createCareCircleCreating
+                  else R.string.createCareCircleCreate
+              ),
+          enabled = uiState.canCreate,
           onClick = viewModel::createCareCircle,
       )
 
       Text(
-          text = "You will be able to invite members to the circle after its creation.",
+          text = stringResource(R.string.createCareCircleInviteLater),
           modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.bodyMedium,
           textAlign = TextAlign.Center,

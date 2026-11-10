@@ -1,8 +1,10 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.createProfile
 
+import android.content.Context
 import android.os.Bundle
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -18,6 +20,8 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
 import androidx.credentials.CustomCredential
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -30,7 +34,6 @@ import com.github.se.amber.ui.onboarding.createProfile.CreateProfilePreview
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
-import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
 import com.github.se.amber.ui.onboarding.createProfile.PreviewProfileRepository
 import com.github.se.amber.ui.onboarding.createProfile.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
@@ -49,12 +52,17 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 class CreateProfileUITests {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   @Before
   fun setUp() {
@@ -156,7 +164,7 @@ class CreateProfileUITests {
         .onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR)
         .performScrollTo()
         .assertIsDisplayed()
-        .assertTextEquals("You don't have permission to create a profile.")
+        .assertTextEquals(string(R.string.createProfileErrorPermissionDenied))
   }
 
   // ---------- Validation when role is chosen with empty fields ----------
@@ -322,8 +330,24 @@ class CreateProfileUITests {
     composeTestRule.waitForIdle()
 
     assertEquals(0, signedOutCount)
-    assertEquals("Could not sign out. Please try again.", ShadowToast.getTextOfLatestToast())
+    assertEquals(string(R.string.signOutError), ShadowToast.getTextOfLatestToast())
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun validationErrorIsInFrenchWhenThePhoneIsInFrench() {
+    setCreateProfile()
+
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+        .performScrollTo()
+        .performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.NAME_ERROR, useUnmergedTree = true)
+        .assertTextEquals("Veuillez remplir ce champ")
   }
 
   private fun assertEmptyFieldValidationIsShown() {
@@ -333,11 +357,11 @@ class CreateProfileUITests {
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.NAME_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(FILL_OUT_MESSAGE)
+        .assertTextEquals(string(R.string.createProfileFillOut))
     composeTestRule
         .onNodeWithTag(CreateProfileTestTags.SURNAME_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(FILL_OUT_MESSAGE)
+        .assertTextEquals(string(R.string.createProfileFillOut))
   }
 }
 

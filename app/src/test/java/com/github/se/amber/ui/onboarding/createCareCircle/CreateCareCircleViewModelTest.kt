@@ -1,13 +1,18 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
 
+import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleUIState
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
+import com.github.se.amber.ui.utils.UiText
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,7 +58,10 @@ class CreateCareCircleViewModelTest {
   @Test
   fun typingStoresTheExactNameAndClearsValidationError() {
     viewModel.onNameChange(" ")
-    assertEquals("Circle name cannot be empty", viewModel.uiState.value.nameError)
+    assertEquals(
+        UiText.Resource(R.string.createCareCircleNameRequired),
+        viewModel.uiState.value.nameError,
+    )
 
     viewModel.onNameChange("  Family  ")
     assertEquals("  Family  ", viewModel.uiState.value.name)
@@ -61,11 +69,33 @@ class CreateCareCircleViewModelTest {
   }
 
   @Test
+  fun typingStopsAtMaxLengthAndDropsControlCharacters() {
+    viewModel.onNameChange("Fam\u0000ily\n" + "a".repeat(100))
+
+    val name = viewModel.uiState.value.name
+    assertEquals(InputValidation.SHORT_TEXT_MAX_LENGTH, name.length)
+    assertTrue(name.startsWith("Familya"))
+  }
+
+  @Test
+  fun blankSubmissionDisablesCreateUntilANameIsTyped() = runTest {
+    viewModel.createCareCircle()
+    advanceUntilIdle()
+    assertFalse(viewModel.uiState.value.canCreate)
+
+    viewModel.onNameChange("Family")
+    assertTrue(viewModel.uiState.value.canCreate)
+  }
+
+  @Test
   fun blankSubmissionShowsFieldErrorWithoutCallingRepository() = runTest {
     viewModel.createCareCircle()
     advanceUntilIdle()
 
-    assertEquals("Circle name cannot be empty", viewModel.uiState.value.nameError)
+    assertEquals(
+        UiText.Resource(R.string.createCareCircleNameRequired),
+        viewModel.uiState.value.nameError,
+    )
     assertFalse(viewModel.uiState.value.isLoading)
     assertTrue(repository.submittedNames.isEmpty())
   }
@@ -126,7 +156,7 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isCreated)
     assertEquals("Family", viewModel.uiState.value.name)
     assertEquals(
-        "You're offline. Check your connection and try again.",
+        R.string.createCareCircleErrorOffline,
         viewModel.errorEvents.first(),
     )
 
@@ -145,7 +175,7 @@ class CreateCareCircleViewModelTest {
 
     assertFalse(viewModel.uiState.value.isLoading)
     assertEquals(
-        "Couldn't create your care circle. Please try again.",
+        R.string.createCareCircleErrorUnknown,
         viewModel.errorEvents.first(),
     )
   }
@@ -158,7 +188,7 @@ class CreateCareCircleViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-        "Your session expired. Sign in and try again.",
+        R.string.createCareCircleErrorSessionExpired,
         viewModel.errorEvents.first(),
     )
   }
@@ -175,7 +205,7 @@ class CreateCareCircleViewModelTest {
     assertFalse(viewModel.uiState.value.isLoading)
 
     assertEquals(
-        "Creation was denied. Check your account and try again.",
+        R.string.createCareCircleErrorPermissionDenied,
         viewModel.errorEvents.first(),
     )
   }

@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.github.se.amber.model.validation.InputValidation
 
 /**
  * App's Constant value
@@ -73,7 +74,16 @@ const val PATIENT_BUTTON_WIDTH_BIG = 1f
 // ------- BOX -------
 val ROUND_CORNER = 12.dp
 val DIVIDER_THICKNESS = 1.dp
-val BORDER_THICKNESS = 1.dp
+
+// This constant will be renamed BORDER_THICKNESS_CAREGIVER when less Pr are open.
+// Currently, this would create too much conflicts.
+val BORDER_THICKNESS = 3.dp
+
+// This constant is intended for the person responsible for setting up the patient screens.
+// I’ll leave it to them to decide on a value that fits in with the rest.
+// If the thickness specified for caregiver is suitable,
+// you can delete it and rename the one for the caregiver.
+val BORDER_THICKNESS_PATIENT = 3.dp
 
 // ------- SURFACE -------
 
@@ -94,8 +104,10 @@ const val MAX_LINE_DEFAULT = 2
 const val MAX_LINE_DESCRIPTION = 5
 
 const val MAX_CHAR_DEFAULT = 20
-const val MAX_CHAR_DESCRIPTION = 200
-const val MAX_CHAR_PLACE_SEARCH = 100
+// The limits themselves are in InputValidation, which the ViewModels enforce
+const val MAX_CHAR_DESCRIPTION = InputValidation.DESCRIPTION_MAX_LENGTH
+const val MAX_CHAR_PLACE_SEARCH = InputValidation.PLACE_QUERY_MAX_LENGTH
+const val MAX_CHAR_NAME = InputValidation.NAME_MAX_LENGTH
 
 const val MAX_VISIBLE_ITEM = 5 // Number of items visible at once in the Date Pickers
 

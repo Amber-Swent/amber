@@ -1,5 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -11,11 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,12 +23,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -40,12 +43,11 @@ import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
-import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
-import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.utils.asString
 
 /** Stable tags for locating the form controls and validation messages in UI tests. */
 object CreateProfileTestTags {
@@ -74,7 +76,6 @@ object CreateProfileTestTags {
  *   composition; tests can pass a custom instance with a fake profile repository.
  * @param signOutViewModel shared sign-out action used by [SignOutButton].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProfileScreen(
     modifier: Modifier = Modifier,
@@ -84,12 +85,13 @@ fun CreateProfileScreen(
     signOutViewModel: SignOutViewModel = viewModel(),
 ) {
   val context = LocalContext.current
+  val resources = LocalResources.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val signOutState by signOutViewModel.uiState.collectAsStateWithLifecycle()
 
-  LaunchedEffect(signOutState.errorMsg) {
-    signOutState.errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(signOutState.errorMsgRes) {
+    signOutState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       signOutViewModel.clearErrorMsg()
     }
   }
@@ -100,16 +102,6 @@ fun CreateProfileScreen(
       modifier = modifier.fillMaxSize(),
       containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
-      topBar = {
-        TopAppBar(
-            title = {
-              DisplayPatientTitle(
-                  title = "Create an account",
-                  titleStyle = MaterialTheme.typography.headlineMedium,
-              )
-            }
-        )
-      },
   ) { innerPadding ->
     Column(
         modifier =
@@ -123,8 +115,15 @@ fun CreateProfileScreen(
       AmberHeader()
 
       Text(
-          text = "What should we call you?",
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE),
+          text = stringResource(R.string.createProfileTitle),
+          modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
+          style = MaterialTheme.typography.headlineMedium,
+          textAlign = TextAlign.Center,
+          color = MaterialTheme.colorScheme.primary,
+      )
+      Text(
+          text = stringResource(R.string.createProfileQuestion),
+          modifier = Modifier.fillMaxWidth(),
           style = MaterialTheme.typography.titleMedium,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.secondary,
@@ -133,47 +132,47 @@ fun CreateProfileScreen(
       ProfileNameField(
           value = uiState.name,
           onValueChange = viewModel::onNameChange,
-          label = "Name",
+          label = stringResource(R.string.createProfileName),
           fieldTag = CreateProfileTestTags.NAME_INPUT,
-          error = uiState.nameError,
+          error = uiState.nameError?.asString(LocalResources.current),
           errorTag = CreateProfileTestTags.NAME_ERROR,
       )
       ProfileNameField(
           value = uiState.surname,
           onValueChange = viewModel::onSurnameChange,
-          label = "Surname",
+          label = stringResource(R.string.createProfileSurname),
           fieldTag = CreateProfileTestTags.SURNAME_INPUT,
-          error = uiState.surnameError,
+          error = uiState.surnameError?.asString(LocalResources.current),
           errorTag = CreateProfileTestTags.SURNAME_ERROR,
       )
 
       Text(
-          text = "Please select your role",
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
+          text = stringResource(R.string.createProfileSelectRole),
+          modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.titleMedium,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.secondary,
       )
 
       DisplayPatientButton(
-          text = "Patient",
-          enabled = !uiState.isSaving,
+          text = stringResource(R.string.createProfilePatient),
+          enabled = uiState.canSubmit,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
       DisplayPatientButton(
-          text = "Caregiver",
-          enabled = !uiState.isSaving,
+          text = stringResource(R.string.createProfileCaregiver),
+          enabled = uiState.canSubmit,
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
 
       SignOutButton(viewModel = signOutViewModel)
 
-      uiState.submitError?.let { errorMessage ->
+      uiState.errorMsgRes?.let { errorMsgRes ->
         Text(
-            text = errorMessage,
+            text = stringResource(errorMsgRes),
             modifier =
-                Modifier.fillMaxWidth(WEIGHT_ONE)
+                Modifier.fillMaxWidth()
                     .padding(top = CAREGIVER_PADDING_SMALL)
                     .testTag(CreateProfileTestTags.SUBMIT_ERROR),
             style = MaterialTheme.typography.bodySmall,
