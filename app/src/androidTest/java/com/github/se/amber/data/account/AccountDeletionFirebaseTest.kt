@@ -41,7 +41,7 @@ class AccountDeletionFirebaseTest {
 
   @Test
   fun anInterruptedDeletionIsOnlyFinishedOnceTheAccountIsReallyGone() = runBlocking {
-    FirebaseEmulator.requireOrSkip(message = "Start the Firebase emulators: see FirebaseEmulator")
+    FirebaseEmulator.requireOrSkip()
     FirebaseEmulator.useForDefaultApp()
     val phone = Firebase.auth
     // A second session of the same user, standing in for the backend deleting the account

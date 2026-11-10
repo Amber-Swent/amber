@@ -27,8 +27,8 @@ import org.json.JSONObject
  *   emulators don't delete each other's data.
  *
  * The emulators treat a request carrying `Authorization: Bearer owner` as an admin one: the rules
- * don't apply to it. Only the emulators of [FirebaseEmulator] are reached, and every call first
- * checks that the app is on the fake `demo-` project, so this can never touch the real one.
+ * don't apply to it. Every URL points at [FirebaseEmulator.HOST], so this can never reach the real
+ * project.
  */
 object EmulatorAdmin {
   private const val DATABASE = "projects/${FirebaseEmulator.PROJECT_ID}/databases/(default)"
@@ -42,6 +42,8 @@ object EmulatorAdmin {
   private const val TIMEOUT_MILLIS = 5_000
   /** The answer of an emulator for something missing, e.g. a file already deleted. */
   private val NOT_FOUND = setOf(HttpURLConnection.HTTP_NOT_FOUND)
+  /** The subcollections of a care circle, from the Firestore rules. */
+  private val CIRCLE_SUBCOLLECTIONS = listOf("media", "stories", "appointments")
 
   /**
    * Gives a care circle its storage bucket, as the bucket trigger does once the circle is created.
@@ -68,18 +70,29 @@ object EmulatorAdmin {
   }
 
   /**
-   * Deletes a care circle's media documents, then the circle document. No client may delete a
-   * circle.
+   * Deletes a care circle's media, stories and appointments, then the circle document. Deleting a
+   * document doesn't delete its subcollections, so they go first. No client may delete a circle.
    *
    * @param circleId the circle to delete
    */
   fun deleteCircle(circleId: String) {
-    val body =
-        request("GET", "$FIRESTORE/documents/careCircles/$circleId/media", missingCodes = NOT_FOUND)
-    val documents = body?.let { JSONObject(it).optJSONArray("documents") } ?: JSONArray()
-    val mediaNames = List(documents.length()) { documents.getJSONObject(it).getString("name") }
-    commit(mediaNames.map { JSONObject().put("delete", it) })
-    commit(listOf(JSONObject().put("delete", "$DATABASE/documents/careCircles/$circleId")))
+    val circle = "careCircles/$circleId"
+    val children = CIRCLE_SUBCOLLECTIONS.flatMap { documentNames("$circle/$it") }
+    commit(children.map { JSONObject().put("delete", it) })
+    commit(listOf(JSONObject().put("delete", "$DATABASE/documents/$circle")))
+  }
+
+  /**
+   * Lists the documents of a collection, whatever the rules say. Tests use it to check what is
+   * left.
+   *
+   * @param collection the collection's path, e.g. `careCircles/c1/media`
+   * @return the full names of its documents; none if the collection is empty
+   */
+  fun documentNames(collection: String): List<String> {
+    val body = request("GET", "$FIRESTORE/documents/$collection", missingCodes = NOT_FOUND)
+    val documents = body?.let { JSONObject(it).optJSONArray("documents") } ?: return emptyList()
+    return List(documents.length()) { documents.getJSONObject(it).getString("name") }
   }
 
   /**
@@ -106,19 +119,18 @@ object EmulatorAdmin {
   }
 
   /**
-   * Deletes the Auth emulator accounts with these uids. The Auth emulator answers 400, not 404, for
-   * an account already gone, so a 400 is ignored too.
+   * Deletes the Auth emulator accounts with these uids. An account already gone is skipped: the
+   * Auth emulator answers it with a 400 `USER_NOT_FOUND`. Any other error is thrown.
    *
    * @param uids the uids of the accounts to delete
    */
   fun deleteAccounts(uids: Collection<String>) {
     for (uid in uids) {
-      request(
-          "POST",
-          "$AUTH/accounts:delete",
-          JSONObject().put("localId", uid),
-          missingCodes = setOf(HttpURLConnection.HTTP_BAD_REQUEST),
-      )
+      try {
+        request("POST", "$AUTH/accounts:delete", JSONObject().put("localId", uid))
+      } catch (e: IOException) {
+        if ("USER_NOT_FOUND" !in e.message.orEmpty()) throw e
+      }
     }
   }
 
@@ -175,13 +187,16 @@ object EmulatorAdmin {
   }
 
   /**
-   * Refuses to go on unless the app uses the fake project of [FirebaseEmulator]: Firebase gives a
-   * `demo-` project no real resources, and only the emulators know it.
+   * Refuses to go on until [FirebaseEmulator.useForDefaultApp] has run. The requests themselves
+   * always go to the emulators, but before that call the app is still on the real project, so this
+   * would set up or delete data the app can't see.
+   *
+   * @throws IllegalStateException if the default app is not on [FirebaseEmulator.PROJECT_ID]
    */
   private fun checkEmulatorProject() {
     val projectId = Firebase.app.options.projectId
-    check(projectId == FirebaseEmulator.PROJECT_ID && projectId.startsWith("demo-")) {
-      "EmulatorAdmin only runs against the demo project, not $projectId"
+    check(projectId == FirebaseEmulator.PROJECT_ID) {
+      "Call FirebaseEmulator.useForDefaultApp() first: the app is on $projectId"
     }
   }
 
