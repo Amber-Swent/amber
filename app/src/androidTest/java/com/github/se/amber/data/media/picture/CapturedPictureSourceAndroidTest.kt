@@ -9,10 +9,10 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -30,6 +30,7 @@ class CapturedPictureSourceAndroidTest {
     const val ROTATION_DEGREES = 90
     const val LAUSANNE_LAT = 46.52
     const val LAUSANNE_LNG = 6.63
+    const val GALLERY_PICTURE = "gallery.png"
   }
 
   private lateinit var context: Context
@@ -39,6 +40,14 @@ class CapturedPictureSourceAndroidTest {
   fun setUp() {
     context = InstrumentationRegistry.getInstrumentation().targetContext
     source = CapturedPictureSourceAndroid(context)
+  }
+
+  /** Cleans up even when an assertion failed, so no picture is left for the next test. */
+  @After
+  fun tearDown() {
+    File(context.cacheDir, CAPTURED_PICTURES_DIR).deleteRecursively()
+    File(context.cacheDir, GALLERY_PICTURE).delete()
+    context.cacheDir.listFiles { file -> file.name.startsWith("picked_") }?.forEach { it.delete() }
   }
 
   /** Writes a JPEG through [uri], the way the camera app does. */
@@ -91,7 +100,7 @@ class CapturedPictureSourceAndroidTest {
 
   @Test
   fun aGalleryPictureWithoutMetadataIsStillRead() = runBlocking {
-    val png = File(context.cacheDir, "gallery.png")
+    val png = File(context.cacheDir, GALLERY_PICTURE)
     png.outputStream().use {
       assertTrue(
           Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
@@ -103,17 +112,15 @@ class CapturedPictureSourceAndroidTest {
 
     assertEquals(WIDTH, picture.width)
     assertEquals(HEIGHT, picture.height)
-    png.delete()
-    picture.file.delete()
-    Unit
   }
 
   @Test
   fun readingACaptureTheCameraNeverWroteFails() = runBlocking {
     val uri = source.newCaptureUri()
 
-    assertThrows(IllegalArgumentException::class.java) { runBlocking { source.read(uri) } }
-    source.discard(uri)
+    val failure = runCatching { source.read(uri) }.exceptionOrNull()
+
+    assertTrue(failure is IllegalArgumentException)
   }
 
   @Test
@@ -126,8 +133,7 @@ class CapturedPictureSourceAndroidTest {
     val next = source.newCaptureUri(keeping = inUse)
 
     assertTrue(captureFile(inUse).exists())
-    source.discard(inUse)
-    source.discard(next)
+    assertTrue(captureFile(next).exists())
   }
 
   @Test
@@ -139,6 +145,5 @@ class CapturedPictureSourceAndroidTest {
 
     assertFalse(captureFile(discarded).exists())
     assertTrue(captureFile(kept).exists())
-    source.discard(kept)
   }
 }
