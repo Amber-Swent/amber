@@ -12,15 +12,20 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -34,6 +39,9 @@ class SeeAudiosViewModelTest {
       UserProfile(uid = "patient", role = Role.PATIENT, person = Person(), circleIds = listOf("circle1"))
   private val circle = CareCircle(id = "circle1")
   private val audio = MediaItem.Audio(id = "a1")
+  private val secondAudio = MediaItem.Audio(id = "a2")
+  private val picture = MediaItem.Picture(id = "p1")
+  private val text = MediaItem.Text(id = "t1")
 
   @Before
   fun setUp() {
@@ -73,5 +81,180 @@ class SeeAudiosViewModelTest {
 
     val state = createViewModel().uiState.value as SeeAudiosUIState.BlockingError
     assertEquals(R.string.seeAudiosErrorNoProfile, state.errorMsgRes)
+  }
+
+  @Test
+  fun non_audio_media_still_produces_empty_state() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(picture, text))
+
+    val state = createViewModel().uiState.value as SeeAudiosUIState.Empty
+    assertEquals(profile, state.patientProfile)
+    assertEquals(circle, state.careCircle)
+    assertNull(state.errorMsgRes)
+  }
+
+  @Test
+  fun remains_loading_until_media_emits() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+
+    assertTrue(createViewModel().uiState.value is SeeAudiosUIState.Loading)
+  }
+
+  @Test
+  fun reflects_live_audio_updates_and_removal() {
+    val media = MutableStateFlow<List<MediaItem>>(emptyList())
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns media
+    val viewModel = createViewModel()
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.Empty)
+
+    media.value = listOf(picture, audio)
+    assertEquals(listOf(audio), (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios)
+
+    media.value = listOf(secondAudio, audio)
+    assertEquals(
+        listOf(secondAudio, audio),
+        (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios,
+    )
+
+    media.value = listOf(text)
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.Empty)
+  }
+
+  @Test
+  fun profile_failure_is_a_blocking_error() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("offline"))
+
+    val state = createViewModel().uiState.value as SeeAudiosUIState.BlockingError
+    assertEquals(R.string.seeAudiosErrorLoadProfile, state.errorMsgRes)
+  }
+
+  @Test
+  fun missing_circle_id_stops_before_loading_circle_or_media() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = listOf("", "  ")))
+
+    val state = createViewModel().uiState.value as SeeAudiosUIState.BlockingError
+    assertEquals(R.string.seeAudiosErrorNoCircle, state.errorMsgRes)
+    coVerify(exactly = 0) { circleRepository.getCircle(any()) }
+    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
+  }
+
+  @Test
+  fun first_nonblank_circle_id_is_used() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = listOf("", "circle1")))
+
+    assertTrue(createViewModel().uiState.value is SeeAudiosUIState.Empty)
+    coVerify(exactly = 1) { circleRepository.getCircle("circle1") }
+    coVerify(exactly = 1) { mediaRepository.observeApprovedMedia("circle1") }
+  }
+
+  @Test
+  fun circle_failure_is_a_blocking_error() {
+    coEvery { circleRepository.getCircle("circle1") } returns Result.failure(Exception("offline"))
+
+    val state = createViewModel().uiState.value as SeeAudiosUIState.BlockingError
+    assertEquals(R.string.seeAudiosErrorLoadCircle, state.errorMsgRes)
+    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
+  }
+
+  @Test
+  fun media_failure_before_first_emission_is_blocking() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw RuntimeException("offline") }
+
+    val state = createViewModel().uiState.value as SeeAudiosUIState.BlockingError
+    assertEquals(R.string.seeAudiosErrorLoadMedia, state.errorMsgRes)
+  }
+
+  @Test
+  fun media_failure_after_content_keeps_audio_until_error_is_cleared() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(listOf(picture, audio))
+          throw RuntimeException("offline")
+        }
+    val viewModel = createViewModel()
+
+    val stateWithError = viewModel.uiState.value as SeeAudiosUIState.Content
+    assertEquals(listOf(audio), stateWithError.allAudios)
+    assertEquals(R.string.seeAudiosErrorLoadMedia, stateWithError.errorMsgRes)
+
+    viewModel.clearErrorMsg()
+
+    val clearedState = viewModel.uiState.value as SeeAudiosUIState.Content
+    assertEquals(listOf(audio), clearedState.allAudios)
+    assertNull(clearedState.errorMsgRes)
+  }
+
+  @Test
+  fun media_failure_after_empty_list_keeps_empty_state_until_error_is_cleared() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          emit(emptyList())
+          throw RuntimeException("offline")
+        }
+    val viewModel = createViewModel()
+    assertEquals(
+        R.string.seeAudiosErrorLoadMedia,
+        (viewModel.uiState.value as SeeAudiosUIState.Empty).errorMsgRes,
+    )
+
+    viewModel.clearErrorMsg()
+
+    assertNull((viewModel.uiState.value as SeeAudiosUIState.Empty).errorMsgRes)
+  }
+
+  @Test
+  fun retry_recovers_from_a_blocking_error() {
+    coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("offline"))
+    val viewModel = createViewModel()
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.BlockingError)
+
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    viewModel.retry()
+
+    assertEquals(listOf(audio), (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios)
+  }
+
+  @Test
+  fun retry_shows_loading_and_stops_observing_old_media() {
+    val oldMedia = MutableStateFlow<List<MediaItem>>(listOf(audio))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns oldMedia
+    val viewModel = createViewModel()
+
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+    viewModel.retry()
+    oldMedia.value = listOf(secondAudio)
+
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.Loading)
+  }
+
+  @Test
+  fun refresh_updates_content_from_new_media() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    val viewModel = createViewModel()
+
+    val newMedia = MutableStateFlow<List<MediaItem>>(listOf(audio, secondAudio))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns newMedia
+    viewModel.refreshUIState()
+
+    assertEquals(
+        listOf(audio, secondAudio),
+        (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios,
+    )
+  }
+
+  @Test
+  fun refresh_keeps_current_content_while_reloading() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    val viewModel = createViewModel()
+
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+    viewModel.refreshUIState()
+
+    assertEquals(listOf(audio), (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios)
   }
 }
