@@ -4,18 +4,34 @@
 package com.github.se.amber.ui.patient.seeMedias.audios
 
 import android.content.Context
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.user.Person
+import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.media.MediaCardViewModel
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -35,20 +51,73 @@ class SeeAudiosScreenTest {
   private fun string(id: Int, vararg args: Any): String =
       ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
+  // Like SeePicturesTest, provide MediaCard's ViewModel without its Firebase defaults.
+  private fun testOwner(audioViewModel: SeeAudiosViewModel): ViewModelStoreOwner =
+      object : ViewModelStoreOwner, HasDefaultViewModelProviderFactory {
+        override val viewModelStore = ViewModelStore()
+        override val defaultViewModelProviderFactory =
+            object : ViewModelProvider.Factory {
+              @Suppress("UNCHECKED_CAST")
+              override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                  when (modelClass) {
+                    SeeAudiosViewModel::class.java -> audioViewModel as T
+                    MediaCardViewModel::class.java ->
+                        MediaCardViewModel(mockk(), mockk()) as T
+                    else -> error("Unexpected ViewModel: $modelClass")
+                  }
+            }
+      }
+
   private fun setContent(
       onBackClick: () -> Unit = {},
       onTabSelected: (Tab) -> Unit = {},
+      state: SeeAudiosUIState =
+          SeeAudiosUIState.Empty(
+              UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+              CareCircle(id = "circle1"),
+          ),
+      onPlayAudio: (String) -> Unit = {},
+      onReplayAudio: (String) -> Unit = {},
   ) {
-    val viewModel = SeeAudiosViewModel()
+    val viewModel = mockk<SeeAudiosViewModel>(relaxed = true)
+    every { viewModel.uiState } returns MutableStateFlow(state)
     composeTestRule.setContent {
-      AmberAppTheme(dynamicColor = false) {
-        SeeAudiosScreen(
-            audioViewModel = viewModel,
-            onBackClick = onBackClick,
-            onTabSelected = onTabSelected,
-        )
+      CompositionLocalProvider(LocalViewModelStoreOwner provides testOwner(viewModel)) {
+        AmberAppTheme(dynamicColor = false) {
+          SeeAudiosScreen(
+              audioViewModel = viewModel,
+              onBackClick = onBackClick,
+              onTabSelected = onTabSelected,
+              onPlayAudio = onPlayAudio,
+              onReplayAudio = onReplayAudio,
+          )
+        }
       }
     }
+  }
+
+  @Test
+  fun content_shows_audio_and_card_and_calls_controls() {
+    val audio = MediaItem.Audio(id = "a1")
+    var played: String? = null
+    var replayed: String? = null
+    setContent(
+        state =
+            SeeAudiosUIState.Content(
+                UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+                CareCircle(id = "circle1"),
+                listOf(audio),
+            ),
+        onPlayAudio = { played = it },
+        onReplayAudio = { replayed = it },
+    )
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("a1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("media_audio_left_button").performClick()
+    composeTestRule.onNodeWithTag("media_audio_right_button").performClick()
+    assertEquals("a1", played)
+    assertEquals("a1", replayed)
   }
 
   @Test
@@ -96,7 +165,19 @@ class SeeAudiosScreenTest {
 
   @Test
   fun preview_displays_the_empty_message() {
-    composeTestRule.setContent { SeeAudiosScreenPreview() }
+    val viewModel = mockk<SeeAudiosViewModel>(relaxed = true)
+    every { viewModel.uiState } returns
+        MutableStateFlow(
+            SeeAudiosUIState.Empty(
+                UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+                CareCircle(id = "circle1"),
+            )
+        )
+    composeTestRule.setContent {
+      CompositionLocalProvider(LocalViewModelStoreOwner provides testOwner(viewModel)) {
+        SeeAudiosScreenPreview()
+      }
+    }
 
     composeTestRule
         .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)

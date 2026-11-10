@@ -4,12 +4,14 @@
 package com.github.se.amber.ui.patient.seeMedias.audios
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
@@ -26,19 +28,19 @@ import kotlinx.coroutines.launch
 sealed interface SeeAudiosUIState {
   data object Loading : SeeAudiosUIState
 
-  data class BlockingError(val message: String) : SeeAudiosUIState
+  data class BlockingError(@param:StringRes val errorMsgRes: Int) : SeeAudiosUIState
 
   data class Empty(
       val patientProfile: UserProfile,
       val careCircle: CareCircle,
-      val errorMsg: String? = null,
+      @param:StringRes val errorMsgRes: Int? = null,
   ) : SeeAudiosUIState
 
   data class Content(
       val patientProfile: UserProfile,
       val careCircle: CareCircle,
       val allAudios: List<MediaItem.Audio>,
-      val errorMsg: String? = null,
+      @param:StringRes val errorMsgRes: Int? = null,
   ) : SeeAudiosUIState
 }
 
@@ -64,24 +66,24 @@ class SeeAudiosViewModel(
 
   fun clearErrorMsg() {
     when (val state = _uiState.value) {
-      is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsg = null)
-      is SeeAudiosUIState.Content -> _uiState.value = state.copy(errorMsg = null)
+      is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsgRes = null)
+      is SeeAudiosUIState.Content -> _uiState.value = state.copy(errorMsgRes = null)
       else -> Unit
     }
   }
 
   /** Keeps an existing state on error and falls back to a blocking error while loading. */
-  private fun setNonBlockingErrorMsg(message: String) {
+  private fun setNonBlockingErrorMsg(@StringRes errorMsgRes: Int) {
     when (val state = _uiState.value) {
-      is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsg = message)
-      is SeeAudiosUIState.Content -> _uiState.value = state.copy(errorMsg = message)
+      is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsgRes = errorMsgRes)
+      is SeeAudiosUIState.Content -> _uiState.value = state.copy(errorMsgRes = errorMsgRes)
       is SeeAudiosUIState.Loading,
-      is SeeAudiosUIState.BlockingError -> setBlockingErrorMsg(message)
+      is SeeAudiosUIState.BlockingError -> setBlockingErrorMsg(errorMsgRes)
     }
   }
 
-  private fun setBlockingErrorMsg(message: String) {
-    _uiState.value = SeeAudiosUIState.BlockingError(message)
+  private fun setBlockingErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.value = SeeAudiosUIState.BlockingError(errorMsgRes)
   }
 
   private fun load(showLoading: Boolean = true) {
@@ -93,18 +95,18 @@ class SeeAudiosViewModel(
       val profile =
           profileRepository.getCurrentProfile().getOrElse { error ->
             Log.e(TAG, "Error fetching profile", error)
-            setBlockingErrorMsg("Failed to load the profile: ${error.message}")
+            setBlockingErrorMsg(R.string.seeAudiosErrorLoadProfile)
             return@launch
           }
               ?: run {
-                setBlockingErrorMsg("No profile found.")
+                setBlockingErrorMsg(R.string.seeAudiosErrorNoProfile)
                 return@launch
               }
 
       // Get patient's circle id
       val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
       if (circleId == null) {
-        setBlockingErrorMsg("No care circle found for this patient.")
+        setBlockingErrorMsg(R.string.seeAudiosErrorNoCircle)
         return@launch
       }
 
@@ -112,19 +114,19 @@ class SeeAudiosViewModel(
       val circle =
           circleRepository.getCircle(circleId).getOrElse { error ->
             Log.e(TAG, "Error fetching care circle", error)
-            setBlockingErrorMsg("Failed to load the care circle: ${error.message}")
+            setBlockingErrorMsg(R.string.seeAudiosErrorLoadCircle)
             return@launch
           }
 
       // The approved media flow is already ordered newest first.
-      val mediaFlow: Flow<List<MediaItem>> = mediaRepository.observeApprovedMedia(circleId) // observeApprovedMedia() returns newest first
+      val mediaFlow: Flow<List<MediaItem>> = mediaRepository.observeApprovedMedia(circleId)
       mediaFlow
           .catch { error ->
             Log.e(TAG, "Error observing media", error)
-            setNonBlockingErrorMsg("Failed to load media: ${error.message}")
+            setNonBlockingErrorMsg(R.string.seeAudiosErrorLoadMedia)
           }
           .collect { media ->
-            val audios = media.filterIsInstance<MediaItem.Audio>() // Preserves the order so no need to reinforce newest first
+            val audios = media.filterIsInstance<MediaItem.Audio>()
             _uiState.value =
                 if (audios.isEmpty()) {
                   SeeAudiosUIState.Empty(patientProfile = profile, careCircle = circle)
