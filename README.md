@@ -52,6 +52,9 @@ We also looked specifically for drawbacks. The evidence suggests that viewing ph
 
 **Confidence.** The idea that a reactivated memory becomes temporarily modifiable (reconsolidation) is a theoretical mechanism, supported by experiments on healthy adults but not by studies in dementia. Source confusion is the better-supported risk, which is why we focus on it.
 
+**Sources.** This section summarises the scientific literature we consulted but does not list references. If you would like the sources behind a specific claim, please contact us and we will be happy to share them.
+
+
 ## Split-App Model
 
 Amber has **no separately hosted backend**. It is a fully native Android client backed by managed Firebase services, including project-owned server-side Cloud Functions:
@@ -91,7 +94,7 @@ Caregivers can use the phone's camera and microphone to add memories to a care c
 | **Microphone** | Caregivers can record a voice memo in the app and upload it with a description for the circle.                                                                                                |
 | **Place search** | Caregivers can tag a picture with a saved place or search for a place by name or address. Amber uses Android's Geocoder to suggest places; it does not read the phone's GPS location for now. |
 
-Camera and microphone access are used when caregivers choose those actions. Place tagging is optional, and searching for place suggestions requires a network connection.
+Amber asks for microphone permission the first time a caregiver records a voice memo. Taking a picture opens the phone’s own camera app. Searching for place suggestions requires a network connection.
 
 ## Offline Mode
 
@@ -104,4 +107,13 @@ Camera and microphone access are used when caregivers choose those actions. Plac
 
 ## Team
 
-*TODO: team members and roles*
+| Member          | Role                             |
+|-----------------|----------------------------------|
+| LaMaier         | Frontend + support Communication |
+| nehachak1       | Backend + support Frontend       |
+| ViktorJurczenko | Backend                          |
+| MeiliV          | Frontend + Communication         |
+| Alaabrine       | Backend + Frontend               |
+| feiyang2521     | Frontend                         |
+| camomille299    | Frontend + Communication         |
+
