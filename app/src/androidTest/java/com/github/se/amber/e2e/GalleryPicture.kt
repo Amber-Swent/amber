@@ -7,6 +7,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
+import android.os.SystemClock
 import android.provider.MediaStore
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
@@ -123,16 +124,22 @@ class GalleryPicture(private val context: Context, private val name: String) {
    * Finds the first picture of the picker's grid, as the node to tap: the clickable cell holding
    * the thumbnail, since in some picker versions the thumbnail itself isn't clickable.
    *
+   * The picker's versions name their thumbnails differently, so it checks all the known selectors
+   * at each poll, and takes the first that matches. That way it doesn't wait for a selector the
+   * picker on screen never matches.
+   *
    * @param device the device showing the picker
-   * @param timeoutMillis how long to wait for the grid's pictures, over all the selectors
-   * @return the node to tap, or null if no selector found a picture
+   * @param timeoutMillis how long to wait for the grid's pictures
+   * @return the node to tap, or null if no selector found a picture in time
    */
   private fun findPicture(device: UiDevice, timeoutMillis: Long): UiObject2? {
-    // the picker's versions name their thumbnails differently: try each known one
-    val thumbnail =
-        PICTURE_SELECTORS.firstNotNullOfOrNull { selector ->
-          device.wait(Until.findObject(selector), timeoutMillis / PICTURE_SELECTORS.size)
-        } ?: return null
+    val deadline = SystemClock.uptimeMillis() + timeoutMillis
+    var thumbnail = PICTURE_SELECTORS.firstNotNullOfOrNull { device.findObject(it) }
+    while (thumbnail == null && SystemClock.uptimeMillis() < deadline) {
+      SystemClock.sleep(POLL_MILLIS)
+      thumbnail = PICTURE_SELECTORS.firstNotNullOfOrNull { device.findObject(it) }
+    }
+    if (thumbnail == null) return null
     var node: UiObject2? = thumbnail
     while (node != null && !node.isClickable) node = node.parent
     return node ?: thumbnail
@@ -164,6 +171,7 @@ class GalleryPicture(private val context: Context, private val name: String) {
     const val SIZE_PX = 64
     const val JPEG_QUALITY = 90
     const val PICK_ATTEMPTS = 3
+    const val POLL_MILLIS = 200L
 
     /** The packages of the Photo Picker: AOSP and Google builds, the MediaProvider one or not. */
     val PICKER_PACKAGES: Pattern =
