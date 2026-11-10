@@ -2,6 +2,7 @@
 
 package com.github.se.amber.data.media.picture
 
+import android.content.ContentResolver
 import android.content.Context
 import android.util.Log
 import androidx.core.content.FileProvider
@@ -20,7 +21,10 @@ import kotlinx.coroutines.withContext
  */
 const val CAPTURED_PICTURES_DIR = "captured_pictures"
 
-/** Provides the temporary files the camera app saves captured pictures to. */
+/**
+ * Provides the temporary files the camera app saves captured pictures to. It has a single owner:
+ * each new capture deletes every other one, so only the picture passed as `keeping` survives.
+ */
 interface CapturedPictureSource {
   /**
    * Creates an empty temporary picture for the camera app to write to. Older captures are deleted:
@@ -59,6 +63,7 @@ class CapturedPictureSourceAndroid(
 ) : CapturedPictureSource {
   private val appContext = context.applicationContext
   private val captureDir = File(appContext.cacheDir, CAPTURED_PICTURES_DIR)
+  private val authority = "${appContext.packageName}.fileprovider"
 
   override suspend fun newCaptureUri(keeping: String?): String =
       withContext(ioDispatcher) {
@@ -66,8 +71,7 @@ class CapturedPictureSourceAndroid(
         val kept = keeping?.let(::fileOf)
         captureDir.listFiles()?.filter { it != kept }?.forEach(::delete)
         val file = File.createTempFile("captured_", ".jpg", captureDir)
-        FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
-            .toString()
+        FileProvider.getUriForFile(appContext, authority, file).toString()
       }
 
   override suspend fun read(uri: String): PickedImage =
@@ -82,9 +86,23 @@ class CapturedPictureSourceAndroid(
     if (!file.delete() && file.exists()) Log.w(TAG, "Couldn't delete the capture ${file.name}")
   }
 
-  /** The file behind a URI from [newCaptureUri]: it is named after the URI's last segment. */
-  private fun fileOf(uri: String): File =
-      File(captureDir, requireNotNull(uri.toUri().lastPathSegment) { "Invalid picture URI" })
+  /**
+   * The file behind a URI from [newCaptureUri]: it is named after the URI's last segment.
+   *
+   * @throws IllegalArgumentException If the URI isn't one of this source's captures, so a segment
+   *   such as `..%2Fx` can't reach a file outside the capture folder.
+   */
+  private fun fileOf(uri: String): File {
+    val parsed = uri.toUri()
+    require(parsed.scheme == ContentResolver.SCHEME_CONTENT && parsed.authority == authority) {
+      "Not a captured picture URI"
+    }
+    val file = File(captureDir, requireNotNull(parsed.lastPathSegment) { "Invalid picture URI" })
+    require(file.canonicalFile.parentFile == captureDir.canonicalFile) {
+      "Not a captured picture URI"
+    }
+    return file
+  }
 }
 
 private const val TAG = "CapturedPictureSource"
