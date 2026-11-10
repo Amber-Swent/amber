@@ -2,7 +2,6 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
-
 package com.github.se.amber.ui.patient
 
 import android.content.res.Configuration
@@ -95,7 +94,8 @@ fun DisplayPatientTitle(
  *
  * @param modifier modifier applied to the button
  * @param buttonHeight height of the button
- * @param buttonWidth fraction of the available width taken by the button Ignored when [fillWidth] is false.
+ * @param buttonWidth fraction of the available width taken by the button. Ignored when [fillWidth]
+ *   is false.
  * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
  *   centered. If false, the button only wraps its content.
  * @param text label displayed on the button.
@@ -104,7 +104,8 @@ fun DisplayPatientTitle(
  * @param description content description for the icon. Only used when [icon] is not null.
  * @param enabled say if the button is clickable or not
  * @param onClick callback invoked when the button is selected.
- * @param testTag test tag of the button. Defaults to [PatientUtilsTestTags.BUTTON_WITH_ICON] when an icon is displayed, and to [PatientUtilsTestTags.BUTTON] otherwise.
+ * @param testTag test tag of the button. Defaults to [PatientUtilsTestTags.BUTTON_WITH_ICON] when
+ *   an icon is displayed, and to [PatientUtilsTestTags.BUTTON] otherwise.
  * @param iconTestTag test tag of the icon. Only used when [icon] is not null.
  */
 @NonRestartableComposable
@@ -129,10 +130,10 @@ fun DisplayPatientButton(
             .wrapContentWidth(Alignment.CenterHorizontally)
             .fillMaxWidth(buttonWidth)
       } else Modifier
-    val resolvedTestTag =
-        testTag
-            ?: if (icon != null) PatientUtilsTestTags.BUTTON_WITH_ICON
-            else PatientUtilsTestTags.BUTTON
+  val resolvedTestTag =
+      testTag
+          ?: if (icon != null) PatientUtilsTestTags.BUTTON_WITH_ICON
+          else PatientUtilsTestTags.BUTTON
   Button(
       onClick = onClick,
       modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(resolvedTestTag),
@@ -155,13 +156,13 @@ fun DisplayPatientButton(
           modifier = if (fillWidth) Modifier.weight(WEIGHT_ONE) else Modifier,
       )
       icon?.let {
-          Icon(
-              imageVector = it,
-              contentDescription = description,
-              modifier =
-                  (if (fillWidth) Modifier else Modifier.padding(start = PATIENT_PADDING_SMALL))
-                      .testTag(iconTestTag),
-          )
+        Icon(
+            imageVector = it,
+            contentDescription = description,
+            modifier =
+                (if (fillWidth) Modifier else Modifier.padding(start = PATIENT_PADDING_SMALL))
+                    .testTag(iconTestTag),
+        )
       }
     }
   }
@@ -235,7 +236,7 @@ fun DisplayPatientCircularIconButton(
 
 @Preview(showBackground = true, name = "Patient utils light")
 @Composable
-internal fun DisplayPatientCircularButtonsPreviewWILLBEDELETED() {
+internal fun DisplayPatientButtonsPreview() {
   AmberAppTheme(darkTheme = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -249,7 +250,9 @@ internal fun DisplayPatientCircularButtonsPreviewWILLBEDELETED() {
       )
       DisplayPatientButton(
           text = "Add",
+          icon = Icons.Default.Add,
           description = "Add patient",
+          fillWidth = false,
           onClick = {},
       )
       DisplayPatientCircularIconButton(
@@ -266,7 +269,7 @@ internal fun DisplayPatientCircularButtonsPreviewWILLBEDELETED() {
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-internal fun DisplayPatientCircularButtonsDarkPreviewWILLBEDELETED() {
+internal fun DisplayPatientButtonsDarkPreview() {
   AmberAppTheme(darkTheme = true) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -280,7 +283,9 @@ internal fun DisplayPatientCircularButtonsDarkPreviewWILLBEDELETED() {
       )
       DisplayPatientButton(
           text = "Add",
+          icon = Icons.Default.Add,
           description = "Add patient",
+          fillWidth = false,
           onClick = {},
       )
       DisplayPatientCircularIconButton(
