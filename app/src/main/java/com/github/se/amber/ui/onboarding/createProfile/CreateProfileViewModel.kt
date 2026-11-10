@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of an AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -10,8 +10,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
+import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.validation.InputValidation
@@ -77,7 +79,7 @@ class CreateProfileViewModel(
   private val _uiState = MutableStateFlow(CreateProfileUIState())
   val uiState: StateFlow<CreateProfileUIState> = _uiState.asStateFlow()
 
-  private var createdRole: Role? = null
+  private var savedProfile: SavedOnboardingProfile? = null
 
   /**
    * Updates [CreateProfileUIState.name], cut at [InputValidation.NAME_MAX_LENGTH]; field error
@@ -96,18 +98,19 @@ class CreateProfileViewModel(
   }
 
   /**
-   * Validates name and surname, then creates the profile with [role] via [ProfileRepository].
+   * Validates name and surname, then saves the profile with [role].
    *
-   * [onSuccess] is invoked after a successful create (and again if the user returns and presses a
-   * role button), so the navigation owner can move forward without observing UI state. Does nothing
-   * while a save is already in progress. Does not call the repository when a field is blank after
-   * trim or isn't a valid name.
+   * The first successful choice creates the profile. Pressing the same role again only navigates.
+   * Pressing the other role updates the stored onboarding profile, so a wrong choice can be
+   * corrected after Cancel. If this screen is recreated and the profile already exists with no care
+   * circle, the selected role is written over that profile instead of failing with "already
+   * exists".
+   *
+   * [onSuccess] runs after the profile matches [role], so the navigation owner can move forward
+   * without observing UI state. Does nothing while a save is already in progress. Does not call the
+   * repository when a field is blank after trim or isn't a valid name.
    */
   fun onRoleSelected(role: Role, onSuccess: (Role) -> Unit = {}) {
-    createdRole?.let {
-      onSuccess(it)
-      return
-    }
     if (_uiState.value.isSaving) return
 
     val trimmedName = _uiState.value.name.trim()
@@ -128,28 +131,83 @@ class CreateProfileViewModel(
       return
     }
 
+    val saved = savedProfile
+    if (
+        saved != null &&
+            saved.name == trimmedName &&
+            saved.surname == trimmedSurname &&
+            saved.role == role
+    ) {
+      onSuccess(role)
+      return
+    }
+
     viewModelScope.launch {
       _uiState.update { it.copy(isSaving = true, errorMsgRes = null) }
+      val person = Person(firstName = trimmedName, lastName = trimmedSurname)
       val result =
-          profileRepository.createProfile(
-              person = Person(firstName = trimmedName, lastName = trimmedSurname),
-              role = role,
-          )
-      result
-          .onSuccess {
-            createdRole = role
-            _uiState.update { it.copy(isSaving = false, errorMsgRes = null) }
-            onSuccess(role)
+          if (saved == null) {
+            profileRepository.createProfile(person = person, role = role)
+          } else {
+            profileRepository.updateOnboardingProfile(person = person, role = role)
           }
-          .onFailure { error ->
-            _uiState.update {
-              it.copy(
-                  isSaving = false,
-                  errorMsgRes = error.errorMessage(),
-              )
+      result.fold(
+          onSuccess = { rememberAndContinue(trimmedName, trimmedSurname, role, onSuccess) },
+          onFailure = { error ->
+            if (saved == null && error is ProfileCreationError.ProfileAlreadyExists) {
+              correctExistingProfile(person, role, onSuccess)
+            } else {
+              showFailure(error)
             }
-          }
+          },
+      )
     }
+  }
+
+  private suspend fun correctExistingProfile(
+      person: Person,
+      role: Role,
+      onSuccess: (Role) -> Unit,
+  ) {
+    val current =
+        profileRepository.getCurrentProfile().getOrElse { error ->
+          showFailure(error)
+          return
+        }
+    val alreadyJoined = current?.circleIds?.any { it.isNotBlank() } == true
+    if (current == null || alreadyJoined) {
+      showFailure(ProfileCreationError.ProfileAlreadyExists)
+      return
+    }
+    if (
+        current.role == role &&
+            current.person.firstName == person.firstName &&
+            current.person.lastName == person.lastName
+    ) {
+      rememberAndContinue(person.firstName, person.lastName, role, onSuccess)
+      return
+    }
+    profileRepository
+        .updateOnboardingProfile(person = person, role = role)
+        .fold(
+            onSuccess = { rememberAndContinue(person.firstName, person.lastName, role, onSuccess) },
+            onFailure = { showFailure(it) },
+        )
+  }
+
+  private fun rememberAndContinue(
+      name: String,
+      surname: String,
+      role: Role,
+      onSuccess: (Role) -> Unit,
+  ) {
+    savedProfile = SavedOnboardingProfile(name = name, surname = surname, role = role)
+    _uiState.update { it.copy(isSaving = false, errorMsgRes = null) }
+    onSuccess(role)
+  }
+
+  private fun showFailure(error: Throwable) {
+    _uiState.update { it.copy(isSaving = false, errorMsgRes = error.errorMessage()) }
   }
 
   private fun updateNameField(name: String? = null, surname: String? = null) {
@@ -163,14 +221,28 @@ class CreateProfileViewModel(
   }
 }
 
+private data class SavedOnboardingProfile(
+    val name: String,
+    val surname: String,
+    val role: Role,
+)
+
 /** Maps a repository failure to the string resource of the message shown to the user. */
 @StringRes
 private fun Throwable.errorMessage(): Int =
     when (this) {
-      is ProfileCreationError.InvalidPersonDetails -> R.string.createProfileErrorInvalidName
-      is ProfileCreationError.NotAuthenticated -> R.string.createProfileErrorSessionExpired
+      is ProfileCreationError.InvalidPersonDetails,
+      is ProfileUpdateError.InvalidPersonDetails -> R.string.createProfileErrorInvalidName
+      is ProfileCreationError.NotAuthenticated,
+      is ProfileUpdateError.NotAuthenticated,
+      is ProfileReadError.NotAuthenticated -> R.string.createProfileErrorSessionExpired
       is ProfileCreationError.ProfileAlreadyExists -> R.string.createProfileErrorExists
-      is ProfileCreationError.PermissionDenied -> R.string.createProfileErrorPermissionDenied
-      is ProfileCreationError.Network -> R.string.createProfileErrorOffline
+      is ProfileUpdateError.AlreadyInCareCircle -> R.string.createProfileErrorAlreadyInCircle
+      is ProfileCreationError.PermissionDenied,
+      is ProfileUpdateError.PermissionDenied,
+      is ProfileReadError.PermissionDenied -> R.string.createProfileErrorPermissionDenied
+      is ProfileCreationError.Network,
+      is ProfileUpdateError.Network,
+      is ProfileReadError.Network -> R.string.createProfileErrorOffline
       else -> R.string.createProfileErrorUnknown
     }

@@ -7,6 +7,8 @@ package com.github.se.amber.ui.caregiver.upload.media
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayTextField
@@ -14,10 +16,14 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_NAME
 import com.github.se.amber.ui.utils.PopupDialog
 
-/** Test tags for the dialog container and its close button. */
+/** Test tags for the dialog container, its close button, its fields and its save button. */
 object AddPersonDialogTestTags {
   const val DIALOG = "add_person_dialog"
   const val CLOSE = "add_person_dialog_close"
+  const val FIRST_NAME = "add_person_dialog_first_name"
+  const val SURNAME = "add_person_dialog_surname"
+  const val NICKNAME = "add_person_dialog_nickname"
+  const val SAVE = "add_person_dialog_save"
 }
 
 /**
@@ -75,39 +81,53 @@ fun AddPersonDialog(
       actionEnabled = canAddPerson,
       dialogTestTag = AddPersonDialogTestTags.DIALOG,
       dismissTestTag = AddPersonDialogTestTags.CLOSE,
+      actionTestTag = AddPersonDialogTestTags.SAVE,
   ) {
     Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
       NameField(
-          firstName,
-          onFirstNameChange,
-          stringResource(R.string.addPersonFirstName),
-          firstNameError,
+          modifier = Modifier.testTag(AddPersonDialogTestTags.FIRST_NAME),
+          value = firstName,
+          onValueChange = onFirstNameChange,
+          label = stringResource(R.string.addPersonFirstName),
+          error = firstNameError,
       )
       NameField(
-          lastName,
-          onLastNameChange,
-          stringResource(R.string.addPersonSurname),
-          lastNameError,
+          modifier = Modifier.testTag(AddPersonDialogTestTags.SURNAME),
+          value = lastName,
+          onValueChange = onLastNameChange,
+          label = stringResource(R.string.addPersonSurname),
+          error = lastNameError,
       )
       NameField(
-          nickname,
-          onNicknameChange,
-          stringResource(R.string.addPersonNickname),
-          nicknameError,
+          modifier = Modifier.testTag(AddPersonDialogTestTags.NICKNAME),
+          value = nickname,
+          onValueChange = onNicknameChange,
+          label = stringResource(R.string.addPersonNickname),
+          error = nicknameError,
       )
     }
   }
 }
 
-/** One single-line name field of [AddPersonDialog], with the names' length limit. */
+/**
+ * One single-line name field of [AddPersonDialog], with the names' length limit.
+ *
+ * @param modifier the modifier of the text field, for example its test tag.
+ * @param value the current text.
+ * @param onValueChange receives each edit.
+ * @param label the label shown on the field.
+ * @param error why [value] is refused, or null.
+ */
 @Composable
 private fun NameField(
+    modifier: Modifier = Modifier,
     value: String = "",
     onValueChange: (String) -> Unit = {},
     label: String = "",
     error: String? = null,
 ) {
   DisplayTextField(
+      modifier = modifier,
       value = value,
       onValueChange = onValueChange,
       label = label,
