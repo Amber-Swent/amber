@@ -94,6 +94,8 @@ fun DisplayPatientTitle(
  * @param modifier modifier applied to the button
  * @param buttonHeight height of the button
  * @param buttonWidth fraction of the available width taken by the button
+ * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
+ *   centered. If false, the button only wraps its content.
  * @param text label displayed on the button.
  * @param textStyle typography style of the button label
  * @param icon icon displayed on the button.
@@ -109,6 +111,7 @@ fun DisplayPatientButtonWithIcon(
     modifier: Modifier = Modifier,
     buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = PATIENT_BUTTON_WIDTH,
+    fillWidth: Boolean = true,
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
     icon: ImageVector = Icons.Default.Add,
@@ -118,15 +121,15 @@ fun DisplayPatientButtonWithIcon(
     testTag: String = PatientUtilsTestTags.BUTTON_WITH_ICON,
     iconTestTag: String = PatientUtilsTestTags.BUTTON_ICON,
 ) {
+  val sizeModifier =
+      if (fillWidth) {
+        Modifier.fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .fillMaxWidth(buttonWidth)
+      } else Modifier
   Button(
       onClick = onClick,
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .wrapContentWidth(Alignment.CenterHorizontally)
-              .fillMaxWidth(buttonWidth)
-              .height(buttonHeight)
-              .testTag(testTag),
+      modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(testTag),
       enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
@@ -136,19 +139,21 @@ fun DisplayPatientButtonWithIcon(
           ),
   ) {
     Row(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (fillWidth) Modifier.fillMaxSize() else Modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
           text,
           style = textStyle,
           textAlign = TextAlign.Center,
-          modifier = Modifier.weight(WEIGHT_ONE),
+          modifier = if (fillWidth) Modifier.weight(WEIGHT_ONE) else Modifier,
       )
       Icon(
-          icon,
+          imageVector = icon,
           contentDescription = description,
-          modifier = Modifier.testTag(iconTestTag),
+          modifier =
+              (if (fillWidth) Modifier else Modifier.padding(start = PATIENT_PADDING_SMALL))
+                  .testTag(iconTestTag),
       )
     }
   }
@@ -163,6 +168,8 @@ fun DisplayPatientButtonWithIcon(
  * @param modifier modifier applied to the button
  * @param buttonHeight height of the button
  * @param buttonWidth fraction of the available width taken by the button
+ * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
+ *   centered. If false, the button only wraps its content.
  * @param text label displayed on the button.
  * @param textStyle typography style of the button label
  * @param enabled say if the button is clickable or not
