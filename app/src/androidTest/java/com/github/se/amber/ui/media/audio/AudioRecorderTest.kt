@@ -190,6 +190,16 @@ class AudioRecorderTest {
     composeTestRule.setContent { DisplayAudioRecorderRecordedPreview() }
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
+  fun listeningPreview_showsButtons_andWaveformCanvas() {
+    composeTestRule.setContent { DisplayAudioRecorderListeningPreview() }
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertDoesNotExist()
   }
 }
