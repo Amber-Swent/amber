@@ -46,6 +46,7 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.Options
 import coil3.size.Size
+import com.github.se.amber.R
 import com.github.se.amber.data.connectivity.FakeConnectivityMonitor
 import com.github.se.amber.data.media.image.FakePictureRepository
 import com.github.se.amber.data.media.image.MEDIA_PICTURE_FETCHER_TAG
@@ -287,7 +288,7 @@ class MediaImageTest {
     waitForImage()
     composeTestRule
         .onNodeWithTag(MediaImageTestTags.IMAGE)
-        .assertContentDescriptionEquals(MEDIA_IMAGE_FALLBACK_TALKBACK)
+        .assertContentDescriptionEquals(context.getString(R.string.mediaImageFallbackDescription))
   }
 
   @Test
@@ -612,7 +613,7 @@ class MediaImageTest {
     }
 
     composeTestRule
-        .onNodeWithContentDescription(MEDIA_IMAGE_RETRY_TALKBACK)
+        .onNodeWithContentDescription(context.getString(R.string.mediaImageRetryDescription))
         .assertIsDisplayed()
         .performClick()
 

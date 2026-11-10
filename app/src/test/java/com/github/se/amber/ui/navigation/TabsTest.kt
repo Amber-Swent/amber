@@ -1,31 +1,51 @@
 // Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.navigation
 
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
 import com.github.se.amber.ui.theme.PATIENT_ICON_SIZE
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TabsTest {
-  // Names must be unique within one menu.
+  // Keys and labels must be unique within one menu.
   @Test
-  fun caregiverTabs_haveUniqueNames() {
-    val names = CaregiverTab.caregiverTabs.map { it.name }
-    assertEquals(names.distinct(), names)
+  fun caregiverTabs_haveUniqueKeysAndLabels() {
+    val keys = CaregiverTab.caregiverTabs.map { it.key }
+    val labels = CaregiverTab.caregiverTabs.map { it.label }
+    assertEquals(keys.distinct(), keys)
+    assertEquals(labels.distinct(), labels)
   }
 
   @Test
-  fun patientTabs_haveUniqueNames() {
-    val names = PatientTab.patientTabs.map { it.name }
-    assertEquals(names.distinct(), names)
+  fun patientTabs_haveUniqueKeysAndLabels() {
+    val keys = PatientTab.patientTabs.map { it.key }
+    val labels = PatientTab.patientTabs.map { it.label }
+    assertEquals(keys.distinct(), keys)
+    assertEquals(labels.distinct(), labels)
+  }
+
+  // The tag uses the key, which is not translated, so tags are the same in every language.
+  @Test
+  fun tabTagUsesTheKeyNotTheLabel() {
+    assertEquals(
+        "BottomNavigationMenu_test_tag_tab_caregiverId_Home",
+        BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home),
+    )
+    assertEquals(
+        "BottomNavigationMenu_test_tag_tab_patientId_Medias",
+        BottomNavigationMenuTestTags.tabTag(PatientTab.SeeMedias),
+    )
   }
 
   // ---------- Caregiver tabs ----------
   @Test
-  fun caregiverHomeNameIsHome() {
-    assertEquals("Home", CaregiverTab.Home.name)
+  fun caregiverHomeIsLabelledHome() {
+    assertEquals("Home", CaregiverTab.Home.key)
+    assertEquals(R.string.navigationTabHome, CaregiverTab.Home.label)
   }
 
   @Test
@@ -37,8 +57,9 @@ class TabsTest {
   }
 
   @Test
-  fun caregiverUploadNameIsUpload() {
-    assertEquals("Upload", CaregiverTab.Upload.name)
+  fun caregiverUploadIsLabelledUpload() {
+    assertEquals("Upload", CaregiverTab.Upload.key)
+    assertEquals(R.string.navigationTabUpload, CaregiverTab.Upload.label)
   }
 
   @Test
@@ -53,7 +74,8 @@ class TabsTest {
 
   @Test
   fun caregiverSettingOpensParameters() {
-    assertEquals("Setting", CaregiverTab.Setting.name)
+    assertEquals("Setting", CaregiverTab.Setting.key)
+    assertEquals(R.string.navigationTabSetting, CaregiverTab.Setting.label)
     assertEquals(CaregiverScreen.Parameters, CaregiverTab.Setting.destination)
   }
 
@@ -64,18 +86,21 @@ class TabsTest {
 
   // ---------- Patient tabs ----------
   @Test
-  fun patientHomeNameIsHome() {
-    assertEquals("Home", PatientTab.Home.name)
+  fun patientHomeIsLabelledHome() {
+    assertEquals("Home", PatientTab.Home.key)
+    assertEquals(R.string.navigationTabHome, PatientTab.Home.label)
   }
 
   @Test
-  fun patientSeeMediasNameIsPictures() {
-    assertEquals("Medias", PatientTab.SeeMedias.name)
+  fun patientSeeMediasIsLabelledMedias() {
+    assertEquals("Medias", PatientTab.SeeMedias.key)
+    assertEquals(R.string.navigationTabMedias, PatientTab.SeeMedias.label)
   }
 
   @Test
-  fun patientSettingNameIsSetting() {
-    assertEquals("Setting", PatientTab.Setting.name)
+  fun patientSettingIsLabelledSetting() {
+    assertEquals("Setting", PatientTab.Setting.key)
+    assertEquals(R.string.navigationTabSetting, PatientTab.Setting.label)
   }
 
   @Test

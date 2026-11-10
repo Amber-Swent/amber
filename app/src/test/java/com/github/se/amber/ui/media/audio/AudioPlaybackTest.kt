@@ -1,8 +1,10 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
 
+import android.content.Context
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
@@ -24,7 +26,9 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_HEIGHT
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
@@ -34,18 +38,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 private const val TRANSITION_DURATION_MS = 190_000L
 private const val TRANSITION_PLAYING_POSITION_MS = 42_000L
 private const val TRANSITION_PAUSED_POSITION_MS = 95_000L
-private const val TRANSITION_ERROR_MESSAGE = "Playback failed"
 
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class AudioPlaybackTest {
 
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   @Test
   fun idle_showsPlayRestartAndZeroProgress() {
@@ -56,11 +64,11 @@ class AudioPlaybackTest {
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertIsEnabled()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPlay))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RESTART).assertIsEnabled()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.RESTART)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.RESTART)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackRestart))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:00 / 3:10")
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
@@ -97,23 +105,19 @@ class AudioPlaybackTest {
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:00 / 0:00")
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPlay))
   }
 
   @Test
   fun omittedRetry_leavesTheErrorMessage() {
     composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayAudioPlayback(
-            state = AudioPlaybackState.Error(message = "This memo could not be played.")
-        )
-      }
+      AmberAppTheme { DisplayAudioPlayback(state = AudioPlaybackState.Error()) }
     }
 
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RETRY).performClick()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.ERROR)
-        .assertTextEquals("This memo could not be played.")
+        .assertTextEquals(string(R.string.audioPlaybackError))
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(0)
   }
 
@@ -124,10 +128,10 @@ class AudioPlaybackTest {
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertIsEnabled()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPlay))
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.RESTART)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.RESTART)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackRestart))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:00 / 0:00")
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
@@ -142,10 +146,10 @@ class AudioPlaybackTest {
   fun errorDefaults_keepTheRetryButton() {
     composeTestRule.setContent { AmberAppTheme { PlaybackError() } }
 
-    composeTestRule.onNodeWithText(AudioPlaybackDescriptions.RETRY).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackRetry)).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(0)
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RETRY).performClick()
-    composeTestRule.onNodeWithText(AudioPlaybackDescriptions.RETRY).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackRetry)).assertIsDisplayed()
   }
 
   @Test
@@ -183,7 +187,7 @@ class AudioPlaybackTest {
 
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PAUSE)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPause))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:42 / 3:10")
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
@@ -206,7 +210,7 @@ class AudioPlaybackTest {
 
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPlay))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("1:35 / 3:10")
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
@@ -257,7 +261,7 @@ class AudioPlaybackTest {
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RESTART).assertIsNotEnabled()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.RESTART)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.RESTART)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackRestart))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.SPINNER).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:00 / 3:10")
     composeTestRule
@@ -271,7 +275,7 @@ class AudioPlaybackTest {
     composeTestRule.setContent {
       AmberAppTheme {
         DisplayAudioPlayback(
-            state = AudioPlaybackState.Error(message = "This memo could not be played."),
+            state = AudioPlaybackState.Error(),
             onRetry = { retries++ },
         )
       }
@@ -279,8 +283,8 @@ class AudioPlaybackTest {
 
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.ERROR)
-        .assertTextEquals("This memo could not be played.")
-    composeTestRule.onNodeWithText(AudioPlaybackDescriptions.RETRY).assertIsDisplayed()
+        .assertTextEquals(string(R.string.audioPlaybackError))
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackRetry)).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.RETRY)
         .assertHeightIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
@@ -370,7 +374,7 @@ class AudioPlaybackTest {
     // Idle
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPlay))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:00 / 3:10")
 
     // Idle -> Loading
@@ -392,7 +396,7 @@ class AudioPlaybackTest {
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertIsEnabled()
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PAUSE)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPause))
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(0)
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:42 / 3:10")
     composeTestRule
@@ -411,16 +415,14 @@ class AudioPlaybackTest {
     }
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PLAY)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPlay))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("1:35 / 3:10")
 
     // Paused -> Error
-    composeTestRule.runOnIdle {
-      playbackState.value = AudioPlaybackState.Error(message = TRANSITION_ERROR_MESSAGE)
-    }
+    composeTestRule.runOnIdle { playbackState.value = AudioPlaybackState.Error() }
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.ERROR)
-        .assertTextEquals(TRANSITION_ERROR_MESSAGE)
+        .assertTextEquals(string(R.string.audioPlaybackError))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RETRY).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(0)
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.RESTART).assertCountEquals(0)
@@ -438,7 +440,7 @@ class AudioPlaybackTest {
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.RETRY).assertCountEquals(0)
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
-        .assertContentDescriptionEquals(AudioPlaybackDescriptions.PAUSE)
+        .assertContentDescriptionEquals(string(R.string.audioPlaybackPause))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:42 / 3:10")
   }
 
@@ -448,7 +450,7 @@ class AudioPlaybackTest {
 
     composeTestRule.onNodeWithText("0:42 / 3:10").assertIsDisplayed()
     composeTestRule.onNodeWithText("1:35 / 3:10").assertIsDisplayed()
-    composeTestRule.onNodeWithText("This memo could not be played.").assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackError)).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(1)
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(4)
   }
@@ -459,7 +461,7 @@ class AudioPlaybackTest {
 
     composeTestRule.onNodeWithText("0:42 / 3:10").assertIsDisplayed()
     composeTestRule.onNodeWithText("1:35 / 3:10").assertIsDisplayed()
-    composeTestRule.onNodeWithText("This memo could not be played.").assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.audioPlaybackError)).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.SPINNER).assertCountEquals(1)
     composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE).assertCountEquals(4)
   }
@@ -488,14 +490,14 @@ class AudioPlaybackTest {
     val loading = AudioPlaybackState.Loading()
     val playing = AudioPlaybackState.Playing()
     val paused = AudioPlaybackState.Paused()
-    val error = AudioPlaybackState.Error(message = "gone")
+    val error = AudioPlaybackState.Error()
 
-    assertEquals(AudioPlaybackDescriptions.PLAY, playPauseDescription())
-    assertEquals(AudioPlaybackDescriptions.PLAY, playPauseDescription(idle))
-    assertEquals(AudioPlaybackDescriptions.LOADING, playPauseDescription(loading))
-    assertEquals(AudioPlaybackDescriptions.PAUSE, playPauseDescription(playing))
-    assertEquals(AudioPlaybackDescriptions.PLAY, playPauseDescription(paused))
-    assertEquals(AudioPlaybackDescriptions.PLAY, playPauseDescription(error))
+    assertEquals(R.string.audioPlaybackPlay, playPauseDescription())
+    assertEquals(R.string.audioPlaybackPlay, playPauseDescription(idle))
+    assertEquals(R.string.audioPlaybackLoading, playPauseDescription(loading))
+    assertEquals(R.string.audioPlaybackPause, playPauseDescription(playing))
+    assertEquals(R.string.audioPlaybackPlay, playPauseDescription(paused))
+    assertEquals(R.string.audioPlaybackPlay, playPauseDescription(error))
 
     assertEquals(Icons.Outlined.PlayArrow, playPauseIcon())
     assertEquals(Icons.Outlined.Pause, playPauseIcon(playing))
@@ -515,4 +517,17 @@ class AudioPlaybackTest {
   }
 
   private fun rangeInfo(progress: Float) = ProgressBarRangeInfo(progress, 0f..1f)
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun playbackIsShownInFrench() {
+    composeTestRule.setContent { AmberAppTheme { DisplayAudioPlayback() } }
+
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE)
+        .assertContentDescriptionEquals("Lire")
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.RESTART)
+        .assertContentDescriptionEquals("Recommencer")
+  }
 }

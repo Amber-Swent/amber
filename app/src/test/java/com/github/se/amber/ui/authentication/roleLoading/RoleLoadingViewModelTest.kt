@@ -1,9 +1,11 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.roleloading
 
 import android.util.Log
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -38,7 +40,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoleLoadingViewModelTest {
 
-  private val signOutErrorMsg = "Could not sign out. Please try again."
+  private val signOutErrorMsg = R.string.signOutError
 
   private lateinit var profileRepository: ProfileRepository
   private lateinit var authRepository: AuthRepository
@@ -77,7 +79,7 @@ class RoleLoadingViewModelTest {
     assertEquals(RoleState.Loading, state.roleState)
     assertFalse(state.isSigningOut)
     assertFalse(state.signedOut)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   // ---------- loadRole ----------
@@ -234,7 +236,7 @@ class RoleLoadingViewModelTest {
     val state = viewModel.state.value
     assertTrue(state.signedOut)
     assertFalse(state.isSigningOut)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
     coVerify(exactly = 1) { authRepository.signOut() }
   }
 
@@ -291,7 +293,7 @@ class RoleLoadingViewModelTest {
     val state = viewModel.state.value
     assertTrue(state.signedOut)
     assertFalse(state.isSigningOut)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   @Test
@@ -306,7 +308,7 @@ class RoleLoadingViewModelTest {
     assertFalse(state.signedOut)
     assertFalse(state.isSigningOut)
     // the raw exception text must not be shown to the user
-    assertEquals(signOutErrorMsg, state.errorMsg)
+    assertEquals(signOutErrorMsg, state.errorMsgRes)
   }
 
   @Test
@@ -333,10 +335,10 @@ class RoleLoadingViewModelTest {
     every { authRepository.currentUser } returns AuthUser("uid123")
     viewModel.signOut()
     advanceUntilIdle()
-    assertEquals(signOutErrorMsg, viewModel.state.value.errorMsg)
+    assertEquals(signOutErrorMsg, viewModel.state.value.errorMsgRes)
 
     viewModel.clearErrorMsg()
 
-    assertNull(viewModel.state.value.errorMsg)
+    assertNull(viewModel.state.value.errorMsgRes)
   }
 }

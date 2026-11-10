@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.model.validation
 
@@ -115,30 +116,24 @@ class InputValidationTest {
   }
 
   @Test
-  fun errorMessage_whileTypingOnlyShowsWhatTypingMoreCannotFix() {
+  fun visibleError_whileTypingOnlyShowsWhatTypingMoreCannotFix() {
     val code = InputValidation.INVITATION_CODE
 
-    assertNull(code.errorMessage("", submitted = false, blankMessage = "Enter a code"))
-    assertNull(code.errorMessage("ABCD", submitted = false))
-    assertEquals(code.formatMessage, code.errorMessage("AB0", submitted = false))
-    // An unfinished name, like "Anne-" on the way to "Anne-Marie", waits for submission
-    assertNull(InputValidation.NAME.errorMessage("Anne-", submitted = false))
+    assertNull(code.visibleError("", submitted = false))
+    assertNull(code.visibleError("ABCD", submitted = false))
+    assertEquals(InputError.WRONG_FORMAT, code.visibleError("AB0", submitted = false))
+    assertEquals(InputError.TOO_LONG, InputRule(maxLength = 3).visibleError("abcd", false))
+    assertNull(InputValidation.NAME.visibleError("Anne-", submitted = false))
   }
 
   @Test
-  fun errorMessage_onceSubmittedShowsEveryError() {
+  fun visibleError_onceSubmittedShowsEveryError() {
     val code = InputValidation.INVITATION_CODE
 
-    assertEquals("Enter a code", code.errorMessage(" ", blankMessage = "Enter a code"))
-    assertEquals("Enter all 8 characters", code.errorMessage("ABCD"))
-    assertEquals(
-        "Use at least 2 characters",
-        InputRule(maxLength = 3, minLength = 2).errorMessage("a"),
-    )
-    assertEquals(InputValidation.NAME.formatMessage, InputValidation.NAME.errorMessage("Anne-"))
-    assertEquals("Use at most 3 characters", InputRule(maxLength = 3).errorMessage("abcd"))
-    assertNull(InputValidation.NAME.errorMessage("Anne-Marie"))
-    assertNull(InputValidation.NAME.errorMessage("", blankMessage = null))
+    assertEquals(InputError.BLANK, code.visibleError(" "))
+    assertEquals(InputError.TOO_SHORT, code.visibleError("ABCD"))
+    assertEquals(InputError.WRONG_FORMAT, InputValidation.NAME.visibleError("Anne-"))
+    assertNull(InputValidation.NAME.visibleError("Anne-Marie"))
   }
 
   @Test

@@ -1,6 +1,7 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -17,11 +18,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -55,7 +58,7 @@ object SignOutButtonTestTags {
  * @param viewModel ViewModel that performs [SignOutViewModel.signOut]. Required so callers (and
  *   tests) share one instance with [SignOutScreen].
  * @param modifier Modifier applied to the button.
- * @param text Label displayed on the button.
+ * @param text Label displayed on the button. Defaults to the translated "Sign out".
  * @param buttonHeight Fixed height of the button (caller screens that scroll may override).
  * @param buttonWidth Fraction of the available width taken by the button.
  * @param testTag Test tag of the button.
@@ -64,7 +67,7 @@ object SignOutButtonTestTags {
 fun SignOutButton(
     viewModel: SignOutViewModel,
     modifier: Modifier = Modifier,
-    text: String = "Sign out",
+    text: String = stringResource(R.string.signOutButton),
     buttonHeight: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
     testTag: String = SignOutButtonTestTags.BUTTON,

@@ -1,9 +1,11 @@
 // Written by Alaabrine with the aid of AI coding agent.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.invitationRedemption
 
+import android.content.Context
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -17,18 +19,19 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationError
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onboarding.invitationRedemption.CODE_REQUIRED_MESSAGE
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
-import com.github.se.amber.ui.onboarding.invitationRedemption.toActionableMessage
+import com.github.se.amber.ui.onboarding.invitationRedemption.errorMessage
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -38,10 +41,15 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class InvitationRedemptionUITests {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   private var redeemSuccessCount = 0
   private var backCount = 0
@@ -83,6 +91,50 @@ class InvitationRedemptionUITests {
   private fun hasErrorSemantics(): SemanticsMatcher =
       SemanticsMatcher.keyIsDefined(SemanticsProperties.Error)
 
+  // ---------- French ----------
+
+  private fun assertCodeErrorIs(text: String) {
+    composeTestRule
+        .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
+        .assertTextEquals(text)
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun emptyCodeErrorIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertCodeErrorIs("Saisissez un code d'invitation, puis réessayez.")
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun incompleteCodeErrorIsShownInFrenchWithTheCodeLength() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).performTextInput("ABCD")
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertCodeErrorIs("Saisissez les 8 caractères")
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun wrongCharacterErrorIsShownInFrench() {
+    setScreen()
+
+    composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT).performTextInput("ABC0")
+    composeTestRule.waitForIdle()
+
+    assertCodeErrorIs(
+        "Les codes n'utilisent que des lettres majuscules et les chiffres de 2 à 9, sans I ni O"
+    )
+  }
+
   // ---------- Placeholder behaviour ----------
 
   @Test
@@ -110,7 +162,7 @@ class InvitationRedemptionUITests {
 
     composeTestRule
         .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
-        .assertTextEquals(TopNavigationAction.CANCEL.label)
+        .assertTextEquals(string(TopNavigationAction.CANCEL.label))
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
@@ -138,7 +190,7 @@ class InvitationRedemptionUITests {
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(CODE_REQUIRED_MESSAGE)
+        .assertTextEquals(string(R.string.invitationRedemptionCodeRequired))
     assertEquals(0, redeemSuccessCount)
   }
 
@@ -148,7 +200,10 @@ class InvitationRedemptionUITests {
 
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).performClick()
     composeTestRule.waitForIdle()
-    assertEquals(CODE_REQUIRED_MESSAGE, viewModel.uiState.value.errorMessage)
+    assertEquals(
+        UiText.Resource(R.string.invitationRedemptionCodeRequired),
+        viewModel.uiState.value.errorMessage,
+    )
 
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
@@ -175,7 +230,7 @@ class InvitationRedemptionUITests {
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(InputValidation.INVITATION_CODE.formatMessage)
+        .assertTextEquals(string(R.string.inputErrorInvitationCodeFormat))
     composeTestRule.onNodeWithTag(InvitationRedemptionTestTags.SUBMIT_BUTTON).assertIsNotEnabled()
     assertEquals(0, redeemSuccessCount)
   }
@@ -216,7 +271,7 @@ class InvitationRedemptionUITests {
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_ERROR, useUnmergedTree = true)
         .assertIsDisplayed()
-        .assertTextEquals(InvitationError.InvalidCode.toActionableMessage())
+        .assertTextEquals(string(InvitationError.InvalidCode.errorMessage()))
     assertEquals(0, redeemSuccessCount)
   }
 

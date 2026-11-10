@@ -1,8 +1,10 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient
 
 import android.util.Log
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -69,7 +71,7 @@ class PatientHomeViewModelTest {
     val vm = PatientHomeViewModel(profileRepo) // init lance getProfile()
 
     assertEquals(profile, vm.uiState.value.patientProfile)
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -78,16 +80,16 @@ class PatientHomeViewModelTest {
 
     val vm = PatientHomeViewModel(profileRepo)
 
-    assertEquals("No profile found.", vm.uiState.value.errorMsg)
+    assertEquals(R.string.patientHomeErrorNoProfile, vm.uiState.value.errorMsgRes)
   }
 
   @Test
-  fun `failure sets error with message`() = runTest {
+  fun `failure sets the load profile error`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
     val vm = PatientHomeViewModel(profileRepo)
 
-    assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
+    assertEquals(R.string.patientHomeErrorLoadProfile, vm.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -95,11 +97,11 @@ class PatientHomeViewModelTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
     val vm = PatientHomeViewModel(profileRepo)
-    assertEquals("Failed to load the profile: boom", vm.uiState.value.errorMsg)
+    assertEquals(R.string.patientHomeErrorLoadProfile, vm.uiState.value.errorMsgRes)
 
     vm.clearErrorMsg()
 
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -114,7 +116,7 @@ class PatientHomeViewModelTest {
     deferred.complete(Result.success(profile))
 
     assertEquals(profile, vm.uiState.value.patientProfile)
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -164,22 +166,13 @@ class PatientHomeViewModelTest {
   }
 
   @Test
-  fun `failure without message still sets an error`() = runTest {
-    coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception())
-
-    val vm = PatientHomeViewModel(profileRepo)
-
-    assertEquals("Failed to load the profile: unknown error", vm.uiState.value.errorMsg)
-  }
-
-  @Test
   fun `clearErrorMsg without error does nothing`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(profile)
     val vm = PatientHomeViewModel(profileRepo)
 
     vm.clearErrorMsg()
 
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.errorMsgRes)
     assertEquals(profile, vm.uiState.value.patientProfile)
   }
 
@@ -187,11 +180,11 @@ class PatientHomeViewModelTest {
   fun `clearErrorMsg keeps the profile`() = runTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(null)
     val vm = PatientHomeViewModel(profileRepo)
-    assertEquals("No profile found.", vm.uiState.value.errorMsg)
+    assertEquals(R.string.patientHomeErrorNoProfile, vm.uiState.value.errorMsgRes)
 
     vm.clearErrorMsg()
 
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.errorMsgRes)
     assertEquals(PatientHomeUIState().patientProfile, vm.uiState.value.patientProfile)
   }
 }

@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
 
@@ -14,15 +15,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.ROUND_CORNER
-
-private const val DELETE_AUDIO = "Delete the audio"
-private const val STOP_RECORDING = "Stop the recording"
 
 /** Test tags owned by [DisplayAudioRecorder]. */
 object AudioRecorderTestTags {
@@ -71,11 +71,11 @@ fun DisplayAudioRecorder(
               .padding(CAREGIVER_PADDING_MEDIUM),
       waveform = waveformState,
       leftIcon = Icons.Outlined.Delete,
-      leftDescription = DELETE_AUDIO,
+      leftDescription = stringResource(R.string.audioRecorderDelete),
       onLeftClick = onDelete,
       leftTestTag = AudioRecorderTestTags.DELETE_BUTTON,
       rightIcon = if (isRecording) Icons.Outlined.Stop else null,
-      rightDescription = STOP_RECORDING,
+      rightDescription = stringResource(R.string.audioRecorderStop),
       onRightClick = onStop,
       rightTestTag = AudioRecorderTestTags.STOP_BUTTON,
       waveformTestTag = AudioRecorderTestTags.WAVEFORM,

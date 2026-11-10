@@ -1,10 +1,12 @@
 // Written by Lou-Anne Maier and +, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -74,21 +76,21 @@ class CaregiverHomeViewModelTest {
     assertEquals(circle, state.careCircle)
     assertEquals(patient, state.patient)
     assertEquals(Role.PATIENT, state.patient.role)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   @Test
   fun load_profileNull_setsError() {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(null)
 
-    assertEquals("No profile found.", createVm().uiState.value.errorMsg)
+    assertEquals(R.string.caregiverHomeErrorNoProfile, createVm().uiState.value.errorMsgRes)
   }
 
   @Test
   fun load_profileFailure_setsError() {
     coEvery { profileRepo.getCurrentProfile() } returns Result.failure(Exception("boom"))
 
-    assertEquals("Failed to load the profile: boom", createVm().uiState.value.errorMsg)
+    assertEquals(R.string.caregiverHomeErrorLoadProfile, createVm().uiState.value.errorMsgRes)
   }
 
   @Test
@@ -98,7 +100,7 @@ class CaregiverHomeViewModelTest {
 
     val state = createVm().uiState.value
 
-    assertEquals("No care circle found for this caregiver.", state.errorMsg)
+    assertEquals(R.string.caregiverHomeErrorNoCircle, state.errorMsgRes)
     assertEquals(caregiver.uid, "cg1") // sanity check on fixture
   }
 
@@ -107,7 +109,7 @@ class CaregiverHomeViewModelTest {
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiver)
     coEvery { circleRepo.getCircle("circle1") } returns Result.failure(Exception("nope"))
 
-    assertEquals("Failed to load the care circle: nope", createVm().uiState.value.errorMsg)
+    assertEquals(R.string.caregiverHomeErrorLoadCircle, createVm().uiState.value.errorMsgRes)
   }
 
   @Test
@@ -116,8 +118,8 @@ class CaregiverHomeViewModelTest {
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle.copy(patientId = ""))
 
     assertEquals(
-        "No patient is linked to this care circle yet.",
-        createVm().uiState.value.errorMsg,
+        R.string.caregiverHomeErrorNoPatient,
+        createVm().uiState.value.errorMsgRes,
     )
   }
 
@@ -127,7 +129,7 @@ class CaregiverHomeViewModelTest {
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
     coEvery { profileRepo.getProfile("p1") } returns Result.success(null)
 
-    assertEquals("No patient profile found.", createVm().uiState.value.errorMsg)
+    assertEquals(R.string.caregiverHomeErrorNoPatientProfile, createVm().uiState.value.errorMsgRes)
   }
 
   @Test
@@ -136,7 +138,10 @@ class CaregiverHomeViewModelTest {
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
     coEvery { profileRepo.getProfile("p1") } returns Result.failure(Exception("down"))
 
-    assertEquals("Failed to load the patient profile: down", createVm().uiState.value.errorMsg)
+    assertEquals(
+        R.string.caregiverHomeErrorLoadPatientProfile,
+        createVm().uiState.value.errorMsgRes,
+    )
   }
 
   @Test
@@ -146,6 +151,6 @@ class CaregiverHomeViewModelTest {
 
     vm.clearErrorMsg()
 
-    assertNull(vm.uiState.value.errorMsg)
+    assertNull(vm.uiState.value.errorMsgRes)
   }
 }

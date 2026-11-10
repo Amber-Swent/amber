@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -16,10 +17,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
@@ -64,7 +67,7 @@ fun SeeAudiosScreen(
                     onBackClick = onBackClick,
                 )
                 DisplayPatientTitle(
-                    title = "See Audios",
+                    title = stringResource(R.string.seeAudiosTitle),
                     testTag = SeeAudiosTestTags.TITLE,
                 )
               }
@@ -89,7 +92,7 @@ fun SeeAudiosScreen(
             ) {
               Text(
                   modifier = Modifier.testTag(SeeAudiosTestTags.NO_AUDIOS),
-                  text = "There are no audios yet.",
+                  text = stringResource(R.string.seeAudiosEmpty),
                   textAlign = TextAlign.Center,
                   color = MaterialTheme.colorScheme.onBackground,
                   style = MaterialTheme.typography.titleLarge,
