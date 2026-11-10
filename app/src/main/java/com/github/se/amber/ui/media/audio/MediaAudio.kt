@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.media.audio
 
@@ -23,17 +24,23 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
+import com.github.se.amber.ui.caregiver.DisplayCaregiverIconButton
 import com.github.se.amber.ui.patient.DisplayPatientIconButton
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_BAR_FRACTION
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_HEIGHT
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.HALF
+import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 
+/** None of the waveform has been played yet. */
 private const val NO_PLAYED_FRACTION = 0f
 
 /** Test tags owned by [MediaAudio]. Callers can pass their own. */
@@ -42,6 +49,26 @@ object MediaAudioTestTags {
   const val RIGHT_BUTTON = "media_audio_right_button"
   const val WAVEFORM = "media_audio_waveform"
 }
+
+/**
+ * The optional button on the right of [MediaAudio].
+ *
+ * [icon], [description], and [onClick] come together. A shown button therefore always has an icon,
+ * a TalkBack description, and a click. Leave the whole button unset to hide it.
+ *
+ * @param icon icon of the button.
+ * @param description what TalkBack reads for the button.
+ * @param onClick called when the button is clicked.
+ * @param enabled whether the button accepts clicks.
+ * @param testTag test tag of the button.
+ */
+data class MediaAudioButton(
+    val icon: ImageVector,
+    val description: String,
+    val onClick: () -> Unit,
+    val enabled: Boolean = true,
+    val testTag: String = MediaAudioTestTags.RIGHT_BUTTON,
+)
 
 /**
  * What the middle of [MediaAudio] draws. The caller chooses the state. This row does not record or
@@ -74,8 +101,10 @@ sealed interface AudioWaveformState {
  * One audio row: a button, the waveform, and an optional button.
  *
  * The caller passes each icon, what TalkBack reads, and what a click does, so the same row can show
- * play, pause, stop, delete, or anything else. Leave [rightIcon] unset to hide the right button.
- * [waveform] is drawn as given.
+ * play, pause, stop, delete, or anything else. Leave [rightButton] unset to hide the right button.
+ * [waveform] only chooses what is drawn. The ViewModel owns the levels and the state: it decides
+ * when a waveform is recording, recorded or listening, and keeps the levels within [WAVEFORM_BARS].
+ * This row does not record, play or resample anything.
  *
  * @param modifier modifier applied to the row.
  * @param waveform which of the four waveform states to draw.
@@ -86,11 +115,9 @@ sealed interface AudioWaveformState {
  * @param showLeftSpinner replaces the left icon with a spinner.
  * @param leftTestTag test tag of the left button.
  * @param leftSpinnerTestTag test tag of the left spinner. No tag is set when empty.
- * @param rightIcon icon of the right button. The button is absent when this is null.
- * @param rightDescription what TalkBack reads for the right button.
- * @param onRightClick called when the right button is clicked.
- * @param rightEnabled whether the right button accepts clicks.
- * @param rightTestTag test tag of the right button.
+ * @param rightButton the right button. The button is absent when this is null.
+ * @param isPatient whether this row is on a patient screen. A caregiver screen uses the smaller
+ *   caregiver button and spacing.
  * @param waveformTestTag test tag of the waveform.
  * @param waveformModifier extra modifier applied to the waveform, after it takes the free width.
  */
@@ -105,20 +132,19 @@ fun MediaAudio(
     showLeftSpinner: Boolean = false,
     leftTestTag: String = MediaAudioTestTags.LEFT_BUTTON,
     leftSpinnerTestTag: String = "",
-    rightIcon: ImageVector? = null,
-    rightDescription: String = "",
-    onRightClick: () -> Unit = {},
-    rightEnabled: Boolean = true,
-    rightTestTag: String = MediaAudioTestTags.RIGHT_BUTTON,
+    rightButton: MediaAudioButton? = null,
+    isPatient: Boolean = true,
     waveformTestTag: String = MediaAudioTestTags.WAVEFORM,
     waveformModifier: Modifier = Modifier,
 ) {
+  val buttonSpacing = if (isPatient) PATIENT_PADDING_SMALL else CAREGIVER_PADDING_SMALL
   Row(
       modifier = modifier,
       verticalAlignment = Alignment.CenterVertically,
-      horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
+      horizontalArrangement = Arrangement.spacedBy(buttonSpacing),
   ) {
-    DisplayPatientIconButton(
+    MediaAudioIconButton(
+        isPatient = isPatient,
         icon = leftIcon,
         description = leftDescription,
         enabled = leftEnabled,
@@ -131,22 +157,61 @@ fun MediaAudio(
         modifier = Modifier.weight(WEIGHT_ONE).then(waveformModifier).testTag(waveformTestTag),
         waveform = waveform,
     )
-    if (rightIcon != null) {
-      DisplayPatientIconButton(
-          icon = rightIcon,
-          description = rightDescription,
-          enabled = rightEnabled,
-          onClick = onRightClick,
-          testTag = rightTestTag,
+    if (rightButton != null) {
+      MediaAudioIconButton(
+          isPatient = isPatient,
+          icon = rightButton.icon,
+          description = rightButton.description,
+          enabled = rightButton.enabled,
+          onClick = rightButton.onClick,
+          testTag = rightButton.testTag,
       )
     }
+  }
+}
+
+/** The left or right button of [MediaAudio], at the patient or caregiver size. */
+@Composable
+private fun MediaAudioIconButton(
+    isPatient: Boolean = true,
+    icon: ImageVector = Icons.Outlined.PlayArrow,
+    description: String = "",
+    enabled: Boolean = true,
+    showSpinner: Boolean = false,
+    onClick: () -> Unit = {},
+    testTag: String = MediaAudioTestTags.LEFT_BUTTON,
+    spinnerTestTag: String = "",
+) {
+  if (isPatient) {
+    DisplayPatientIconButton(
+        icon = icon,
+        description = description,
+        enabled = enabled,
+        showSpinner = showSpinner,
+        onClick = onClick,
+        testTag = testTag,
+        spinnerTestTag = spinnerTestTag,
+    )
+  } else {
+    DisplayCaregiverIconButton(
+        icon = icon,
+        description = description,
+        enabled = enabled,
+        showSpinner = showSpinner,
+        onClick = onClick,
+        testTag = testTag,
+        spinnerTestTag = spinnerTestTag,
+    )
   }
 }
 
 /**
  * Draws [waveform]. There is room for [WAVEFORM_BARS] bars, so a waveform that is still growing
  * fills the left part only. [AudioWaveformState.Listening] paints the played portion in secondary.
- * Every other state leaves the bars outline.
+ * Every other state leaves the bars outline. This composable only draws. It does not resample:
+ * levels beyond [WAVEFORM_BARS] are not drawn. Keeping the levels within [WAVEFORM_BARS], including
+ * while a recording grows, is the responsibility of the ViewModel (or the data layer for a finished
+ * audio).
  *
  * @param modifier The modifier applied to the drawing.
  * @param waveform Which waveform to draw.
@@ -158,18 +223,10 @@ fun DisplayAudioWaveform(
 ) {
   val unplayedColor = MaterialTheme.colorScheme.outline
   val playedColor = MaterialTheme.colorScheme.secondary
-  val levels = waveformLevels(waveform)
-  val fraction =
-      when (waveform) {
-        is AudioWaveformState.Listening ->
-            waveform.playedFraction.coerceIn(NO_PLAYED_FRACTION, WEIGHT_ONE)
-        AudioWaveformState.None,
-        is AudioWaveformState.Recording,
-        is AudioWaveformState.Recorded -> NO_PLAYED_FRACTION
-      }
+  val bars = displayedWaveformLevels(waveformLevels(waveform))
+  val fraction = playedFraction(waveform)
 
   Canvas(modifier = modifier.fillMaxWidth().height(AUDIO_WAVEFORM_HEIGHT)) {
-    val bars = displayedWaveformLevels(levels)
     drawWaveformBars(bars, unplayedColor)
     if (fraction > NO_PLAYED_FRACTION) {
       clipRect(right = size.width * fraction) { drawWaveformBars(bars, playedColor) }
@@ -177,13 +234,31 @@ fun DisplayAudioWaveform(
   }
 }
 
-/** The levels [DisplayAudioWaveform] draws for [waveform]. None has none. */
-private fun waveformLevels(waveform: AudioWaveformState = AudioWaveformState.None): List<Float> =
+/**
+ * The levels [DisplayAudioWaveform] draws for [waveform]. Listening with unknown levels gets a flat
+ * track.
+ */
+internal fun waveformLevels(waveform: AudioWaveformState = AudioWaveformState.None): List<Float> =
     when (waveform) {
       AudioWaveformState.None -> emptyList()
       is AudioWaveformState.Recording -> waveform.levels
       is AudioWaveformState.Recorded -> waveform.levels
-      is AudioWaveformState.Listening -> waveform.levels
+      is AudioWaveformState.Listening ->
+          // Unknown waveform (e.g. a picked file): show a flat track so the progress stays visible.
+          waveform.levels.ifEmpty { List(WAVEFORM_BARS) { AUDIO_WAVEFORM_MIN_LEVEL } }
+    }
+
+/**
+ * How much of the waveform is painted as played, from 0 to 1. Only [AudioWaveformState.Listening]
+ * plays.
+ */
+internal fun playedFraction(waveform: AudioWaveformState = AudioWaveformState.None): Float =
+    when (waveform) {
+      is AudioWaveformState.Listening ->
+          waveform.playedFraction.coerceIn(NO_PLAYED_FRACTION, WEIGHT_ONE)
+      AudioWaveformState.None,
+      is AudioWaveformState.Recording,
+      is AudioWaveformState.Recorded -> NO_PLAYED_FRACTION
     }
 
 /**
@@ -207,7 +282,8 @@ private fun DrawScope.drawWaveformBars(levels: List<Float>, color: Color) {
 
 /**
  * Gives the levels that [DisplayAudioWaveform] really draws: at most [WAVEFORM_BARS] of them, and
- * none below [AUDIO_WAVEFORM_MIN_LEVEL], so that every bar remains visible.
+ * none below [AUDIO_WAVEFORM_MIN_LEVEL], so that every bar remains visible. Extra levels are
+ * dropped, not resampled: the caller must already provide at most [WAVEFORM_BARS] levels.
  *
  * @param waveform The levels from 0 (silence) to 1 (the loudest), in playback order.
  */
@@ -220,18 +296,27 @@ internal fun displayedWaveformLevels(waveform: List<Float> = emptyList()): List<
 internal fun MediaAudioPreview() {
   AmberAppTheme(dynamicColor = false) {
     Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM)) {
-      MediaAudio(waveform = AudioWaveformState.None, leftDescription = "Record")
+      MediaAudio(
+          waveform = AudioWaveformState.None,
+          leftDescription = stringResource(R.string.audioRecorderRecord),
+      )
       MediaAudio(
           waveform = AudioWaveformState.Recording(levels = List(WAVEFORM_BARS / 2) { HALF }),
+          isPatient = false,
           leftIcon = Icons.Outlined.Delete,
-          leftDescription = "Delete the audio",
-          rightIcon = Icons.Outlined.Stop,
-          rightDescription = "Stop the recording",
+          leftDescription = stringResource(R.string.audioRecorderDelete),
+          rightButton =
+              MediaAudioButton(
+                  icon = Icons.Outlined.Stop,
+                  description = stringResource(R.string.audioRecorderStop),
+                  onClick = {},
+              ),
       )
       MediaAudio(
           waveform = AudioWaveformState.Recorded(levels = List(WAVEFORM_BARS) { HALF }),
+          isPatient = false,
           leftIcon = Icons.Outlined.Delete,
-          leftDescription = "Delete the audio",
+          leftDescription = stringResource(R.string.audioRecorderDelete),
       )
       MediaAudio(
           waveform =
@@ -240,7 +325,7 @@ internal fun MediaAudioPreview() {
                   playedFraction = HALF,
               ),
           leftIcon = Icons.Outlined.PlayArrow,
-          leftDescription = "Play",
+          leftDescription = stringResource(R.string.audioPlaybackPlay),
       )
     }
   }

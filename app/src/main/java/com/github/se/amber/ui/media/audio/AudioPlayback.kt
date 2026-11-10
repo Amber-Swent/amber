@@ -47,13 +47,6 @@ private const val ZERO_MS = 0L
 private const val ZERO_FRACTION = 0f
 private const val SECOND_PAD_CHAR = '0'
 
-private const val PREVIEW_DURATION_MS = 190_000L
-private const val PREVIEW_PLAYING_POSITION_MS = 42_000L
-private const val PREVIEW_PAUSED_POSITION_MS = 95_000L
-private const val PREVIEW_WAVEFORM_PAIR = 2
-private val PREVIEW_WAVEFORM =
-    List(WAVEFORM_BARS) { if (it % PREVIEW_WAVEFORM_PAIR == 0) HALF else WEIGHT_ONE }
-
 /** How far one memo has played. Every memo except the active one is [AudioPlaybackState.Idle]. */
 sealed interface AudioPlaybackState {
   val positionMs: Long
@@ -228,11 +221,14 @@ internal fun PlaybackTransport(
       showLeftSpinner = state is AudioPlaybackState.Loading,
       leftTestTag = AudioPlaybackTestTags.PLAY_PAUSE,
       leftSpinnerTestTag = AudioPlaybackTestTags.SPINNER,
-      rightIcon = Icons.Outlined.Replay,
-      rightDescription = stringResource(R.string.audioPlaybackRestart),
-      onRightClick = onRestart,
-      rightEnabled = enabled,
-      rightTestTag = AudioPlaybackTestTags.RESTART,
+      rightButton =
+          MediaAudioButton(
+              icon = Icons.Outlined.Replay,
+              description = stringResource(R.string.audioPlaybackRestart),
+              onClick = onRestart,
+              enabled = enabled,
+              testTag = AudioPlaybackTestTags.RESTART,
+          ),
       waveformTestTag = AudioPlaybackTestTags.PROGRESS,
       waveformModifier = Modifier.progressSemantics(fraction),
   )
@@ -265,7 +261,14 @@ internal fun PlaybackError(
   )
 }
 
-/** The states shown by [AudioPlaybackPreview] and [AudioPlaybackDarkPreview]. */
+private const val PREVIEW_DURATION_MS = 190_000L
+private const val PREVIEW_PLAYING_POSITION_MS = 42_000L
+private const val PREVIEW_PAUSED_POSITION_MS = 95_000L
+private const val PREVIEW_WAVEFORM_PAIR = 2
+private val PREVIEW_WAVEFORM =
+    List(WAVEFORM_BARS) { if (it % PREVIEW_WAVEFORM_PAIR == 0) HALF else WEIGHT_ONE }
+
+/** The states shown by [AudioPlaybackLightPreview] and [AudioPlaybackDarkPreview]. */
 @Composable
 private fun AudioPlaybackPreviewStates() {
   Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
@@ -293,16 +296,14 @@ private fun AudioPlaybackPreviewStates() {
         state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS),
         waveform = PREVIEW_WAVEFORM,
     )
-    DisplayAudioPlayback(
-        state = AudioPlaybackState.Error()
-    )
+    DisplayAudioPlayback(state = AudioPlaybackState.Error())
   }
 }
 
 /** Preview of [DisplayAudioPlayback] in each state. */
 @Preview(showBackground = true, name = "Audio playback light")
 @Composable
-internal fun AudioPlaybackPreview() {
+internal fun AudioPlaybackLightPreview() {
   AmberAppTheme(dynamicColor = false, darkTheme = false) { AudioPlaybackPreviewStates() }
 }
 

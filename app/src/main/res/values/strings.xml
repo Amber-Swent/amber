@@ -189,6 +189,7 @@
 
     <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
     <string name="caregiverButtonDefaultText">Text</string>
+    <string name="caregiverIconButtonAdd">Add</string>
 
     <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
     <plurals name="textFieldMaxCharReached">
@@ -288,6 +289,7 @@
     <string name="datePickerDone">Done</string>
 
     <!-- AudioRecorder -->
+    <string name="audioRecorderRecord">Record</string>
     <string name="audioRecorderDelete">Delete the audio</string>
     <string name="audioRecorderStop">Stop the recording</string>
 

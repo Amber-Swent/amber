@@ -70,14 +70,22 @@ fun DisplayAudioRecorder(
               .clip(RoundedCornerShape(ROUND_CORNER))
               .padding(CAREGIVER_PADDING_MEDIUM),
       waveform = waveformState,
+      isPatient = false,
       leftIcon = Icons.Outlined.Delete,
       leftDescription = stringResource(R.string.audioRecorderDelete),
       onLeftClick = onDelete,
       leftTestTag = AudioRecorderTestTags.DELETE_BUTTON,
-      rightIcon = if (isRecording) Icons.Outlined.Stop else null,
-      rightDescription = stringResource(R.string.audioRecorderStop),
-      onRightClick = onStop,
-      rightTestTag = AudioRecorderTestTags.STOP_BUTTON,
+      rightButton =
+          if (isRecording) {
+            MediaAudioButton(
+                icon = Icons.Outlined.Stop,
+                description = stringResource(R.string.audioRecorderStop),
+                onClick = onStop,
+                testTag = AudioRecorderTestTags.STOP_BUTTON,
+            )
+          } else {
+            null
+          },
       waveformTestTag = AudioRecorderTestTags.WAVEFORM,
   )
 }

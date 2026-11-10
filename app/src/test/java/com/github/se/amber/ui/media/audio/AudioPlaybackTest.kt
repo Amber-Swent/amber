@@ -457,7 +457,7 @@ class AudioPlaybackTest {
 
   @Test
   fun preview_showsEveryPlaybackState() {
-    composeTestRule.setContent { AudioPlaybackPreview() }
+    composeTestRule.setContent { AudioPlaybackLightPreview() }
 
     composeTestRule.onNodeWithText("0:42 / 3:10").assertIsDisplayed()
     composeTestRule.onNodeWithText("1:35 / 3:10").assertIsDisplayed()

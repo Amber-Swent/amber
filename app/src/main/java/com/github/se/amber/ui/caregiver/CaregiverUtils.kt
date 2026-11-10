@@ -2,6 +2,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver
 
@@ -19,10 +20,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.BlurOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -42,6 +48,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -57,10 +65,13 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.CAREGIVER_TITLE_WIDTH
+import com.github.se.amber.ui.theme.DISABLED_ALPHA
 import com.github.se.amber.ui.theme.MAX_CHAR_DEFAULT
 import com.github.se.amber.ui.theme.MAX_LINE_DEFAULT
 import com.github.se.amber.ui.theme.MIN_LINE_DEFAULT
@@ -165,6 +176,77 @@ fun DisplayCaregiverButton(
             tint = MaterialTheme.colorScheme.onTertiary,
         )
       }
+    }
+  }
+}
+
+/** Test tags owned by [DisplayCaregiverIconButton]. */
+object DisplayCaregiverIconButtonTestTags {
+  const val BUTTON = "caregiver_icon_button"
+}
+
+/**
+ * Displays a circular caregiver button holding an icon, or a loading spinner.
+ *
+ * [DisplayCaregiverButton] always includes a text label and a width fraction, so an icon-only
+ * control uses its own container color, content color, and height. The content description is set
+ * on the button itself so that screen readers announce the button, not its icon.
+ *
+ * @param modifier modifier applied to the button.
+ * @param icon icon displayed on the button.
+ * @param description content description of the button.
+ * @param enabled whether the button accepts clicks.
+ * @param showSpinner replaces the icon with a loading spinner when true.
+ * @param onClick called when the button is clicked.
+ * @param testTag test tag of the button.
+ * @param spinnerTestTag test tag of the spinner. No tag is set when empty.
+ */
+@Composable
+fun DisplayCaregiverIconButton(
+    modifier: Modifier = Modifier,
+    icon: ImageVector = Icons.Default.Add,
+    description: String = "",
+    enabled: Boolean = true,
+    showSpinner: Boolean = false,
+    onClick: () -> Unit = {},
+    testTag: String = DisplayCaregiverIconButtonTestTags.BUTTON,
+    spinnerTestTag: String = "",
+) {
+  val contentColor = MaterialTheme.colorScheme.onTertiary
+  FilledIconButton(
+      onClick = onClick,
+      enabled = enabled,
+      modifier =
+          modifier
+              .size(CAREGIVER_BUTTON_HEIGHT_SMALL)
+              .semantics { contentDescription = description }
+              .testTag(testTag),
+      shape = CircleShape,
+      colors =
+          IconButtonDefaults.filledIconButtonColors(
+              containerColor = MaterialTheme.colorScheme.tertiary,
+              contentColor = contentColor,
+              disabledContainerColor =
+                  MaterialTheme.colorScheme.tertiary.copy(alpha = DISABLED_ALPHA),
+              disabledContentColor = contentColor.copy(alpha = DISABLED_ALPHA),
+          ),
+  ) {
+    if (showSpinner) {
+      CircularProgressIndicator(
+          modifier =
+              Modifier.size(CAREGIVER_ICON_SIZE)
+                  .then(
+                      if (spinnerTestTag.isNotEmpty()) Modifier.testTag(spinnerTestTag)
+                      else Modifier
+                  ),
+          color = LocalContentColor.current,
+      )
+    } else {
+      Icon(
+          imageVector = icon,
+          contentDescription = null,
+          modifier = Modifier.size(CAREGIVER_ICON_SIZE),
+      )
     }
   }
 }
@@ -360,6 +442,15 @@ internal fun DisplayBoxWithIconTextPreview() {
 @Composable
 private fun DisplayCaregiverButtonPreview() {
   AmberAppTheme { DisplayCaregiverButton() }
+}
+
+/** Preview of [DisplayCaregiverIconButton] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+internal fun DisplayCaregiverIconButtonPreview() {
+  AmberAppTheme {
+    DisplayCaregiverIconButton(description = stringResource(R.string.caregiverIconButtonAdd))
+  }
 }
 
 /** Preview of [DisplayCaregiverTitle] using the Amber application theme. */

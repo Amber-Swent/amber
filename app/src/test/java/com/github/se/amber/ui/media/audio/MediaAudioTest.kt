@@ -3,6 +3,7 @@
 
 package com.github.se.amber.ui.media.audio
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
@@ -12,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -19,10 +21,13 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import org.junit.Assert.assertEquals
@@ -37,6 +42,10 @@ class MediaAudioTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
+
   @Test
   fun leftButton_callsTheActionItWasGiven() {
     var clicks = 0
@@ -44,7 +53,7 @@ class MediaAudioTest {
       AmberAppTheme {
         MediaAudio(
             leftIcon = Icons.Outlined.Mic,
-            leftDescription = "Record",
+            leftDescription = string(R.string.audioRecorderRecord),
             onLeftClick = { clicks++ },
         )
       }
@@ -52,7 +61,7 @@ class MediaAudioTest {
 
     composeTestRule
         .onNodeWithTag(MediaAudioTestTags.LEFT_BUTTON)
-        .assertContentDescriptionEquals("Record")
+        .assertContentDescriptionEquals(string(R.string.audioRecorderRecord))
     composeTestRule.onNodeWithTag(MediaAudioTestTags.LEFT_BUTTON).performClick()
     assertEquals(1, clicks)
   }
@@ -64,19 +73,49 @@ class MediaAudioTest {
       AmberAppTheme {
         MediaAudio(
             leftIcon = Icons.Outlined.Delete,
-            leftDescription = "Delete the audio",
-            rightIcon = Icons.Outlined.Stop,
-            rightDescription = "Stop the recording",
-            onRightClick = { clicks++ },
+            leftDescription = string(R.string.audioRecorderDelete),
+            rightButton =
+                MediaAudioButton(
+                    icon = Icons.Outlined.Stop,
+                    description = string(R.string.audioRecorderStop),
+                    onClick = { clicks++ },
+                ),
         )
       }
     }
 
     composeTestRule
         .onNodeWithTag(MediaAudioTestTags.RIGHT_BUTTON)
-        .assertContentDescriptionEquals("Stop the recording")
+        .assertContentDescriptionEquals(string(R.string.audioRecorderStop))
     composeTestRule.onNodeWithTag(MediaAudioTestTags.RIGHT_BUTTON).performClick()
     assertEquals(1, clicks)
+  }
+
+  @Test
+  fun caregiverRow_usesTheSmallerCaregiverButton() {
+    var clicks = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        MediaAudio(
+            isPatient = false,
+            leftDescription = string(R.string.audioRecorderDelete),
+            onLeftClick = { clicks++ },
+            rightButton =
+                MediaAudioButton(
+                    icon = Icons.Outlined.Stop,
+                    description = string(R.string.audioRecorderStop),
+                    onClick = { clicks++ },
+                ),
+        )
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(MediaAudioTestTags.LEFT_BUTTON)
+        .assertHeightIsEqualTo(CAREGIVER_BUTTON_HEIGHT_SMALL)
+        .performClick()
+    composeTestRule.onNodeWithTag(MediaAudioTestTags.RIGHT_BUTTON).performClick()
+    assertEquals(2, clicks)
   }
 
   @Test
@@ -113,10 +152,18 @@ class MediaAudioTest {
   fun preview_showsEachWaveformState() {
     composeTestRule.setContent { MediaAudioPreview() }
 
-    composeTestRule.onAllNodesWithContentDescription("Record").assertCountEquals(1)
-    composeTestRule.onAllNodesWithContentDescription("Delete the audio").assertCountEquals(2)
-    composeTestRule.onAllNodesWithContentDescription("Stop the recording").assertCountEquals(1)
-    composeTestRule.onAllNodesWithContentDescription("Play").assertCountEquals(1)
+    composeTestRule
+        .onAllNodesWithContentDescription(string(R.string.audioRecorderRecord))
+        .assertCountEquals(1)
+    composeTestRule
+        .onAllNodesWithContentDescription(string(R.string.audioRecorderDelete))
+        .assertCountEquals(2)
+    composeTestRule
+        .onAllNodesWithContentDescription(string(R.string.audioRecorderStop))
+        .assertCountEquals(1)
+    composeTestRule
+        .onAllNodesWithContentDescription(string(R.string.audioPlaybackPlay))
+        .assertCountEquals(1)
   }
 
   @Test
@@ -186,15 +233,19 @@ class MediaAudioTest {
             modifier = Modifier.testTag("row"),
             waveform = AudioWaveformState.Recorded(levels = listOf(0f)),
             leftIcon = Icons.Outlined.Mic,
-            leftDescription = "Record",
+            leftDescription = string(R.string.audioRecorderRecord),
             leftEnabled = false,
             showLeftSpinner = true,
             leftTestTag = "left",
             leftSpinnerTestTag = "spin",
-            rightIcon = Icons.Outlined.Stop,
-            rightDescription = "Stop",
-            rightEnabled = false,
-            rightTestTag = "right",
+            rightButton =
+                MediaAudioButton(
+                    icon = Icons.Outlined.Stop,
+                    description = string(R.string.audioRecorderStop),
+                    onClick = {},
+                    enabled = false,
+                    testTag = "right",
+                ),
             waveformTestTag = "wave",
             waveformModifier = Modifier,
         )
