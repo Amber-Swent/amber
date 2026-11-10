@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
 package com.github.se.amber.ui.patient
 
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,10 +32,12 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -48,29 +52,41 @@ class PatientUtilsTest {
   // ---------- DisplayPatientTitle ----------
 
   @Test
-  fun title_isDisplayedWithGivenText() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle(title = "My Stories") } }
+  fun title_displaysGivenText_withDefaultAndCustomTestTag() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientTitle(title = "My Stories")
+          DisplayPatientTitle(title = "Custom", testTag = "custom_title")
+        }
+      }
+    }
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.TITLE)
         .assertIsDisplayed()
         .assertTextEquals("My Stories")
+    composeTestRule.onNodeWithTag("custom_title").assertIsDisplayed().assertTextEquals("Custom")
+    composeTestRule.onNodeWithText("My Stories").assertIsDisplayed()
   }
 
   @Test
-  fun title_isFoundByText() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle(title = "Pictures") } }
-
-    composeTestRule.onNodeWithText("Pictures").assertIsDisplayed()
-  }
-
-  @Test
-  fun title_fillsParentWidth() {
+  fun title_fillsParentWidth_andAppliesCustomModifier() {
     composeTestRule.setContent {
-      AmberAppTheme { Box(Modifier.width(300.dp)) { DisplayPatientTitle(title = "Width") } }
+      AmberAppTheme {
+        Column {
+          Box(Modifier.width(300.dp)) { DisplayPatientTitle(title = "Fill", testTag = "fill") }
+          DisplayPatientTitle(
+              title = "Custom",
+              modifier = Modifier.width(100.dp),
+              testTag = "custom",
+          )
+        }
+      }
     }
 
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertWidthIsEqualTo(300.dp)
+    composeTestRule.onNodeWithTag("fill").assertWidthIsEqualTo(300.dp)
+    composeTestRule.onNodeWithTag("custom").assertWidthIsEqualTo(100.dp)
   }
 
   @Test
@@ -86,352 +102,11 @@ class PatientUtilsTest {
   }
 
   @Test
-  fun title_usesCustomTestTag() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientTitle(title = "Custom", testTag = "custom_title") }
-    }
-
-    composeTestRule.onNodeWithTag("custom_title").assertIsDisplayed().assertTextEquals("Custom")
-  }
-
-  // ---------- DisplayPatientButton ----------
-
-  @Test
-  fun button_isDisplayed_withGivenText() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Go") } }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
-        .assertIsDisplayed()
-        .assertTextEquals("Go")
-  }
-
-  @Test
-  fun button_click_invokesCallbackOnce() {
-    var clickCount = 0
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientButton(text = "Go", onClick = { clickCount++ }) }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
-
-    assertEquals(1, clickCount)
-  }
-
-  @Test
-  fun button_usesCustomTestTag() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientButton(text = "Go", testTag = "custom_button") }
-    }
-
-    composeTestRule.onNodeWithTag("custom_button").assertIsDisplayed()
-  }
-
-  // ---------- DisplayPatientButtonWithIcon ----------
-  @Test
-  fun buttonWithIcon_isDisplayed_withGivenText() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Add") } }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertIsDisplayed()
-        .assertTextEquals("Add")
-  }
-
-  @Test
-  fun buttonWithIcon_displaysIconWithDescription() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientButton(
-            text = "Add",
-            icon = Icons.Default.Add,
-            description = "add icon",
-        )
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
-        .assertIsDisplayed()
-        .assertContentDescriptionEquals("add icon")
-  }
-
-  @Test
-  fun buttonWithIcon_click_invokesCallbackOnce() {
-    var clickCount = 0
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientButton(text = "Add", onClick = { clickCount++ }) }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).performClick()
-
-    assertEquals(1, clickCount)
-  }
-
-  @Test
-  fun buttonWithIcon_usesCustomTestTags() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientButton(
-            text = "Add",
-            testTag = "custom_button",
-            iconTestTag = "custom_icon",
-        )
-      }
-    }
-
-    composeTestRule.onNodeWithTag("custom_button").assertIsDisplayed()
-    composeTestRule.onNodeWithTag("custom_icon", useUnmergedTree = true).assertIsDisplayed()
-  }
-
-  // ---------- Several buttons in the same screen ----------
-
-  @Test
-  fun twoButtons_withDifferentTags_areClickedIndependently() {
-    var firstClicks = 0
-    var secondClicks = 0
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Column {
-          DisplayPatientButton(text = "First", testTag = "first", onClick = { firstClicks++ })
-          DisplayPatientButton(text = "Second", testTag = "second", onClick = { secondClicks++ })
-        }
-      }
-    }
-
-    composeTestRule.onNodeWithTag("second").performClick()
-
-    assertEquals(0, firstClicks)
-    assertEquals(1, secondClicks)
-  }
-
-  // ---------- Defaults and custom modifier ----------
-
-  @Test
   fun title_withAllDefaults_isDisplayed() {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle() } }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
   }
-
-  @Test
-  fun title_appliesCustomModifier() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientTitle(title = "Width", modifier = Modifier.width(100.dp)) }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertWidthIsEqualTo(100.dp)
-  }
-
-  @Test
-  fun button_withAllDefaults_clickDoesNothing() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton() } }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick().assertIsDisplayed()
-  }
-
-  // The custom modifier defines the space available to the button:
-  // the button then takes PATIENT_BUTTON_WIDTH (0.7f) of it, i.e. 140.dp out of 200.dp.
-  @Test
-  fun button_appliesCustomModifier() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientButton(text = "Go", modifier = Modifier.width(200.dp)) }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertWidthIsEqualTo(140.dp)
-  }
-
-  @Test
-  fun button_updatesWhenTextChanges() {
-    val text = mutableStateOf("First")
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = text.value) } }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertTextEquals("First")
-
-    text.value = "Second"
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertTextEquals("Second")
-  }
-
-  @Test
-  fun buttonWithIcon_withAllDefaults_clickDoesNothing() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton() } }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .performClick()
-        .assertIsDisplayed()
-  }
-
-  // Same logic as button_appliesCustomModifier: 0.7f of 200.dp = 140.dp.
-  @Test
-  fun buttonWithIcon_appliesCustomModifier() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientButton(text = "Add", modifier = Modifier.width(200.dp))
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertWidthIsEqualTo(140.dp)
-  }
-
-  @Test
-  fun buttonWithIcon_updatesWhenTextChanges() {
-    val text = mutableStateOf("First")
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = text.value) } }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("First")
-
-    text.value = "Second"
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("Second")
-  }
-
-  // ---------- Button width and centering ----------
-
-  @Test
-  fun button_takesGivenFractionOfParentWidth_andIsCentered() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Box(Modifier.width(300.dp)) { DisplayPatientButton(text = "Go", buttonWidth = 0.5f) }
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
-        .assertWidthIsEqualTo(150.dp)
-        .assertLeftPositionInRootIsEqualTo(75.dp)
-  }
-
-  @Test
-  fun buttonWithIcon_takesGivenFractionOfParentWidth_andIsCentered() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Box(Modifier.width(300.dp)) {
-          DisplayPatientButton(text = "Add", buttonWidth = 0.5f)
-        }
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertWidthIsEqualTo(150.dp)
-        .assertLeftPositionInRootIsEqualTo(75.dp)
-  }
-
-  @Test
-  fun button_withFullWidth_fillsParentAndStartsAtLeftEdge() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Box(Modifier.width(300.dp)) { DisplayPatientButton(text = "Go", buttonWidth = 1f) }
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
-        .assertWidthIsEqualTo(300.dp)
-        .assertLeftPositionInRootIsEqualTo(0.dp)
-  }
-
-  @Test
-  fun buttonWithIcon_withFullWidth_fillsParentAndStartsAtLeftEdge() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Box(Modifier.width(300.dp)) { DisplayPatientButton(text = "Add", buttonWidth = 1f) }
-      }
-    }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertWidthIsEqualTo(300.dp)
-        .assertLeftPositionInRootIsEqualTo(0.dp)
-  }
-
-  // ---------- DisplayPatientIconButton ----------
-
-  @Test
-  fun iconButton_defaults_areEnabledSquareAndHaveNoSpinner() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton() } }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
-        .assertIsDisplayed()
-        .assertIsEnabled()
-        .assertWidthIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
-        .assertHeightIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsEnabled()
-  }
-
-  @Test
-  fun iconButton_exposesTheDescriptionOnTheButton() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton(description = "Play") } }
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
-        .assertContentDescriptionEquals("Play")
-  }
-
-  @Test
-  fun iconButton_click_invokesCallbackOnce() {
-    var clickCount = 0
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientCircularIconButton(onClick = { clickCount++ }) }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
-
-    assertEquals(1, clickCount)
-  }
-
-  @Test
-  fun iconButton_disabled_isNotEnabledAndIgnoresClicks() {
-    var clickCount = 0
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientCircularIconButton(enabled = false, onClick = { clickCount++ }) }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsNotEnabled()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
-
-    assertEquals(0, clickCount)
-  }
-
-  @Test
-  fun iconButton_withSpinner_showsTheTaggedSpinner() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientCircularIconButton(showSpinner = true, spinnerTestTag = "spinner") }
-    }
-
-    composeTestRule.onNodeWithTag("spinner", useUnmergedTree = true).assertIsDisplayed()
-  }
-
-  @Test
-  fun iconButton_withSpinnerAndNoSpinnerTag_stillShowsTheButton() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton(showSpinner = true) } }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsDisplayed()
-  }
-
-  @Test
-  fun iconButton_withoutSpinner_hasNoSpinner() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientCircularIconButton(spinnerTestTag = "spinner") }
-    }
-
-    composeTestRule.onAllNodesWithTag("spinner", useUnmergedTree = true).assertCountEquals(0)
-  }
-
-  @Test
-  fun iconButton_usesCustomTestTag() {
-    composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientCircularIconButton(testTag = "custom_icon_button") }
-    }
-
-    composeTestRule.onNodeWithTag("custom_icon_button").assertIsDisplayed()
-  }
-
-  // ---------- Custom styles and heights ----------
 
   @Test
   fun title_usesCustomStyle() {
@@ -451,14 +126,266 @@ class PatientUtilsTest {
     assertEquals(40.sp, results.first().layoutInput.style.fontSize)
   }
 
+  // ---------- DisplayPatientButton (with and without icon) ----------
+
   @Test
-  fun button_usesCustomHeight() {
+  fun buttons_areDisplayedWithGivenText_andUseTheirDefaultTestTag() {
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButton(
-            text = "Go",
-            buttonHeight = 80.dp,
-        )
+        Column {
+          DisplayPatientButton(text = "Go")
+          DisplayPatientButton(text = "Add", icon = Icons.Default.Add)
+        }
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+        .assertIsDisplayed()
+        .assertTextEquals("Go")
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertIsDisplayed()
+        .assertTextEquals("Add")
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON).assertCountEquals(1)
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertCountEquals(1)
+  }
+
+  @Test
+  fun buttons_useCustomTestTags_andAreClickedIndependently() {
+    var plainClicks = 0
+    var iconClicks = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton(text = "Go", testTag = "plain", onClick = { plainClicks++ })
+          DisplayPatientButton(
+              text = "Add",
+              icon = Icons.Default.Add,
+              testTag = "with_icon",
+              iconTestTag = "custom_icon",
+              onClick = { iconClicks++ },
+          )
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithTag("plain").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("with_icon").assertIsDisplayed()
+    composeTestRule.onNodeWithTag("custom_icon", useUnmergedTree = true).assertIsDisplayed()
+    // The custom tags replace the default ones.
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON).assertCountEquals(0)
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertCountEquals(0)
+
+    composeTestRule.onNodeWithTag("with_icon").performClick()
+    assertEquals(0, plainClicks)
+    assertEquals(1, iconClicks)
+
+    composeTestRule.onNodeWithTag("plain").performClick()
+    assertEquals(1, plainClicks)
+    assertEquals(1, iconClicks)
+  }
+
+  @Test
+  fun button_showsIconWithDescription_onlyWhenAnIconIsGiven() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton(text = "Go", iconTestTag = "plain_icon")
+          DisplayPatientButton(
+              text = "Add",
+              icon = Icons.Default.Add,
+              description = "add icon",
+          )
+        }
+      }
+    }
+
+    composeTestRule.onAllNodesWithTag("plain_icon", useUnmergedTree = true).assertCountEquals(0)
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
+        .assertIsDisplayed()
+        .assertContentDescriptionEquals("add icon")
+  }
+
+  @Test
+  fun buttons_withAllDefaults_clickDoesNothing() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton()
+          DisplayPatientButton(icon = Icons.Default.Add)
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick().assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .performClick()
+        .assertIsDisplayed()
+  }
+
+  // The custom modifier defines the space available to the button:
+  // the button then takes PATIENT_BUTTON_WIDTH (0.7f) of it, i.e. 140.dp out of 200.dp.
+  @Test
+  fun buttons_applyCustomModifier() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton(text = "Go", testTag = "plain", modifier = Modifier.width(200.dp))
+          DisplayPatientButton(
+              text = "Add",
+              icon = Icons.Default.Add,
+              testTag = "with_icon",
+              modifier = Modifier.width(200.dp),
+          )
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithTag("plain").assertWidthIsEqualTo(140.dp)
+    composeTestRule.onNodeWithTag("with_icon").assertWidthIsEqualTo(140.dp)
+  }
+
+  @Test
+  fun buttons_updateWhenTextChanges() {
+    val text = mutableStateOf("First")
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton(text = text.value)
+          DisplayPatientButton(text = text.value, icon = Icons.Default.Add)
+        }
+      }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertTextEquals("First")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("First")
+
+    text.value = "Second"
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertTextEquals("Second")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("Second")
+  }
+
+  // ---------- Button width and centering (fillWidth = true) ----------
+
+  @Test
+  fun buttons_takeGivenFractionOfParentWidth_andAreCentered() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(text = "Go", buttonWidth = 0.5f, testTag = "half")
+          }
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(
+                text = "Add",
+                icon = Icons.Default.Add,
+                buttonWidth = 0.5f,
+                testTag = "half_icon",
+            )
+          }
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(text = "Go", buttonWidth = 1f, testTag = "full")
+          }
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(
+                text = "Add",
+                icon = Icons.Default.Add,
+                buttonWidth = 1f,
+                testTag = "full_icon",
+            )
+          }
+        }
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag("half")
+        .assertWidthIsEqualTo(150.dp)
+        .assertLeftPositionInRootIsEqualTo(75.dp)
+    composeTestRule
+        .onNodeWithTag("half_icon")
+        .assertWidthIsEqualTo(150.dp)
+        .assertLeftPositionInRootIsEqualTo(75.dp)
+    composeTestRule
+        .onNodeWithTag("full")
+        .assertWidthIsEqualTo(300.dp)
+        .assertLeftPositionInRootIsEqualTo(0.dp)
+    composeTestRule
+        .onNodeWithTag("full_icon")
+        .assertWidthIsEqualTo(300.dp)
+        .assertLeftPositionInRootIsEqualTo(0.dp)
+  }
+
+  // ---------- Button wrapping its content (fillWidth = false) ----------
+
+  @Test
+  fun buttons_withoutFillWidth_wrapTheirContent_ignoreButtonWidth_andRespectExplicitWidth() {
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(text = "Go", fillWidth = false, testTag = "plain")
+          }
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(
+                text = "Add",
+                icon = Icons.Default.Add,
+                description = "add icon",
+                fillWidth = false,
+                testTag = "with_icon",
+            )
+          }
+          Box(Modifier.width(300.dp)) {
+            DisplayPatientButton(
+                text = "Go",
+                buttonWidth = 1f,
+                fillWidth = false,
+                testTag = "ignored_width",
+            )
+          }
+          DisplayPatientButton(
+              text = "Go",
+              fillWidth = false,
+              modifier = Modifier.width(200.dp),
+              testTag = "explicit",
+              onClick = { clickCount++ },
+          )
+        }
+      }
+    }
+
+    val plain = composeTestRule.onNodeWithTag("plain")
+    assertTrue(plain.getUnclippedBoundsInRoot().width < 300.dp)
+    plain.assertLeftPositionInRootIsEqualTo(0.dp)
+
+    val withIcon = composeTestRule.onNodeWithTag("with_icon")
+    assertTrue(withIcon.getUnclippedBoundsInRoot().width < 300.dp)
+    withIcon.assertLeftPositionInRootIsEqualTo(0.dp).assertTextEquals("Add")
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
+        .assertContentDescriptionEquals("add icon")
+
+    val ignored = composeTestRule.onNodeWithTag("ignored_width")
+    assertTrue(ignored.getUnclippedBoundsInRoot().width < 300.dp)
+
+    composeTestRule.onNodeWithTag("explicit").assertWidthIsEqualTo(200.dp).performClick()
+    assertEquals(1, clickCount)
+  }
+
+  // ---------- Custom height ----------
+
+  @Test
+  fun buttons_useCustomHeight() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton(text = "Go", buttonHeight = 80.dp)
+          DisplayPatientButton(text = "Add", icon = Icons.Default.Add, buttonHeight = 80.dp)
+        }
       }
     }
 
@@ -467,19 +394,6 @@ class PatientUtilsTest {
         .assertIsDisplayed()
         .assertTextEquals("Go")
         .assertHeightIsEqualTo(80.dp)
-  }
-
-  @Test
-  fun buttonWithIcon_usesCustomHeight() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientButton(
-            text = "Add",
-            buttonHeight = 80.dp,
-        )
-      }
-    }
-
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
         .assertIsDisplayed()
@@ -490,115 +404,155 @@ class PatientUtilsTest {
   // ---------- Enabled ----------
 
   @Test
-  fun button_isEnabledByDefault() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Go") } }
+  fun buttons_areEnabledByDefault() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientButton(text = "Go")
+          DisplayPatientButton(text = "Add", icon = Icons.Default.Add)
+        }
+      }
+    }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsEnabled()
-  }
-
-  @Test
-  fun button_whenDisabled_isNotEnabledAndDoesNotInvokeCallback() {
-    var clickCount = 0
-    composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientButton(text = "Go", enabled = false, onClick = { clickCount++ })
-      }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled().performClick()
-
-    assertEquals(0, clickCount)
-  }
-
-  @Test
-  fun button_enabledStateFollowsParameter() {
-    val enabled = mutableStateOf(false)
-    var clickCount = 0
-    composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientButton(text = "Go", enabled = enabled.value, onClick = { clickCount++ })
-      }
-    }
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled().performClick()
-    assertEquals(0, clickCount)
-
-    enabled.value = true
-
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsEnabled().performClick()
-    assertEquals(1, clickCount)
-  }
-
-  @Test
-  fun buttonWithIcon_isEnabledByDefault() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Add") } }
-
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertIsEnabled()
   }
 
   @Test
-  fun buttonWithIcon_whenDisabled_isNotEnabledAndDoesNotInvokeCallback() {
-    var clickCount = 0
+  fun buttons_enabledStateFollowsParameter() {
+    val enabled = mutableStateOf(false)
+    var plainClicks = 0
+    var iconClicks = 0
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButton(text = "Add", enabled = false, onClick = { clickCount++ })
+        Column {
+          DisplayPatientButton(
+              text = "Go",
+              enabled = enabled.value,
+              onClick = { plainClicks++ },
+          )
+          DisplayPatientButton(
+              text = "Add",
+              icon = Icons.Default.Add,
+              enabled = enabled.value,
+              onClick = { iconClicks++ },
+          )
+        }
       }
     }
 
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled().performClick()
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
         .assertIsNotEnabled()
         .performClick()
+    assertEquals(0, plainClicks)
+    assertEquals(0, iconClicks)
 
-    assertEquals(0, clickCount)
+    enabled.value = true
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsEnabled().performClick()
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
+        .assertIsEnabled()
+        .performClick()
+    assertEquals(1, plainClicks)
+    assertEquals(1, iconClicks)
+  }
+
+  // ---------- DisplayPatientCircularIconButton ----------
+
+  @Test
+  fun circularIconButton_defaults_areEnabledAndSized() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton() } }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
+        .assertIsDisplayed()
+        .assertIsEnabled()
+        .assertWidthIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
+        .assertHeightIsEqualTo(PATIENT_BUTTON_HEIGHT_SMALL)
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsEnabled()
   }
 
   @Test
-  fun buttonWithIcon_enabledStateFollowsParameter() {
-    val enabled = mutableStateOf(false)
+  fun circularIconButton_exposesDescription_usesCustomTag_andInvokesCallbackOnce() {
     var clickCount = 0
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButton(
-            text = "Add",
-            enabled = enabled.value,
+        DisplayPatientCircularIconButton(
+            description = "Play",
+            testTag = "custom_icon_button",
             onClick = { clickCount++ },
         )
       }
     }
 
     composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertIsNotEnabled()
+        .onNodeWithTag("custom_icon_button")
+        .assertIsDisplayed()
+        .assertContentDescriptionEquals("Play")
         .performClick()
-    assertEquals(0, clickCount)
 
-    enabled.value = true
-
-    composeTestRule
-        .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
-        .assertIsEnabled()
-        .performClick()
     assertEquals(1, clickCount)
   }
 
   @Test
-  fun preview_showsThePatientButtons() {
-    composeTestRule.setContent { DisplayPatientCircularButtonsPreviewWILLBEDELETED() }
+  fun circularIconButton_disabled_isNotEnabledAndIgnoresClicks() {
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme {
+        DisplayPatientCircularIconButton(enabled = false, onClick = { clickCount++ })
+      }
+    }
 
-    // The labeled button takes a width fraction inside a weighted row, so it is composed but has
-    // no size in this unbounded test. Existence still runs the preview.
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
+
+    assertEquals(0, clickCount)
   }
 
   @Test
-  fun darkPreview_showsThePatientButtons() {
-    composeTestRule.setContent { DisplayPatientCircularButtonsDarkPreviewWILLBEDELETED() }
+  fun circularIconButton_spinner_isShownOnlyWhenRequested_andTagOnlyWhenGiven() {
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Column {
+          DisplayPatientCircularIconButton(
+              showSpinner = true,
+              spinnerTestTag = "spinner",
+              testTag = "with_spinner",
+          )
+          DisplayPatientCircularIconButton(showSpinner = true, testTag = "spinner_without_tag")
+          DisplayPatientCircularIconButton(
+              showSpinner = false,
+              spinnerTestTag = "hidden_spinner",
+              testTag = "without_spinner",
+          )
+        }
+      }
+    }
 
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertExists()
+    composeTestRule.onNodeWithTag("spinner", useUnmergedTree = true).assertIsDisplayed()
+    composeTestRule.onNodeWithTag("spinner_without_tag").assertIsDisplayed()
+    composeTestRule.onAllNodesWithTag("hidden_spinner", useUnmergedTree = true).assertCountEquals(0)
+  }
+
+  // ---------- Previews ----------
+
+  @Test
+  fun previews_showThePatientButtons() {
+    composeTestRule.setContent {
+      Column {
+        DisplayPatientButtonsPreview()
+        DisplayPatientButtonsDarkPreview()
+      }
+    }
+
+    // The first button of each preview takes a width fraction inside a weighted row, so it is
+    // composed but has no size in this unbounded test. Existence still runs the previews.
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON).assertCountEquals(2)
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertCountEquals(2)
+    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.ICON_BUTTON).assertCountEquals(2)
   }
 }
