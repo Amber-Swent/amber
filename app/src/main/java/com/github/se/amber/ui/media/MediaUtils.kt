@@ -1,4 +1,5 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media
 
@@ -26,16 +27,16 @@ object MediaUtilsTestTags {
  * Transforms a [MemoryDate] into a displayable string.
  *
  * The format depends on the precision of the date:
- * - no date: "Unknown date"
  * - year only: "yyyy"
  * - year and month: "MM/yyyy"
  * - full date: "dd/MM/yyyy"
  *
- * @param date the date to transform, can be null
+ * A media without a date has no [MemoryDate]: the screen shows its own translated "Unknown date".
+ *
+ * @param date the date to transform
  * @return the string representation of the date
  */
-fun memoryDateIntoString(date: MemoryDate?): String {
-  if (date == null) return "Unknown date"
+fun memoryDateIntoString(date: MemoryDate): String {
   val month = date.month?.value ?: return "%04d".format(date.year)
   val day = date.day ?: return "%02d/%04d".format(month, date.year)
   return "%02d/%02d/%04d".format(day, month, date.year)
@@ -44,13 +45,13 @@ fun memoryDateIntoString(date: MemoryDate?): String {
 /**
  * Transforms a [GeoLocation] into a displayable string.
  *
- * It uses the place name if there is one, otherwise the coordinates (lat, lng), otherwise "Unknown
- * location".
+ * It uses the place name if there is one, otherwise the coordinates (lat, lng).
  *
  * @param location the location to transform
- * @return the string representation of the location
+ * @return the string representation of the location, or null when it has neither a name nor
+ *   coordinates. The screen then shows its own translated "Unknown location".
  */
-fun geoLocationIntoString(location: GeoLocation): String {
+fun geoLocationIntoString(location: GeoLocation): String? {
   val name = location.placeName
   if (!name.isNullOrBlank()) return name
 
@@ -58,7 +59,7 @@ fun geoLocationIntoString(location: GeoLocation): String {
   val lng = location.lng
   if (lat != null && lng != null) return "%.4f, %.4f".format(Locale.US, lat, lng)
 
-  return "Unknown location"
+  return null
 }
 
 /**

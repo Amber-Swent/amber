@@ -1,10 +1,13 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationCreationRepository
@@ -30,10 +33,20 @@ data class CareCircleChoice(
     val name: String,
 )
 
+/**
+ * UI state of the create invitation screen.
+ *
+ * @property generatedCode the code created last, or null before the first one.
+ * @property invitations the invitations of the selected circle.
+ * @property errorMsgRes the error to show, as a string resource, or null for none.
+ * @property circles the circles the caregiver can invite to.
+ * @property selectedCircleId the circle new invitations are created for.
+ * @property isCreating whether an invitation is being created.
+ */
 data class CreateInvitationUiState(
     val generatedCode: String? = null,
     val invitations: List<InvitationSummary> = emptyList(),
-    val errorMessage: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
     val circles: List<CareCircleChoice> = emptyList(),
     val selectedCircleId: String? = null,
     val isCreating: Boolean = false,
@@ -70,7 +83,7 @@ class CreateInvitationViewModel(
           selectedCircleId = circleId,
           generatedCode = null,
           invitations = emptyList(),
-          errorMessage = null,
+          errorMsgRes = null,
       )
     }
     invitationsJob?.cancel()
@@ -89,19 +102,19 @@ class CreateInvitationViewModel(
         val circleId = _uiState.value.selectedCircleId ?: return@launch
         when (val result = creationRepository.createInvitation(circleId)) {
           is InvitationCreationResult.Created -> {
-            _uiState.update { it.copy(generatedCode = result.code, errorMessage = null) }
+            _uiState.update { it.copy(generatedCode = result.code, errorMsgRes = null) }
             fetchInvitations(
                 circleId,
-                failureMessage = "The invitation was created, but the list could not be refreshed",
+                errorMsgRes = R.string.createInvitationErrorRefreshAfterCreate,
             )
           }
-          else -> _uiState.update { it.copy(errorMessage = messageFor(result)) }
+          else -> _uiState.update { it.copy(errorMsgRes = messageFor(result)) }
         }
       } catch (cancelled: CancellationException) {
         throw cancelled
       } catch (error: Exception) {
         Log.e(TAG, "Creating the invitation failed", error)
-        _uiState.update { it.copy(errorMessage = "Could not create the invitation") }
+        _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorCreate) }
       } finally {
         _uiState.update { it.copy(isCreating = false) }
       }
@@ -122,18 +135,18 @@ class CreateInvitationViewModel(
 
   private suspend fun fetchInvitations(
       circleId: String,
-      failureMessage: String = "Could not load invitations",
+      @StringRes errorMsgRes: Int = R.string.createInvitationErrorLoadInvitations,
   ) {
     lookupRepository
         .getInvitations(circleId)
         .onSuccess { invitations ->
           if (_uiState.value.selectedCircleId != circleId) return@onSuccess
-          _uiState.update { it.copy(invitations = invitations, errorMessage = null) }
+          _uiState.update { it.copy(invitations = invitations, errorMsgRes = null) }
         }
         .onFailure { error ->
           if (_uiState.value.selectedCircleId != circleId) return@onFailure
           Log.e(TAG, "Failed to load invitations", error)
-          _uiState.update { it.copy(errorMessage = failureMessage) }
+          _uiState.update { it.copy(errorMsgRes = errorMsgRes) }
         }
   }
 
@@ -141,34 +154,33 @@ class CreateInvitationViewModel(
     val profile =
         profileRepository.getCurrentProfile().getOrElse { error ->
           Log.e(TAG, "Failed to load profile", error)
-          _uiState.update { it.copy(errorMessage = "Could not load your profile") }
+          _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorLoadProfile) }
           return null
         }
     if (profile == null) {
-      _uiState.update { it.copy(errorMessage = "Your profile was not found") }
+      _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorProfileNotFound) }
       return null
     }
     if (profile.circleIds.isEmpty()) {
-      _uiState.update { it.copy(errorMessage = "No care circle") }
+      _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorNoCircle) }
       return null
     }
     return profile.circleIds
   }
 
-  private fun messageFor(result: InvitationCreationResult): String =
+  @StringRes
+  private fun messageFor(result: InvitationCreationResult): Int =
       when (result) {
-        is InvitationCreationResult.Created -> "Invitation created"
-        InvitationCreationResult.NotAuthenticated -> "Sign in to create an invitation"
-        InvitationCreationResult.PermissionDenied ->
-            "You do not have permission to create an invitation"
-        InvitationCreationResult.NetworkFailure ->
-            "Network error. Check your connection and try again"
-        InvitationCreationResult.InvalidExpiry -> "The invitation expiration date is invalid"
+        is InvitationCreationResult.Created -> R.string.createInvitationCreated
+        InvitationCreationResult.NotAuthenticated -> R.string.createInvitationErrorNotAuthenticated
+        InvitationCreationResult.PermissionDenied -> R.string.createInvitationErrorPermissionDenied
+        InvitationCreationResult.NetworkFailure -> R.string.createInvitationErrorNetwork
+        InvitationCreationResult.InvalidExpiry -> R.string.createInvitationErrorInvalidExpiry
         InvitationCreationResult.CollisionRetryLimitExceeded ->
-            "Every generated invitation code was already taken. Try again"
+            R.string.createInvitationErrorCodesTaken
         is InvitationCreationResult.FirestoreFailure -> {
           Log.e(TAG, "Saving the invitation failed", result.source)
-          "Saving the invitation failed"
+          R.string.createInvitationErrorSave
         }
       }
 }

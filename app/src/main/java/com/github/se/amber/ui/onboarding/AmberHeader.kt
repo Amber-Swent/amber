@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding
 
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
@@ -42,11 +44,12 @@ fun AmberHeader(
   ) {
     Image(
         painter = painterResource(R.drawable.amber_icon),
-        contentDescription = "Amber logo",
+        contentDescription = stringResource(R.string.amberHeaderLogo),
         modifier = Modifier.size(SURFACE_BIG),
     )
     Text(
-        text = "Amber",
+        // The brand name is the same in every language
+        text = stringResource(R.string.title_activity_main),
         // Same width as the logo, so the word sits under the icon rather than the parent.
         modifier = Modifier.width(SURFACE_BIG),
         style = MaterialTheme.typography.titleMedium,

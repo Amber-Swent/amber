@@ -1,4 +1,5 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias
 
@@ -19,8 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
@@ -62,7 +65,7 @@ fun SeeMediasScreen(
         TopAppBar(
             title = {
               DisplayPatientTitle(
-                  title = "See Medias",
+                  title = stringResource(R.string.seeMediasTitle),
                   testTag = SeeMediasTestTags.TITLE,
               )
             }
@@ -88,22 +91,28 @@ fun SeeMediasScreen(
         ) {
           DisplayPatientButton(
               text = "See Pictures",
+          DisplayPatientButtonWithIcon(
+              text = stringResource(R.string.seeMediasPictures),
               icon = Icons.Outlined.PhotoCamera,
-              description = "Picture",
+              description = stringResource(R.string.seeMediasPicturesIcon),
               onClick = onSeePictureClick,
               testTag = SeeMediasTestTags.PICTURES_BUTTON,
           )
           DisplayPatientButton(
               text = "See Texts",
+          DisplayPatientButtonWithIcon(
+              text = stringResource(R.string.seeMediasTexts),
               icon = Icons.Outlined.Description,
-              description = "Text",
+              description = stringResource(R.string.seeMediasTextsIcon),
               onClick = onSeeTextClick,
               testTag = SeeMediasTestTags.TEXTS_BUTTON,
           )
           DisplayPatientButton(
               text = "See Audio",
+          DisplayPatientButtonWithIcon(
+              text = stringResource(R.string.seeMediasAudios),
               icon = Icons.Outlined.Mic,
-              description = "Audios",
+              description = stringResource(R.string.seeMediasAudiosIcon),
               onClick = onSeeAudioClick,
               testTag = SeeMediasTestTags.AUDIOS_BUTTON,
           )
