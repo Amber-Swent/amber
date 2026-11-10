@@ -139,6 +139,32 @@ class DeleteAccountViewModelTest {
   }
 
   @Test
+  fun warningsAcrossFamiliesAreDeduplicated() = runTest {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(UserProfile(uid = "caregiver", circleIds = listOf("one", "two", "three")))
+    coEvery { circleRepository.getCircle("one") } returns
+        Result.success(CareCircle(memberIds = listOf("caregiver")))
+    coEvery { circleRepository.getCircle("two") } returns
+        Result.success(CareCircle(memberIds = listOf("caregiver")))
+    coEvery { circleRepository.getCircle("three") } returns
+        Result.success(CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient")))
+
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+
+    assertEquals(
+        listOf(
+            R.string.deleteAccountLastMemberWarning,
+            R.string.deleteAccountLastCaregiverWarning,
+        ),
+        viewModel.uiState.value.warnings,
+    )
+    coVerify(exactly = 1) { circleRepository.getCircle("one") }
+    coVerify(exactly = 1) { circleRepository.getCircle("two") }
+    coVerify(exactly = 1) { circleRepository.getCircle("three") }
+  }
+
+  @Test
   fun patientProfileNeverEnablesDeletion() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.success(UserProfile(uid = "patient", role = Role.PATIENT))
@@ -213,6 +239,23 @@ class DeleteAccountViewModelTest {
 
     assertFalse(viewModel.uiState.value.isDeleting)
     assertEquals(R.string.deleteAccountWrongAccountError, viewModel.uiState.value.errorMessageRes)
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun reauthenticationNetworkFailureKeepsDeletionAvailableForRetry() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    val credential = stubCredential()
+    coEvery { authRepository.reauthenticateWithGoogle(credential) } returns
+        Result.failure(ReauthenticationError.Network)
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals(R.string.deleteAccountNetworkError, viewModel.uiState.value.errorMessageRes)
+    assertFalse(viewModel.uiState.value.isDeleting)
+    assertFalse(viewModel.uiState.value.localCleanupNeeded)
     coVerify(exactly = 0) { deletionRepository.deleteAccount() }
   }
 
@@ -307,6 +350,22 @@ class DeleteAccountViewModelTest {
 
     assertFalse(viewModel.uiState.value.isDeleting)
     assertNull(viewModel.uiState.value.errorMessageRes)
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun unexpectedCredentialPickerFailureShowsRetryableError() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        IllegalStateException("Credential provider unavailable")
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals(R.string.deleteAccountUnknownError, viewModel.uiState.value.errorMessageRes)
+    assertFalse(viewModel.uiState.value.isDeleting)
+    assertFalse(viewModel.uiState.value.localCleanupNeeded)
     coVerify(exactly = 0) { deletionRepository.deleteAccount() }
   }
 
