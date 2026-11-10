@@ -2,8 +2,10 @@
 
 package com.github.se.amber.data.account
 
+import androidx.credentials.CredentialManager
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.e2e.FirebaseEmulator
+import com.github.se.amber.model.authentication.AuthRepositoryFirebase
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Firebase
@@ -75,8 +77,13 @@ class AccountDeletionFirebaseTest {
         FirebaseAccountDeletionRepository(
             { clears++ },
             marker,
+            AuthRepositoryFirebase(
+                CredentialManager.create(
+                    InstrumentationRegistry.getInstrumentation().targetContext
+                ),
+                auth = phone,
+            ),
             Firebase.functions,
-            phone,
         )
 
     repository.finishInterruptedDeletion()
