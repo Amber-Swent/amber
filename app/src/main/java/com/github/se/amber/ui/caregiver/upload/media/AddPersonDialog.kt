@@ -85,25 +85,25 @@ fun AddPersonDialog(
   ) {
     Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
       NameField(
-          firstName,
-          onFirstNameChange,
-          stringResource(R.string.addPersonFirstName),
-          firstNameError,
-          Modifier.testTag(AddPersonDialogTestTags.FIRST_NAME),
+          modifier = Modifier.testTag(AddPersonDialogTestTags.FIRST_NAME),
+          value = firstName,
+          onValueChange = onFirstNameChange,
+          label = stringResource(R.string.addPersonFirstName),
+          error = firstNameError,
       )
       NameField(
-          lastName,
-          onLastNameChange,
-          stringResource(R.string.addPersonSurname),
-          lastNameError,
-          Modifier.testTag(AddPersonDialogTestTags.SURNAME),
+          modifier = Modifier.testTag(AddPersonDialogTestTags.SURNAME),
+          value = lastName,
+          onValueChange = onLastNameChange,
+          label = stringResource(R.string.addPersonSurname),
+          error = lastNameError,
       )
       NameField(
-          nickname,
-          onNicknameChange,
-          stringResource(R.string.addPersonNickname),
-          nicknameError,
-          Modifier.testTag(AddPersonDialogTestTags.NICKNAME),
+          modifier = Modifier.testTag(AddPersonDialogTestTags.NICKNAME),
+          value = nickname,
+          onValueChange = onNicknameChange,
+          label = stringResource(R.string.addPersonNickname),
+          error = nicknameError,
       )
     }
   }
@@ -112,19 +112,19 @@ fun AddPersonDialog(
 /**
  * One single-line name field of [AddPersonDialog], with the names' length limit.
  *
+ * @param modifier the modifier of the text field, for example its test tag.
  * @param value the current text.
  * @param onValueChange receives each edit.
  * @param label the label shown on the field.
  * @param error why [value] is refused, or null.
- * @param modifier the modifier of the text field, for example its test tag.
  */
 @Composable
 private fun NameField(
+    modifier: Modifier = Modifier,
     value: String = "",
     onValueChange: (String) -> Unit = {},
     label: String = "",
     error: String? = null,
-    modifier: Modifier = Modifier,
 ) {
   DisplayTextField(
       modifier = modifier,
