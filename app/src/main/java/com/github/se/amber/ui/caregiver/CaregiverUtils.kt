@@ -188,8 +188,8 @@ object DisplayCaregiverIconButtonTestTags {
  * Displays a circular caregiver button holding an icon, or a loading spinner.
  *
  * [DisplayCaregiverButton] always includes a text label and a width fraction, so an icon-only
- * control uses its own container color and content color. The content description is set
- * on the button itself so that screen readers announce the button, not its icon.
+ * control uses its own container color and content color. The content description is set on the
+ * button itself so that screen readers announce the button, not its icon.
  *
  * @param modifier modifier applied to the button.
  * @param icon icon displayed on the button.
@@ -215,8 +215,7 @@ fun DisplayCaregiverIconButton(
   FilledIconButton(
       onClick = onClick,
       enabled = enabled,
-      modifier =
-          modifier.semantics { contentDescription = description }.testTag(testTag),
+      modifier = modifier.semantics { contentDescription = description }.testTag(testTag),
       shape = CircleShape,
       colors =
           IconButtonDefaults.filledIconButtonColors(
