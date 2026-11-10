@@ -24,6 +24,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.MediaCardViewModel
+import com.github.se.amber.ui.media.audio.AudioPlaybackTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
@@ -114,8 +115,8 @@ class SeeAudiosScreenTest {
 
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("a1")).assertIsDisplayed()
-    composeTestRule.onNodeWithTag("media_audio_left_button").performClick()
-    composeTestRule.onNodeWithTag("media_audio_right_button").performClick()
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).performClick()
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RESTART).performClick()
     assertEquals("a1", played)
     assertEquals("a1", replayed)
   }

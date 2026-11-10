@@ -14,9 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -33,14 +30,12 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.media.MediaCard
-import com.github.se.amber.ui.media.audio.AudioWaveformState
-import com.github.se.amber.ui.media.audio.MediaAudio
-import com.github.se.amber.ui.media.audio.MediaAudioButton
+import com.github.se.amber.ui.media.audio.AudioPlaybackState
+import com.github.se.amber.ui.media.audio.DisplayAudioPlayback
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
@@ -50,7 +45,6 @@ import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
-import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
@@ -184,21 +178,18 @@ fun SeeAudiosScreen(
                 verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             ) {
               items(actualState.allAudios, key = { it.id }) { audio ->
-                MediaAudio(
+                Box(
                     modifier =
                         Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG)
-                            .testTag(SeeAudiosTestTags.audio(audio.id)),
-                    waveform = AudioWaveformState.Recorded(audio.waveform),
-                    leftIcon = Icons.Outlined.PlayArrow,
-                    leftDescription = stringResource(R.string.audioPlaybackPlay),
-                    onLeftClick = { onPlayAudio(audio.id) },
-                    rightButton =
-                        MediaAudioButton(
-                            icon = Icons.Outlined.Replay,
-                            description = stringResource(R.string.audioPlaybackRestart),
-                            onClick = { onReplayAudio(audio.id) },
-                        ),
-                )
+                            .testTag(SeeAudiosTestTags.audio(audio.id))
+                ) {
+                  DisplayAudioPlayback(
+                      state = AudioPlaybackState.Idle(durationMs = audio.durationMs),
+                      waveform = audio.waveform,
+                      onPlayPause = { onPlayAudio(audio.id) },
+                      onRestart = { onReplayAudio(audio.id) },
+                  )
+                }
                 MediaCard(
                     modifier = Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG),
                     media = audio,
@@ -210,11 +201,4 @@ fun SeeAudiosScreen(
         }
       },
   )
-}
-
-/** Preview of the empty audio screen using the Amber theme. */
-@Preview(showBackground = true)
-@Composable
-fun SeeAudiosScreenPreview() {
-  AmberAppTheme { SeeAudiosScreen() }
 }
