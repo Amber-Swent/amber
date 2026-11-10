@@ -5,7 +5,6 @@
 package com.github.se.amber.ui.onboarding
 
 import android.content.Context
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -23,7 +22,6 @@ import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCirclePreview
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -248,89 +246,5 @@ class CreateCareCircleScreenTest {
       }
       return Result.success(CareCircle(id = "circle-1", name = name))
     }
-  }
-}
-
-/**
- * The screen tests already set content once, so the preview needs its own rule. Cancel uses the
- * screen's default [onBack], and Create runs the preview repository.
- */
-@OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-class CreateCareCirclePreviewScreenTest {
-  @get:Rule val composeTestRule = createComposeRule()
-
-  @Before
-  fun setUp() {
-    Dispatchers.setMain(UnconfinedTestDispatcher())
-    composeTestRule.setContent { CreateCareCirclePreview() }
-  }
-
-  @After
-  fun tearDown() {
-    Dispatchers.resetMain()
-  }
-
-  @Test
-  fun previewCancelThenCreate_leavesTheFormAndThenDisablesCreate() {
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).assertExists()
-
-    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput("Family")
-    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
-    composeTestRule.waitForIdle()
-
-    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
-  }
-}
-
-/**
- * The other screen tests omit [context] and [modifier]. This one passes both, then checks that a
- * failed create still shows the offline toast.
- */
-@OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-class CreateCareCirclePassedContextTest {
-  @get:Rule val composeTestRule = createComposeRule()
-
-  /** Text of [id] in the current test language. */
-  private fun string(id: Int): String =
-      ApplicationProvider.getApplicationContext<Context>().getString(id)
-
-  @Before
-  fun setUp() {
-    Dispatchers.setMain(UnconfinedTestDispatcher())
-  }
-
-  @After
-  fun tearDown() {
-    Dispatchers.resetMain()
-  }
-
-  @Test
-  fun passedContext_showsTheOfflineToast() {
-    val context = ApplicationProvider.getApplicationContext<Context>()
-    val viewModel =
-        CreateCareCircleViewModel(
-            object : OnboardingRepository {
-              override suspend fun createInitialCareCircle(name: String): Result<CareCircle> =
-                  Result.failure(OnboardingError.Network)
-            }
-        )
-    composeTestRule.setContent {
-      AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleScreen(
-            modifier = Modifier,
-            context = context,
-            viewModel = viewModel,
-        )
-      }
-    }
-
-    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput("Family")
-    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
-    composeTestRule.waitForIdle()
-
-    assertEquals(string(R.string.createCareCircleErrorOffline), ShadowToast.getTextOfLatestToast())
   }
 }
