@@ -8,9 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,7 +28,6 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
@@ -222,13 +219,7 @@ class AddPersonDialogTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON)
         .performScrollTo()
         .performClick()
-    // the screen has its own text fields: the first one in the dialog is First Name
-    composeTestRule
-        .onAllNodes(
-            hasTestTag(DisplayTextFieldTestTags.TEXT) and
-                hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
-        )[0]
-        .performTextInput("Anne")
+    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.FIRST_NAME).performTextInput("Anne")
     composeTestRule.onNode(hasText(addLabel) and hasClickAction()).performClick()
 
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.common.shownIds.isNotEmpty() }

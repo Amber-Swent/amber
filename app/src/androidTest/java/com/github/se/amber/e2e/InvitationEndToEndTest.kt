@@ -5,24 +5,11 @@
 package com.github.se.amber.e2e
 
 import android.content.Context
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.printToLog
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.AmberApp
 import com.github.se.amber.R
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
@@ -47,8 +34,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -69,6 +54,7 @@ class InvitationEndToEndTest {
   @get:Rule val composeTestRule = createComposeRule()
   private val googleAccount = FakeGoogleAccount(ApplicationProvider.getApplicationContext())
   private val runId = UUID.randomUUID().toString().take(8)
+  private val steps = E2eSteps(composeTestRule)
 
   /**
    * Starts the application against the Firebase emulators and warms up the Functions emulator.
@@ -78,12 +64,7 @@ class InvitationEndToEndTest {
    */
   @Before
   fun startAppOnEmulators() {
-    val message = "Firebase emulators are not running on the host"
-    // CI starts the emulators, so there a missing one is broken wiring, not a reason to skip
-    val required =
-        InstrumentationRegistry.getArguments().getString(REQUIRE_EMULATORS_ARGUMENT) == "true"
-    if (required) assertTrue(message, FirebaseEmulator.isRunning())
-    else assumeTrue(message, FirebaseEmulator.isRunning())
+    FirebaseEmulator.requireOrSkip()
     FirebaseEmulator.useForDefaultApp()
 
     // Warms up the Functions emulator (worker cold start + failing Installations lookup) so the
@@ -117,30 +98,30 @@ class InvitationEndToEndTest {
   fun caregiverSharesCode_secondCaregiverJoinsTheCircle() {
     signInWithGoogle("ada-$runId@amber.test", "Ada")
     createCaregiverProfile(firstName = "Ada", lastName = "Lovelace")
-    click(CaregiverChoiceTestTags.CREATE_BUTTON)
-    typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
-    click(DisplayCaregiverButtonTestTags.BUTTON)
-    waitFor(CaregiverHomeTestTags.TITLE)
+    steps.click(CaregiverChoiceTestTags.CREATE_BUTTON)
+    steps.typeInto(CreateCareCircleTestTags.NAME_FIELD, "Family")
+    steps.click(DisplayCaregiverButtonTestTags.BUTTON)
+    steps.waitFor(CaregiverHomeTestTags.TITLE)
 
     val adasCode = createInvitationCode()
 
-    click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
-    waitFor(CaregiverParametersTestTags.TITLE)
-    click(CaregiverParametersTestTags.SIGN_OUT_BUTTON)
-    click(SignOutButtonTestTags.BUTTON)
-    waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
+    steps.click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
+    steps.waitFor(CaregiverParametersTestTags.TITLE)
+    steps.click(CaregiverParametersTestTags.SIGN_OUT_BUTTON)
+    steps.click(SignOutButtonTestTags.BUTTON)
+    steps.waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
 
     signInWithGoogle("bob-$runId@amber.test", "Bob")
     createCaregiverProfile(firstName = "Bob", lastName = "Martin")
 
-    click(CaregiverChoiceTestTags.JOIN_BUTTON)
-    typeInto(InvitationRedemptionTestTags.CODE_INPUT, adasCode)
+    steps.click(CaregiverChoiceTestTags.JOIN_BUTTON)
+    steps.typeInto(InvitationRedemptionTestTags.CODE_INPUT, adasCode)
 
     composeTestRule
         .onNodeWithTag(InvitationRedemptionTestTags.CODE_INPUT)
-        .assert(hasEditableText(adasCode))
-    click(InvitationRedemptionTestTags.SUBMIT_BUTTON)
-    waitFor(CaregiverHomeTestTags.TITLE)
+        .assert(E2eSteps.hasEditableText(adasCode))
+    steps.click(InvitationRedemptionTestTags.SUBMIT_BUTTON)
+    steps.waitFor(CaregiverHomeTestTags.TITLE)
 
     val bobsCode = createInvitationCode()
     assertNotEquals(adasCode, bobsCode)
@@ -154,7 +135,7 @@ class InvitationEndToEndTest {
    */
   private fun signInWithGoogle(email: String, name: String) {
     googleAccount.switchTo(email, name)
-    click(EmailSignInTestTags.GOOGLE_BUTTON)
+    steps.click(EmailSignInTestTags.GOOGLE_BUTTON)
   }
 
   /**
@@ -164,9 +145,9 @@ class InvitationEndToEndTest {
    * @param lastName the caregiver's last name
    */
   private fun createCaregiverProfile(firstName: String, lastName: String) {
-    typeInto(CreateProfileTestTags.NAME_INPUT, firstName)
-    typeInto(CreateProfileTestTags.SURNAME_INPUT, lastName)
-    click(CreateProfileTestTags.CAREGIVER_BUTTON)
+    steps.typeInto(CreateProfileTestTags.NAME_INPUT, firstName)
+    steps.typeInto(CreateProfileTestTags.SURNAME_INPUT, lastName)
+    steps.click(CreateProfileTestTags.CAREGIVER_BUTTON)
   }
 
   /**
@@ -175,105 +156,24 @@ class InvitationEndToEndTest {
    * @return the newly created invitation code
    */
   private fun createInvitationCode(): String {
-    click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
-    click(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
-    click(CreateInvitationTestTags.CREATE_CARD)
+    steps.click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
+    steps.click(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON)
+    steps.click(CreateInvitationTestTags.CREATE_CARD)
     val placeholder =
         ApplicationProvider.getApplicationContext<Context>()
             .getString(R.string.createInvitationPlaceholder)
-    composeTestRule.waitUntil(TIMEOUT_MILLIS) {
-      textOf(CreateInvitationTestTags.HINT_BOX)?.let { it.isNotBlank() && it != placeholder } ==
-          true
+    composeTestRule.waitUntil(E2eSteps.DEFAULT_TIMEOUT_MILLIS) {
+      steps.textOf(CreateInvitationTestTags.HINT_BOX)?.let {
+        it.isNotBlank() && it != placeholder
+      } == true
     }
-    val code = checkNotNull(textOf(CreateInvitationTestTags.HINT_BOX))
-    waitFor(CreateInvitationTestTags.codeRow(code)) // the new invitation also reached the list
+    val code = checkNotNull(steps.textOf(CreateInvitationTestTags.HINT_BOX))
+    // the new invitation also reached the list
+    steps.waitFor(CreateInvitationTestTags.codeRow(code))
     return code
   }
 
-  /**
-   * Waits for an enabled node and clicks it.
-   *
-   * @param tag the test tag of the node to click
-   */
-  private fun click(tag: String) {
-    waitForNode(hasTestTag(tag) and isEnabled(), "enabled node '$tag'")
-    val node = composeTestRule.onNodeWithTag(tag)
-    // A control can sit below the emulator window on a scrolling screen. Touch input misses it
-    // there, so bring it into view when the screen scrolls.
-    try {
-      node.performScrollTo()
-    } catch (_: AssertionError) {
-      // This screen does not scroll. The control is already in view.
-    }
-    node.performClick()
-  }
-
-  /**
-   * Waits for an enabled node and enters text into it.
-   *
-   * @param tag the test tag of the input node
-   * @param text the text to enter
-   */
-  private fun typeInto(tag: String, text: String) {
-    waitForNode(hasTestTag(tag) and isEnabled(), "enabled node '$tag'")
-    composeTestRule.onNodeWithTag(tag).performTextInput(text)
-  }
-
-  /**
-   * Returns the text semantics value of the first node with the given tag.
-   *
-   * @param tag the test tag of the node to inspect
-   * @return the node's text, or null when no matching node or text exists
-   */
-  private fun textOf(tag: String): String? =
-      composeTestRule
-          .onAllNodesWithTag(tag)
-          .fetchSemanticsNodes()
-          .firstOrNull()
-          ?.config
-          ?.getOrNull(SemanticsProperties.Text)
-          ?.joinToString("")
-
-  /**
-   * Waits for exactly one node matching the given semantics matcher.
-   *
-   * @param matcher the semantics condition that the node must satisfy
-   * @param description a human-readable description used in timeout diagnostics
-   */
-  @OptIn(ExperimentalTestApi::class)
-  private fun waitForNode(matcher: SemanticsMatcher, description: String) {
-    try {
-      composeTestRule.waitUntilExactlyOneExists(matcher, TIMEOUT_MILLIS)
-    } catch (e: Exception) {
-      composeTestRule.onRoot().printToLog("E2E")
-      throw AssertionError("Timed out waiting for $description", e)
-    }
-  }
-
-  /**
-   * Waits for a node with the given test tag.
-   *
-   * Navigation and backend calls take real time during the end-to-end journey.
-   *
-   * @param tag the test tag of the node to wait for
-   */
-  private fun waitFor(tag: String) = waitForNode(hasTestTag(tag), "node '$tag'")
-
-  /**
-   * Creates a matcher for the editable text value of a semantics node.
-   *
-   * @param expected the text value the node must contain
-   * @return a matcher that checks the node's editable text
-   */
-  private fun hasEditableText(expected: String) =
-      SemanticsMatcher("has editable text '$expected'") {
-        it.config.getOrNull(SemanticsProperties.EditableText)?.text == expected
-      }
-
   private companion object {
-    const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
-    // Each step waits for real navigation and emulator calls
-    const val TIMEOUT_MILLIS = 10_000L
     const val WARM_UP_MILLIS = 60_000L
   }
 }
