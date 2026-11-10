@@ -466,7 +466,7 @@ class PatientUtilsTest {
     assertEquals(1, iconClicks)
   }
 
-  // ---------- DisplayPatientIconButton ----------
+  // ---------- DisplayPatientCircularIconButton ----------
 
   @Test
   fun iconButton_defaults_areEnabledSquareAndHaveNoSpinner() {
