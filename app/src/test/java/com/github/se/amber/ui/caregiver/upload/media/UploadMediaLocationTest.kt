@@ -1,7 +1,9 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
+import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,12 +27,15 @@ import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.text.AnnotatedString
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.location.GeoLocation
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Robolectric tests for the "Location - optional" helpers of the upload screens, rendered on their
@@ -41,6 +46,24 @@ import org.robolectric.RobolectricTestRunner
 class UploadMediaLocationTest {
 
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** Text of [id] in the current test language, with [args] for its placeholders. */
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun hintsAreShownInFrenchWithTheMinimumLength() {
+    composeTestRule.setContent { DisplayLocation(state = MediaLocationUIState(query = "La")) }
+
+    composeTestRule
+        .onNodeWithTag(UploadMediaLocationTestTags.TOO_SHORT)
+        .assert(
+            hasOnlyText(
+                "Saisissez au moins $MIN_PLACE_QUERY_LENGTH lettres pour rechercher, ou videz le champ."
+            )
+        )
+  }
 
   private val lausanne = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne, Switzerland")
   private val unnamed = GeoLocation(lat = 45.0, lng = -73.0, placeName = null)
@@ -58,7 +81,7 @@ class UploadMediaLocationTest {
   fun withDefaultsOnlyTheTitleAndTheSearchFieldAreShown() {
     composeTestRule.setContent { DisplayLocation() }
 
-    composeTestRule.onNodeWithText("Location - optional").assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.locationTitle)).assertIsDisplayed()
     composeTestRule.onNode(searchField).assertIsDisplayed()
     composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SAVED_PLACE).assertCountEquals(0)
     composeTestRule.onAllNodesWithTag(UploadMediaLocationTestTags.SUGGESTION).assertCountEquals(0)
@@ -111,7 +134,7 @@ class UploadMediaLocationTest {
     composeTestRule
         .onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT)
         .assertIsDisplayed()
-        .assert(hasOnlyText(NO_PLACE_FOUND_HINT))
+        .assert(hasOnlyText(string(R.string.locationNoPlaceFound)))
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
 
@@ -122,7 +145,7 @@ class UploadMediaLocationTest {
     composeTestRule
         .onNodeWithTag(UploadMediaLocationTestTags.SEARCH_FAILED)
         .assertIsDisplayed()
-        .assert(hasOnlyText(PLACE_SEARCH_FAILED_HINT))
+        .assert(hasOnlyText(string(R.string.locationSearchFailed)))
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
     // ...and it can be searched again from there
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.RETRY_SEARCH).performClick()
@@ -133,14 +156,24 @@ class UploadMediaLocationTest {
     composeTestRule
         .onNodeWithTag(UploadMediaLocationTestTags.TOO_SHORT)
         .assertIsDisplayed()
-        .assert(hasOnlyText(PLACE_QUERY_TOO_SHORT_HINT))
+        .assert(
+            hasOnlyText(
+                ApplicationProvider.getApplicationContext<Context>()
+                    .resources
+                    .getQuantityString(
+                        R.plurals.locationQueryTooShort,
+                        MIN_PLACE_QUERY_LENGTH,
+                        MIN_PLACE_QUERY_LENGTH,
+                    )
+            )
+        )
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()
 
     // a search still running only shows searching
     composeTestRule.runOnIdle {
       state = MediaLocationUIState(query = "Lau", isSearching = true, searchFailed = true)
     }
-    composeTestRule.onNodeWithText("Searching…").assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.locationSearching)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.SEARCH_FAILED).assertDoesNotExist()
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.RETRY_SEARCH).assertDoesNotExist()
     composeTestRule.onNodeWithTag(UploadMediaLocationTestTags.NO_RESULT).assertDoesNotExist()

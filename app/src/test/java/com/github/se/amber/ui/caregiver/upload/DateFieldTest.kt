@@ -1,11 +1,13 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload
 
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.DateField
 import java.time.Month
+import java.time.format.TextStyle
 import java.util.Locale
 import org.junit.Assert
 import org.junit.Test
@@ -162,22 +164,37 @@ class DateFieldTest {
 
   @Test
   fun format_monthUsesFullLocalizedName() {
-    Assert.assertEquals("March", DateField.MONTH.format(3))
+    Assert.assertEquals("March", DateField.MONTH.format(3, Locale.ENGLISH))
     Assert.assertEquals("mars", DateField.MONTH.format(3, Locale.FRENCH))
   }
 
   @Test
   fun formatCompact_monthUsesShortName() {
-    Assert.assertEquals("Mar", DateField.MONTH.formatCompact(3))
+    Assert.assertEquals("Mar", DateField.MONTH.formatCompact(3, Locale.ENGLISH))
+  }
+
+  @Test
+  fun formatCompact_monthIsTranslatedWithTheLocale() {
+    // Short French names may end with a dot ("janv."), so compare with the JDK's own value
+    Assert.assertEquals(
+        Month.JANUARY.getDisplayName(TextStyle.SHORT, Locale.FRENCH),
+        DateField.MONTH.formatCompact(1, Locale.FRENCH),
+    )
+    Assert.assertNotEquals("Jan", DateField.MONTH.formatCompact(1, Locale.FRENCH))
+  }
+
+  @Test
+  fun format_yearIsTheSameInEveryLocale() {
+    Assert.assertEquals("2024", DateField.YEAR.format(2024, Locale.FRENCH))
   }
 
   @Test
   fun format_day_isPaddedToTwoDigits() {
-    Assert.assertEquals("07", DateField.DAY.format(7))
+    Assert.assertEquals("07", DateField.DAY.format(7, Locale.ENGLISH))
   }
 
   @Test
   fun format_day_keepsTwoDigitValueUntouched() {
-    Assert.assertEquals("31", DateField.DAY.format(31))
+    Assert.assertEquals("31", DateField.DAY.format(31, Locale.ENGLISH))
   }
 }

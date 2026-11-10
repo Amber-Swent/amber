@@ -5,6 +5,7 @@
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
@@ -15,6 +16,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
+import androidx.test.platform.app.InstrumentationRegistry
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -44,6 +47,16 @@ import org.junit.Test
  */
 class AddPersonDialogTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  /** The dialog's Add button label, in the device language. */
+  private val addLabel: String =
+      InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.addPersonAdd)
+
+  /** The error shown under a name with a character it doesn't allow, in the device language. */
+  private val nameFormatError: String =
+      InstrumentationRegistry.getInstrumentation()
+          .targetContext
+          .getString(R.string.inputErrorNameFormat)
 
   private lateinit var viewModel: UploadPictureViewModel
   private lateinit var uiStateFlow: MutableStateFlow<UploadPictureUIState>
@@ -106,19 +119,6 @@ class AddPersonDialogTest {
   }
 
   @Test
-  fun addPersonSaveButtonCallsViewModelForValidName() {
-    uiStateFlow.value =
-        uiStateFlow.value.copy(
-            common = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "Anne")
-        )
-    launchScreen()
-
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
-
-    verify(exactly = 1) { viewModel.addPerson() }
-  }
-
-  @Test
   fun addPersonSaveTrimsNames() {
     uiStateFlow.value =
         uiStateFlow.value.copy(
@@ -132,7 +132,7 @@ class AddPersonDialogTest {
         )
     launchScreen()
 
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).performClick()
 
     verify(exactly = 1) { viewModel.setPersonFirstName("Anne") }
     verify(exactly = 1) { viewModel.setPersonLastName("Dupont") }
@@ -141,14 +141,24 @@ class AddPersonDialogTest {
   }
 
   @Test
-  fun addPersonSaveButtonIsDisabledForBlankName() {
-    uiStateFlow.value =
-        uiStateFlow.value.copy(
-            common = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "  ")
-        )
+  fun addPersonButton_disabledForBlankName_enabledForUnfinishedNameUntilTapped() {
+    val blank = uiStateFlow.value.common.copy(isAddPersonOpen = true, personFirstName = "  ")
+    uiStateFlow.value = uiStateFlow.value.copy(common = blank)
     launchScreen()
 
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).assertIsNotEnabled()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).assertIsNotEnabled()
+
+    // "Anne-" may be on its way to "Anne-Marie": no error until Add is tapped
+    val typing = blank.copy(personFirstName = "Anne-")
+    uiStateFlow.value = uiStateFlow.value.copy(common = typing)
+
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).assertIsEnabled()
+    composeTestRule.onNode(hasText(nameFormatError)).assertDoesNotExist()
+
+    uiStateFlow.value = uiStateFlow.value.copy(common = typing.copy(isAddPersonSubmitted = true))
+
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).assertIsNotEnabled()
+    composeTestRule.onNode(hasText(nameFormatError)).assertIsDisplayed()
   }
 
   @Test
@@ -210,7 +220,7 @@ class AddPersonDialogTest {
         .performScrollTo()
         .performClick()
     composeTestRule.onNodeWithTag(AddPersonDialogTestTags.FIRST_NAME).performTextInput("Anne")
-    composeTestRule.onNode(hasText("Add person") and hasClickAction()).performClick()
+    composeTestRule.onNode(hasText(addLabel) and hasClickAction()).performClick()
 
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.common.shownIds.isNotEmpty() }
     val savedId = viewModel.uiState.value.common.shownIds.single()
