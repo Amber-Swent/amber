@@ -72,6 +72,7 @@ object UploadPictureScreenTestTags {
   const val TAKE_PICTURE = "upload_picture_take"
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
+  const val DESCRIPTION = "upload_picture_description"
 
   const val SELECT_DATE = "upload_picture_selected_date"
   const val UPLOAD_BUTTON = "upload_picture_button"
@@ -181,7 +182,8 @@ fun UploadPictureScreen(
 
           // Display the Description field
           DisplayTextField(
-              modifier = Modifier.height(TEXT_FIELD_BIG),
+              modifier =
+                  Modifier.height(TEXT_FIELD_BIG).testTag(UploadPictureScreenTestTags.DESCRIPTION),
               value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
               label = stringResource(R.string.uploadPictureDescriptionLabel),
