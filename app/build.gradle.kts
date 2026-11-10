@@ -63,6 +63,10 @@ android {
 
   buildFeatures { compose = true }
 
+  // Lists English and French in the app language settings on Android 13+.
+  // English is the default locale, set in res/resources.properties.
+  androidResources { generateLocaleConfig = true }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -180,6 +184,8 @@ dependencies {
   globalTestImplementation(libs.compose.test.junit)
   debugImplementation(libs.compose.test.manifest)
   androidTestImplementation(libs.androidx.navigation.testing)
+  // Drives the system Photo Picker in the end-to-end tests
+  androidTestImplementation(libs.androidx.uiautomator)
 
   // --------- Kaspresso test framework ----------
   globalTestImplementation(libs.kaspresso)

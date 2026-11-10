@@ -1,13 +1,17 @@
 // Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -26,6 +30,7 @@ class CaregiverHomeScreenTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
+  private val context: Context = ApplicationProvider.getApplicationContext()
   private lateinit var viewModel: CaregiverHomeViewModel
   private lateinit var uiStateFlow: MutableStateFlow<CaregiverHomeUIState>
 
@@ -74,7 +79,7 @@ class CaregiverHomeScreenTest {
     setScreen()
     composeTestRule
         .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
-        .assertTextEquals("Welcome! There is no patient linked to this care circle yet.")
+        .assertTextEquals(context.getString(R.string.caregiverHomeWelcomeNoPatient))
   }
 
   @Test
@@ -82,7 +87,7 @@ class CaregiverHomeScreenTest {
     setScreen()
     composeTestRule
         .onNodeWithTag(CaregiverHomeTestTags.WELCOME_TEXT)
-        .assertTextEquals("Welcome! You are with Arthur!")
+        .assertTextEquals(context.getString(R.string.caregiverHomeWelcomePatient, "Arthur"))
   }
 
   @Test
@@ -95,7 +100,7 @@ class CaregiverHomeScreenTest {
 
   @Test
   fun launchedEffect_whenErrorMsgIsSet_clearErrorMsgIsCalled() {
-    uiStateFlow.value = uiStateFlow.value.copy(errorMsg = "Test error")
+    uiStateFlow.value = uiStateFlow.value.copy(errorMsgRes = R.string.caregiverHomeErrorNoProfile)
     setScreen()
 
     verify { viewModel.clearErrorMsg() }

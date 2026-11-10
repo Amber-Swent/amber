@@ -1,6 +1,7 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified with assistance from GitHub Copilot.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.patient
@@ -23,11 +24,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -73,17 +77,23 @@ fun PatientHomeScreen(
 ) {
   val context = LocalContext.current
   val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   // Show error message
-  LaunchedEffect(uiState.errorMsg) {
-    uiState.errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(uiState.errorMsgRes) {
+    uiState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       homeViewModel.clearErrorMsg()
     }
   }
 
   Scaffold(
-      topBar = { TopAppBar(title = { DisplayPatientTitle(title = "Home") }) },
+      topBar = {
+        TopAppBar(
+            title = { DisplayPatientTitle(title = stringResource(R.string.patientHomeTitle)) }
+        )
+      },
       bottomBar = {
         BottomNavigationMenu(
             selectedTab = PatientTab.Home,
@@ -104,7 +114,7 @@ fun PatientHomeScreen(
           val firstName = uiState.patientProfile.person.firstName
           Text(
               modifier = Modifier.fillMaxWidth().testTag(PatientHomeTestTags.GREETINGS),
-              text = "Hello $firstName!",
+              text = stringResource(R.string.patientHomeGreeting, firstName),
               textAlign = TextAlign.Center,
               color = MaterialTheme.colorScheme.onBackground,
               style = MaterialTheme.typography.headlineMedium,

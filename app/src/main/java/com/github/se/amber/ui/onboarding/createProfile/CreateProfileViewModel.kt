@@ -1,11 +1,14 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
@@ -14,51 +17,52 @@ import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.validation.InputValidation
+import com.github.se.amber.ui.utils.UiText
+import com.github.se.amber.ui.utils.errorText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-internal const val FILL_OUT_MESSAGE = "Please fill this out"
-
 /**
  * UI state for the create-profile step.
  *
  * Field errors are derived from the value: a name with characters a name can't have shows its error
  * at once, while a blank one only does once validation has been attempted, matching the bootcamp B2
- * pattern. [submitError] carries mapped repository failures.
+ * pattern. [errorMsgRes] carries mapped repository failures.
  *
  * @param name first name entered by the user.
  * @param surname last name entered by the user.
  * @param validationAttempted true after the user has pressed Patient or Caregiver at least once.
  * @param isSaving true while a create-profile request is in flight.
- * @param submitError actionable repository failure message, or null when there is none.
+ * @param errorMsgRes actionable repository failure message, or null when there is none.
  */
 data class CreateProfileUIState(
     val name: String = "",
     val surname: String = "",
     val validationAttempted: Boolean = false,
     val isSaving: Boolean = false,
-    val submitError: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 ) {
   /** Why [name] is refused, or null; a blank or unfinished one only once validation ran. */
-  val nameError: String?
+  val nameError: UiText?
     get() = errorOf(name)
 
   /** Why [surname] is refused, or null; a blank or unfinished one only once validation ran. */
-  val surnameError: String?
+  val surnameError: UiText?
     get() = errorOf(surname)
 
   /** Whether the role buttons can be pressed: no save in progress and no error shown. */
   val canSubmit: Boolean
     get() = !isSaving && nameError == null && surnameError == null
 
-  private fun errorOf(value: String): String? =
-      InputValidation.NAME.errorMessage(
+  private fun errorOf(value: String): UiText? =
+      InputValidation.NAME.errorText(
           value,
           submitted = validationAttempted,
-          blankMessage = FILL_OUT_MESSAGE,
+          blankRes = R.string.createProfileFillOut,
+          formatRes = R.string.inputErrorNameFormat,
       )
 }
 
@@ -117,7 +121,7 @@ class CreateProfileViewModel(
           name = trimmedName,
           surname = trimmedSurname,
           validationAttempted = true,
-          submitError = null,
+          errorMsgRes = null,
       )
     }
 
@@ -139,7 +143,7 @@ class CreateProfileViewModel(
     }
 
     viewModelScope.launch {
-      _uiState.update { it.copy(isSaving = true, submitError = null) }
+      _uiState.update { it.copy(isSaving = true, errorMsgRes = null) }
       val person = Person(firstName = trimmedName, lastName = trimmedSurname)
       val result =
           if (saved == null) {
@@ -198,12 +202,12 @@ class CreateProfileViewModel(
       onSuccess: (Role) -> Unit,
   ) {
     savedProfile = SavedOnboardingProfile(name = name, surname = surname, role = role)
-    _uiState.update { it.copy(isSaving = false, submitError = null) }
+    _uiState.update { it.copy(isSaving = false, errorMsgRes = null) }
     onSuccess(role)
   }
 
   private fun showFailure(error: Throwable) {
-    _uiState.update { it.copy(isSaving = false, submitError = error.toActionableMessage()) }
+    _uiState.update { it.copy(isSaving = false, errorMsgRes = error.errorMessage()) }
   }
 
   private fun updateNameField(name: String? = null, surname: String? = null) {
@@ -211,7 +215,7 @@ class CreateProfileViewModel(
       it.copy(
           name = name ?: it.name,
           surname = surname ?: it.surname,
-          submitError = null,
+          errorMsgRes = null,
       )
     }
   }
@@ -223,20 +227,22 @@ private data class SavedOnboardingProfile(
     val role: Role,
 )
 
-private fun Throwable.toActionableMessage(): String =
+/** Maps a repository failure to the string resource of the message shown to the user. */
+@StringRes
+private fun Throwable.errorMessage(): Int =
     when (this) {
       is ProfileCreationError.InvalidPersonDetails,
-      is ProfileUpdateError.InvalidPersonDetails -> "Enter your first and last name and try again."
+      is ProfileUpdateError.InvalidPersonDetails -> R.string.createProfileErrorInvalidName
       is ProfileCreationError.NotAuthenticated,
       is ProfileUpdateError.NotAuthenticated,
-      is ProfileReadError.NotAuthenticated -> "Your session expired. Sign in and try again."
+      is ProfileReadError.NotAuthenticated -> R.string.createProfileErrorSessionExpired
       is ProfileCreationError.ProfileAlreadyExists,
-      is ProfileUpdateError.AlreadyInCareCircle -> "A profile already exists for this account."
+      is ProfileUpdateError.AlreadyInCareCircle -> R.string.createProfileErrorExists
       is ProfileCreationError.PermissionDenied,
       is ProfileUpdateError.PermissionDenied,
-      is ProfileReadError.PermissionDenied -> "You don't have permission to create a profile."
+      is ProfileReadError.PermissionDenied -> R.string.createProfileErrorPermissionDenied
       is ProfileCreationError.Network,
       is ProfileUpdateError.Network,
-      is ProfileReadError.Network -> "You're offline. Check your connection and try again."
-      else -> "Couldn't create your profile. Please try again."
+      is ProfileReadError.Network -> R.string.createProfileErrorOffline
+      else -> R.string.createProfileErrorUnknown
     }

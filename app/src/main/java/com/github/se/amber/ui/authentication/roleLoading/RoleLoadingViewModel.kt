@@ -1,17 +1,23 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.roleLoading
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
+import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Role
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -48,12 +54,25 @@ data class RoleLoadingUIState(
     val roleState: RoleState = RoleState.Loading,
     val isSigningOut: Boolean = false,
     val signedOut: Boolean = false,
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
+/**
+ * Finds where the app opens for the signed-in user, from their role and circles, and signs them out
+ * from the error state.
+ *
+ * @param profileRepository Reads the signed-in user's profile.
+ * @param authRepository Checks the signed-in account with the server, and signs out.
+ * @param deletionRepositoryProvider Gives the repository that clears this device when the signed-in
+ *   account no longer exists. Unlike what the provider's KDoc asks of ViewModels, this takes the
+ *   provider on purpose: the repository is then only created in that rare case, as creating it sets
+ *   up Cloud Functions, the deletion marker and the image loader.
+ */
 class RoleLoadingViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
+    private val deletionRepositoryProvider: AccountDeletionRepositoryProvider =
+        AccountDeletionRepositoryProvider.default,
 ) : ViewModel() {
   private val _state = MutableStateFlow(RoleLoadingUIState())
   val state: StateFlow<RoleLoadingUIState> = _state
@@ -62,12 +81,12 @@ class RoleLoadingViewModel(
 
   /** Clears the error message in the UI state. */
   fun clearErrorMsg() {
-    _state.update { it.copy(errorMsg = null) }
+    _state.update { it.copy(errorMsgRes = null) }
   }
 
-  /** Sets an error message in the UI state. */
-  private fun setErrorMsg(errorMsg: String) {
-    _state.update { it.copy(errorMsg = errorMsg) }
+  /** Sets an error message, as a string resource, in the UI state. */
+  private fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    _state.update { it.copy(errorMsgRes = errorMsgRes) }
   }
 
   private fun setRoleState(roleState: RoleState) {
@@ -79,8 +98,17 @@ class RoleLoadingViewModel(
     if (loadJob?.isActive == true) return
     loadJob = viewModelScope.launch {
       setRoleState(RoleState.Loading)
-      profileRepository
-          .getCurrentProfile()
+      val wasSignedIn = authRepository.currentUser != null
+      val profile = async { profileRepository.getCurrentProfile() }
+      if (authRepository.refreshCurrentUser() == null) {
+        // The account is gone, for example deleted: there is no profile to load or create
+        profile.cancel()
+        if (wasSignedIn) clearGoneAccount()
+        _state.update { it.copy(signedOut = true) }
+        return@launch
+      }
+      profile
+          .await()
           .fold(
               onSuccess = { profile ->
                 val hasCircle = profile?.circleIds?.any { it.isNotBlank() } == true
@@ -97,6 +125,18 @@ class RoleLoadingViewModel(
                 setRoleState(RoleState.Error)
               },
           )
+    }
+  }
+
+  /**
+   * Clears what an account the server no longer accepts left on this device: its cached documents,
+   * pending uploads and temporary files. It may have been deleted from another phone, or by a
+   * deletion that stopped before clearing this one. On success the app restarts on its first
+   * screen; if clearing fails, the user is still signed out, and the next launch tries again.
+   */
+  private suspend fun clearGoneAccount() {
+    deletionRepositoryProvider.repository.clearGoneAccount().onFailure { e ->
+      Log.e(TAG, "Could not clear the data of an account that is gone", e)
     }
   }
 
@@ -121,7 +161,7 @@ class RoleLoadingViewModel(
                   _state.update { it.copy(signedOut = true, isSigningOut = false) }
                 } else {
                   _state.update { it.copy(isSigningOut = false) }
-                  setErrorMsg("Could not sign out. Please try again.")
+                  setErrorMsg(R.string.signOutError)
                 }
               },
           )

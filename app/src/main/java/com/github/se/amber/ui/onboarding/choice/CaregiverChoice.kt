@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent.
 // Modified by LaMaier, with the assistance of Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.choice
@@ -25,16 +26,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
-import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
@@ -54,15 +56,6 @@ object CaregiverChoiceTestTags {
   const val JOIN_BUTTON = "caregiver_choice_join_button"
   const val INFORMATION = "caregiver_choice_information_text"
 }
-
-internal const val CREATE_CIRCLE_LABEL = "Create a new care circle"
-internal const val JOIN_CIRCLE_LABEL = "Join an existing care circle"
-internal const val INSTRUCTION_LABEL = "How will you enter your Care Circle?"
-internal const val INVITE_LINK_HINT_LABEL_CONDITION =
-    "To join an existing care circle, you must have an invite link."
-internal const val INVITE_LINK_HINT_LABEL_SOLUTION =
-    "Any caregiver belonging to the circle can create a link for you."
-internal const val WELCOME = "Welcome"
 
 /**
  * Caregiver onboarding step: choose to create a new care circle or join an existing one.
@@ -114,17 +107,20 @@ fun CaregiverChoiceScreen(
           verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
       ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          DisplayCaregiverTitle(
+          Text(
               modifier = Modifier.testTag(CaregiverChoiceTestTags.WELCOME_HEADER),
-              title =
-                  if (uiState.displayName.isEmpty()) WELCOME
-                  else WELCOME + ", ${uiState.displayName}",
+              text =
+                  if (uiState.displayName.isEmpty()) stringResource(R.string.caregiverChoiceWelcome)
+                  else stringResource(R.string.caregiverChoiceWelcomeName, uiState.displayName),
+              style = MaterialTheme.typography.headlineSmall,
+              color = MaterialTheme.colorScheme.onBackground,
+              textAlign = TextAlign.Center,
           )
           Text(
               modifier = Modifier.testTag(CaregiverChoiceTestTags.QUESTION),
-              text = INSTRUCTION_LABEL,
+              text = stringResource(R.string.caregiverChoiceQuestion),
               style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.secondary,
+              color = MaterialTheme.colorScheme.onBackground,
               textAlign = TextAlign.Center,
           )
         }
@@ -135,7 +131,8 @@ fun CaregiverChoiceScreen(
         ) {
           DisplayCaregiverButton(
               onClick = onCreateCircle,
-              text = CREATE_CIRCLE_LABEL,
+              text = stringResource(R.string.caregiverChoiceCreateCircle),
+              style = MaterialTheme.typography.labelLarge,
               modifier = Modifier.testTag(CaregiverChoiceTestTags.CREATE_BUTTON),
           )
 
@@ -143,7 +140,8 @@ fun CaregiverChoiceScreen(
 
           DisplayCaregiverButton(
               onClick = onJoinCircle,
-              text = JOIN_CIRCLE_LABEL,
+              text = stringResource(R.string.caregiverChoiceJoinCircle),
+              style = MaterialTheme.typography.labelLarge,
               modifier = Modifier.testTag(CaregiverChoiceTestTags.JOIN_BUTTON),
           )
         }
@@ -154,19 +152,19 @@ fun CaregiverChoiceScreen(
         ) {
           Icon(
               imageVector = Icons.Default.Info,
-              contentDescription = "Info",
-              tint = MaterialTheme.colorScheme.onBackground,
+              contentDescription = stringResource(R.string.caregiverChoiceInfo),
+              tint = MaterialTheme.colorScheme.outline,
           )
           Column {
             Text(
-                text = INVITE_LINK_HINT_LABEL_CONDITION,
+                text = stringResource(R.string.caregiverChoiceInviteHintCondition),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.outline,
             )
             Text(
-                text = INVITE_LINK_HINT_LABEL_SOLUTION,
+                text = stringResource(R.string.caregiverChoiceInviteHintSolution),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.outline,
             )
           }
         }

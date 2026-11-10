@@ -1,15 +1,20 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createCareCircle
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.data.onboarding.OnboardingRepositoryProvider
 import com.github.se.amber.model.validation.InputValidation
+import com.github.se.amber.ui.utils.UiText
+import com.github.se.amber.ui.utils.errorText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,11 +23,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-private const val NAME_REQUIRED_ERROR = "Circle name cannot be empty"
-
 /** The message shown under the name field for [name], or null when it is valid. */
-private fun nameErrorOf(name: String): String? =
-    InputValidation.SHORT_TEXT.errorMessage(name, blankMessage = NAME_REQUIRED_ERROR)
+private fun nameErrorOf(name: String): UiText? =
+    InputValidation.SHORT_TEXT.errorText(name, blankRes = R.string.createCareCircleNameRequired)
 
 /**
  * State displayed by [CreateCareCircleScreen].
@@ -34,7 +37,7 @@ private fun nameErrorOf(name: String): String? =
  */
 data class CreateCareCircleUIState(
     val name: String = "",
-    val nameError: String? = null,
+    val nameError: UiText? = null,
     val isLoading: Boolean = false,
     val isCreated: Boolean = false,
 ) {
@@ -68,7 +71,8 @@ class CreateCareCircleViewModel(
   // receiveAsFlow() lets the screen observe the channel without being able to send into it
   val successEvents = successChannel.receiveAsFlow() // Tells the screen to call isCreated() once
 
-  private val errorChannel = Channel<String>(Channel.BUFFERED)
+  // Errors are string resources; the screen resolves them in the app language
+  private val errorChannel = Channel<Int>(Channel.BUFFERED)
   val errorEvents = errorChannel.receiveAsFlow()
 
   /**
@@ -119,7 +123,7 @@ class CreateCareCircleViewModel(
                 },
                 onFailure = { error ->
                   _uiState.update { it.copy(isLoading = false) } // Creation stopped
-                  errorChannel.send(error.toActionableMessage())
+                  errorChannel.send(error.errorMessage())
                   // Failure allows retries, so channel not closed here
                 },
             )
@@ -127,26 +131,23 @@ class CreateCareCircleViewModel(
         throw error
       } catch (error: Exception) {
         _uiState.update { it.copy(isLoading = false) }
-        errorChannel.send(error.toActionableMessage())
+        errorChannel.send(error.errorMessage())
       }
     }
   }
 }
 
-// Private extension function on Throwable
-private fun Throwable.toActionableMessage(): String =
+/** Maps a repository failure to the string resource of the message shown to the user. */
+@StringRes
+private fun Throwable.errorMessage(): Int =
     when (this) {
-      is OnboardingError.InvalidCircleName -> "Enter a care circle name and try again."
-      is OnboardingError.Network -> "You're offline. Check your connection and try again."
-      is OnboardingError.NotAuthenticated -> "Your session expired. Sign in and try again."
+      is OnboardingError.InvalidCircleName -> R.string.createCareCircleErrorInvalidName
+      is OnboardingError.Network -> R.string.createCareCircleErrorOffline
+      is OnboardingError.NotAuthenticated -> R.string.createCareCircleErrorSessionExpired
       is OnboardingError.ProfileMissing,
-      is OnboardingError.InvalidProfile ->
-          "Your profile could not be found. Complete your profile and try again."
-      is OnboardingError.NotCaregiver ->
-          "Only caregivers can create a care circle. Check your profile and try again."
-      is OnboardingError.CareCircleAlreadyExists ->
-          "You already have a care circle. Return to your home screen."
-      is OnboardingError.PermissionDenied ->
-          "Creation was denied. Check your account and try again."
-      else -> "Couldn't create your care circle. Please try again."
+      is OnboardingError.InvalidProfile -> R.string.createCareCircleErrorProfileMissing
+      is OnboardingError.NotCaregiver -> R.string.createCareCircleErrorNotCaregiver
+      is OnboardingError.CareCircleAlreadyExists -> R.string.createCareCircleErrorAlreadyExists
+      is OnboardingError.PermissionDenied -> R.string.createCareCircleErrorPermissionDenied
+      else -> R.string.createCareCircleErrorUnknown
     }

@@ -556,7 +556,7 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(
         gone,
-        fs.set("invitations/code", invite("code", circleId, gone, expiresAt = 4_000_000_000_000L)),
+        fs.set("invitations/code", invite("code", circleId, gone, expiresAt = FAR_FUTURE_EXPIRY)),
     )
     // a failed deletion must not lock the user out of their data, and the others aren't affected
     fs.assertSucceeds(gone, fs.get("users/$gone"))
@@ -593,6 +593,9 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   companion object {
+    /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
+    private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
+
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long
       get() = System.currentTimeMillis()
