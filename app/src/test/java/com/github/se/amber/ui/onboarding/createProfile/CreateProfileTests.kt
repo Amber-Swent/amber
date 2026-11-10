@@ -5,7 +5,6 @@
 package com.github.se.amber.ui.createProfile
 
 import android.content.Context
-import android.os.Bundle
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -19,7 +18,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
-import androidx.credentials.CustomCredential
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
@@ -28,9 +26,8 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
-import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
-import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfilePreview
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
@@ -39,13 +36,11 @@ import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -197,9 +192,9 @@ class CreateProfileUITests {
 
     composeTestRule.onNodeWithText("Create an account").assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(SignOutButtonTestTags.BUTTON)
-        .performScrollTo()
-        .assertIsDisplayed()
+        .onNodeWithTag(TopNavigationMenuTestTags.TITLE)
+        .assertTextEquals(string(R.string.navigationSignOut))
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsDisplayed()
 
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
     composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
@@ -230,7 +225,9 @@ class CreateProfileUITests {
 
     try {
       composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
-      composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
+      composeTestRule
+          .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT)
+          .performTextInput("Lovelace")
       composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
       composeTestRule.waitForIdle()
 
@@ -245,12 +242,89 @@ class CreateProfileUITests {
   }
 
   @Test
-  fun previewAuthRepository_refusesGoogleSignIn() = runBlocking {
-    val credential = CustomCredential("preview", Bundle())
+  fun signOutWhileTheProfileIsSaving_doesNotSignOut() {
+    val gate = CompletableDeferred<Unit>()
+    var signOutCalls = 0
+    var signedOutCount = 0
+    val viewModel =
+        CreateProfileViewModel(
+            object : ProfileRepository {
+              override suspend fun createProfile(person: Person, role: Role): Result<Unit> {
+                gate.await()
+                return Result.success(Unit)
+              }
 
-    assertEquals(null, PreviewSignOutAuthRepository.currentUser)
-    assertTrue(PreviewSignOutAuthRepository.signInWithGoogle(credential).isFailure)
-    assertTrue(PreviewSignOutAuthRepository.reauthenticateWithGoogle(credential).isFailure)
+              override suspend fun getCurrentProfile() = Result.success(null)
+
+              override suspend fun getProfile(uid: String) = Result.success(null)
+            }
+        )
+    setCreateProfile(
+        viewModel = viewModel,
+        signOutViewModel =
+            SignOutViewModel(
+                countingAuthRepository(
+                    signOutResult = Result.success(Unit),
+                    onSignOut = { signOutCalls++ },
+                ),
+            ),
+        onSignedOut = { signedOutCount++ },
+    )
+
+    try {
+      composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
+      composeTestRule
+          .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT)
+          .performTextInput("Lovelace")
+      composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
+      composeTestRule.waitForIdle()
+
+      composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+      composeTestRule.waitForIdle()
+
+      assertEquals(0, signOutCalls)
+      assertEquals(0, signedOutCount)
+    } finally {
+      gate.cancel()
+    }
+  }
+
+  @Test
+  fun roleButtonsStayDisabledWhileSigningOut() {
+    val gate = CompletableDeferred<Unit>()
+    setCreateProfile(
+        signOutViewModel =
+            SignOutViewModel(
+                object : AuthRepository {
+                  override val currentUser: AuthUser? = AuthUser("uid")
+
+                  override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
+                      error("unused")
+
+                  override suspend fun reauthenticateWithGoogle(
+                      credential: Credential
+                  ): Result<Unit> = error("unused")
+
+                  override suspend fun signOut(): Result<Unit> {
+                    gate.await()
+                    return Result.success(Unit)
+                  }
+                },
+            ),
+    )
+
+    try {
+      composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+      composeTestRule.waitForIdle()
+
+      composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled()
+      composeTestRule
+          .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+          .performScrollTo()
+          .assertIsNotEnabled()
+    } finally {
+      gate.cancel()
+    }
   }
 
   @Test
@@ -284,7 +358,7 @@ class CreateProfileUITests {
         onSignedOut = { signedOutCount++ },
     )
 
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, signOutCalls)
@@ -306,7 +380,7 @@ class CreateProfileUITests {
         onSignedOut = { signedOutCount++ },
     )
 
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(0, signedOutCount)

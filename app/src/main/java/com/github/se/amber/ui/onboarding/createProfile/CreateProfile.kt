@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,8 +39,9 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
-import com.github.se.amber.ui.authentication.signOut.SignOutButton
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
@@ -64,17 +67,19 @@ object CreateProfileTestTags {
  * Amber users are either a Patient or a Caregiver. This screen collects a first and last name, then
  * persists the profile when the user taps one of those role buttons. Validation and the repository
  * write live in [CreateProfileViewModel]; this composable only renders [viewModel] state and
- * forwards user actions. [onProfileCreated] should navigate to the next onboarding step.
- * [SignOutButton] ends the session without saving a profile. [onSignedOut] runs after that
- * succeeds.
+ * forwards user actions. [onProfileCreated] should navigate to the next onboarding step. The top
+ * Sign out action ends the session without saving a profile. [onSignedOut] runs after that
+ * succeeds. Sign out does nothing while a profile save is in progress, and the role buttons do
+ * nothing while sign-out is in progress.
  *
  * @param modifier Modifier applied to the root profile layout.
  * @param onProfileCreated called with the saved [Role] after a successful create.
- * @param onSignedOut called after [SignOutButton] ends the session.
+ * @param onSignedOut called after the top Sign out action ends the session.
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
  *   composition; tests can pass a custom instance with a fake profile repository.
- * @param signOutViewModel shared sign-out action used by [SignOutButton].
+ * @param signOutViewModel shared sign-out action used by the top bar.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProfileScreen(
     modifier: Modifier = Modifier,
@@ -102,6 +107,16 @@ fun CreateProfileScreen(
       modifier = modifier.fillMaxSize(),
       containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
+      topBar = {
+        TopAppBar(
+            title = {
+              TopNavigationMenu(
+                  action = TopNavigationAction.SIGN_OUT,
+                  onBackClick = { if (!uiState.isSaving) signOutViewModel.signOut() },
+              )
+            }
+        )
+      },
   ) { innerPadding ->
     Column(
         modifier =
@@ -154,19 +169,18 @@ fun CreateProfileScreen(
           color = MaterialTheme.colorScheme.secondary,
       )
 
+      val canChooseRole = uiState.canSubmit && !signOutState.isSigningOut
       DisplayPatientButton(
           text = stringResource(R.string.createProfilePatient),
-          enabled = uiState.canSubmit,
+          enabled = canChooseRole,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
       DisplayPatientButton(
           text = stringResource(R.string.createProfileCaregiver),
-          enabled = uiState.canSubmit,
+          enabled = canChooseRole,
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
-
-      SignOutButton(viewModel = signOutViewModel)
 
       uiState.errorMsgRes?.let { errorMsgRes ->
         Text(
