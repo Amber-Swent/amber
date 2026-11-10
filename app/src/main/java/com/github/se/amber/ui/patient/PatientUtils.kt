@@ -175,21 +175,22 @@ fun DisplayPatientButton(
     modifier: Modifier = Modifier,
     buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = PATIENT_BUTTON_WIDTH,
+    fillWidth: Boolean = true,
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
     enabled: Boolean = true,
     onClick: () -> Unit = {},
     testTag: String = PatientUtilsTestTags.BUTTON,
 ) {
+  val sizeModifier =
+      if (fillWidth) {
+        Modifier.fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .fillMaxWidth(buttonWidth)
+      } else Modifier
   Button(
       onClick = onClick,
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .wrapContentWidth(Alignment.CenterHorizontally)
-              .fillMaxWidth(buttonWidth)
-              .height(buttonHeight)
-              .testTag(testTag),
+      modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(testTag),
       enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
@@ -202,7 +203,7 @@ fun DisplayPatientButton(
         text,
         style = textStyle,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
     )
   }
 }
