@@ -367,7 +367,7 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onRoleSelected_existingProfileUpdateFails_showsTheExistingProfileMessage() = runTest {
+  fun onRoleSelected_existingProfileUpdateFails_showsTheAlreadyInCircleMessage() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(ProfileCreationError.ProfileAlreadyExists)
     coEvery { profileRepository.getCurrentProfile() } returns
@@ -528,7 +528,7 @@ class CreateProfileViewModelTests {
   }
 
   @Test
-  fun onRoleSelected_updateRejectedBecauseTheUserJoined_showsTheExistingProfileMessage() = runTest {
+  fun onRoleSelected_updateRejectedBecauseTheUserJoined_showsTheAlreadyInCircleMessage() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns Result.success(Unit)
     coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns
         Result.failure(ProfileUpdateError.AlreadyInCareCircle)

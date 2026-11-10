@@ -91,7 +91,6 @@
     <string name="caregiverChoiceInfo">Info</string>
     <string name="caregiverChoiceInviteHintCondition">To join an existing care circle, you must have an invite link.</string>
     <string name="caregiverChoiceInviteHintSolution">Any caregiver belonging to the circle can create a link for you.</string>
-    <string name="caregiverChoiceBack">Back</string>
 
     <!-- CreateProfile -->
     <string name="createProfileTitle">Create an account</string>

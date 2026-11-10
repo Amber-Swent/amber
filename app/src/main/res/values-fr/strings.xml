@@ -90,7 +90,6 @@
     <string name="caregiverChoiceInfo">Information</string>
     <string name="caregiverChoiceInviteHintCondition">Pour rejoindre un cercle de soins existant, vous devez avoir un lien d\'invitation.</string>
     <string name="caregiverChoiceInviteHintSolution">Tout aidant membre du cercle peut créer un lien pour vous.</string>
-    <string name="caregiverChoiceBack">Retour</string>
 
     <!-- CreateProfile -->
     <string name="createProfileTitle">Créer un compte</string>
