@@ -1,6 +1,7 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by nehachak1, with assistance from Claude Code
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signIn
 
@@ -29,11 +30,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.R
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_BIG
@@ -220,7 +223,7 @@ internal fun TermsFooter(
     modifier: Modifier = Modifier,
 ) {
   AuthenticationText(
-      text = "By signing in, you agree to our Terms of Service and Privacy Policy",
+      text = stringResource(R.string.signInTermsFooter),
       textAlign = TextAlign.Center,
       modifier = modifier.fillMaxWidth().testTag(AuthenticationComponentTestTags.TERMS_FOOTER),
       style = MaterialTheme.typography.bodySmall,

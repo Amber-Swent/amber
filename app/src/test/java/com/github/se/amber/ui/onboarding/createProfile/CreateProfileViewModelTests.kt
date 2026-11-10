@@ -1,15 +1,19 @@
 // Written by Alaabrine with the aid of an AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.createProfile
 
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileUIState
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
-import com.github.se.amber.ui.onboarding.createProfile.FILL_OUT_MESSAGE
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -73,6 +77,40 @@ class CreateProfileViewModelTests {
     assertNull(viewModel.uiState.value.surnameError)
   }
 
+  // ---------- Name format ----------
+
+  @Test
+  fun nameWithDigitsOrSymbols_showsFormatErrorAtOnceAndDisablesRoles() {
+    viewModel.onNameChange("Ada2")
+    viewModel.onSurnameChange("Love!ace")
+
+    val state = viewModel.uiState.value
+    assertEquals(UiText.Resource(R.string.inputErrorNameFormat), state.nameError)
+    assertEquals(UiText.Resource(R.string.inputErrorNameFormat), state.surnameError)
+    assertFalse(state.canSubmit)
+  }
+
+  @Test
+  fun typingStopsAtNameMaxLength() {
+    viewModel.onNameChange("A".repeat(InputValidation.NAME_MAX_LENGTH + 20))
+
+    assertEquals(InputValidation.NAME_MAX_LENGTH, viewModel.uiState.value.name.length)
+  }
+
+  @Test
+  fun onRoleSelected_unfinishedName_showsErrorWithoutCallingRepository() = runTest {
+    viewModel.onNameChange("Anne-")
+    viewModel.onSurnameChange("Hopper")
+    assertNull(viewModel.uiState.value.nameError) // may still become "Anne-Marie"
+
+    viewModel.onRoleSelected(Role.PATIENT, onSuccess)
+    advanceUntilIdle()
+
+    assertEquals(UiText.Resource(R.string.inputErrorNameFormat), viewModel.uiState.value.nameError)
+    assertEquals(0, successCount)
+    coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
+  }
+
   // ---------- onNameChange / onSurnameChange ----------
 
   @Test
@@ -92,7 +130,7 @@ class CreateProfileViewModelTests {
   @Test
   fun onNameChange_clearsDerivedNameErrorWhenValueIsNonBlank() {
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
-    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.nameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), viewModel.uiState.value.nameError)
 
     viewModel.onNameChange("Ada")
 
@@ -103,7 +141,10 @@ class CreateProfileViewModelTests {
   @Test
   fun onSurnameChange_clearsDerivedSurnameErrorWhenValueIsNonBlank() {
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
-    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.surnameError)
+    assertEquals(
+        UiText.Resource(R.string.createProfileFillOut),
+        viewModel.uiState.value.surnameError,
+    )
 
     viewModel.onSurnameChange("Lovelace")
 
@@ -114,11 +155,11 @@ class CreateProfileViewModelTests {
   @Test
   fun onNameChange_keepsDerivedNameErrorWhenValueIsStillBlank() {
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
-    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.nameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), viewModel.uiState.value.nameError)
 
     viewModel.onNameChange("   ")
 
-    assertEquals(FILL_OUT_MESSAGE, viewModel.uiState.value.nameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), viewModel.uiState.value.nameError)
   }
 
   // ---------- Validation (no repository call) ----------
@@ -130,12 +171,12 @@ class CreateProfileViewModelTests {
 
     val state = viewModel.uiState.value
     assertTrue(state.validationAttempted)
-    assertEquals(FILL_OUT_MESSAGE, state.nameError)
-    assertEquals(FILL_OUT_MESSAGE, state.surnameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), state.nameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), state.surnameError)
     assertEquals("", state.name)
     assertEquals("", state.surname)
     assertFalse(state.isSaving)
-    assertNull(state.submitError)
+    assertNull(state.errorMsgRes)
     assertEquals(0, successCount)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
@@ -149,8 +190,8 @@ class CreateProfileViewModelTests {
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertEquals(FILL_OUT_MESSAGE, state.nameError)
-    assertEquals(FILL_OUT_MESSAGE, state.surnameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), state.nameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), state.surnameError)
     assertEquals("", state.name)
     assertEquals("", state.surname)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
@@ -164,7 +205,7 @@ class CreateProfileViewModelTests {
     advanceUntilIdle()
 
     val state = viewModel.uiState.value
-    assertEquals(FILL_OUT_MESSAGE, state.nameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), state.nameError)
     assertNull(state.surnameError)
     assertEquals("Lovelace", state.surname)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
@@ -179,7 +220,7 @@ class CreateProfileViewModelTests {
 
     val state = viewModel.uiState.value
     assertNull(state.nameError)
-    assertEquals(FILL_OUT_MESSAGE, state.surnameError)
+    assertEquals(UiText.Resource(R.string.createProfileFillOut), state.surnameError)
     assertEquals("Ada", state.name)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
@@ -197,7 +238,7 @@ class CreateProfileViewModelTests {
 
     val state = viewModel.uiState.value
     assertFalse(state.isSaving)
-    assertNull(state.submitError)
+    assertNull(state.errorMsgRes)
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
     assertEquals("Ada", state.name)
@@ -241,8 +282,8 @@ class CreateProfileViewModelTests {
     advanceUntilIdle()
 
     assertEquals(
-        "Enter your first and last name and try again.",
-        viewModel.uiState.value.submitError,
+        R.string.createProfileErrorInvalidName,
+        viewModel.uiState.value.errorMsgRes,
     )
     assertEquals(0, successCount)
     assertFalse(viewModel.uiState.value.isSaving)
@@ -260,7 +301,7 @@ class CreateProfileViewModelTests {
     val state = viewModel.uiState.value
     assertFalse(state.isSaving)
     assertEquals(0, successCount)
-    assertEquals("A profile already exists for this account.", state.submitError)
+    assertEquals(R.string.createProfileErrorExists, state.errorMsgRes)
   }
 
   @Test
@@ -273,8 +314,8 @@ class CreateProfileViewModelTests {
     advanceUntilIdle()
 
     assertEquals(
-        "You're offline. Check your connection and try again.",
-        viewModel.uiState.value.submitError,
+        R.string.createProfileErrorOffline,
+        viewModel.uiState.value.errorMsgRes,
     )
     assertEquals(0, successCount)
   }
@@ -289,8 +330,8 @@ class CreateProfileViewModelTests {
     advanceUntilIdle()
 
     assertEquals(
-        "Couldn't create your profile. Please try again.",
-        viewModel.uiState.value.submitError,
+        R.string.createProfileErrorUnknown,
+        viewModel.uiState.value.errorMsgRes,
     )
     assertFalse(viewModel.uiState.value.isSaving)
   }
@@ -307,14 +348,14 @@ class CreateProfileViewModelTests {
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
     assertEquals(
-        "You're offline. Check your connection and try again.",
-        viewModel.uiState.value.submitError,
+        R.string.createProfileErrorOffline,
+        viewModel.uiState.value.errorMsgRes,
     )
 
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
-    assertNull(viewModel.uiState.value.submitError)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
   }
@@ -360,7 +401,7 @@ class CreateProfileViewModelTests {
     coVerify(exactly = 1) { profileRepository.createProfile(any(), any()) }
     assertEquals(2, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
-    assertNull(viewModel.uiState.value.submitError)
+    assertNull(viewModel.uiState.value.errorMsgRes)
   }
 
   private fun fillValidNameAndSurname() {

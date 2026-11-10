@@ -1,13 +1,16 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import kotlinx.coroutines.CancellationException
@@ -18,19 +21,18 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val TAG = "SignOutViewModel"
-private const val SIGN_OUT_ERROR_MSG = "Could not sign out. Please try again."
 
 /**
  * UI state for the shared sign-out button and [SignOutScreen].
  *
  * @param isSigningOut Whether a sign-out request is currently in progress.
  * @param signedOut Whether the user has successfully signed out.
- * @param errorMsg Error message to display, or null when there is no error.
+ * @param errorMsgRes String resource of the error to display, or null when there is no error.
  */
 data class SignOutUIState(
     val isSigningOut: Boolean = false,
     val signedOut: Boolean = false,
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
 /**
@@ -50,16 +52,16 @@ class SignOutViewModel(
 
   /** Clears the error message from the UI state. */
   fun clearErrorMsg() {
-    _uiState.update { it.copy(errorMsg = null) }
+    _uiState.update { it.copy(errorMsgRes = null) }
   }
 
   /**
    * Sets an error message in the UI state.
    *
-   * @param errorMsg Error message to display in the UI.
+   * @param errorMsgRes String resource of the error to display in the UI.
    */
-  internal fun setErrorMsg(errorMsg: String) {
-    _uiState.update { it.copy(errorMsg = errorMsg) }
+  internal fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.update { it.copy(errorMsgRes = errorMsgRes) }
   }
 
   /**
@@ -93,7 +95,7 @@ class SignOutViewModel(
                   _uiState.update { it.copy(signedOut = true, isSigningOut = false) }
                 } else {
                   _uiState.update { it.copy(isSigningOut = false) }
-                  setErrorMsg(SIGN_OUT_ERROR_MSG)
+                  setErrorMsg(R.string.signOutError)
                 }
               },
           )

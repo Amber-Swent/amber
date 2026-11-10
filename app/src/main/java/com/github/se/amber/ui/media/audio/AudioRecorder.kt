@@ -1,4 +1,5 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
 
@@ -26,7 +27,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_BAR_FRACTION
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_HEIGHT
@@ -85,7 +88,7 @@ fun DisplayAudioRecorder(
     DisplayAudioIconButton(
         modifier = Modifier.testTag(AudioRecorderTestTags.DELETE_BUTTON),
         icon = Icons.Outlined.Delete,
-        contentDescription = "Delete the audio",
+        contentDescription = stringResource(R.string.audioRecorderDelete),
         onClick = onDelete,
     )
     DisplayAudioWaveform(
@@ -98,7 +101,7 @@ fun DisplayAudioRecorder(
       DisplayAudioIconButton(
           modifier = Modifier.testTag(AudioRecorderTestTags.STOP_BUTTON),
           icon = Icons.Outlined.Stop,
-          contentDescription = "Stop the recording",
+          contentDescription = stringResource(R.string.audioRecorderStop),
           onClick = onStop,
       )
     }

@@ -1,10 +1,13 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -17,18 +20,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-internal const val FAIL_LOAD_AUTHOR_PROFILE = "Failed to load the author profile:"
-internal const val FAIL_LOAD_CURRENT_PROFILE = "Failed to load the current profile:"
-internal const val FAIL_LOAD_CARE_CIRCLE = "Failed to load the care circle:"
-internal const val AUTHOR_NOT_FOUND = "Author not found."
-internal const val NO_CARE_CIRCLE_FOUND = "No care circle found."
-
+/**
+ * UI state of one [MediaCard].
+ *
+ * @property addedByNickname name of the person who added the media.
+ * @property relatedNicknames names of the persons shown in the media.
+ * @property isLoading whether the names are still loading.
+ * @property errorMsgRes the error to show in a toast, as a string resource, or null for none.
+ */
 data class MediaCardUIState(
     val addedByNickname: String = "",
     val relatedNicknames: List<String> = emptyList(),
     val isLoading: Boolean = true,
-    // non-blocking error
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
 class MediaCardViewModel(
@@ -45,29 +49,30 @@ class MediaCardViewModel(
 
   /** Clears the error message in the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
+    _uiState.value = _uiState.value.copy(errorMsgRes = null)
   }
 
-  /** Sets an error message in the UI state. */
-  private fun setErrorMsg(message: String) {
+  /** Sets an error message in the UI state, as a string resource. */
+  private fun setErrorMsg(@StringRes errorMsgRes: Int) {
     // to be able to retry to load when we next see it
     loadedMedia = null
-    _uiState.value = _uiState.value.copy(isLoading = false, errorMsg = message)
+    _uiState.value = _uiState.value.copy(isLoading = false, errorMsgRes = errorMsgRes)
   }
 
   /**
-   * Returns the value of this [Result], or logs the failure, sets an error message and calls
-   * [onFailure] to stop the load. A [CancellationException] is always rethrown, so that the
-   * cancellation of the coroutine is not turned into an error message.
+   * Returns the value of this [Result], or logs the failure, sets [errorMsgRes] as the error
+   * message and calls [onFailure] to stop the load. The exception message is only logged, never
+   * shown. A [CancellationException] is always rethrown, so that the cancellation of the coroutine
+   * is not turned into an error message.
    */
   private inline fun <T> Result<T>.getOrSetError(
       logMessage: String,
-      errorPrefix: String,
+      @StringRes errorMsgRes: Int,
       onFailure: () -> Nothing,
   ): T = getOrElse { e ->
     if (e is CancellationException) throw e
     Log.e(TAG, logMessage, e)
-    setErrorMsg("$errorPrefix ${e.message}")
+    setErrorMsg(errorMsgRes)
     onFailure()
   }
 
@@ -88,13 +93,13 @@ class MediaCardViewModel(
       val authorProfile =
           profileRepository.getProfile(media.authorId).getOrSetError(
               logMessage = "Error fetching author profile",
-              errorPrefix = FAIL_LOAD_AUTHOR_PROFILE,
+              errorMsgRes = R.string.mediaCardErrorLoadAuthor,
           ) {
             return@launch
           }
 
       if (authorProfile == null) {
-        setErrorMsg(AUTHOR_NOT_FOUND)
+        setErrorMsg(R.string.mediaCardErrorAuthorNotFound)
         return@launch
       }
       _uiState.value =
@@ -110,14 +115,14 @@ class MediaCardViewModel(
       val patientProfile =
           profileRepository.getCurrentProfile().getOrSetError(
               "Error fetching patient profile",
-              FAIL_LOAD_CURRENT_PROFILE,
+              R.string.mediaCardErrorLoadProfile,
           ) {
             return@launch
           }
 
       val circleId = patientProfile?.circleIds?.firstOrNull()
       if (circleId == null) {
-        setErrorMsg(NO_CARE_CIRCLE_FOUND)
+        setErrorMsg(R.string.mediaCardErrorNoCircle)
         return@launch
       }
 
@@ -125,7 +130,7 @@ class MediaCardViewModel(
       val circle =
           circleRepository.getCircle(circleId).getOrSetError(
               "Error fetching care circle",
-              FAIL_LOAD_CARE_CIRCLE,
+              R.string.mediaCardErrorLoadCircle,
           ) {
             return@launch
           }

@@ -1,4 +1,5 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media
 
@@ -23,10 +24,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
@@ -36,7 +40,6 @@ import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
-import com.github.se.amber.ui.theme.WEIGHT_TWO
 
 /**
  * Test tags used to identify the elements of the [MediaCard]. Each tag is made unique by the id of
@@ -86,12 +89,14 @@ fun MediaCard(
   var expanded by rememberSaveable { mutableStateOf(false) }
   val uiState by mediaCardViewModel.uiState.collectAsStateWithLifecycle()
   val context = LocalContext.current
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
   LaunchedEffect(media, expanded) { if (expanded) mediaCardViewModel.load(media) }
 
-  LaunchedEffect(uiState.errorMsg) {
-    uiState.errorMsg?.let {
-      Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+  LaunchedEffect(uiState.errorMsgRes) {
+    uiState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_LONG).show()
       mediaCardViewModel.clearErrorMsg()
     }
   }
@@ -103,7 +108,8 @@ fun MediaCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-      val textToDisplay: String = if (expanded) "hide infos" else "show infos"
+      val textToDisplay =
+          stringResource(if (expanded) R.string.mediaCardHideInfos else R.string.mediaCardShowInfos)
       val actualTestTag =
           if (expanded) MediaCardTestTags.toggleButtonTextHide(media.id)
           else MediaCardTestTags.toggleButtonTextShow(media.id)
@@ -119,17 +125,21 @@ fun MediaCard(
       Column(
           horizontalAlignment = Alignment.End,
           modifier =
-              Modifier.weight(WEIGHT_TWO).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+              Modifier.weight(WEIGHT_ONE).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
       ) {
         Text(
-            text = memoryDateIntoString(media.date),
+            text =
+                media.date?.let(::memoryDateIntoString)
+                    ?: stringResource(R.string.mediaCardUnknownDate),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.testTag(MediaCardTestTags.date(media.id)),
         )
         // to display the location if it is not null
         media.location?.let { location ->
           Text(
-              text = geoLocationIntoString(location),
+              text =
+                  geoLocationIntoString(location)
+                      ?: stringResource(R.string.mediaCardUnknownLocation),
               modifier = Modifier.testTag(MediaCardTestTags.location(media.id)),
           )
         }
@@ -158,7 +168,7 @@ fun MediaCard(
                     modifier = Modifier.testTag(MediaCardTestTags.description(media.id)),
                 )
                 Text(
-                    text = "Added by " + uiState.addedByNickname,
+                    text = stringResource(R.string.mediaCardAddedBy, uiState.addedByNickname),
                     modifier =
                         Modifier.align(Alignment.End).testTag(MediaCardTestTags.addedBy(media.id)),
                 )
@@ -169,7 +179,7 @@ fun MediaCard(
               DisplayBox() {
                 Column {
                   Text(
-                      text = "Memory shared with",
+                      text = stringResource(R.string.mediaCardSharedWith),
                       modifier = Modifier.testTag(MediaCardTestTags.relatedTitle(media.id)),
                   )
                   LazyRow(

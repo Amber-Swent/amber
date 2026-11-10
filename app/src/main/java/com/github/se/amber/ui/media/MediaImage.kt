@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImagePainter
 import coil3.compose.ConstraintsSizeResolver
@@ -29,6 +30,7 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.compose.rememberConstraintsSizeResolver
 import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
+import com.github.se.amber.R
 import com.github.se.amber.data.media.image.MediaPictureUnavailableException
 import com.github.se.amber.data.media.image.mediaPictureKey
 import com.github.se.amber.model.circle.CareCircle
@@ -47,12 +49,6 @@ object MediaImageTestTags {
   /** [MediaImageRetryButton], shown by default when the picture can't be shown. */
   const val RETRY_BUTTON = "media_image_retry_button"
 }
-
-/** What TalkBack reads for a [MediaImage] whose description is blank, so it is never silent. */
-const val MEDIA_IMAGE_FALLBACK_TALKBACK = "Photo"
-
-/** What TalkBack reads for [MediaImageRetryButton]. */
-const val MEDIA_IMAGE_RETRY_TALKBACK = "Load the photo again"
 
 /**
  * Shows [picture], a media of [circle], whether it is already sent or still waiting on this phone
@@ -77,9 +73,10 @@ const val MEDIA_IMAGE_RETRY_TALKBACK = "Load the photo again"
  * @param circle the circle [picture] belongs to.
  * @param picture the picture to show.
  * @param contentDescription what TalkBack reads once the picture is shown: for some users, it is
- *   the content of the screen. The picture's description by default, and
- *   [MEDIA_IMAGE_FALLBACK_TALKBACK] if blank. Pass `null` only for a decorative image whose content
- *   TalkBack already reads elsewhere (for example a thumbnail next to its description).
+ *   the content of the screen. The picture's description by default, and "Photo"
+ *   ([R.string.mediaImageFallbackDescription]) if blank, so TalkBack is never silent. Pass `null`
+ *   only for a decorative image whose content TalkBack already reads elsewhere (for example a
+ *   thumbnail next to its description).
  * @param modifier the modifier of the whole component, slots included.
  * @param contentScale how the picture fills the space given by [modifier].
  * @param loading shown, centered, until the picture is shown, while its file is got and decoded; it
@@ -118,6 +115,7 @@ fun MediaImage(
       // memory cache is drawn over loading from its first frame. Until the picture is decoded, it
       // is hidden from TalkBack and from tests.
       val shown = state is AsyncImagePainter.State.Success
+      val fallbackDescription = stringResource(R.string.mediaImageFallbackDescription)
       when {
         state is AsyncImagePainter.State.Error -> retryButton(retry::afterAnyFailure)
         !shown -> loading()
@@ -125,7 +123,7 @@ fun MediaImage(
       Image(
           painter = painter,
           contentDescription =
-              if (shown) contentDescription?.ifBlank { MEDIA_IMAGE_FALLBACK_TALKBACK } else null,
+              if (shown) contentDescription?.ifBlank { fallbackDescription } else null,
           modifier =
               Modifier.fillMaxSize()
                   .then(sizeResolver)
@@ -140,7 +138,10 @@ fun MediaImage(
 @Composable
 fun MediaImageRetryButton(modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
   IconButton(onClick = onClick, modifier = modifier.testTag(MediaImageTestTags.RETRY_BUTTON)) {
-    Icon(Icons.Outlined.Refresh, contentDescription = MEDIA_IMAGE_RETRY_TALKBACK)
+    Icon(
+        Icons.Outlined.Refresh,
+        contentDescription = stringResource(R.string.mediaImageRetryDescription),
+    )
   }
 }
 

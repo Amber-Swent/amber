@@ -1,8 +1,10 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
+import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
@@ -13,6 +15,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
@@ -31,6 +35,10 @@ import org.robolectric.RobolectricTestRunner
 class SignOutButtonTest {
   @get:Rule val composeTestRule = createComposeRule()
 
+  /** Text of [id] in the current test language. */
+  private fun string(id: Int): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id)
+
   private lateinit var viewModel: SignOutViewModel
   private lateinit var stateFlow: MutableStateFlow<SignOutUIState>
 
@@ -48,7 +56,7 @@ class SignOutButtonTest {
     composeTestRule
         .onNodeWithTag(SignOutButtonTestTags.BUTTON)
         .assertIsDisplayed()
-        .assertTextEquals("Sign out")
+        .assertTextEquals(string(R.string.signOutButton))
         .assertIsEnabled()
   }
 

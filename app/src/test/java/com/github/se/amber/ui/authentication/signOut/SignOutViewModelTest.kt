@@ -1,11 +1,13 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
 import android.util.Log
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.coEvery
@@ -116,7 +118,7 @@ class SignOutViewModelTest {
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.signedOut)
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -128,7 +130,7 @@ class SignOutViewModelTest {
     viewModel.signOut()
 
     assertFalse(viewModel.uiState.value.signedOut)
-    assertEquals("Could not sign out. Please try again.", viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.signOutError, viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -154,11 +156,11 @@ class SignOutViewModelTest {
 
     val viewModel = viewModel()
     viewModel.signOut()
-    assertEquals("Could not sign out. Please try again.", viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.signOutError, viewModel.uiState.value.errorMsgRes)
 
     viewModel.clearErrorMsg()
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
