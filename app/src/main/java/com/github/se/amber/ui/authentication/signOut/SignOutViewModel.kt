@@ -8,9 +8,9 @@ import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
-import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import kotlinx.coroutines.CancellationException

@@ -5,9 +5,9 @@
 package com.github.se.amber.ui.authentication.signOut
 
 import android.util.Log
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
-import com.github.se.amber.R
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.coEvery

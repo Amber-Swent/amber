@@ -25,8 +25,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.theme.AmberAppTheme
