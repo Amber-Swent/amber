@@ -35,7 +35,6 @@ import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MINI
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
-import com.github.se.amber.ui.theme.WEIGHT_ONE
 
 /**
  * Test tags used to identify the elements of the [MediaCard]. Each tag is made unique by the id of
@@ -107,9 +106,10 @@ fun MediaCard(
           if (expanded) MediaCardTestTags.toggleButtonTextHide(media.id)
           else MediaCardTestTags.toggleButtonTextShow(media.id)
       DisplayPatientButton(
-          modifier = Modifier.weight(WEIGHT_ONE).padding(start = PATIENT_PADDING_MINI),
+          modifier = Modifier.padding(start = PATIENT_PADDING_MINI),
           buttonHeight = PATIENT_BUTTON_HEIGHT_SMALL,
           buttonWidth = PATIENT_BUTTON_WIDTH_BIG,
+          fillWidth = false,
           text = textToDisplay,
           textStyle = MaterialTheme.typography.titleMedium,
           onClick = { expanded = !expanded },
@@ -117,8 +117,7 @@ fun MediaCard(
       )
       Column(
           horizontalAlignment = Alignment.End,
-          modifier =
-              Modifier.weight(WEIGHT_ONE).align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
+          modifier = Modifier.align(Alignment.Top).padding(end = PATIENT_PADDING_MINI),
       ) {
         Text(
             text = memoryDateIntoString(media.date),
