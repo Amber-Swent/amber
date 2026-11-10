@@ -1,10 +1,13 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -16,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class SeeMediasScreenTest {
@@ -116,5 +120,16 @@ class SeeMediasScreenTest {
     composeTestRule.onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON).performScrollTo().performClick()
 
     composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun screenIsShownInFrench() {
+    composeTestRule.setContent { SeeMediasScreen(viewModel = viewModel) }
+
+    composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE).assertTextEquals("Voir les médias")
+    composeTestRule.onNodeWithText("Voir les photos").assertExists()
+    composeTestRule.onNodeWithText("Voir les textes").assertExists()
+    composeTestRule.onNodeWithText("Voir les audios").assertExists()
   }
 }

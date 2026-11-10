@@ -1,6 +1,7 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver
 
@@ -35,13 +36,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.BOX
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconTextTestTags.ICON
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags.BUTTON
@@ -117,7 +122,7 @@ fun DisplayCaregiverButton(
     enabled: Boolean = true,
     icon: ImageVector? = null,
     description: String = "",
-    text: String = "Text",
+    text: String = stringResource(R.string.caregiverButtonDefaultText),
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     height: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
     widthPercentage: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
@@ -182,6 +187,8 @@ object DisplayTextFieldTestTags {
  * @param placeholder The optional placeholder displayed when the field is empty.
  * @param emptyErrorMessage The optional error message displayed when the field is empty after
  *   focus.
+ * @param error The optional error message displayed under the field, e.g. for a wrong format; it is
+ *   shown instead of [emptyErrorMessage].
  * @param minLines The minimum number of lines displayed by the text field.
  * @param maxLines The maximum number of lines displayed by the text field.
  * @param maxChar The maximum number of character displayed by the text field.
@@ -200,10 +207,12 @@ fun DisplayTextField(
     maxLines: Int = MAX_LINE_DEFAULT,
     maxChar: Int = MAX_CHAR_DEFAULT,
     singleLine: Boolean = false,
+    error: String? = null,
 ) {
   assert(maxChar > 0)
   assert(minLines > 0)
 
+  var isFocused by remember { mutableStateOf(false) }
   var hasBeenFocused by remember { mutableStateOf(false) }
 
   OutlinedTextField(
@@ -213,31 +222,43 @@ fun DisplayTextField(
         Text(
             text = label,
             color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
         )
       },
       placeholder = placeholder?.let { { Text(it, style = MaterialTheme.typography.bodyMedium) } },
       modifier =
           modifier
               .fillMaxWidth()
-              .onFocusChanged { focusState -> if (focusState.isFocused) hasBeenFocused = true }
+              .border(
+                  width = BORDER_THICKNESS,
+                  color =
+                      if (isFocused) MaterialTheme.colorScheme.secondary
+                      else MaterialTheme.colorScheme.tertiary,
+                  shape = RoundedCornerShape(ROUND_CORNER),
+              )
+              .onFocusChanged { focusState ->
+                isFocused = focusState.isFocused
+                if (focusState.isFocused) hasBeenFocused = true
+              }
               .testTag(TEXT),
       shape = RoundedCornerShape(ROUND_CORNER),
+      // necessary, otherwise a double back border is visible
       colors =
           OutlinedTextFieldDefaults.colors(
-              focusedBorderColor = MaterialTheme.colorScheme.secondary,
-              unfocusedBorderColor = MaterialTheme.colorScheme.tertiary,
+              focusedBorderColor = Color.Transparent,
+              unfocusedBorderColor = Color.Transparent,
           ),
       singleLine = singleLine,
       minLines = minLines,
       maxLines = if (singleLine) 1 else maxLines,
+      isError = error != null,
   )
 
   Column {
     if (value.length >= maxChar && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_CHAR_MESSAGE),
-          text = "Maximum $maxChar characters reached",
+          text = pluralStringResource(R.plurals.textFieldMaxCharReached, maxChar, maxChar),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
@@ -245,15 +266,16 @@ fun DisplayTextField(
     if (!singleLine && value.lines().size >= maxLines && hasBeenFocused) {
       Text(
           modifier = Modifier.testTag(MAX_LINES_MESSAGE),
-          text = "Maximum $maxLines lines reached",
+          text = pluralStringResource(R.plurals.textFieldMaxLinesReached, maxLines, maxLines),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
     }
-    if (emptyErrorMessage != null && value.isBlank() && hasBeenFocused) {
+    val shownError = error ?: emptyErrorMessage?.takeIf { value.isBlank() && hasBeenFocused }
+    if (shownError != null) {
       Text(
           modifier = Modifier.testTag(ERROR_MESSAGE),
-          text = emptyErrorMessage,
+          text = shownError,
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
@@ -292,7 +314,7 @@ fun DisplayBoxWithIconText(
               .fillMaxWidth()
               .border(
                   width = BORDER_THICKNESS,
-                  color = MaterialTheme.colorScheme.outline,
+                  color = MaterialTheme.colorScheme.tertiary,
                   shape = RoundedCornerShape(ROUND_CORNER),
               )
               .clip(RoundedCornerShape(ROUND_CORNER))

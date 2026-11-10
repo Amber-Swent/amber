@@ -1,6 +1,7 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -25,11 +26,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.patient.DisplayPatientTitle
@@ -62,10 +66,12 @@ fun SignOutScreen(
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
-  LaunchedEffect(uiState.errorMsg) {
-    uiState.errorMsg?.let { message ->
-      Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(uiState.errorMsgRes) {
+    uiState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
@@ -73,7 +79,8 @@ fun SignOutScreen(
   LaunchedEffect(uiState.signedOut) {
     if (uiState.signedOut) {
       onSignedOut()
-      Toast.makeText(context, "Logout successful", Toast.LENGTH_SHORT).show()
+      Toast.makeText(context, resources.getString(R.string.signOutSuccess), Toast.LENGTH_SHORT)
+          .show()
     }
   }
 
@@ -87,7 +94,7 @@ fun SignOutScreen(
                     onBackClick = onBack,
                 )
                 DisplayPatientTitle(
-                    title = "Sign out",
+                    title = stringResource(R.string.signOutTitle),
                     testTag = SignOutTestTags.TITLE,
                 )
               }
@@ -107,8 +114,7 @@ fun SignOutScreen(
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
-                text =
-                    "You will be signed out of Amber on this device. You can sign in again at any time.",
+                text = stringResource(R.string.signOutExplanation),
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,

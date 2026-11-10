@@ -1,11 +1,16 @@
 // Written by Alaabrine with the aid of AI coding agent
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.choice
 
+import android.content.Context
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
+import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -15,10 +20,13 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class CaregiverChoiceUITests {
   @get:Rule val composeTestRule = createComposeRule()
+
+  private val context: Context = ApplicationProvider.getApplicationContext()
 
   private var createCircleCount = 0
   private var joinCircleCount = 0
@@ -139,5 +147,35 @@ class CaregiverChoiceUITests {
     setScreen()
 
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.INFORMATION).assertIsDisplayed()
+  }
+
+  // ---------- Text and translation ----------
+
+  @Test
+  fun welcomeHeader_putsTheFirstNameInTheSentence() {
+    setScreen(displayName = "Sahra")
+
+    composeTestRule
+        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER)
+        .assertTextEquals(context.getString(R.string.caregiverChoiceWelcomeName, "Sahra"))
+  }
+
+  @Test
+  fun welcomeHeader_withoutAName_showsWelcomeAlone() {
+    setScreen(displayName = "")
+
+    composeTestRule
+        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER)
+        .assertTextEquals(context.getString(R.string.caregiverChoiceWelcome))
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun welcomeHeader_isInFrenchWhenThePhoneIsInFrench() {
+    setScreen(displayName = "Sahra")
+
+    composeTestRule
+        .onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER)
+        .assertTextEquals("Bienvenue, Sahra")
   }
 }

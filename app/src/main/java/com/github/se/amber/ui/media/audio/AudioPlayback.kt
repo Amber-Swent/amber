@@ -1,8 +1,10 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
 
 import android.content.res.Configuration
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientIconButton
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -81,9 +85,12 @@ sealed interface AudioPlaybackState {
       override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
 
-  /** Playback failed. [message] is shown with a retry button. */
+  /**
+   * Playback failed. [errorMsgRes] is shown with a retry button. It is a string resource, so the
+   * screen shows it in the app language.
+   */
   data class Error(
-      val message: String = "",
+      @param:StringRes val errorMsgRes: Int = R.string.audioPlaybackError,
       override val positionMs: Long = ZERO_MS,
       override val durationMs: Long = ZERO_MS,
   ) : AudioPlaybackState
@@ -101,19 +108,11 @@ object AudioPlaybackTestTags {
   const val SPINNER = "audio_playback_spinner"
 }
 
-internal object AudioPlaybackDescriptions {
-  const val PLAY = "Play"
-  const val PAUSE = "Pause"
-  const val RESTART = "Restart"
-  const val LOADING = "Loading"
-  const val RETRY = "Retry"
-}
-
 /**
  * Play, pause, restart, and retry controls for one audio memo.
  *
  * Draws [state] only. Loading disables the buttons and shows a spinner. An error replaces the
- * controls with [AudioPlaybackState.Error.message] and a retry button.
+ * controls with [AudioPlaybackState.Error.errorMsgRes] and a retry button.
  *
  * @param modifier modifier applied to the card.
  * @param state which controls are shown. Idle until playback starts.
@@ -146,7 +145,8 @@ fun DisplayAudioPlayback(
       verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
   ) {
     when (state) {
-      is AudioPlaybackState.Error -> PlaybackError(message = state.message, onRetry = onRetry)
+      is AudioPlaybackState.Error ->
+          PlaybackError(errorMsgRes = state.errorMsgRes, onRetry = onRetry)
       is AudioPlaybackState.Idle,
       is AudioPlaybackState.Loading,
       is AudioPlaybackState.Playing,
@@ -188,14 +188,15 @@ internal fun formatPlaybackClock(timeMs: Long = ZERO_MS): String {
   return "$minutes:$seconds"
 }
 
-/** TalkBack name of the play or pause button for [state]. */
-internal fun playPauseDescription(state: AudioPlaybackState = AudioPlaybackState.Idle()): String =
+/** TalkBack name of the play or pause button for [state], as a string resource. */
+@StringRes
+internal fun playPauseDescription(state: AudioPlaybackState = AudioPlaybackState.Idle()): Int =
     when (state) {
-      is AudioPlaybackState.Loading -> AudioPlaybackDescriptions.LOADING
-      is AudioPlaybackState.Playing -> AudioPlaybackDescriptions.PAUSE
+      is AudioPlaybackState.Loading -> R.string.audioPlaybackLoading
+      is AudioPlaybackState.Playing -> R.string.audioPlaybackPause
       is AudioPlaybackState.Idle,
       is AudioPlaybackState.Paused,
-      is AudioPlaybackState.Error -> AudioPlaybackDescriptions.PLAY
+      is AudioPlaybackState.Error -> R.string.audioPlaybackPlay
     }
 
 /** Icon of the play or pause button for [state]. */
@@ -220,7 +221,7 @@ internal fun PlaybackTransport(
   ) {
     DisplayPatientIconButton(
         icon = playPauseIcon(state),
-        description = playPauseDescription(state),
+        description = stringResource(playPauseDescription(state)),
         enabled = enabled,
         showSpinner = state is AudioPlaybackState.Loading,
         onClick = onPlayPause,
@@ -229,7 +230,7 @@ internal fun PlaybackTransport(
     )
     DisplayPatientIconButton(
         icon = Icons.Outlined.Replay,
-        description = AudioPlaybackDescriptions.RESTART,
+        description = stringResource(R.string.audioPlaybackRestart),
         enabled = enabled,
         onClick = onRestart,
         testTag = AudioPlaybackTestTags.RESTART,
@@ -245,9 +246,12 @@ internal fun PlaybackTransport(
 }
 
 @Composable
-internal fun PlaybackError(message: String = "", onRetry: () -> Unit = {}) {
+internal fun PlaybackError(
+    @StringRes errorMsgRes: Int = R.string.audioPlaybackError,
+    onRetry: () -> Unit = {},
+) {
   Text(
-      text = message,
+      text = stringResource(errorMsgRes),
       modifier = Modifier.fillMaxWidth(WEIGHT_ONE).testTag(AudioPlaybackTestTags.ERROR),
       style = MaterialTheme.typography.bodyMedium,
       color = MaterialTheme.colorScheme.error,
@@ -255,7 +259,7 @@ internal fun PlaybackError(message: String = "", onRetry: () -> Unit = {}) {
   DisplayPatientButton(
       buttonHeight = PATIENT_BUTTON_HEIGHT_SMALL,
       buttonWidth = WEIGHT_ONE,
-      text = AudioPlaybackDescriptions.RETRY,
+      text = stringResource(R.string.audioPlaybackRetry),
       textStyle = MaterialTheme.typography.bodyLarge,
       onClick = onRetry,
       testTag = AudioPlaybackTestTags.RETRY,
@@ -305,9 +309,7 @@ internal fun AudioPlaybackPreview() {
               )
       )
       DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS))
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Error(message = "This memo could not be played.")
-      )
+      DisplayAudioPlayback(state = AudioPlaybackState.Error())
     }
   }
 }
@@ -337,9 +339,7 @@ internal fun AudioPlaybackDarkPreview() {
               )
       )
       DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS))
-      DisplayAudioPlayback(
-          state = AudioPlaybackState.Error(message = "This memo could not be played.")
-      )
+      DisplayAudioPlayback(state = AudioPlaybackState.Error())
     }
   }
 }

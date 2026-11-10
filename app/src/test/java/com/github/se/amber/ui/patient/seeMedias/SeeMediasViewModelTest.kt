@@ -1,9 +1,10 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias
 
+import com.github.se.amber.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Before
@@ -20,58 +21,50 @@ class SeeMediasViewModelTest {
 
   @Test
   fun initialState_hasNoErrorMessage() {
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertEquals(SeeMediasUIState(), viewModel.uiState.value)
   }
 
   @Test
   fun setErrorMsg_updatesUiState() {
-    viewModel.setErrorMsg("Something went wrong")
+    viewModel.setErrorMsg(R.string.seePicturesErrorLoadMedia)
 
-    assertEquals("Something went wrong", viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.seePicturesErrorLoadMedia, viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
   fun setErrorMsg_overwritesPreviousError() {
-    viewModel.setErrorMsg("First error")
-    viewModel.setErrorMsg("Second error")
+    viewModel.setErrorMsg(R.string.seePicturesErrorLoadMedia)
+    viewModel.setErrorMsg(R.string.seePicturesErrorLoadProfile)
 
-    assertEquals("Second error", viewModel.uiState.value.errorMsg)
-  }
-
-  @Test
-  fun setErrorMsg_acceptsEmptyString() {
-    viewModel.setErrorMsg("")
-
-    assertNotNull(viewModel.uiState.value.errorMsg)
-    assertEquals("", viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.seePicturesErrorLoadProfile, viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
   fun clearErrorMsg_resetsErrorToNull() {
-    viewModel.setErrorMsg("Some error")
+    viewModel.setErrorMsg(R.string.seePicturesErrorLoadMedia)
 
     viewModel.clearErrorMsg()
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
   fun clearErrorMsg_withoutPriorError_keepsStateUnchanged() {
     viewModel.clearErrorMsg()
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertEquals(SeeMediasUIState(), viewModel.uiState.value)
   }
 
   @Test
   fun setThenClearThenSet_worksAsExpected() {
-    viewModel.setErrorMsg("Error 1")
+    viewModel.setErrorMsg(R.string.seePicturesErrorLoadMedia)
     viewModel.clearErrorMsg()
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
 
-    viewModel.setErrorMsg("Error 2")
-    assertEquals("Error 2", viewModel.uiState.value.errorMsg)
+    viewModel.setErrorMsg(R.string.seePicturesErrorLoadProfile)
+    assertEquals(R.string.seePicturesErrorLoadProfile, viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -81,10 +74,10 @@ class SeeMediasViewModelTest {
 
   @Test
   fun uiStateDataClass_copyAndEquality() {
-    val state = SeeMediasUIState(errorMsg = "err")
+    val state = SeeMediasUIState(errorMsgRes = R.string.seePicturesErrorLoadMedia)
 
-    assertEquals(SeeMediasUIState(errorMsg = "err"), state)
-    assertEquals(SeeMediasUIState(errorMsg = null), state.copy(errorMsg = null))
-    assertEquals("err", state.component1())
+    assertEquals(SeeMediasUIState(errorMsgRes = R.string.seePicturesErrorLoadMedia), state)
+    assertEquals(SeeMediasUIState(errorMsgRes = null), state.copy(errorMsgRes = null))
+    assertEquals(R.string.seePicturesErrorLoadMedia, state.component1())
   }
 }

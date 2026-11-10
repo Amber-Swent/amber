@@ -2,6 +2,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -180,8 +181,8 @@ class UploadPictureViewModelTest {
     vm.selectPicture(pictureUri)
 
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -201,8 +202,8 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.uploadMedia()
     assertEquals(
-        UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.SELECT_PICTURE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
