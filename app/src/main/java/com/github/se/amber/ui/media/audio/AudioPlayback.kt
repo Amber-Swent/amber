@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.ui.patient.DisplayPatientButton
-import com.github.se.amber.ui.patient.DisplayPatientIconButton
+import com.github.se.amber.ui.patient.DisplayPatientCircularIconButton
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MINI
@@ -218,7 +218,7 @@ internal fun PlaybackTransport(
       horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
       verticalAlignment = Alignment.CenterVertically,
   ) {
-    DisplayPatientIconButton(
+    DisplayPatientCircularIconButton(
         icon = playPauseIcon(state),
         description = playPauseDescription(state),
         enabled = enabled,
@@ -227,7 +227,7 @@ internal fun PlaybackTransport(
         testTag = AudioPlaybackTestTags.PLAY_PAUSE,
         spinnerTestTag = AudioPlaybackTestTags.SPINNER,
     )
-    DisplayPatientIconButton(
+    DisplayPatientCircularIconButton(
         icon = Icons.Outlined.Replay,
         description = AudioPlaybackDescriptions.RESTART,
         enabled = enabled,

@@ -184,7 +184,7 @@ fun DisplayPatientButton(
  * @param spinnerTestTag test tag of the spinner. No tag is set when empty.
  */
 @Composable
-fun DisplayPatientIconButton(
+fun DisplayPatientCircularIconButton(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Default.Add,
     description: String = "",
@@ -235,7 +235,7 @@ fun DisplayPatientIconButton(
 
 @Preview(showBackground = true, name = "Patient utils light")
 @Composable
-internal fun DisplayPatientButtonsPreviewWILLBEDELETED() {
+internal fun DisplayPatientCircularButtonsPreviewWILLBEDELETED() {
   AmberAppTheme(darkTheme = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -252,7 +252,7 @@ internal fun DisplayPatientButtonsPreviewWILLBEDELETED() {
           description = "Add patient",
           onClick = {},
       )
-      DisplayPatientIconButton(
+      DisplayPatientCircularIconButton(
           description = "Add patient",
           onClick = {},
       )
@@ -266,7 +266,7 @@ internal fun DisplayPatientButtonsPreviewWILLBEDELETED() {
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-internal fun DisplayPatientButtonsDarkPreviewWILLBEDELETED() {
+internal fun DisplayPatientCircularButtonsDarkPreviewWILLBEDELETED() {
   AmberAppTheme(darkTheme = true) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -283,7 +283,7 @@ internal fun DisplayPatientButtonsDarkPreviewWILLBEDELETED() {
           description = "Add patient",
           onClick = {},
       )
-      DisplayPatientIconButton(
+      DisplayPatientCircularIconButton(
           description = "Add patient",
           onClick = {},
       )

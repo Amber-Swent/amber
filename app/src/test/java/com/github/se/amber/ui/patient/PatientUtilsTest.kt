@@ -351,7 +351,7 @@ class PatientUtilsTest {
 
   @Test
   fun iconButton_defaults_areEnabledSquareAndHaveNoSpinner() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientIconButton() } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton() } }
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
@@ -365,7 +365,7 @@ class PatientUtilsTest {
 
   @Test
   fun iconButton_exposesTheDescriptionOnTheButton() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientIconButton(description = "Play") } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton(description = "Play") } }
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
@@ -376,7 +376,7 @@ class PatientUtilsTest {
   fun iconButton_click_invokesCallbackOnce() {
     var clickCount = 0
     composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientIconButton(onClick = { clickCount++ }) }
+      AmberAppTheme { DisplayPatientCircularIconButton(onClick = { clickCount++ }) }
     }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
@@ -388,7 +388,7 @@ class PatientUtilsTest {
   fun iconButton_disabled_isNotEnabledAndIgnoresClicks() {
     var clickCount = 0
     composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientIconButton(enabled = false, onClick = { clickCount++ }) }
+      AmberAppTheme { DisplayPatientCircularIconButton(enabled = false, onClick = { clickCount++ }) }
     }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsNotEnabled()
@@ -400,7 +400,7 @@ class PatientUtilsTest {
   @Test
   fun iconButton_withSpinner_showsTheTaggedSpinner() {
     composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientIconButton(showSpinner = true, spinnerTestTag = "spinner") }
+      AmberAppTheme { DisplayPatientCircularIconButton(showSpinner = true, spinnerTestTag = "spinner") }
     }
 
     composeTestRule.onNodeWithTag("spinner", useUnmergedTree = true).assertIsDisplayed()
@@ -408,7 +408,7 @@ class PatientUtilsTest {
 
   @Test
   fun iconButton_withSpinnerAndNoSpinnerTag_stillShowsTheButton() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientIconButton(showSpinner = true) } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton(showSpinner = true) } }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsDisplayed()
   }
@@ -416,7 +416,7 @@ class PatientUtilsTest {
   @Test
   fun iconButton_withoutSpinner_hasNoSpinner() {
     composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientIconButton(spinnerTestTag = "spinner") }
+      AmberAppTheme { DisplayPatientCircularIconButton(spinnerTestTag = "spinner") }
     }
 
     composeTestRule.onAllNodesWithTag("spinner", useUnmergedTree = true).assertCountEquals(0)
@@ -425,7 +425,7 @@ class PatientUtilsTest {
   @Test
   fun iconButton_usesCustomTestTag() {
     composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientIconButton(testTag = "custom_icon_button") }
+      AmberAppTheme { DisplayPatientCircularIconButton(testTag = "custom_icon_button") }
     }
 
     composeTestRule.onNodeWithTag("custom_icon_button").assertIsDisplayed()
@@ -584,7 +584,7 @@ class PatientUtilsTest {
 
   @Test
   fun preview_showsThePatientButtons() {
-    composeTestRule.setContent { DisplayPatientButtonsPreviewWILLBEDELETED() }
+    composeTestRule.setContent { DisplayPatientCircularButtonsPreviewWILLBEDELETED() }
 
     // The labeled button takes a width fraction inside a weighted row, so it is composed but has
     // no size in this unbounded test. Existence still runs the preview.
@@ -595,7 +595,7 @@ class PatientUtilsTest {
 
   @Test
   fun darkPreview_showsThePatientButtons() {
-    composeTestRule.setContent { DisplayPatientButtonsDarkPreviewWILLBEDELETED() }
+    composeTestRule.setContent { DisplayPatientCircularButtonsDarkPreviewWILLBEDELETED() }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
