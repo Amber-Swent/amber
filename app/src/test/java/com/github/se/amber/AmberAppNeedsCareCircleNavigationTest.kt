@@ -23,6 +23,7 @@ import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.TransitionScreen
@@ -90,6 +91,19 @@ class AmberAppNeedsCareCircleNavigationTest {
 
     assertEquals(OnboardingScreen.CreateProfile.route, navController.currentDestination?.route)
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
+  }
+
+  @Test
+  fun patientWithoutCircle_signOutFromCreateProfileOpensAuth() {
+    val navController = launch(profile(Role.PATIENT))
+    openCreateProfile(navController)
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == AuthScreen.Auth.route
+    }
+    assertEquals(AuthScreen.Auth.route, navController.currentDestination?.route)
   }
 
   @Test
