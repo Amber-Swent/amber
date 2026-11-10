@@ -58,7 +58,7 @@ class AmberAppNavigationTest {
     // Onboarding
     val CHOICE_CREATE_CIRCLE_BUTTON = CaregiverChoiceTestTags.CREATE_BUTTON
     val CHOICE_JOIN_CIRCLE_BUTTON = CaregiverChoiceTestTags.JOIN_BUTTON
-    val CHOICE_BACK = CaregiverChoiceTestTags.BACK_BUTTON
+    val CHOICE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     val INVITATION_REDEMPTION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Caregiver
