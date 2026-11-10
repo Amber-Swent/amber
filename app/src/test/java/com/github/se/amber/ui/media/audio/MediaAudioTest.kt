@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -27,7 +26,6 @@ import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import org.junit.Assert.assertEquals
@@ -92,7 +90,7 @@ class MediaAudioTest {
   }
 
   @Test
-  fun caregiverRow_usesTheSmallerCaregiverButton() {
+  fun caregiverRow_showsBothButtonsAndHandlesClicks() {
     var clicks = 0
     composeTestRule.setContent {
       AmberAppTheme {
@@ -110,10 +108,7 @@ class MediaAudioTest {
       }
     }
 
-    composeTestRule
-        .onNodeWithTag(MediaAudioTestTags.LEFT_BUTTON)
-        .assertHeightIsEqualTo(CAREGIVER_BUTTON_HEIGHT_SMALL)
-        .performClick()
+    composeTestRule.onNodeWithTag(MediaAudioTestTags.LEFT_BUTTON).performClick()
     composeTestRule.onNodeWithTag(MediaAudioTestTags.RIGHT_BUTTON).performClick()
     assertEquals(2, clicks)
   }

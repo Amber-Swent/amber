@@ -6,11 +6,9 @@ package com.github.se.amber.ui.caregiver
 import android.content.Context
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,7 +17,6 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_SMALL
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -37,15 +34,13 @@ class DisplayCaregiverIconButtonTest {
       ApplicationProvider.getApplicationContext<Context>().getString(id)
 
   @Test
-  fun defaults_areEnabledAndUseTheCaregiverSize() {
+  fun defaults_areEnabled() {
     composeTestRule.setContent { AmberAppTheme { DisplayCaregiverIconButton() } }
 
     composeTestRule
         .onNodeWithTag(DisplayCaregiverIconButtonTestTags.BUTTON)
         .assertIsDisplayed()
         .assertIsEnabled()
-        .assertWidthIsEqualTo(CAREGIVER_BUTTON_HEIGHT_SMALL)
-        .assertHeightIsEqualTo(CAREGIVER_BUTTON_HEIGHT_SMALL)
   }
 
   @Test

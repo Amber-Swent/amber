@@ -65,7 +65,6 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags.TEXT
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
@@ -182,14 +181,14 @@ fun DisplayCaregiverButton(
 
 /** Test tags owned by [DisplayCaregiverIconButton]. */
 object DisplayCaregiverIconButtonTestTags {
-  const val BUTTON = "caregiver_icon_button"
+  const val BUTTON = "display_caregiver_icon_button"
 }
 
 /**
  * Displays a circular caregiver button holding an icon, or a loading spinner.
  *
  * [DisplayCaregiverButton] always includes a text label and a width fraction, so an icon-only
- * control uses its own container color, content color, and height. The content description is set
+ * control uses its own container color and content color. The content description is set
  * on the button itself so that screen readers announce the button, not its icon.
  *
  * @param modifier modifier applied to the button.
@@ -217,10 +216,7 @@ fun DisplayCaregiverIconButton(
       onClick = onClick,
       enabled = enabled,
       modifier =
-          modifier
-              .size(CAREGIVER_BUTTON_HEIGHT_SMALL)
-              .semantics { contentDescription = description }
-              .testTag(testTag),
+          modifier.semantics { contentDescription = description }.testTag(testTag),
       shape = CircleShape,
       colors =
           IconButtonDefaults.filledIconButtonColors(

@@ -188,6 +188,7 @@
 
     <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
     <string name="caregiverButtonDefaultText">Texte</string>
+    <!-- CaregiverIconButton: preview description (ui/caregiver/CaregiverUtils.kt) -->
     <string name="caregiverIconButtonAdd">Ajouter</string>
 
     <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->

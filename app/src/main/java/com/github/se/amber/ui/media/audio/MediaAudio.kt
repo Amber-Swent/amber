@@ -116,8 +116,8 @@ sealed interface AudioWaveformState {
  * @param leftTestTag test tag of the left button.
  * @param leftSpinnerTestTag test tag of the left spinner. No tag is set when empty.
  * @param rightButton the right button. The button is absent when this is null.
- * @param isPatient whether this row is on a patient screen. A caregiver screen uses the smaller
- *   caregiver button and spacing.
+ * @param isPatient whether this row is on a patient screen. A caregiver screen uses the caregiver
+ *   button and spacing.
  * @param waveformTestTag test tag of the waveform.
  * @param waveformModifier extra modifier applied to the waveform, after it takes the free width.
  */
@@ -170,7 +170,7 @@ fun MediaAudio(
   }
 }
 
-/** The left or right button of [MediaAudio], at the patient or caregiver size. */
+/** The left or right button of [MediaAudio], using the patient or caregiver icon button. */
 @Composable
 private fun MediaAudioIconButton(
     isPatient: Boolean = true,
