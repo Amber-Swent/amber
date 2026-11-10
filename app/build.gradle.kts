@@ -63,6 +63,10 @@ android {
 
   buildFeatures { compose = true }
 
+  // Lists English and French in the app language settings on Android 13+.
+  // English is the default locale, set in res/resources.properties.
+  androidResources { generateLocaleConfig = true }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17

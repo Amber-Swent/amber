@@ -59,7 +59,7 @@ object FirebaseEmulator {
    * The instrumentation argument that makes missing emulators a failure instead of a skip. CI sets
    * it to `true`, since it starts the emulators: a missing one there is broken wiring.
    */
-  const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
+  private const val REQUIRE_EMULATORS_ARGUMENT = "requireFirebaseEmulators"
   private const val FUNCTIONS_PORT = 5001
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
   /**

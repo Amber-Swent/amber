@@ -45,6 +45,18 @@ interface AuthRepository {
   suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit>
 
   /**
+   * Checks with the server that the signed-in account still exists, and signs out on this device if
+   * it doesn't: the local session can outlive a deleted or disabled account.
+   *
+   * @return The signed-in user, or null if nobody is signed in or the account is gone: both cases
+   *   return null, so a caller that needs to tell them apart reads [currentUser] first. Offline, on
+   *   a server that doesn't answer in time, or on any other failure, the local user is kept, so the
+   *   app still opens offline.
+   * @throws kotlinx.coroutines.CancellationException If the check is cancelled.
+   */
+  suspend fun refreshCurrentUser(): AuthUser? = currentUser
+
+  /**
    * Ends the Firebase session, then clears credential provider state.
    *
    * These operations are sequential. If Firebase sign-out throws, provider cleanup is not

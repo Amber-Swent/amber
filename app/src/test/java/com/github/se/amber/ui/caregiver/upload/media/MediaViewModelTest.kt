@@ -1,9 +1,11 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -16,6 +18,8 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.model.validation.InputValidation
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -185,7 +189,7 @@ class MediaViewModelTest {
 
   @Test
   fun initialStateHasNoErrorWhenCircleLoads() {
-    assertNull(createViewModel().uiState.value.common.errorMsg)
+    assertNull(createViewModel().uiState.value.common.errorMsgRes)
   }
 
   // ---------- circle loading (init) ----------
@@ -219,8 +223,8 @@ class MediaViewModelTest {
   fun missingUserSetsIdentityError() {
     signIn(null)
     assertEquals(
-        MediaViewModelErrorMessage.UNVERIFIED.mess,
-        createViewModel().uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.UNVERIFIED.messageRes,
+        createViewModel().uiState.value.common.errorMsgRes,
     )
   }
 
@@ -241,8 +245,8 @@ class MediaViewModelTest {
   fun profileFailureSetsProfileError() {
     coEvery { profileRepo.getProfile(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
-        MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "boom",
-        createViewModel().uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.messageRes,
+        createViewModel().uiState.value.common.errorMsgRes,
     )
   }
 
@@ -257,8 +261,8 @@ class MediaViewModelTest {
   fun missingProfileSetsCircleNotSetUpError() {
     stubProfile(null)
     assertEquals(
-        MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
-        createViewModel().uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes,
+        createViewModel().uiState.value.common.errorMsgRes,
     )
   }
 
@@ -266,8 +270,8 @@ class MediaViewModelTest {
   fun profileWithoutCircleIdSetsCircleNotSetUpError() {
     stubProfile(emptyList())
     assertEquals(
-        MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess,
-        createViewModel().uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes,
+        createViewModel().uiState.value.common.errorMsgRes,
     )
   }
 
@@ -282,8 +286,8 @@ class MediaViewModelTest {
   fun circleFailureSetsCircleError() {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     assertEquals(
-        MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "boom",
-        createViewModel().uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes,
+        createViewModel().uiState.value.common.errorMsgRes,
     )
   }
 
@@ -313,16 +317,16 @@ class MediaViewModelTest {
   @Test
   fun setErrorMsgUpdatesState() {
     val vm = createViewModel()
-    vm.setErrorMsg("oops")
-    assertEquals("oops", vm.uiState.value.common.errorMsg)
+    vm.setErrorMsg(R.string.uploadMediaErrorAddPerson)
+    assertEquals(R.string.uploadMediaErrorAddPerson, vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
   fun clearErrorMsgResetsError() {
     val vm = createViewModel()
-    vm.setErrorMsg("oops")
+    vm.setErrorMsg(R.string.uploadMediaErrorAddPerson)
     vm.clearErrorMsg()
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   // ---------- toggleShownId ----------
@@ -376,7 +380,7 @@ class MediaViewModelTest {
     loadCircle(CareCircle(id = "circle1"))
     val vm = createViewModel()
     vm.onPersonAdded(bob)
-    assertEquals("Bob", vm.involvedOptions.value["bob"])
+    assertEquals(UiText.Dynamic("Bob"), vm.involvedOptions.value["bob"])
   }
 
   @Test
@@ -394,8 +398,8 @@ class MediaViewModelTest {
     val vm = createViewModel()
     val result = vm.onPersonAdded(bob.copy(id = ""))
     assertEquals(
-        MediaViewModelErrorMessage.PERSON_WITHOUT_ID.mess,
-        result.exceptionOrNull()?.message,
+        MediaViewModelErrorMessage.PERSON_WITHOUT_ID,
+        (result.exceptionOrNull() as? PersonNotTaggedException)?.error,
     )
     assertTrue(vm.uiState.value.common.shownIds.isEmpty())
     assertTrue(vm.careCircle.value?.people.orEmpty().isEmpty())
@@ -407,8 +411,8 @@ class MediaViewModelTest {
     val vm = createViewModel()
     val result = vm.onPersonAdded(bob)
     assertEquals(
-        MediaViewModelErrorMessage.CANNOT_TAG_PERSON.mess,
-        result.exceptionOrNull()?.message,
+        MediaViewModelErrorMessage.CANNOT_TAG_PERSON,
+        (result.exceptionOrNull() as? PersonNotTaggedException)?.error,
     )
     assertTrue(vm.uiState.value.common.shownIds.isEmpty())
   }
@@ -424,7 +428,7 @@ class MediaViewModelTest {
     circleReply.complete(Result.success(CareCircle(id = "circle1")))
 
     assertEquals(bob, vm.careCircle.value?.people?.get("bob"))
-    assertEquals("Bob", vm.involvedOptions.value["bob"])
+    assertEquals(UiText.Dynamic("Bob"), vm.involvedOptions.value["bob"])
     vm.uploadMedia()
     assertEquals(listOf("bob"), captureUploadedItem().shownIds)
   }
@@ -442,7 +446,7 @@ class MediaViewModelTest {
     val person = fakePerson("Nana", "Anne", "Dupont")
     coEvery { circleRepo.getCircle("circle1") } returns
         Result.success(fakeCircle(people = mapOf("p1" to person)))
-    assertEquals("Nana", createViewModel().involvedOptions.value["p1"])
+    assertEquals(UiText.Dynamic("Nana"), createViewModel().involvedOptions.value["p1"])
   }
 
   @Test
@@ -450,7 +454,7 @@ class MediaViewModelTest {
     val person = fakePerson("  ", "Anne", "Dupont")
     coEvery { circleRepo.getCircle("circle1") } returns
         Result.success(fakeCircle(people = mapOf("p1" to person)))
-    assertEquals("Anne", createViewModel().involvedOptions.value["p1"])
+    assertEquals(UiText.Dynamic("Anne"), createViewModel().involvedOptions.value["p1"])
   }
 
   @Test
@@ -458,14 +462,14 @@ class MediaViewModelTest {
     val person = fakePerson(null, "Anne", "Dupont")
     coEvery { circleRepo.getCircle("circle1") } returns
         Result.success(fakeCircle(people = mapOf("p1" to person)))
-    assertEquals("Anne", createViewModel().involvedOptions.value["p1"])
+    assertEquals(UiText.Dynamic("Anne"), createViewModel().involvedOptions.value["p1"])
   }
 
   @Test
   fun involvedOptionsLabelsMembersWithTheirProfileName() {
     stubMemberProfile("member1", Person(id = "member1", firstName = "Marie", lastName = "Curie"))
     loadCircle(fakeCircle(members = listOf("member1")))
-    assertEquals("Marie", createViewModel().involvedOptions.value["member1"])
+    assertEquals(UiText.Dynamic("Marie"), createViewModel().involvedOptions.value["member1"])
   }
 
   @Test
@@ -484,7 +488,11 @@ class MediaViewModelTest {
     assertTrue(vm.involvedOptions.value.isEmpty())
     profileReply.complete(Result.failure(IOException("boom")))
     assertEquals(
-        mapOf("member1" to "Marie", "member2" to unknownMemberLabel(1), "p1" to "Anne"),
+        mapOf(
+            "member1" to UiText.Dynamic("Marie"),
+            "member2" to unknownMemberLabel(1),
+            "p1" to UiText.Dynamic("Anne"),
+        ),
         vm.involvedOptions.value,
     )
   }
@@ -519,7 +527,7 @@ class MediaViewModelTest {
             viewerNicknames = mapOf("user1" to mapOf("member1" to "Dad")),
         )
     )
-    assertEquals("Dad", createViewModel().involvedOptions.value["member1"])
+    assertEquals(UiText.Dynamic("Dad"), createViewModel().involvedOptions.value["member1"])
   }
 
   @Test
@@ -542,7 +550,7 @@ class MediaViewModelTest {
             viewerNicknames = mapOf("user1" to mapOf("p1" to "Granny")),
         )
     )
-    assertEquals("Granny", createViewModel().involvedOptions.value["p1"])
+    assertEquals(UiText.Dynamic("Granny"), createViewModel().involvedOptions.value["p1"])
   }
 
   @Test
@@ -553,7 +561,7 @@ class MediaViewModelTest {
             viewerNicknames = mapOf("someoneElse" to mapOf("p1" to "Granny")),
         )
     )
-    assertEquals("Nana", createViewModel().involvedOptions.value["p1"])
+    assertEquals(UiText.Dynamic("Nana"), createViewModel().involvedOptions.value["p1"])
   }
 
   // ---------- upload: guards ----------
@@ -563,7 +571,10 @@ class MediaViewModelTest {
     val vm = readyViewModel()
     signIn(null)
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.UNVERIFIED.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   @Test
@@ -571,14 +582,17 @@ class MediaViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertEquals("Your care circle is still loading, try again", vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.STILL_LOADING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   @Test
   fun uploadWithoutContentReportsTheContentError() {
     val vm = createViewModel()
     vm.uploadMedia()
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -609,7 +623,7 @@ class MediaViewModelTest {
   fun successfulUploadHasNoError() {
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -696,7 +710,10 @@ class MediaViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException("boom")
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertEquals("Upload failed: boom", vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.UNKNOW_ERROR.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   @Test
@@ -704,7 +721,10 @@ class MediaViewModelTest {
     coEvery { mediaRepo.addMedia(any(), any(), any()) } throws IOException()
     val vm = readyViewModel()
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.UNKNOW_ERROR.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.UNKNOW_ERROR.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   @Test
@@ -732,8 +752,8 @@ class MediaViewModelTest {
     val vm = readyViewModel(description = "   ")
     vm.uploadMedia()
     assertEquals(
-        MediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess,
-        vm.uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.DESCRIPTION_EMPTY.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -747,7 +767,10 @@ class MediaViewModelTest {
   fun missingDateReportsSelectDateError() {
     val vm = readyViewModel(date = null)
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.SELECT_DATE.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.SELECT_DATE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   @Test
@@ -821,13 +844,13 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.searchPlace("Lausanne")
 
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
     assertTrue(vm.uiState.value.common.location.suggestions.isEmpty())
 
     // a pending upload error isn't replaced by a search failure
     vm.uploadMedia()
     vm.searchPlace("Geneva")
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -975,7 +998,10 @@ class MediaViewModelTest {
 
     vm.uploadMedia()
 
-    assertEquals(MediaViewModelErrorMessage.PICK_A_PLACE.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.PICK_A_PLACE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
     coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
   }
 
@@ -1092,7 +1118,7 @@ class MediaViewModelTest {
   fun uploadReportsTheFirstMissingThing() {
     val vm = createViewModel() // no content, no description, no date
     vm.uploadMedia()
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsgRes)
   }
 
   // ---------- saved places ----------
@@ -1263,7 +1289,7 @@ class MediaViewModelTest {
       circleRepo.addPerson("circle1", match { it.firstName == "Anne" && it.lastName == "Dupont" })
     }
     assertEquals(saved, vm.careCircle.value?.people?.get("person1"))
-    assertEquals("Anne", vm.involvedOptions.value["person1"])
+    assertEquals(UiText.Dynamic("Anne"), vm.involvedOptions.value["person1"])
     assertTrue("person1" in vm.uiState.value.common.shownIds)
     assertFalse(vm.uiState.value.common.isAddPersonOpen)
     assertFalse(vm.uiState.value.common.isAddingPerson)
@@ -1278,8 +1304,82 @@ class MediaViewModelTest {
     vm.addPerson()
 
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
-    assertEquals("A first name is required", vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.FIRST_NAME_REQUIRED.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
     assertTrue(vm.uiState.value.common.isAddPersonOpen)
+  }
+
+  @Test
+  fun personNameWithDigitsIsRefusedWithErrorUnderTheFieldAndNotSaved() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne")
+    vm.setPersonNickname("Nana2")
+
+    val common = vm.uiState.value.common
+    assertEquals(UiText.Resource(R.string.inputErrorNameFormat), common.personNicknameError)
+    assertNull(common.personFirstNameError)
+    assertFalse(common.canAddPerson)
+
+    vm.addPerson()
+
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals(
+        MediaViewModelErrorMessage.INVALID_PERSON_NAME.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
+  }
+
+  @Test
+  fun unfinishedPersonNameShowsItsErrorOnlyOnceAddIsTapped() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = createViewModel()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne-")
+
+    assertNull(vm.uiState.value.common.personFirstNameError)
+    assertTrue(vm.uiState.value.common.canAddPerson)
+
+    vm.addPerson()
+
+    val common = vm.uiState.value.common
+    coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
+    assertEquals(UiText.Resource(R.string.inputErrorNameFormat), common.personFirstNameError)
+    assertFalse(common.canAddPerson)
+    assertTrue(common.isAddPersonOpen)
+
+    vm.dismissAddPerson()
+    vm.onAddPerson()
+    vm.setPersonFirstName("Anne-")
+
+    assertNull(vm.uiState.value.common.personFirstNameError)
+  }
+
+  @Test
+  fun typedTextStopsAtEachFieldsMaxLength() {
+    val vm = createViewModel()
+
+    vm.setDescription("a".repeat(InputValidation.DESCRIPTION_MAX_LENGTH + 1))
+    vm.setPlaceQuery("b".repeat(InputValidation.PLACE_QUERY_MAX_LENGTH + 1))
+    vm.setPersonFirstName("c".repeat(InputValidation.NAME_MAX_LENGTH + 1))
+
+    val common = vm.uiState.value.common
+    assertEquals(InputValidation.DESCRIPTION_MAX_LENGTH, common.description.length)
+    assertEquals(InputValidation.PLACE_QUERY_MAX_LENGTH, common.location.query.length)
+    assertEquals(InputValidation.NAME_MAX_LENGTH, common.personFirstName.length)
+  }
+
+  @Test
+  fun descriptionIsSavedTrimmedAndWithoutControlCharacters() {
+    loadCircle(CareCircle(id = "circle1"))
+    val vm = readyViewModel(description = "  Beach\u0000 day\r\nwith Nana \n")
+
+    vm.uploadMedia()
+
+    assertEquals("Beach day\nwith Nana", captureUploadedItem().description)
   }
 
   @Test
@@ -1291,7 +1391,10 @@ class MediaViewModelTest {
 
     vm.addPerson()
 
-    assertEquals("offline", vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
     assertEquals("Anne", vm.uiState.value.common.personFirstName)
     assertTrue(vm.uiState.value.common.isAddPersonOpen)
     assertFalse(vm.uiState.value.common.isAddingPerson)
@@ -1305,7 +1408,10 @@ class MediaViewModelTest {
 
     vm.addPerson()
 
-    assertEquals(MediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.STILL_LOADING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
     coVerify(exactly = 0) { circleRepo.addPerson(any(), any()) }
   }
 
@@ -1365,8 +1471,8 @@ class MediaViewModelTest {
     vm.addPerson()
 
     assertEquals(
-        MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess,
-        vm.uiState.value.common.errorMsg,
+        MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
     assertFalse(vm.uiState.value.common.isAddingPerson)
   }
@@ -1380,7 +1486,10 @@ class MediaViewModelTest {
 
     vm.addPerson()
 
-    assertEquals("broken", vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
     assertEquals("Anne", vm.uiState.value.common.personFirstName)
     assertTrue(vm.uiState.value.common.isAddPersonOpen)
     assertFalse(vm.uiState.value.common.isAddingPerson)
@@ -1401,7 +1510,10 @@ class MediaViewModelTest {
     coEvery { circleRepo.getCircle(any()) } returns Result.failure(IOException("boom"))
     val vm = createViewModel()
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.STILL_LOADING.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.STILL_LOADING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   // NEW TEST
@@ -1410,7 +1522,10 @@ class MediaViewModelTest {
     val vm = createViewModel()
     signIn(null)
     vm.uploadMedia()
-    assertEquals(MediaViewModelErrorMessage.UNVERIFIED.mess, vm.uiState.value.common.errorMsg)
+    assertEquals(
+        MediaViewModelErrorMessage.UNVERIFIED.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
   }
 
   // NEW TEST
@@ -1419,7 +1534,7 @@ class MediaViewModelTest {
     val vm = createViewModel()
     vm.setDate(MemoryDate(2024, Month.MAY, 12))
     vm.uploadMedia()
-    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsg)
+    assertEquals(FakeMediaViewModel.CONTENT_MISSING, vm.uiState.value.common.errorMsgRes)
   }
 
   // NEW TEST
@@ -1469,7 +1584,7 @@ private class FakeMediaViewModel(
     _uiState.update { it.copy(contentFile = file) }
   }
 
-  override fun checkContent(state: FakeMediaUIState): String? =
+  override fun checkContent(state: FakeMediaUIState): Int? =
       if (requiresContent && state.contentFile == null) CONTENT_MISSING else null
 
   override fun fileOf(state: FakeMediaUIState): File? = state.contentFile
@@ -1492,6 +1607,6 @@ private class FakeMediaViewModel(
       )
 
   companion object {
-    const val CONTENT_MISSING = "content is missing"
+    val CONTENT_MISSING = R.string.uploadPictureErrorSelect
   }
 }

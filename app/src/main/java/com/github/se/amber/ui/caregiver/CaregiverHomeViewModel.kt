@@ -1,12 +1,15 @@
 // Written by Lou-Anne Maier and + , with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -27,7 +30,7 @@ import kotlinx.coroutines.launch
  * @param caregiver Caregiver's profile, owner of this Amber account
  * @param careCircle actual careCircle.
  * @param patient Patient of the actual careCircle - whose information is displayed on the screen.
- * @param errorMsg Error message to display, or null when there is no error.
+ * @param errorMsgRes Error to display, as a string resource, or null when there is no error.
  */
 data class CaregiverHomeUIState(
     val caregiver: UserProfile =
@@ -45,7 +48,7 @@ data class CaregiverHomeUIState(
             person = Person(),
             circleIds = emptyList(),
         ),
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
 /**
@@ -67,16 +70,16 @@ class CaregiverHomeViewModel(
 
   /** Clears the error message from the UI state. */
   fun clearErrorMsg() {
-    _uiState.value = _uiState.value.copy(errorMsg = null)
+    _uiState.value = _uiState.value.copy(errorMsgRes = null)
   }
 
   /**
    * Sets an error message in the UI state.
    *
-   * @param errorMsg Error message to display in the UI.
+   * @param errorMsgRes Error to display in the UI, as a string resource.
    */
-  internal fun setErrorMsg(errorMsg: String) {
-    _uiState.value = _uiState.value.copy(errorMsg = errorMsg)
+  internal fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.value = _uiState.value.copy(errorMsgRes = errorMsgRes)
   }
 
   /**
@@ -92,12 +95,12 @@ class CaregiverHomeViewModel(
               .getCurrentProfile()
               .fold(
                   onSuccess = { profile ->
-                    if (profile == null) setErrorMsg("No profile found.")
+                    if (profile == null) setErrorMsg(R.string.caregiverHomeErrorNoProfile)
                     profile
                   },
                   onFailure = { e ->
                     Log.e(TAG, "Error fetching caregiver profile", e)
-                    setErrorMsg("Failed to load the profile: ${e.message}")
+                    setErrorMsg(R.string.caregiverHomeErrorLoadProfile)
                     null
                   },
               ) ?: return@launch
@@ -106,7 +109,7 @@ class CaregiverHomeViewModel(
       // 2. First care circle id of the caregiver
       val circleId = caregiver.circleIds.firstOrNull { it.isNotBlank() }
       if (circleId == null) {
-        setErrorMsg("No care circle found for this caregiver.")
+        setErrorMsg(R.string.caregiverHomeErrorNoCircle)
         return@launch
       }
 
@@ -118,7 +121,7 @@ class CaregiverHomeViewModel(
                   onSuccess = { it },
                   onFailure = { e ->
                     Log.e(TAG, "Error fetching care circle", e)
-                    setErrorMsg("Failed to load the care circle: ${e.message}")
+                    setErrorMsg(R.string.caregiverHomeErrorLoadCircle)
                     null
                   },
               ) ?: return@launch
@@ -126,7 +129,7 @@ class CaregiverHomeViewModel(
 
       // 4. Patient id (empty until the patient has redeemed their code)
       if (circle.patientId.isBlank()) {
-        setErrorMsg("No patient is linked to this care circle yet.")
+        setErrorMsg(R.string.caregiverHomeErrorNoPatient)
         return@launch
       }
 
@@ -138,12 +141,12 @@ class CaregiverHomeViewModel(
                 if (patient != null) {
                   _uiState.update { it.copy(patient = patient) }
                 } else {
-                  setErrorMsg("No patient profile found.")
+                  setErrorMsg(R.string.caregiverHomeErrorNoPatientProfile)
                 }
               },
               onFailure = { e ->
                 Log.e(TAG, "Error fetching patient profile", e)
-                setErrorMsg("Failed to load the patient profile: ${e.message}")
+                setErrorMsg(R.string.caregiverHomeErrorLoadPatientProfile)
               },
           )
     }

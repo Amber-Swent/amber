@@ -3,10 +3,14 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified with assistance from GitHub Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.pictures
 
+import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -32,13 +36,17 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val TAG = "UploadPicturesViewModel"
+
 /**
  * Error messages specific to the caregiver Upload Picture ViewModel; the ones shared with the other
  * upload screens are in [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelErrorMessage].
+ *
+ * @property messageRes the message shown to the user, as a string resource.
  */
-enum class UploadPictureViewModelErrorMessage(val mess: String) {
-  SELECT_PICTURE(mess = "Please select a picture first"),
-  COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
+enum class UploadPictureViewModelErrorMessage(@param:StringRes val messageRes: Int) {
+  SELECT_PICTURE(R.string.uploadPictureErrorSelect),
+  COULD_NOT_READ_PICTURE(R.string.uploadPictureErrorRead),
 }
 
 /**
@@ -97,10 +105,12 @@ class UploadPictureViewModel(
    * Checks whether a picture has been selected for upload.
    *
    * @param state The current picture upload UI state.
-   * @return The error message to show if no picture is selected, or null if a picture is selected.
+   * @return The error to show if no picture is selected, as a string resource, or null if a picture
+   *   is selected.
    */
-  override fun checkContent(state: UploadPictureUIState): String? =
-      if (state.pictureFile == null) UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess
+  @StringRes
+  override fun checkContent(state: UploadPictureUIState): Int? =
+      if (state.pictureFile == null) UploadPictureViewModelErrorMessage.SELECT_PICTURE.messageRes
       else null
 
   /**
@@ -163,9 +173,8 @@ class UploadPictureViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        setErrorMsg(
-            UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + (e.message ?: "")
-        )
+        Log.e(TAG, "Reading the selected picture failed", e)
+        setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes)
       }
     }
   }
