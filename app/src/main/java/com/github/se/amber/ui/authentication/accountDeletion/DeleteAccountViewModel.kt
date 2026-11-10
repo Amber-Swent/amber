@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.authentication.accountDeletion
 
 import android.content.Context
@@ -167,6 +168,12 @@ class DeleteAccountViewModel(
     }
   }
 
+  /**
+   * Maps a failed Google reauthentication to a translated UI error. If the account no longer
+   * exists, immediately tries to clear local data and marks cleanup for later retries.
+   *
+   * @param error The failure returned by [AuthRepository.reauthenticateWithGoogle].
+   */
   private suspend fun handleReauthenticationFailure(error: Throwable) {
     if (error == ReauthenticationError.AccountNotFound) {
       _uiState.update { it.copy(localCleanupNeeded = true) }
@@ -183,6 +190,14 @@ class DeleteAccountViewModel(
     _uiState.update { it.copy(isDeleting = false, errorMessageRes = messageRes) }
   }
 
+  /**
+   * Handles a deletion or local-cleanup result. A failure restores the action and shows a
+   * translated error; incomplete local cleanup stays marked so the next attempt skips deletion. On
+   * success, the repository restarts the app, so this function leaves the progress state active.
+   *
+   * @param result The result of [AccountDeletionRepository.deleteAccount] or
+   *   [AccountDeletionRepository.clearLocalData].
+   */
   private fun handleResult(result: Result<Unit>) {
     result.onFailure { error ->
       @StringRes
