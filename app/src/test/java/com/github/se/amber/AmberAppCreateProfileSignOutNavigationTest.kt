@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
@@ -103,6 +104,9 @@ private object SignedInAuthRepository : AuthRepository {
 
 private object NoProfileRepository : ProfileRepository {
   override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+      Result.success(Unit)
+
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
       Result.success(Unit)
 
   override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)

@@ -235,6 +235,9 @@ internal fun CreateProfilePreview() {
         override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
             Result.success(Unit)
 
+        override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+            Result.success(Unit)
+
         override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
 
         override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)

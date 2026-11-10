@@ -1,6 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.createProfile
 
@@ -225,6 +225,9 @@ class CreateProfileUITests {
                 return Result.success(Unit)
               }
 
+              override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                  Result.success(Unit)
+
               override suspend fun getCurrentProfile() = Result.success(null)
 
               override suspend fun getProfile(uid: String) = Result.success(null)
@@ -262,6 +265,9 @@ class CreateProfileUITests {
                 gate.await()
                 return Result.success(Unit)
               }
+
+              override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                  Result.success(Unit)
 
               override suspend fun getCurrentProfile() = Result.success(null)
 
@@ -349,6 +355,9 @@ class CreateProfileUITests {
                     profileWrites++
                     return Result.success(Unit)
                   }
+
+                  override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                      Result.success(Unit)
 
                   override suspend fun getCurrentProfile() = Result.success(null)
 
