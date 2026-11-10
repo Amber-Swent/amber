@@ -3,14 +3,18 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified with assistance from GitHub Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.pictures
 
+import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -43,15 +47,19 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val TAG = "UploadPicturesViewModel"
+
 /**
  * Error messages specific to the caregiver Upload Picture ViewModel; the ones shared with the other
  * upload screens are in [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelErrorMessage].
+ *
+ * @property messageRes the message shown to the user, as a string resource.
  */
-enum class UploadPictureViewModelErrorMessage(val mess: String) {
-  SELECT_PICTURE(mess = "Please select a picture first"),
-  COULD_NOT_READ_PICTURE(mess = "Could not read your picture: "),
-  COULD_NOT_OPEN_CAMERA(mess = "Could not open the camera"),
-  NOT_A_PHOTO(mess = "Only photos can be uploaded. Tap the camera to take a photo."),
+enum class UploadPictureViewModelErrorMessage(@param:StringRes val messageRes: Int) {
+  SELECT_PICTURE(R.string.uploadPictureErrorSelect),
+  COULD_NOT_READ_PICTURE(R.string.uploadPictureErrorRead),
+  COULD_NOT_OPEN_CAMERA(R.string.uploadPictureErrorCamera),
+  NOT_A_PHOTO(R.string.uploadPictureErrorNotAPhoto),
 }
 
 /**
@@ -134,10 +142,12 @@ class UploadPictureViewModel(
    * Checks whether a picture has been selected for upload.
    *
    * @param state The current picture upload UI state.
-   * @return The error message to show if no picture is selected, or null if a picture is selected.
+   * @return The error to show if no picture is selected, as a string resource, or null if a picture
+   *   is selected.
    */
-  override fun checkContent(state: UploadPictureUIState): String? =
-      if (state.pictureFile == null) UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess
+  @StringRes
+  override fun checkContent(state: UploadPictureUIState): Int? =
+      if (state.pictureFile == null) UploadPictureViewModelErrorMessage.SELECT_PICTURE.messageRes
       else null
 
   /**
@@ -207,9 +217,8 @@ class UploadPictureViewModel(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        setErrorMsg(
-            UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + (e.message ?: "")
-        )
+        Log.e(TAG, "Reading the selected picture failed", e)
+        setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes)
       }
     }
   }
@@ -223,9 +232,10 @@ class UploadPictureViewModel(
         _cameraRequests.send(capturedPictureSource.newCaptureUri(keeping = selectedCaptureUri))
       } catch (e: CancellationException) {
         throw e
-      } catch (_: Exception) {
+      } catch (e: Exception) {
+        Log.e(TAG, "Preparing a file for the camera failed", e)
         captureInProgress = false
-        setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess)
+        setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.messageRes)
       }
     }
   }
@@ -248,12 +258,11 @@ class UploadPictureViewModel(
         throw e
       } catch (_: IllegalArgumentException) {
         // Not a picture: a camera app may have saved a video
-        setErrorMsg(UploadPictureViewModelErrorMessage.NOT_A_PHOTO.mess)
+        setErrorMsg(UploadPictureViewModelErrorMessage.NOT_A_PHOTO.messageRes)
         capturedPictureSource.discard(uri)
       } catch (e: Exception) {
-        setErrorMsg(
-            UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + (e.message ?: "")
-        )
+        Log.e(TAG, "Reading the captured picture failed", e)
+        setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes)
         capturedPictureSource.discard(uri)
       }
     }
@@ -275,7 +284,7 @@ class UploadPictureViewModel(
    * @param uri A URI sent through [cameraRequests].
    */
   fun onCameraUnavailable(uri: String) {
-    setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess)
+    setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.messageRes)
     onCaptureCancelled(uri)
   }
 

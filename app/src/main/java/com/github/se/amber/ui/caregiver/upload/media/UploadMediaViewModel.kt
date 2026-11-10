@@ -2,11 +2,15 @@
  * Claude (Anthropic) via Claude Code.
  * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+ * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
  */
 package com.github.se.amber.ui.caregiver.upload.media
 
+import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -26,6 +30,9 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.model.validation.InputValidation
+import com.github.se.amber.ui.utils.UiText
+import com.github.se.amber.ui.utils.errorText
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
@@ -63,33 +70,39 @@ sealed interface MediaEvent {
 /**
  * Error messages shared by every upload ViewModel (text, picture, audio). A message that only makes
  * sense for one kind of media (e.g. "select a picture") belongs to that ViewModel, not here.
+ *
+ * @property messageRes the message shown to the user, as a string resource.
  */
-enum class MediaViewModelErrorMessage(val mess: String) {
-  UNVERIFIED(mess = "Your identity can't be verified"),
-  COULD_NOT_LOAD_PROFILE_ID(mess = "Could not load your profile: "),
-  COULD_NOT_LOAD_CARE_CIRCLE(mess = "Could not load your care Circle: "),
-  STILL_LOADING("Your care circle is still loading, try again"),
-  NOT_SET_CARE_CIRCLE(mess = "Your care circle isn't set up"),
-  UNKNOW_ERROR(mess = "Upload failed: "),
-  DESCRIPTION_EMPTY(mess = "description is  empty"),
-  SELECT_DATE(mess = "date can't be empty"),
-  PICK_A_PLACE(mess = "Pick the place from the suggestions"),
-  FIRST_NAME_REQUIRED(mess = "A first name is required"),
-  COULD_NOT_ADD_PERSON(mess = "Could not add person"),
-  PERSON_WITHOUT_ID(mess = "This person wasn't saved, try again"),
-  CANNOT_TAG_PERSON(
-      mess = "This person was saved but can't be tagged: your care circle isn't loaded"
-  ),
+enum class MediaViewModelErrorMessage(@param:StringRes val messageRes: Int) {
+  UNVERIFIED(R.string.uploadMediaErrorUnverified),
+  COULD_NOT_LOAD_PROFILE_ID(R.string.uploadMediaErrorLoadProfile),
+  COULD_NOT_LOAD_CARE_CIRCLE(R.string.uploadMediaErrorLoadCircle),
+  STILL_LOADING(R.string.uploadMediaErrorStillLoading),
+  NOT_SET_CARE_CIRCLE(R.string.uploadMediaErrorNoCircle),
+  UNKNOW_ERROR(R.string.uploadMediaErrorUploadFailed),
+  DESCRIPTION_EMPTY(R.string.uploadMediaErrorDescriptionEmpty),
+  SELECT_DATE(R.string.uploadMediaErrorSelectDate),
+  PICK_A_PLACE(R.string.uploadMediaErrorPickPlace),
+  FIRST_NAME_REQUIRED(R.string.uploadMediaErrorFirstNameRequired),
+  INVALID_PERSON_NAME(R.string.uploadMediaErrorInvalidPersonName),
+  COULD_NOT_ADD_PERSON(R.string.uploadMediaErrorAddPerson),
+  PERSON_WITHOUT_ID(R.string.uploadMediaErrorPersonWithoutId),
+  CANNOT_TAG_PERSON(R.string.uploadMediaErrorCannotTagPerson),
 }
 
-/** Start of the label of a member whose profile could not be read, instead of showing their uid. */
-const val UNKNOWN_MEMBER_LABEL = "Unknown member"
+/**
+ * Why [MediaViewModel.onPersonAdded] refused a person.
+ *
+ * @property error the message to show, e.g. in the add-person dialog.
+ */
+class PersonNotTaggedException(val error: MediaViewModelErrorMessage) : Exception(error.name)
 
 /**
  * Label of the [number]-th member (from 1) whose profile could not be read, so that several of them
- * can be told apart.
+ * can be told apart: "Unknown member 3" in English, "Membre inconnu 3" in French.
  */
-fun unknownMemberLabel(number: Int): String = "$UNKNOWN_MEMBER_LABEL $number"
+fun unknownMemberLabel(number: Int): UiText =
+    UiText.Resource(R.string.unknownMember, listOf(number))
 
 /** The fewest characters a place search needs before it is sent. */
 const val MIN_PLACE_QUERY_LENGTH = 3
@@ -134,12 +147,14 @@ data class MediaLocationUIState(
  * @param location Where the media was made: the place search and the picked place.
  * @param shownIds The IDs of the people tagged in the media.
  * @param isUploading Whether an upload is currently in progress.
- * @param errorMsg The error message to display, if any.
+ * @param errorMsgRes The error to display, as a string resource, if any.
  * @param isAddPersonOpen Whether the add-person dialog is open.
  * @param isAddingPerson Whether the person typed in the add-person dialog is being saved.
  * @param personFirstName The first name typed in the add-person dialog.
  * @param personLastName The last name typed in the add-person dialog.
  * @param personNickname The nickname typed in the add-person dialog.
+ * @param isAddPersonSubmitted Whether the user tapped Add in the add-person dialog, after which an
+ *   unfinished name like "Anne-" shows its error too.
  */
 data class CommonMediaUIState(
     val description: String = "",
@@ -147,19 +162,72 @@ data class CommonMediaUIState(
     val location: MediaLocationUIState = MediaLocationUIState(),
     val shownIds: Set<String> = emptySet(),
     val isUploading: Boolean = false,
-    val errorMsg: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
     val isAddPersonOpen: Boolean = false,
     val isAddingPerson: Boolean = false,
     val personFirstName: String = "",
     val personLastName: String = "",
     val personNickname: String = "",
+    val isAddPersonSubmitted: Boolean = false,
 ) {
   /**
    * Whether the common fields allow an upload: a description, a date, a valid place, and no upload
    * already in progress. A screen state adds the check of its own content.
    */
   val canUpload: Boolean
-    get() = description.isNotBlank() && date != null && location.hasValidPlace && !isUploading
+    get() =
+        InputValidation.DESCRIPTION.isValid(description) &&
+            date != null &&
+            location.hasValidPlace &&
+            !isUploading
+
+  /** Why the first name typed in the add-person dialog is refused; null while it is blank. */
+  val personFirstNameError: UiText?
+    get() =
+        InputValidation.NAME.errorText(
+            personFirstName,
+            submitted = isAddPersonSubmitted,
+            blankRes = null,
+            formatRes = R.string.inputErrorNameFormat,
+        )
+
+  /** Why the surname typed in the add-person dialog is refused, or null. */
+  val personLastNameError: UiText?
+    get() =
+        InputValidation.OPTIONAL_NAME.errorText(
+            personLastName,
+            submitted = isAddPersonSubmitted,
+            formatRes = R.string.inputErrorNameFormat,
+        )
+
+  /** Why the nickname typed in the add-person dialog is refused, or null. */
+  val personNicknameError: UiText?
+    get() =
+        InputValidation.OPTIONAL_NAME.errorText(
+            personNickname,
+            submitted = isAddPersonSubmitted,
+            formatRes = R.string.inputErrorNameFormat,
+        )
+
+  /**
+   * Whether the add-person dialog's Add button is enabled: a first name is typed, no field shows an
+   * error, and no person is being saved. An unfinished name keeps it enabled until it is tapped, so
+   * that its error shows then instead of while the user is still typing.
+   */
+  val canAddPerson: Boolean
+    get() =
+        !isAddingPerson &&
+            personFirstName.isNotBlank() &&
+            personFirstNameError == null &&
+            personLastNameError == null &&
+            personNicknameError == null
+
+  /** Whether the names typed in the add-person dialog can be saved as they are. */
+  val arePersonNamesValid: Boolean
+    get() =
+        InputValidation.NAME.isValid(personFirstName) &&
+            InputValidation.OPTIONAL_NAME.isValid(personLastName) &&
+            InputValidation.OPTIONAL_NAME.isValid(personNickname)
 }
 
 /**
@@ -198,8 +266,8 @@ private sealed interface UploadCheck {
       val date: MemoryDate,
   ) : UploadCheck
 
-  /** The upload can't start: [errorMsg] says why. */
-  data class Blocked(val errorMsg: String) : UploadCheck
+  /** The upload can't start: [errorMsgRes] says why. */
+  data class Blocked(@param:StringRes val errorMsgRes: Int) : UploadCheck
 }
 
 /**
@@ -259,15 +327,19 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   /**
    * People available for tagging, keyed by person ID and displayed by name. Empty until both the
    * circle and its members' profiles are loaded, so no chip shows a placeholder while loading.
+   *
+   * A name is user data ([UiText.Dynamic]); a member whose profile can't be read is labelled with
+   * [unknownMemberLabel], which is app text.
    */
-  val involvedOptions: StateFlow<Map<String, String>> =
+  val involvedOptions: StateFlow<Map<String, UiText>> =
       combine(careCircle, _members) { circle, members ->
             if (circle == null || members == null) emptyMap()
             else {
               val viewerUid = authRepo.currentUser?.uid
               var unknownCount = 0
               circle.taggableIds().associateWith { id ->
-                circle.displayNameOf(id, viewerUid, members) ?: unknownMemberLabel(++unknownCount)
+                circle.displayNameOf(id, viewerUid, members)?.let { UiText.Dynamic(it) }
+                    ?: unknownMemberLabel(++unknownCount)
               }
             }
           }
@@ -292,9 +364,10 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * Run by [uploadMedia] after the care circle is known and before the common fields are checked.
    *
    * @param state The screen state to upload.
-   * @return The error message to show if the content is missing, or null if it is there.
+   * @return The error to show if the content is missing, as a string resource, or null if it is
+   *   there.
    */
-  protected abstract fun checkContent(state: S): String?
+  @StringRes protected abstract fun checkContent(state: S): Int?
 
   /**
    * The local file holding the media's bytes.
@@ -339,21 +412,20 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   private fun loadCircle() {
     val uid = authRepo.currentUser?.uid
     if (uid == null) {
-      failCircleLoad(MediaViewModelErrorMessage.UNVERIFIED.mess)
+      failCircleLoad(MediaViewModelErrorMessage.UNVERIFIED.messageRes)
       return
     }
     viewModelScope.launch {
       // null when the user has no profile yet
       val profile: UserProfile? =
           profileRepo.getProfile(uid).getOrElse {
-            failCircleLoad(
-                MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.mess + "${it.message}"
-            )
+            Log.e(TAG, "Failed to load the profile", it)
+            failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.messageRes)
             return@launch
           }
       val circleId = profile?.circleIds?.firstOrNull()
       if (circleId == null) {
-        failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.mess)
+        failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
         return@launch
       }
       circleRepo
@@ -368,20 +440,20 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             loadMembers(circle)
           }
           .onFailure {
-            failCircleLoad(
-                MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.mess + "${it.message}"
-            )
+            Log.e(TAG, "Failed to load the care circle", it)
+            failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes)
           }
     }
   }
 
   /**
-   * Records that the circle will not load, so people added later are refused, and shows [errorMsg].
+   * Records that the circle will not load, so people added later are refused, and shows
+   * [errorMsgRes].
    */
-  private fun failCircleLoad(errorMsg: String) {
+  private fun failCircleLoad(@StringRes errorMsgRes: Int) {
     circleLoadFailed = true
     pendingPeople.clear()
-    setErrorMsg(errorMsg)
+    setErrorMsg(errorMsgRes)
   }
 
   /**
@@ -408,7 +480,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val state = _uiState.value
     if (state.common.isUploading) return
     when (val check = checkUpload(state)) {
-      is UploadCheck.Blocked -> setErrorMsg(check.errorMsg)
+      is UploadCheck.Blocked -> setErrorMsg(check.errorMsgRes)
       is UploadCheck.Ready -> upload(state, check)
     }
   }
@@ -425,14 +497,14 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val date = state.common.date
     val contentError = if (authorId != null && circle != null) checkContent(state) else null
     return when {
-      authorId == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.UNVERIFIED.mess)
-      circle == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.STILL_LOADING.mess)
+      authorId == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.UNVERIFIED.messageRes)
+      circle == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.STILL_LOADING.messageRes)
       contentError != null -> UploadCheck.Blocked(contentError)
-      state.common.description.isBlank() ->
-          UploadCheck.Blocked(MediaViewModelErrorMessage.DESCRIPTION_EMPTY.mess)
-      date == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.SELECT_DATE.mess)
+      !InputValidation.DESCRIPTION.isValid(state.common.description) ->
+          UploadCheck.Blocked(MediaViewModelErrorMessage.DESCRIPTION_EMPTY.messageRes)
+      date == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.SELECT_DATE.messageRes)
       !state.common.location.hasValidPlace ->
-          UploadCheck.Blocked(MediaViewModelErrorMessage.PICK_A_PLACE.mess)
+          UploadCheck.Blocked(MediaViewModelErrorMessage.PICK_A_PLACE.messageRes)
       else -> UploadCheck.Ready(authorId, circle, date)
     }
   }
@@ -449,11 +521,14 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val taggableIds = circle.taggableIds()
     val shownIds = state.common.shownIds.filter { it in taggableIds }
 
+    // Saved without the spaces and blank lines around it
+    val saved = state.withCommon(state.common.copy(description = state.common.description.trim()))
+
     updateCommon { it.copy(isUploading = true) }
     viewModelScope.launch {
       try {
         val id = mediaRepo.newMediaId(circle.id)
-        val item = createItem(id, state, ready.authorId, circle, ready.date, shownIds)
+        val item = createItem(id, saved, ready.authorId, circle, ready.date, shownIds)
         mediaRepo.addMedia(circle, item, fileOf(state))
         onUploaded()
         updateCommon { it.copy(isUploading = false) }
@@ -461,8 +536,9 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
+        Log.e(TAG, "Uploading the media failed", e)
         updateCommon { it.copy(isUploading = false) }
-        setErrorMsg(MediaViewModelErrorMessage.UNKNOW_ERROR.mess + (e.message ?: ""))
+        setErrorMsg(MediaViewModelErrorMessage.UNKNOW_ERROR.messageRes)
       }
     }
   }
@@ -478,25 +554,26 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
 
   /** Clears the current error message from the UI state. */
   fun clearErrorMsg() {
-    updateCommon { it.copy(errorMsg = null) }
+    updateCommon { it.copy(errorMsgRes = null) }
   }
 
   /**
    * Sets the error message shown by the upload screen.
    *
-   * @param errorMsg The error message to display.
+   * @param errorMsgRes The error to display, as a string resource.
    */
-  internal fun setErrorMsg(errorMsg: String) {
-    updateCommon { it.copy(errorMsg = errorMsg) }
+  internal fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    updateCommon { it.copy(errorMsgRes = errorMsgRes) }
   }
 
   /**
-   * Updates the media description in the UI state.
+   * Updates the media description in the UI state, cut at [InputValidation.DESCRIPTION_MAX_LENGTH]
+   * and without control characters other than line breaks.
    *
    * @param description The new media description.
    */
   fun setDescription(description: String) {
-    updateCommon { it.copy(description = description) }
+    updateCommon { it.copy(description = InputValidation.DESCRIPTION.clean(description)) }
   }
 
   /**
@@ -512,13 +589,15 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * Updates the place search typed by the user; [searchPlacesAsTyped] looks it up once they stop
    * typing. Any place picked before is dropped: the text no longer names it.
    *
-   * @param query The text typed in the place field.
+   * @param query The text typed in the place field, cut at
+   *   [InputValidation.PLACE_QUERY_MAX_LENGTH].
    */
   fun setPlaceQuery(query: String) {
+    val cleaned = InputValidation.PLACE_QUERY.clean(query)
     // Nothing changed: no new search will come, so it mustn't look like one is running
-    if (query == _uiState.value.common.location.query) return
+    if (cleaned == _uiState.value.common.location.query) return
     updateCommon {
-      val location = MediaLocationUIState(query = query, suggestions = it.location.suggestions)
+      val location = MediaLocationUIState(query = cleaned, suggestions = it.location.suggestions)
       val willSearch = location.isLongEnoughToSearch
       it.copy(
           location =
@@ -528,7 +607,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
               )
       )
     }
-    placeQueries.tryEmit(query)
+    placeQueries.tryEmit(cleaned)
   }
 
   /**
@@ -573,7 +652,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             it.copy(location = it.location.copy(suggestions = places, isSearching = false))
           }
         }
-        // Shown inline through searchFailed; errorMsg is left to the upload and the circle
+        // Shown inline through searchFailed; errorMsgRes is left to the upload and the circle
         .onFailure {
           updateCommon {
             it.copy(
@@ -626,19 +705,15 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
    * If the circle is still loading, [person] is kept and added to it once it arrives.
    *
    * @param person The saved person, with the id the repository generated.
-   * @return A failure, with a message the dialog can show, if [person] has no id or the circle
-   *   could not be loaded.
+   * @return A [PersonNotTaggedException], with the message the dialog can show, if [person] has no
+   *   id or the circle could not be loaded.
    */
   fun onPersonAdded(person: Person): Result<Unit> {
     if (person.id.isBlank()) {
-      return Result.failure(
-          IllegalArgumentException(MediaViewModelErrorMessage.PERSON_WITHOUT_ID.mess)
-      )
+      return Result.failure(PersonNotTaggedException(MediaViewModelErrorMessage.PERSON_WITHOUT_ID))
     }
     if (circleLoadFailed) {
-      return Result.failure(
-          IllegalStateException(MediaViewModelErrorMessage.CANNOT_TAG_PERSON.mess)
-      )
+      return Result.failure(PersonNotTaggedException(MediaViewModelErrorMessage.CANNOT_TAG_PERSON))
     }
     if (_careCircle.value == null) pendingPeople[person.id] = person
     else
@@ -673,20 +748,24 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
           personFirstName = "",
           personLastName = "",
           personNickname = "",
+          isAddPersonSubmitted = false,
       )
     }
   }
 
+  /** Updates the first name typed in the add-person dialog, cut at the names' maximum length. */
   fun setPersonFirstName(firstName: String) {
-    updateCommon { it.copy(personFirstName = firstName) }
+    updateCommon { it.copy(personFirstName = InputValidation.NAME.clean(firstName)) }
   }
 
+  /** Updates the surname typed in the add-person dialog, cut at the names' maximum length. */
   fun setPersonLastName(lastName: String) {
-    updateCommon { it.copy(personLastName = lastName) }
+    updateCommon { it.copy(personLastName = InputValidation.NAME.clean(lastName)) }
   }
 
+  /** Updates the nickname typed in the add-person dialog, cut at the names' maximum length. */
   fun setPersonNickname(nickname: String) {
-    updateCommon { it.copy(personNickname = nickname) }
+    updateCommon { it.copy(personNickname = InputValidation.NAME.clean(nickname)) }
   }
 
   /** Saves a person in the care circle and makes them available for media tagging. */
@@ -694,13 +773,18 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val circle =
         _careCircle.value
             ?: run {
-              setErrorMsg(MediaViewModelErrorMessage.STILL_LOADING.mess)
+              setErrorMsg(MediaViewModelErrorMessage.STILL_LOADING.messageRes)
               return
             }
     val state = _uiState.value.common
     if (state.isAddingPerson) return
     if (state.personFirstName.isBlank()) {
-      setErrorMsg(MediaViewModelErrorMessage.FIRST_NAME_REQUIRED.mess)
+      setErrorMsg(MediaViewModelErrorMessage.FIRST_NAME_REQUIRED.messageRes)
+      return
+    }
+    if (!state.arePersonNamesValid) {
+      updateCommon { it.copy(isAddPersonSubmitted = true) }
+      setErrorMsg(MediaViewModelErrorMessage.INVALID_PERSON_NAME.messageRes)
       return
     }
     updateCommon { it.copy(isAddingPerson = true) }
@@ -710,9 +794,9 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             .addPerson(
                 circle.id,
                 Person(
-                    firstName = state.personFirstName,
-                    lastName = state.personLastName,
-                    nickname = state.personNickname,
+                    firstName = state.personFirstName.trim(),
+                    lastName = state.personLastName.trim(),
+                    nickname = state.personNickname.trim(),
                 ),
             )
             .onSuccess { person ->
@@ -724,17 +808,20 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
                     personFirstName = "",
                     personLastName = "",
                     personNickname = "",
+                    isAddPersonSubmitted = false,
                     shownIds = it.shownIds + person.id,
                 )
               }
             }
             .onFailure {
-              setErrorMsg(it.message ?: MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess)
+              Log.e(TAG, "Adding the person failed", it)
+              setErrorMsg(MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.messageRes)
             }
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
-        setErrorMsg(e.message ?: MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.mess)
+        Log.e(TAG, "Adding the person failed", e)
+        setErrorMsg(MediaViewModelErrorMessage.COULD_NOT_ADD_PERSON.messageRes)
       } finally {
         updateCommon { it.copy(isAddingPerson = false) }
       }
@@ -742,6 +829,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   }
 
   private companion object {
+    const val TAG = "MediaViewModel"
+
     /** How long the user must stop typing before their place search is sent. */
     val PLACE_SEARCH_DEBOUNCE = 300.milliseconds
   }

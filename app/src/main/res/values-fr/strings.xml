@@ -1,0 +1,355 @@
+<resources>
+
+    <!-- Navigation -->
+    <string name="navigationTabHome">Accueil</string>
+    <string name="navigationTabUpload">Ajouter</string>
+    <string name="navigationTabSetting">Paramètres</string>
+    <string name="navigationTabMedias">Médias</string>
+    <string name="navigationCancel">Annuler</string>
+    <string name="navigationSignOut">Déconnexion</string>
+    <string name="navigationBack">Retour</string>
+
+    <!-- Screen titles -->
+    <string name="screenTitleAuth">Authentification</string>
+    <string name="screenTitleRoleLoading">Chargement du rôle</string>
+    <string name="screenTitleCreateProfile">Créer un profil</string>
+    <string name="screenTitleCaregiverChoice">Créer un cercle de soins ou saisir une invitation</string>
+    <string name="screenTitleCreateCareCircle">Créer un cercle de soins</string>
+    <string name="screenTitleEnterInvitation">Saisir une invitation</string>
+    <string name="screenTitleCaregiverHome">Accueil</string>
+    <string name="screenTitleCaregiverUpload">Ajouter des textes, des photos ou des audios</string>
+    <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>
+    <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
+    <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
+    <string name="screenTitleCaregiverParameters">Paramètres</string>
+    <string name="screenTitleCaregiverSignOut">Déconnexion</string>
+    <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
+    <string name="screenTitlePatientHome">Accueil</string>
+    <string name="screenTitlePatientSeeMedias">Voir les médias</string>
+    <string name="screenTitlePatientSeePictures">Voir les photos</string>
+    <string name="screenTitlePatientSeeAudios">Voir les audios</string>
+    <string name="screenTitlePatientParameters">Paramètres</string>
+    <string name="screenTitlePatientSignOut">Déconnexion</string>
+
+    <!-- EmailSignIn -->
+    <string name="signInWelcome">Bienvenue sur Amber</string>
+    <string name="signInInstruction">Connectez-vous avec Google pour accéder à votre compte ou en créer un.</string>
+    <string name="signInGoogle">Se connecter avec Google</string>
+    <string name="signInGoogleLoading">Connexion…</string>
+    <string name="signInTermsFooter">En vous connectant, vous acceptez nos conditions d\'utilisation et notre politique de confidentialité</string>
+    <string name="signInErrorEmailRequired">Veuillez saisir votre adresse e-mail.</string>
+    <string name="signInErrorNoGoogleAccount">Aucun compte Google trouvé. Ajoutez-en un à votre appareil.</string>
+    <string name="signInErrorFailed">La connexion a échoué. Veuillez réessayer.</string>
+
+    <!-- RoleLoading -->
+    <string name="roleLoadingError">Impossible de charger votre profil.\nRéessayez.</string>
+    <string name="roleLoadingRetry">Réessayer</string>
+    <string name="roleLoadingBackToLogin">Retour à la connexion</string>
+
+    <!-- SignOut -->
+    <string name="signOutTitle">Déconnexion</string>
+    <string name="signOutExplanation">Vous serez déconnecté d\'Amber sur cet appareil. Vous pourrez vous reconnecter à tout moment.</string>
+    <string name="signOutButton">Se déconnecter</string>
+    <string name="signOutSuccess">Déconnexion réussie</string>
+    <string name="signOutError">Impossible de se déconnecter. Veuillez réessayer.</string>
+
+    <!-- AmberHeader -->
+    <string name="amberHeaderLogo">Logo d\'Amber</string>
+
+    <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
+    <string name="inputErrorBlank">Veuillez remplir ce champ</string>
+    <plurals name="inputErrorIncomplete">
+        <item quantity="one">Saisissez %1$d caractère</item>
+        <item quantity="many">Saisissez les %1$d caractères</item>
+        <item quantity="other">Saisissez les %1$d caractères</item>
+    </plurals>
+    <plurals name="inputErrorTooShort">
+        <item quantity="one">Utilisez au moins %1$d caractère</item>
+        <item quantity="many">Utilisez au moins %1$d caractères</item>
+        <item quantity="other">Utilisez au moins %1$d caractères</item>
+    </plurals>
+    <plurals name="inputErrorTooLong">
+        <item quantity="one">Utilisez au plus %1$d caractère</item>
+        <item quantity="many">Utilisez au plus %1$d caractères</item>
+        <item quantity="other">Utilisez au plus %1$d caractères</item>
+    </plurals>
+    <string name="inputErrorFormat">Ce champ contient des caractères non autorisés</string>
+    <string name="inputErrorNameFormat">Utilisez uniquement des lettres, des espaces, des traits d\'union (-) et des apostrophes (\')</string>
+    <string name="inputErrorEmailFormat">Saisissez une adresse e-mail valide</string>
+    <string name="inputErrorInvitationCodeFormat">Les codes n\'utilisent que des lettres majuscules et les chiffres de 2 à 9, sans I ni O</string>
+
+    <!-- Onboarding -->
+    <string name="onboardingDividerOr">ou</string>
+
+    <!-- CaregiverChoice -->
+    <string name="caregiverChoiceWelcome">Bienvenue</string>
+    <string name="caregiverChoiceWelcomeName">Bienvenue, %1$s</string>
+    <string name="caregiverChoiceQuestion">Comment allez-vous rejoindre votre cercle de soins&#160;?</string>
+    <string name="caregiverChoiceCreateCircle">Créer un nouveau cercle de soins</string>
+    <string name="caregiverChoiceJoinCircle">Rejoindre un cercle de soins existant</string>
+    <string name="caregiverChoiceInfo">Information</string>
+    <string name="caregiverChoiceInviteHintCondition">Pour rejoindre un cercle de soins existant, vous devez avoir un lien d\'invitation.</string>
+    <string name="caregiverChoiceInviteHintSolution">Tout aidant membre du cercle peut créer un lien pour vous.</string>
+    <string name="caregiverChoiceBack">Retour</string>
+
+    <!-- CreateProfile -->
+    <string name="createProfileTitle">Créer un compte</string>
+    <string name="createProfileQuestion">Comment devons-nous vous appeler&#160;?</string>
+    <string name="createProfileName">Prénom</string>
+    <string name="createProfileSurname">Nom</string>
+    <string name="createProfileSelectRole">Veuillez choisir votre rôle</string>
+    <string name="createProfilePatient">Patient</string>
+    <string name="createProfileCaregiver">Aidant</string>
+    <string name="createProfileFillOut">Veuillez remplir ce champ</string>
+    <string name="createProfileErrorInvalidName">Saisissez votre prénom et votre nom, puis réessayez.</string>
+    <string name="createProfileErrorSessionExpired">Votre session a expiré. Connectez-vous, puis réessayez.</string>
+    <string name="createProfileErrorExists">Un profil existe déjà pour ce compte.</string>
+    <string name="createProfileErrorPermissionDenied">Vous n\'avez pas l\'autorisation de créer un profil.</string>
+    <string name="createProfileErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="createProfileErrorUnknown">Impossible de créer votre profil. Veuillez réessayer.</string>
+
+    <!-- CreateCareCircle -->
+    <string name="createCareCircleTitle">Nouveau cercle de soins</string>
+    <string name="createCareCircleNameLabel">Nom du cercle</string>
+    <string name="createCareCircleNamePlaceholder">Nommez votre cercle de soins</string>
+    <string name="createCareCircleCreate">Créer</string>
+    <string name="createCareCircleCreating">Création…</string>
+    <string name="createCareCircleInviteLater">Vous pourrez inviter des membres dans le cercle après sa création.</string>
+    <string name="createCareCircleNameRequired">Le nom du cercle ne peut pas être vide</string>
+    <string name="createCareCircleErrorInvalidName">Saisissez un nom de cercle de soins, puis réessayez.</string>
+    <string name="createCareCircleErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="createCareCircleErrorSessionExpired">Votre session a expiré. Connectez-vous, puis réessayez.</string>
+    <string name="createCareCircleErrorProfileMissing">Votre profil est introuvable. Complétez votre profil, puis réessayez.</string>
+    <string name="createCareCircleErrorNotCaregiver">Seuls les aidants peuvent créer un cercle de soins. Vérifiez votre profil, puis réessayez.</string>
+    <string name="createCareCircleErrorAlreadyExists">Vous avez déjà un cercle de soins. Retournez à l\'écran d\'accueil.</string>
+    <string name="createCareCircleErrorPermissionDenied">La création a été refusée. Vérifiez votre compte, puis réessayez.</string>
+    <string name="createCareCircleErrorUnknown">Impossible de créer votre cercle de soins. Veuillez réessayer.</string>
+
+    <!-- InvitationRedemption -->
+    <string name="invitationRedemptionTitle">Saisissez votre code d\'invitation</string>
+    <string name="invitationRedemptionCodeLabel">Code d\'invitation</string>
+    <string name="invitationRedemptionCodePlaceholder">Votre code</string>
+    <string name="invitationRedemptionSubmit">Valider</string>
+    <string name="invitationRedemptionCodeRequired">Saisissez un code d\'invitation, puis réessayez.</string>
+    <string name="invitationRedemptionErrorInvalidCode">Ce code d\'invitation n\'est pas valide. Vérifiez-le, puis réessayez.</string>
+    <string name="invitationRedemptionErrorNotFound">Aucune invitation ne correspond à ce code. Vérifiez-le, puis réessayez.</string>
+    <string name="invitationRedemptionErrorExpired">Cette invitation a expiré. Demandez-en une nouvelle.</string>
+    <string name="invitationRedemptionErrorAlreadyUsed">Cette invitation a déjà été utilisée. Demandez-en une nouvelle.</string>
+    <string name="invitationRedemptionErrorAlreadyInCircle">Vous faites déjà partie d\'un cercle de soins.</string>
+    <string name="invitationRedemptionErrorProfileMissing">Complétez votre profil, puis réessayez.</string>
+    <string name="invitationRedemptionErrorCircleUnavailable">Ce cercle de soins n\'est pas disponible. Demandez une nouvelle invitation.</string>
+    <string name="invitationRedemptionErrorPatientSlotTaken">Ce cercle a déjà un patient. Demandez de l\'aide à l\'aidant.</string>
+    <string name="invitationRedemptionErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
+    <string name="invitationRedemptionErrorUnknown">Impossible d\'utiliser cette invitation. Veuillez réessayer.</string>
+
+    <!-- CaregiverParameter -->
+    <string name="caregiverParameterTitle">Paramètres</string>
+    <string name="caregiverParameterCreateCareCircle">Créer un nouveau cercle de soins</string>
+    <string name="caregiverParameterCreateInvitation">Créer une invitation</string>
+    <string name="caregiverParameterEnterInvitation">Saisir une invitation</string>
+    <string name="caregiverParameterSignOut">Se déconnecter</string>
+    <string name="caregiverParameterInvitationHint">Pour ajouter quelqu\'un à votre cercle, appuyez sur «&#160;%1$s&#160;» et envoyez-lui le code.</string>
+
+    <!-- CreateInvitation -->
+    <string name="createInvitationTitle">Créer une invitation</string>
+    <string name="createInvitationButton">Créer une invitation</string>
+    <string name="createInvitationPlaceholder">Appuyez sur le bouton de gauche pour créer un code</string>
+    <string name="createInvitationUsage">Ce code ne peut être utilisé qu\'une seule fois.\nIl reste actif 30 jours après sa création.</string>
+    <string name="createInvitationListHeader">Code | Date de création | Statut</string>
+    <string name="createInvitationListRow">%1$s | %2$s | %3$s</string>
+    <string name="createInvitationStatusActive">ACTIVE</string>
+    <string name="createInvitationStatusExpired">EXPIRÉE</string>
+    <string name="createInvitationStatusUsed">UTILISÉE</string>
+    <string name="createInvitationCreated">Invitation créée</string>
+    <string name="createInvitationErrorNotAuthenticated">Connectez-vous pour créer une invitation</string>
+    <string name="createInvitationErrorPermissionDenied">Vous n\'avez pas l\'autorisation de créer une invitation</string>
+    <string name="createInvitationErrorNetwork">Erreur réseau. Vérifiez votre connexion, puis réessayez</string>
+    <string name="createInvitationErrorInvalidExpiry">La date d\'expiration de l\'invitation n\'est pas valide</string>
+    <string name="createInvitationErrorCodesTaken">Tous les codes d\'invitation générés étaient déjà pris. Réessayez</string>
+    <string name="createInvitationErrorSave">L\'enregistrement de l\'invitation a échoué</string>
+    <string name="createInvitationErrorCreate">Impossible de créer l\'invitation</string>
+    <string name="createInvitationErrorLoadInvitations">Impossible de charger les invitations</string>
+    <string name="createInvitationErrorRefreshAfterCreate">L\'invitation a été créée, mais la liste n\'a pas pu être actualisée</string>
+    <string name="createInvitationErrorLoadProfile">Impossible de charger votre profil</string>
+    <string name="createInvitationErrorProfileNotFound">Votre profil est introuvable</string>
+    <string name="createInvitationErrorNoCircle">Aucun cercle de soins</string>
+
+    <!-- CaregiverHome -->
+    <string name="caregiverHomeTitle">Accueil</string>
+    <string name="caregiverHomeWelcomePatient">Bienvenue&#160;! Vous êtes avec %1$s&#160;!</string>
+    <string name="caregiverHomeWelcomeNoPatient">Bienvenue&#160;! Aucun patient n\'est encore lié à ce cercle de soins.</string>
+    <string name="caregiverHomeErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="caregiverHomeErrorLoadProfile">Impossible de charger le profil.</string>
+    <string name="caregiverHomeErrorNoCircle">Aucun cercle de soins trouvé pour cet aidant.</string>
+    <string name="caregiverHomeErrorLoadCircle">Impossible de charger le cercle de soins.</string>
+    <string name="caregiverHomeErrorNoPatient">Aucun patient n\'est encore lié à ce cercle de soins.</string>
+    <string name="caregiverHomeErrorNoPatientProfile">Aucun profil de patient trouvé.</string>
+    <string name="caregiverHomeErrorLoadPatientProfile">Impossible de charger le profil du patient.</string>
+
+    <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="caregiverButtonDefaultText">Texte</string>
+
+    <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
+    <plurals name="textFieldMaxCharReached">
+        <item quantity="one">Maximum de %1$d caractère atteint</item>
+        <item quantity="many">Maximum de %1$d caractères atteint</item>
+        <item quantity="other">Maximum de %1$d caractères atteint</item>
+    </plurals>
+    <plurals name="textFieldMaxLinesReached">
+        <item quantity="one">Maximum de %1$d ligne atteint</item>
+        <item quantity="many">Maximum de %1$d lignes atteint</item>
+        <item quantity="other">Maximum de %1$d lignes atteint</item>
+    </plurals>
+
+    <!-- UploadMedia: shared by the picture and audio upload screens (ui/caregiver/upload/media) -->
+    <string name="unknownMember">Membre inconnu %1$d</string>
+    <string name="uploadMediaErrorUnverified">Votre identité ne peut pas être vérifiée</string>
+    <string name="uploadMediaErrorLoadProfile">Impossible de charger votre profil</string>
+    <string name="uploadMediaErrorLoadCircle">Impossible de charger votre cercle de soins</string>
+    <string name="uploadMediaErrorStillLoading">Votre cercle de soins est encore en cours de chargement, réessayez</string>
+    <string name="uploadMediaErrorNoCircle">Votre cercle de soins n\'est pas configuré</string>
+    <string name="uploadMediaErrorUploadFailed">L\'envoi a échoué, réessayez</string>
+    <string name="uploadMediaErrorDescriptionEmpty">La description est vide</string>
+    <string name="uploadMediaErrorSelectDate">La date ne peut pas être vide</string>
+    <string name="uploadMediaErrorPickPlace">Choisissez le lieu parmi les suggestions</string>
+    <string name="uploadMediaErrorFirstNameRequired">Un prénom est requis</string>
+    <string name="uploadMediaErrorInvalidPersonName">Vérifiez les noms&#160;: utilisez uniquement des lettres, des espaces, des traits d\'union (-) et des apostrophes (\')</string>
+    <string name="uploadMediaErrorAddPerson">Impossible d\'ajouter la personne</string>
+    <string name="uploadMediaErrorPersonWithoutId">Cette personne n\'a pas été enregistrée, réessayez</string>
+    <string name="uploadMediaErrorCannotTagPerson">Cette personne a été enregistrée, mais ne peut pas être identifiée&#160;: votre cercle de soins n\'est pas chargé</string>
+
+    <!-- Upload -->
+    <string name="uploadTitle">Ajouter un média</string>
+    <string name="uploadChoosePicture">Ajouter une photo</string>
+    <string name="uploadChoosePictureIcon">Photo</string>
+    <string name="uploadChooseAudio">Ajouter un audio</string>
+    <string name="uploadChooseAudioIcon">Audio</string>
+
+    <!-- UploadPicture -->
+    <string name="uploadPictureTitle">Ajouter une photo</string>
+    <string name="uploadPictureIcon">Photo</string>
+    <string name="uploadPictureTake">Prendre une nouvelle photo</string>
+    <string name="uploadPictureChoose">Appuyez pour choisir une photo existante</string>
+    <string name="uploadPictureSelected">Photo sélectionnée</string>
+    <string name="uploadPictureDescriptionLabel">Description</string>
+    <string name="uploadPictureDescriptionPlaceholder">Saisissez une description de la photo</string>
+    <string name="uploadPictureDescriptionEmpty">La description ne peut pas être vide</string>
+    <string name="uploadPictureUploading">Envoi…</string>
+    <string name="uploadPictureUpload">Ajouter la photo</string>
+    <string name="uploadPictureErrorSelect">Veuillez d\'abord sélectionner une photo</string>
+    <string name="uploadPictureErrorRead">Impossible de lire votre photo</string>
+    <string name="uploadPictureErrorCamera">Impossible d\'ouvrir l\'appareil photo</string>
+    <string name="uploadPictureErrorNotAPhoto">Seules les photos peuvent être envoyées. Touchez l\'appareil photo pour prendre une photo.</string>
+
+    <!-- UploadAudio -->
+    <string name="uploadAudioTitle">Ajouter un audio</string>
+    <string name="uploadAudioRecordIcon">Micro</string>
+    <string name="uploadAudioRecord">Appuyez pour enregistrer un audio</string>
+    <string name="uploadAudioDescriptionLabel">Description</string>
+    <string name="uploadAudioDescriptionPlaceholder">Saisissez une description de l\'audio</string>
+    <string name="uploadAudioDescriptionEmpty">La description ne peut pas être vide</string>
+    <string name="uploadAudioUploading">Envoi…</string>
+    <string name="uploadAudioUpload">Ajouter l\'audio</string>
+
+    <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
+    <string name="popupDialogClose">Fermer</string>
+
+    <!-- AddPersonDialog -->
+    <string name="addPersonTitle">Ajouter une personne</string>
+    <string name="addPersonAdd">Ajouter</string>
+    <string name="addPersonAdding">Ajout…</string>
+    <string name="addPersonFirstName">Prénom</string>
+    <string name="addPersonSurname">Nom - facultatif</string>
+    <string name="addPersonNickname">Surnom - facultatif</string>
+
+    <!-- PersonInvolved -->
+    <string name="personInvolvedTitle">Qui est concerné - facultatif</string>
+    <string name="personInvolvedEmpty">Personne ne fait partie de votre cercle de soins</string>
+
+    <!-- UploadMediaLocation -->
+    <string name="locationTitle">Lieu - facultatif</string>
+    <string name="locationSearchLabel">Autre lieu</string>
+    <string name="locationSearchPlaceholder">Rechercher une ville, une adresse…</string>
+    <string name="locationSearching">Recherche…</string>
+    <plurals name="locationQueryTooShort">
+        <item quantity="one">Saisissez au moins %1$d lettre pour rechercher, ou videz le champ.</item>
+        <item quantity="many">Saisissez au moins %1$d lettres pour rechercher, ou videz le champ.</item>
+        <item quantity="other">Saisissez au moins %1$d lettres pour rechercher, ou videz le champ.</item>
+    </plurals>
+    <string name="locationSearchFailed">Impossible de rechercher des lieux. Vérifiez votre connexion, puis réessayez, ou videz le champ pour ajouter sans lieu.</string>
+    <string name="locationTryAgain">Réessayer</string>
+    <string name="locationNoPlaceFound">Aucun lieu trouvé. Essayez une autre recherche, ou videz le champ pour ajouter sans lieu.</string>
+
+    <!-- DatePicker -->
+    <string name="datePickerYear">Année</string>
+    <string name="datePickerMonth">Mois</string>
+    <string name="datePickerDay">Jour</string>
+    <string name="datePickerSelectYear">Choisir l\'année</string>
+    <string name="datePickerSelectMonth">Choisir le mois</string>
+    <string name="datePickerSelectDay">Choisir le jour</string>
+    <string name="datePickerUnknown">Inconnu</string>
+    <string name="datePickerMonthRequired">Choisissez un mois avant de choisir un jour.</string>
+    <string name="datePickerDone">OK</string>
+
+    <!-- AudioRecorder -->
+    <string name="audioRecorderDelete">Supprimer l\'audio</string>
+    <string name="audioRecorderStop">Arrêter l\'enregistrement</string>
+
+    <!-- MediaImage -->
+    <string name="mediaImageFallbackDescription">Photo</string>
+    <string name="mediaImageRetryDescription">Charger la photo à nouveau</string>
+
+    <!-- PatientHome -->
+    <string name="patientHomeTitle">Accueil</string>
+    <string name="patientHomeGreeting">Bonjour %1$s&#160;!</string>
+    <string name="patientHomeErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="patientHomeErrorLoadProfile">Impossible de charger le profil.</string>
+
+    <!-- PatientParameter -->
+    <string name="patientParameterTitle">Paramètres</string>
+    <string name="patientParameterSignOut">Se déconnecter</string>
+
+    <!-- SeeMedias -->
+    <string name="seeMediasTitle">Voir les médias</string>
+    <string name="seeMediasPictures">Voir les photos</string>
+    <string name="seeMediasPicturesIcon">Photo</string>
+    <string name="seeMediasTexts">Voir les textes</string>
+    <string name="seeMediasTextsIcon">Texte</string>
+    <string name="seeMediasAudios">Voir les audios</string>
+    <string name="seeMediasAudiosIcon">Audio</string>
+
+    <!-- SeePictures -->
+    <string name="seePicturesTitle">Voir les photos</string>
+    <string name="seePicturesEmpty">Il n\'y a pas encore de photos.</string>
+    <string name="seePicturesRetry">Réessayer</string>
+    <string name="seePicturesErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="seePicturesErrorLoadProfile">Impossible de charger le profil.</string>
+    <string name="seePicturesErrorNoCircle">Aucun cercle de soins trouvé pour ce patient.</string>
+    <string name="seePicturesErrorLoadCircle">Impossible de charger le cercle de soins.</string>
+    <string name="seePicturesErrorLoadMedia">Impossible de charger les médias.</string>
+
+    <!-- SeeAudios -->
+    <string name="seeAudiosTitle">Voir les audios</string>
+    <string name="seeAudiosEmpty">Il n\'y a pas encore d\'audios.</string>
+
+    <!-- MediaCard: the details under a picture or an audio (ui/media/MediaCard.kt) -->
+    <string name="mediaCardShowInfos">voir les infos</string>
+    <string name="mediaCardHideInfos">masquer les infos</string>
+    <string name="mediaCardUnknownDate">Date inconnue</string>
+    <string name="mediaCardUnknownLocation">Lieu inconnu</string>
+    <string name="mediaCardAddedBy">Ajouté par %1$s</string>
+    <string name="mediaCardSharedWith">Souvenir partagé avec</string>
+    <string name="mediaCardErrorLoadAuthor">Impossible de charger le profil de l\'auteur.</string>
+    <string name="mediaCardErrorAuthorNotFound">Auteur introuvable.</string>
+    <string name="mediaCardErrorLoadProfile">Impossible de charger votre profil.</string>
+    <string name="mediaCardErrorNoCircle">Aucun cercle de soins trouvé.</string>
+    <string name="mediaCardErrorLoadCircle">Impossible de charger le cercle de soins.</string>
+
+    <!-- AudioPlayback -->
+    <string name="audioPlaybackPlay">Lire</string>
+    <string name="audioPlaybackPause">Pause</string>
+    <string name="audioPlaybackRestart">Recommencer</string>
+    <string name="audioPlaybackLoading">Chargement</string>
+    <string name="audioPlaybackRetry">Réessayer</string>
+    <string name="audioPlaybackError">Cet audio n\'a pas pu être lu.</string>
+</resources>

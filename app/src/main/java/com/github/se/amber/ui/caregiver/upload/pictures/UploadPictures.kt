@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.pictures
 
@@ -39,11 +40,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
@@ -65,6 +69,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
+import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Picture components. */
@@ -144,8 +149,10 @@ fun UploadPictureScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
   val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
-  val errorMessage = uiState.common.errorMsg
+  val errorMsgRes = uiState.common.errorMsgRes
   val context = LocalContext.current
+  // Configuration-aware resources, so the texts and the toast follow the app language
+  val resources = LocalResources.current
 
   val galleryLauncher =
       rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -153,9 +160,9 @@ fun UploadPictureScreen(
       }
   val camera = rememberCameraActions(viewModel)
 
-  LaunchedEffect(errorMessage) {
-    if (errorMessage != null) {
-      Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+  LaunchedEffect(errorMsgRes) {
+    if (errorMsgRes != null) {
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
@@ -179,7 +186,7 @@ fun UploadPictureScreen(
                 TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
                 DisplayCaregiverTitle(
                     Modifier.testTag(UploadPictureScreenTestTags.TITLE),
-                    "Upload Picture",
+                    stringResource(R.string.uploadPictureTitle),
                 )
               }
             }
@@ -200,8 +207,8 @@ fun UploadPictureScreen(
           DisplayBoxWithIconText(
               modifier = Modifier.testTag(UploadPictureScreenTestTags.TAKE_PICTURE),
               icon = Icons.Outlined.PhotoCamera,
-              contentDescription = "Photo",
-              text = "Take a new Picture",
+              contentDescription = stringResource(R.string.uploadPictureIcon),
+              text = stringResource(R.string.uploadPictureTake),
               onClick = camera.takePicture,
           )
 
@@ -209,8 +216,8 @@ fun UploadPictureScreen(
           DisplayBoxWithIconText(
               modifier = Modifier.testTag(UploadPictureScreenTestTags.SELECT_PICTURE),
               icon = Icons.Outlined.Photo,
-              contentDescription = "Photo",
-              text = "Click to choose an existing Picture",
+              contentDescription = stringResource(R.string.uploadPictureIcon),
+              text = stringResource(R.string.uploadPictureChoose),
               onClick = {
                 galleryLauncher.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -220,7 +227,7 @@ fun UploadPictureScreen(
 
           if (uiState.pictureFile != null) {
             Text(
-                "Picture selected",
+                stringResource(R.string.uploadPictureSelected),
                 modifier = Modifier.testTag(UploadPictureScreenTestTags.PICTURE_SELECTED),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -232,15 +239,15 @@ fun UploadPictureScreen(
               modifier = Modifier.height(TEXT_FIELD_BIG),
               value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
-              label = "Description",
-              placeholder = "Enter a description of the picture",
-              emptyErrorMessage = "Description cannot be empty",
+              label = stringResource(R.string.uploadPictureDescriptionLabel),
+              placeholder = stringResource(R.string.uploadPictureDescriptionPlaceholder),
+              emptyErrorMessage = stringResource(R.string.uploadPictureDescriptionEmpty),
               maxLines = MAX_LINE_DESCRIPTION,
               maxChar = MAX_CHAR_DESCRIPTION,
           )
 
           DisplayWhoIsInvolved(
-              options = options,
+              options = options.mapValues { (_, label) -> label.asString(resources) },
               shownIds = uiState.common.shownIds,
               toggleShownId = viewModel::toggleShownId,
               onAddPerson = viewModel::onAddPerson,
@@ -271,7 +278,11 @@ fun UploadPictureScreen(
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.common.isUploading) "Uploading…" else "Upload Picture",
+            text =
+                stringResource(
+                    if (uiState.common.isUploading) R.string.uploadPictureUploading
+                    else R.string.uploadPictureUpload
+                ),
             widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
         )
       },
@@ -280,9 +291,13 @@ fun UploadPictureScreen(
   AddPersonDialog(
       isOpen = uiState.common.isAddPersonOpen,
       isAddingPerson = uiState.common.isAddingPerson,
+      canAddPerson = uiState.common.canAddPerson,
       firstName = uiState.common.personFirstName,
       lastName = uiState.common.personLastName,
       nickname = uiState.common.personNickname,
+      firstNameError = uiState.common.personFirstNameError?.asString(resources),
+      lastNameError = uiState.common.personLastNameError?.asString(resources),
+      nicknameError = uiState.common.personNicknameError?.asString(resources),
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,

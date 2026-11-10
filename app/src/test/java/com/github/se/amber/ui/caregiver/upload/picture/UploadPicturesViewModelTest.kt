@@ -2,6 +2,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -200,8 +201,8 @@ class UploadPictureViewModelTest {
     vm.selectPicture(pictureUri)
 
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -221,8 +222,8 @@ class UploadPictureViewModelTest {
     val vm = createViewModel()
     vm.uploadMedia()
     assertEquals(
-        UploadPictureViewModelErrorMessage.SELECT_PICTURE.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.SELECT_PICTURE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -479,8 +480,8 @@ class UploadPictureViewModelTest {
     vm.onTakePicture()
 
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
   }
 
@@ -508,8 +509,8 @@ class UploadPictureViewModelTest {
 
     assertNull(vm.uiState.value.pictureFile)
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.mess + ERROR_MESSAGE,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
     coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
   }
@@ -524,8 +525,8 @@ class UploadPictureViewModelTest {
     vm.onPictureCaptured(CAPTURE_URI)
 
     assertEquals(
-        UploadPictureViewModelErrorMessage.NOT_A_PHOTO.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.NOT_A_PHOTO.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
     assertEquals(pictureFile, vm.uiState.value.pictureFile)
     coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
@@ -541,7 +542,7 @@ class UploadPictureViewModelTest {
 
     coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
     assertEquals(pictureFile, vm.uiState.value.pictureFile)
-    assertNull(vm.uiState.value.common.errorMsg)
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -551,8 +552,8 @@ class UploadPictureViewModelTest {
     vm.onCameraUnavailable(CAPTURE_URI)
 
     assertEquals(
-        UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.mess,
-        vm.uiState.value.common.errorMsg,
+        UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.messageRes,
+        vm.uiState.value.common.errorMsgRes,
     )
     coVerify(exactly = 1) { capturedPictureSource.discard(CAPTURE_URI) }
   }
