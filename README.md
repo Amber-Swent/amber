@@ -4,7 +4,7 @@
 
 **Figma:** [Design mockups](https://www.figma.com/design/wHW7M7HObl4S22BM02lFiK/View?node-id=0-1&t=pVwS4cfDWgUvTzio-1)
 
-**Presentation:** [Amber Presentation (PDF)](Amber%20Presentation.pdf)
+**Presentation:** a document presenting the Amber app, written for the healthcare professionals and families we are in contact with: [Amber Presentation (PDF)](Amber%20Presentation.pdf)
 
 ---
 
