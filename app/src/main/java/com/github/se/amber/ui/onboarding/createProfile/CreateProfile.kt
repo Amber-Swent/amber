@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.createProfile
@@ -20,10 +21,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
@@ -31,6 +35,7 @@ import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.utils.asString
 
 /** Stable tags for locating the form controls and validation messages in UI tests. */
 object CreateProfileTestTags {
@@ -81,14 +86,14 @@ fun CreateProfileScreen(
       AmberHeader()
 
       Text(
-          text = "Create an account",
+          text = stringResource(R.string.createProfileTitle),
           modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.headlineMedium,
           textAlign = TextAlign.Center,
           color = MaterialTheme.colorScheme.primary,
       )
       Text(
-          text = "What should we call you?",
+          text = stringResource(R.string.createProfileQuestion),
           modifier = Modifier.fillMaxWidth(),
           style = MaterialTheme.typography.titleMedium,
           textAlign = TextAlign.Center,
@@ -98,22 +103,22 @@ fun CreateProfileScreen(
       ProfileNameField(
           value = uiState.name,
           onValueChange = viewModel::onNameChange,
-          label = "Name",
+          label = stringResource(R.string.createProfileName),
           fieldTag = CreateProfileTestTags.NAME_INPUT,
-          error = uiState.nameError,
+          error = uiState.nameError?.asString(LocalResources.current),
           errorTag = CreateProfileTestTags.NAME_ERROR,
       )
       ProfileNameField(
           value = uiState.surname,
           onValueChange = viewModel::onSurnameChange,
-          label = "Surname",
+          label = stringResource(R.string.createProfileSurname),
           fieldTag = CreateProfileTestTags.SURNAME_INPUT,
-          error = uiState.surnameError,
+          error = uiState.surnameError?.asString(LocalResources.current),
           errorTag = CreateProfileTestTags.SURNAME_ERROR,
       )
 
       Text(
-          text = "Please select your role",
+          text = stringResource(R.string.createProfileSelectRole),
           modifier = Modifier.fillMaxWidth().padding(top = CAREGIVER_PADDING_MEDIUM),
           style = MaterialTheme.typography.titleMedium,
           textAlign = TextAlign.Center,
@@ -121,20 +126,20 @@ fun CreateProfileScreen(
       )
 
       DisplayPatientButton(
-          text = "Patient",
+          text = stringResource(R.string.createProfilePatient),
           enabled = uiState.canSubmit,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
       DisplayPatientButton(
-          text = "Caregiver",
+          text = stringResource(R.string.createProfileCaregiver),
           enabled = uiState.canSubmit,
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
 
-      uiState.submitError?.let { errorMessage ->
+      uiState.errorMsgRes?.let { errorMsgRes ->
         Text(
-            text = errorMessage,
+            text = stringResource(errorMsgRes),
             modifier =
                 Modifier.fillMaxWidth()
                     .padding(top = CAREGIVER_PADDING_SMALL)

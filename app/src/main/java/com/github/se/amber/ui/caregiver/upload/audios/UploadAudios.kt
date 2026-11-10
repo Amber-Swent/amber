@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -27,9 +28,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.se.amber.R
 import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.DisplayBoxWithIconText
@@ -111,7 +114,7 @@ fun UploadAudioScreen(
                 TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
                 DisplayCaregiverTitle(
                     Modifier.testTag(UploadAudioScreenTestTags.TITLE),
-                    "Upload Audio",
+                    stringResource(R.string.uploadAudioTitle),
                 )
               }
             }
@@ -148,8 +151,8 @@ fun UploadAudioScreen(
                 DisplayBoxWithIconText(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
                     icon = Icons.Outlined.Mic,
-                    contentDescription = "Micro",
-                    text = "Click to record an Audio",
+                    contentDescription = stringResource(R.string.uploadAudioRecordIcon),
+                    text = stringResource(R.string.uploadAudioRecord),
                     onClick = viewModel::startRecording,
                 )
           }
@@ -159,9 +162,9 @@ fun UploadAudioScreen(
               modifier = Modifier.height(TEXT_FIELD_BIG),
               value = uiState.description,
               onValueChange = { viewModel.setDescription(it) },
-              label = "Description",
-              placeholder = "Enter a description of the Audio",
-              emptyErrorMessage = "Description cannot be empty",
+              label = stringResource(R.string.uploadAudioDescriptionLabel),
+              placeholder = stringResource(R.string.uploadAudioDescriptionPlaceholder),
+              emptyErrorMessage = stringResource(R.string.uploadAudioDescriptionEmpty),
               maxLines = MAX_LINE_DESCRIPTION,
               maxChar = MAX_CHAR_DESCRIPTION,
           )
@@ -203,7 +206,11 @@ fun UploadAudioScreen(
                     .padding(CAREGIVER_PADDING_MEDIUM)
                     .testTag(UPLOAD_BUTTON),
             enabled = uiState.canUpload,
-            text = if (uiState.isUploading) "Uploading…" else "Upload Audio",
+            text =
+                stringResource(
+                    if (uiState.isUploading) R.string.uploadAudioUploading
+                    else R.string.uploadAudioUpload
+                ),
             widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
         )
       },

@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.model.validation
 
@@ -26,8 +27,11 @@ enum class InputError {
  * - [clean] on every keystroke: it cuts the text at [maxLength] (so typing stops there), removes
  *   invisible control and formatting characters, which a user can only paste, and applies
  *   [removeSpaces] and [uppercase].
- * - [check] or [errorMessage] before saving: they trim the text, then say why it is refused, or
+ * - [check] or [visibleError] before saving: they trim the text, then say why it is refused, or
  *   return null if it is fine. A text of only spaces counts as blank.
+ *
+ * A rule holds no message: it says what is wrong as an [InputError], and the UI says it in the app
+ * language (`ui/utils/InputValidationErrorText.kt`).
  *
  * @param maxLength The most characters the field holds.
  * @param minLength The fewest characters a nonblank value needs.
@@ -36,7 +40,6 @@ enum class InputError {
  * @param allowedCharacters The characters the field can hold, or null for any but invisible ones.
  *   Checked while typing, so a wrong character shows its error at once.
  * @param format The shape the whole trimmed value must have, or null for any.
- * @param formatMessage Shown when the value has a character or shape the field doesn't allow.
  * @param removeSpaces Whether [clean] removes every space, for values that never have any.
  * @param uppercase Whether [clean] puts the text in capitals.
  */
@@ -47,7 +50,6 @@ data class InputRule(
     val multiLine: Boolean = false,
     val allowedCharacters: Regex? = null,
     val format: Regex? = null,
-    val formatMessage: String = "This has characters that aren't allowed",
     val removeSpaces: Boolean = false,
     val uppercase: Boolean = false,
 ) {
@@ -80,34 +82,27 @@ data class InputRule(
   }
 
   /**
-   * Why [text] is refused, as a message to show under the field, or null to show nothing.
+   * The error the field should show now, or null to show nothing.
    *
-   * While the user is still typing ([submitted] false), only what can't be fixed by typing more is
-   * shown: a character the field doesn't allow, or a text too long. Once they tried to save, a
-   * blank or too short value is shown too.
+   * While the user types ([submitted] false), only errors that typing more can't fix are shown: a
+   * character the field doesn't allow, and a text that is too long. After the user tries to save,
+   * every error is shown. The UI turns the error into a message in the app language (see
+   * `ui/utils/InputValidationErrorText.kt`).
    *
    * @param text The value as typed.
    * @param submitted Whether the user has tried to save the value.
-   * @param blankMessage Shown for a blank required value, or null to show nothing, e.g. when the
-   *   save button is disabled anyway.
    */
-  fun errorMessage(
-      text: String,
-      submitted: Boolean = true,
-      blankMessage: String? = "Please fill this out",
-  ): String? {
-    return when (check(text) ?: return null) {
-      InputError.BLANK -> blankMessage?.takeIf { submitted }
-      InputError.TOO_SHORT -> tooShortMessage().takeIf { submitted }
-      InputError.TOO_LONG -> "Use at most $maxLength characters"
-      InputError.WRONG_FORMAT ->
-          formatMessage.takeIf { submitted || !hasOnlyAllowedCharacters(text.trim()) }
-    }
+  fun visibleError(text: String, submitted: Boolean = true): InputError? {
+    val error = check(text) ?: return null
+    val shown =
+        when (error) {
+          InputError.BLANK,
+          InputError.TOO_SHORT -> submitted
+          InputError.TOO_LONG -> true
+          InputError.WRONG_FORMAT -> submitted || !hasOnlyAllowedCharacters(text.trim())
+        }
+    return error.takeIf { shown }
   }
-
-  private fun tooShortMessage(): String =
-      if (minLength == maxLength) "Enter all $minLength characters"
-      else "Use at least $minLength characters"
 
   /** Whether the value can be saved as it is. */
   fun isValid(text: String): Boolean = check(text) == null
@@ -151,7 +146,6 @@ object InputValidation {
           maxLength = NAME_MAX_LENGTH,
           allowedCharacters = Regex("[\\p{L}\\p{M} '’-]*"),
           format = Regex("[\\p{L}\\p{M}]+(?:[ '’-]+[\\p{L}\\p{M}]+)*"),
-          formatMessage = "Use only letters, spaces, hyphens (-) and apostrophes (')",
       )
 
   /** A name that may be left blank, like a surname or a nickname in the Add Person dialog. */
@@ -183,7 +177,6 @@ object InputValidation {
                       // Words joined by single dots or hyphens, ending in a dot and a last word
                       "([a-zA-Z0-9]+[.\\-])*[a-zA-Z0-9]+\\.[a-zA-Z0-9]+"
               ),
-          formatMessage = "Enter a valid email address",
       )
 
   /** An invitation code, in capitals and without spaces, as they are generated. */
@@ -192,7 +185,6 @@ object InputValidation {
           maxLength = INVITATION_CODE_LENGTH,
           minLength = INVITATION_CODE_LENGTH,
           allowedCharacters = Regex("[$INVITATION_CODE_ALPHABET]*"),
-          formatMessage = "Codes only use capital letters and the digits 2 to 9, without I or O",
           removeSpaces = true,
           uppercase = true,
       )

@@ -1,7 +1,9 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media
 
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -82,7 +84,7 @@ class MediaCardViewModelTest {
     assertEquals("", state.addedByNickname)
     assertTrue(state.relatedNicknames.isEmpty())
     assertTrue(state.isLoading)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   // ---------- happy paths ----------
@@ -95,7 +97,7 @@ class MediaCardViewModelTest {
     assertEquals("Alice", state.addedByNickname)
     assertFalse(state.isLoading)
     assertTrue(state.relatedNicknames.isEmpty())
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
     coVerify(exactly = 0) { profileRepository.getCurrentProfile() }
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
   }
@@ -111,7 +113,7 @@ class MediaCardViewModelTest {
     assertEquals("Alice", state.addedByNickname)
     assertEquals(listOf("Bob", "Carol"), state.relatedNicknames)
     assertFalse(state.isLoading)
-    assertNull(state.errorMsg)
+    assertNull(state.errorMsgRes)
   }
 
   @Test
@@ -134,7 +136,7 @@ class MediaCardViewModelTest {
     viewModel.load(media(shownIds = listOf("ghost", "missing")))
 
     assertTrue(viewModel.uiState.value.relatedNicknames.isEmpty())
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertFalse(viewModel.uiState.value.isLoading)
   }
 
@@ -161,8 +163,8 @@ class MediaCardViewModelTest {
 
     val state = viewModel.uiState.value
     assertFalse(state.isLoading)
-    assertNotNull(state.errorMsg)
-    assertEquals("$FAIL_LOAD_AUTHOR_PROFILE boom", state.errorMsg)
+    assertNotNull(state.errorMsgRes)
+    assertEquals(R.string.mediaCardErrorLoadAuthor, state.errorMsgRes)
     assertEquals("", state.addedByNickname)
   }
 
@@ -172,7 +174,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media())
 
-    assertEquals(AUTHOR_NOT_FOUND, viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.mediaCardErrorAuthorNotFound, viewModel.uiState.value.errorMsgRes)
     assertFalse(viewModel.uiState.value.isLoading)
   }
 
@@ -183,7 +185,7 @@ class MediaCardViewModelTest {
     viewModel.load(media(shownIds = listOf("p1")))
 
     val state = viewModel.uiState.value
-    assertEquals("$FAIL_LOAD_CURRENT_PROFILE boom", state.errorMsg)
+    assertEquals(R.string.mediaCardErrorLoadProfile, state.errorMsgRes)
     assertEquals("Alice", state.addedByNickname)
     assertFalse(state.isLoading)
   }
@@ -194,7 +196,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1")))
 
-    assertEquals(NO_CARE_CIRCLE_FOUND, viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.mediaCardErrorNoCircle, viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -204,7 +206,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1")))
 
-    assertEquals(NO_CARE_CIRCLE_FOUND, viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.mediaCardErrorNoCircle, viewModel.uiState.value.errorMsgRes)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
   }
 
@@ -215,7 +217,7 @@ class MediaCardViewModelTest {
     viewModel.load(media(shownIds = listOf("p1")))
 
     val state = viewModel.uiState.value
-    assertEquals("$FAIL_LOAD_CARE_CIRCLE boom", state.errorMsg)
+    assertEquals(R.string.mediaCardErrorLoadCircle, state.errorMsgRes)
     assertEquals("Alice", state.addedByNickname)
     assertTrue(state.relatedNicknames.isEmpty())
   }
@@ -226,11 +228,11 @@ class MediaCardViewModelTest {
   fun clearErrorMsg_resetsErrorToNull() {
     coEvery { profileRepository.getProfile("author") } returns Result.success(null)
     viewModel.load(media())
-    assertNotNull(viewModel.uiState.value.errorMsg)
+    assertNotNull(viewModel.uiState.value.errorMsgRes)
 
     viewModel.clearErrorMsg()
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
   }
 
   @Test
@@ -250,12 +252,12 @@ class MediaCardViewModelTest {
   fun load_resetsPreviousErrorAndData() {
     coEvery { profileRepository.getProfile("author") } returns Result.success(null)
     viewModel.load(media())
-    assertEquals(AUTHOR_NOT_FOUND, viewModel.uiState.value.errorMsg)
+    assertEquals(R.string.mediaCardErrorAuthorNotFound, viewModel.uiState.value.errorMsgRes)
 
     coEvery { profileRepository.getProfile("author") } returns Result.success(authorProfile)
     viewModel.load(media())
 
-    assertNull(viewModel.uiState.value.errorMsg)
+    assertNull(viewModel.uiState.value.errorMsgRes)
     assertEquals("Alice", viewModel.uiState.value.addedByNickname)
   }
 

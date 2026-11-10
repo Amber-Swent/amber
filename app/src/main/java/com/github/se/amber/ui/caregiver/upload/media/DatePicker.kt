@@ -1,8 +1,10 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,8 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import com.github.se.amber.R
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.DatePickerTestTags.CANCEL_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -62,10 +67,21 @@ internal object DatePickerTestTags {
   fun item(index: Int) = "date_picker_item_$index"
 }
 
-enum class DateField(val label: String) {
-  YEAR("Year"),
-  MONTH("Month"),
-  DAY("Day");
+/**
+ * A part of a [MemoryDate] the user picks on its own.
+ *
+ * @property labelRes the name shown on the field's box, as a string resource.
+ * @property dialogTitleRes the title of the dialog that picks the field's value. It is a whole
+ *   sentence per field, so each language can use its own grammar ("Choisir l'année", "Choisir le
+ *   mois").
+ */
+enum class DateField(
+    @param:StringRes val labelRes: Int,
+    @param:StringRes val dialogTitleRes: Int,
+) {
+  YEAR(R.string.datePickerYear, R.string.datePickerSelectYear),
+  MONTH(R.string.datePickerMonth, R.string.datePickerSelectMonth),
+  DAY(R.string.datePickerDay, R.string.datePickerSelectDay);
 
   /**
    * Returns the valid values for this date field.
@@ -114,10 +130,10 @@ enum class DateField(val label: String) {
    * days use two digits, and years remain unchanged.
    *
    * @param value The numeric year, month (1 to 12), or day to display.
-   * @param locale The locale used for month names.
+   * @param locale The locale used for month names: the app locale, so they are translated.
    * @return The label shown for this value in the selection dialog.
    */
-  fun format(value: Int, locale: Locale = Locale.ENGLISH): String =
+  fun format(value: Int, locale: Locale): String =
       when (this) {
         YEAR -> "$value"
         MONTH -> Month.of(value).getDisplayName(TextStyle.FULL, locale)
@@ -129,10 +145,10 @@ enum class DateField(val label: String) {
    * years and days use the same labels as [format].
    *
    * @param value The numeric year, month (1 to 12), or day to display.
-   * @param locale The locale used for month names.
+   * @param locale The locale used for month names: the app locale, so they are translated.
    * @return The label shown in the date box.
    */
-  fun formatCompact(value: Int, locale: Locale = Locale.ENGLISH): String =
+  fun formatCompact(value: Int, locale: Locale): String =
       if (this == MONTH) Month.of(value).getDisplayName(TextStyle.SHORT, locale)
       else format(value, locale)
 }
@@ -157,6 +173,8 @@ fun DisplayScrollableDatePicker(
 ) {
   var date by remember { mutableStateOf(initialDate) }
   var openField by remember { mutableStateOf<DateField?>(null) }
+  // Month names follow the app language
+  val locale = LocalConfiguration.current.locales[0]
 
   // Day cannot be chosen until month is specified
   var showMonthRequiredError by remember { mutableStateOf(false) }
@@ -179,7 +197,9 @@ fun DisplayScrollableDatePicker(
       DateField.entries.forEach { field ->
         DateBox(
             field = field,
-            value = field.valueIn(date)?.let { field.formatCompact(it) } ?: "Unknown",
+            value =
+                field.valueIn(date)?.let { field.formatCompact(it, locale) }
+                    ?: stringResource(R.string.datePickerUnknown),
             // Disabling the day button when month is not selected would not detect tentative clicks
             // On the day button, so we use onClick to show an error instead
             onClick = {
@@ -200,7 +220,7 @@ fun DisplayScrollableDatePicker(
               Modifier.align(Alignment.End)
                   .padding(top = CAREGIVER_PADDING_SMALL)
                   .testTag(DatePickerTestTags.MONTH_REQUIRED_ERROR),
-          text = "Select a month before selecting a day.",
+          text = stringResource(R.string.datePickerMonthRequired),
           color = MaterialTheme.colorScheme.error,
           style = MaterialTheme.typography.bodySmall,
       )
@@ -212,11 +232,12 @@ fun DisplayScrollableDatePicker(
   openField?.let { field ->
     val range = field.range(date)
     val allowsUnknown = field != DateField.YEAR // Month and day can be unknown
+    val unknown = stringResource(R.string.datePickerUnknown)
     ScrollablePickerDialog(
         field = field,
         items =
-            if (allowsUnknown) listOf("Unknown") + range.map { field.format(it) }
-            else range.map { field.format(it) },
+            if (allowsUnknown) listOf(unknown) + range.map { field.format(it, locale) }
+            else range.map { field.format(it, locale) },
         initialIndex =
             field.valueIn(date)?.let { it - range.first + if (allowsUnknown) 1 else 0 } ?: 0,
         onDismiss = { openField = null },
@@ -279,7 +300,7 @@ private fun DateBox(
       verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
   ) {
     Text(
-        text = field.label,
+        text = stringResource(field.labelRes),
         color = textColor,
         style = MaterialTheme.typography.bodyMedium,
     )

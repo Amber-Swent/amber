@@ -1,9 +1,11 @@
 // Written by MeiliV, with assistance from OpenAI Codex
 // Modified by nehachak1, with assistance from Claude Code
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signIn
 
 import android.content.Context
+import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
@@ -15,6 +17,8 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.validation.InputValidation
+import com.github.se.amber.ui.utils.UiText
+import com.github.se.amber.ui.utils.errorText
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,19 +26,21 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+private const val TAG = "EmailSignInViewModel"
+
 /**
  * State displayed by [EmailSignInScreen].
  *
  * @param email Email address currently entered by the user.
  * @param isLoading Whether a Google sign-in operation is currently running.
  * @param user Authenticated user after a successful Google sign-in, or null otherwise.
- * @param errorMessage Message describing the latest sign-in error, or null when there is no error.
+ * @param error Message describing the latest sign-in error, or null when there is no error.
  */
 data class EmailSignInUIState(
     val email: String = "",
     val isLoading: Boolean = false,
     val user: AuthUser? = null,
-    val errorMessage: String? = null,
+    val error: UiText? = null,
 )
 
 /**
@@ -74,17 +80,18 @@ class EmailSignInViewModel(
   /**
    * Checks that a well-formed email address was entered before continuing with email sign-in.
    *
-   * A blank or malformed email sets [EmailSignInUIState.errorMessage] so the screen can report it.
+   * A blank or malformed email sets [EmailSignInUIState.error] so the screen can report it.
    *
    * @return true if the email is a valid address, false otherwise.
    */
   fun validateEmail(): Boolean {
-    val message =
-        InputValidation.EMAIL.errorMessage(
+    val error =
+        InputValidation.EMAIL.errorText(
             _uiState.value.email,
-            blankMessage = "Please enter your email address.",
+            blankRes = R.string.signInErrorEmailRequired,
+            formatRes = R.string.inputErrorEmailFormat,
         ) ?: return true
-    _uiState.update { it.copy(errorMessage = message) }
+    _uiState.update { it.copy(error = error) }
     return false
   }
 
@@ -94,7 +101,7 @@ class EmailSignInViewModel(
    * This allows a later sign-in attempt to show the same error again.
    */
   fun clearError() {
-    _uiState.update { it.copy(errorMessage = null) }
+    _uiState.update { it.copy(error = null) }
   }
 
   /**
@@ -113,7 +120,7 @@ class EmailSignInViewModel(
   ) {
     if (_uiState.value.isLoading) return
 
-    _uiState.update { state -> state.copy(isLoading = true, errorMessage = null) }
+    _uiState.update { state -> state.copy(isLoading = true, error = null) }
 
     /*
        Extract the context.getString outside of viewModelScope.launch
@@ -144,7 +151,7 @@ class EmailSignInViewModel(
           state.copy(
               isLoading = false,
               user = user,
-              errorMessage = null,
+              error = null,
           )
         }
       } catch (_: GetCredentialCancellationException) {
@@ -153,16 +160,18 @@ class EmailSignInViewModel(
         _uiState.update { state ->
           state.copy(
               isLoading = false,
-              errorMessage = "No Google account found. Please add one to your device.",
+              error = UiText.Resource(R.string.signInErrorNoGoogleAccount),
           )
         }
       } catch (e: CancellationException) { // Propagate to caller
         throw e
       } catch (e: Exception) {
+        // The exception message is for logs only; the user sees a translated message
+        Log.e(TAG, "Google sign-in failed", e)
         _uiState.update { state ->
           state.copy(
               isLoading = false,
-              errorMessage = e.localizedMessage ?: "Sign-in failed. Please try again.",
+              error = UiText.Resource(R.string.signInErrorFailed),
           )
         }
       }
