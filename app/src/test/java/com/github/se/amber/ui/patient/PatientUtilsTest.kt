@@ -52,41 +52,29 @@ class PatientUtilsTest {
   // ---------- DisplayPatientTitle ----------
 
   @Test
-  fun title_displaysGivenText_withDefaultAndCustomTestTag() {
-    composeTestRule.setContent {
-      AmberAppTheme {
-        Column {
-          DisplayPatientTitle(title = "My Stories")
-          DisplayPatientTitle(title = "Custom", testTag = "custom_title")
-        }
-      }
-    }
+  fun title_isDisplayedWithGivenText() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle(title = "My Stories") } }
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.TITLE)
         .assertIsDisplayed()
         .assertTextEquals("My Stories")
-    composeTestRule.onNodeWithTag("custom_title").assertIsDisplayed().assertTextEquals("Custom")
-    composeTestRule.onNodeWithText("My Stories").assertIsDisplayed()
   }
 
   @Test
-  fun title_fillsParentWidth_andAppliesCustomModifier() {
+  fun title_isFoundByText() {
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle(title = "Pictures") } }
+
+    composeTestRule.onNodeWithText("Pictures").assertIsDisplayed()
+  }
+
+  @Test
+  fun title_fillsParentWidth() {
     composeTestRule.setContent {
-      AmberAppTheme {
-        Column {
-          Box(Modifier.width(300.dp)) { DisplayPatientTitle(title = "Fill", testTag = "fill") }
-          DisplayPatientTitle(
-              title = "Custom",
-              modifier = Modifier.width(100.dp),
-              testTag = "custom",
-          )
-        }
-      }
+      AmberAppTheme { Box(Modifier.width(300.dp)) { DisplayPatientTitle(title = "Width") } }
     }
 
-    composeTestRule.onNodeWithTag("fill").assertWidthIsEqualTo(300.dp)
-    composeTestRule.onNodeWithTag("custom").assertWidthIsEqualTo(100.dp)
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertWidthIsEqualTo(300.dp)
   }
 
   @Test
@@ -102,10 +90,28 @@ class PatientUtilsTest {
   }
 
   @Test
+  fun title_usesCustomTestTag() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientTitle(title = "Custom", testTag = "custom_title") }
+    }
+
+    composeTestRule.onNodeWithTag("custom_title").assertIsDisplayed().assertTextEquals("Custom")
+  }
+
+  @Test
   fun title_withAllDefaults_isDisplayed() {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientTitle() } }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun title_appliesCustomModifier() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientTitle(title = "Width", modifier = Modifier.width(100.dp)) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.TITLE).assertWidthIsEqualTo(100.dp)
   }
 
   @Test
@@ -460,10 +466,10 @@ class PatientUtilsTest {
     assertEquals(1, iconClicks)
   }
 
-  // ---------- DisplayPatientCircularIconButton ----------
+  // ---------- DisplayPatientIconButton ----------
 
   @Test
-  fun circularIconButton_defaults_areEnabledAndSized() {
+  fun iconButton_defaults_areEnabledSquareAndHaveNoSpinner() {
     composeTestRule.setContent { AmberAppTheme { DisplayPatientCircularIconButton() } }
 
     composeTestRule
@@ -477,29 +483,30 @@ class PatientUtilsTest {
   }
 
   @Test
-  fun circularIconButton_exposesDescription_usesCustomTag_andInvokesCallbackOnce() {
-    var clickCount = 0
+  fun iconButton_exposesTheDescriptionOnTheButton() {
     composeTestRule.setContent {
-      AmberAppTheme {
-        DisplayPatientCircularIconButton(
-            description = "Play",
-            testTag = "custom_icon_button",
-            onClick = { clickCount++ },
-        )
-      }
+      AmberAppTheme { DisplayPatientCircularIconButton(description = "Play") }
     }
 
     composeTestRule
-        .onNodeWithTag("custom_icon_button")
-        .assertIsDisplayed()
+        .onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON)
         .assertContentDescriptionEquals("Play")
-        .performClick()
+  }
+
+  @Test
+  fun iconButton_click_invokesCallbackOnce() {
+    var clickCount = 0
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientCircularIconButton(onClick = { clickCount++ }) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).performClick()
 
     assertEquals(1, clickCount)
   }
 
   @Test
-  fun circularIconButton_disabled_isNotEnabledAndIgnoresClicks() {
+  fun iconButton_disabled_isNotEnabledAndIgnoresClicks() {
     var clickCount = 0
     composeTestRule.setContent {
       AmberAppTheme {
@@ -514,45 +521,62 @@ class PatientUtilsTest {
   }
 
   @Test
-  fun circularIconButton_spinner_isShownOnlyWhenRequested_andTagOnlyWhenGiven() {
+  fun iconButton_withSpinner_showsTheTaggedSpinner() {
     composeTestRule.setContent {
       AmberAppTheme {
-        Column {
-          DisplayPatientCircularIconButton(
-              showSpinner = true,
-              spinnerTestTag = "spinner",
-              testTag = "with_spinner",
-          )
-          DisplayPatientCircularIconButton(showSpinner = true, testTag = "spinner_without_tag")
-          DisplayPatientCircularIconButton(
-              showSpinner = false,
-              spinnerTestTag = "hidden_spinner",
-              testTag = "without_spinner",
-          )
-        }
+        DisplayPatientCircularIconButton(showSpinner = true, spinnerTestTag = "spinner")
       }
     }
 
     composeTestRule.onNodeWithTag("spinner", useUnmergedTree = true).assertIsDisplayed()
-    composeTestRule.onNodeWithTag("spinner_without_tag").assertIsDisplayed()
-    composeTestRule.onAllNodesWithTag("hidden_spinner", useUnmergedTree = true).assertCountEquals(0)
+  }
+
+  @Test
+  fun iconButton_withSpinnerAndNoSpinnerTag_stillShowsTheButton() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientCircularIconButton(showSpinner = true) }
+    }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun iconButton_withoutSpinner_hasNoSpinner() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientCircularIconButton(spinnerTestTag = "spinner") }
+    }
+
+    composeTestRule.onAllNodesWithTag("spinner", useUnmergedTree = true).assertCountEquals(0)
+  }
+
+  @Test
+  fun iconButton_usesCustomTestTag() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientCircularIconButton(testTag = "custom_icon_button") }
+    }
+
+    composeTestRule.onNodeWithTag("custom_icon_button").assertIsDisplayed()
   }
 
   // ---------- Previews ----------
 
   @Test
-  fun previews_showThePatientButtons() {
-    composeTestRule.setContent {
-      Column {
-        DisplayPatientButtonsPreview()
-        DisplayPatientButtonsDarkPreview()
-      }
-    }
+  fun preview_showsThePatientButtons() {
+    composeTestRule.setContent { DisplayPatientButtonsPreview() }
 
-    // The first button of each preview takes a width fraction inside a weighted row, so it is
-    // composed but has no size in this unbounded test. Existence still runs the previews.
-    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON).assertCountEquals(2)
-    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertCountEquals(2)
-    composeTestRule.onAllNodesWithTag(PatientUtilsTestTags.ICON_BUTTON).assertCountEquals(2)
+    // The labeled button takes a width fraction inside a weighted row, so it is composed but has
+    // no size in this unbounded test. Existence still runs the preview.
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertExists()
+  }
+
+  @Test
+  fun darkPreview_showsThePatientButtons() {
+    composeTestRule.setContent { DisplayPatientButtonsDarkPreview() }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.ICON_BUTTON).assertExists()
   }
 }
