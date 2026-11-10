@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of an AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.createProfile
 
@@ -381,7 +381,7 @@ class CreateProfileViewModelTests {
 
     assertEquals(0, successCount)
     assertEquals(
-        R.string.createProfileErrorExists,
+        R.string.createProfileErrorAlreadyInCircle,
         viewModel.uiState.value.errorMsgRes,
     )
   }
@@ -542,7 +542,7 @@ class CreateProfileViewModelTests {
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
     assertEquals(
-        R.string.createProfileErrorExists,
+        R.string.createProfileErrorAlreadyInCircle,
         viewModel.uiState.value.errorMsgRes,
     )
   }

@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of an AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -236,8 +236,8 @@ private fun Throwable.errorMessage(): Int =
       is ProfileCreationError.NotAuthenticated,
       is ProfileUpdateError.NotAuthenticated,
       is ProfileReadError.NotAuthenticated -> R.string.createProfileErrorSessionExpired
-      is ProfileCreationError.ProfileAlreadyExists,
-      is ProfileUpdateError.AlreadyInCareCircle -> R.string.createProfileErrorExists
+      is ProfileCreationError.ProfileAlreadyExists -> R.string.createProfileErrorExists
+      is ProfileUpdateError.AlreadyInCareCircle -> R.string.createProfileErrorAlreadyInCircle
       is ProfileCreationError.PermissionDenied,
       is ProfileUpdateError.PermissionDenied,
       is ProfileReadError.PermissionDenied -> R.string.createProfileErrorPermissionDenied

@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent.
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.invitationRedemption
 
@@ -32,16 +32,13 @@ import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedempti
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
-import com.github.se.amber.ui.onboarding.invitationRedemption.PreviewInvitationRedemptionRepository
 import com.github.se.amber.ui.onboarding.invitationRedemption.errorMessage
 import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -314,15 +311,6 @@ class InvitationRedemptionUITests {
 
     composeTestRule.onNodeWithText(string(R.string.invitationRedemptionTitle)).assertIsDisplayed()
     composeTestRule.onNodeWithText(string(R.string.navigationCancel)).assertIsDisplayed()
-  }
-
-  @Test
-  fun previewRepositoryRedeemsAsPatient() = runBlocking {
-    val result = PreviewInvitationRedemptionRepository.redeemInvitation("preview").getOrNull()
-
-    assertTrue(result != null)
-    assertEquals("preview", result?.careCircleId)
-    assertEquals(Role.PATIENT, result?.role)
   }
 
   private companion object {

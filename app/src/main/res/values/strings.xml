@@ -105,7 +105,8 @@
     <string name="createProfileErrorInvalidName">Enter your first and last name and try again.</string>
     <string name="createProfileErrorSessionExpired">Your session expired. Sign in and try again.</string>
     <string name="createProfileErrorExists">A profile already exists for this account.</string>
-    <string name="createProfileErrorPermissionDenied">You don\'t have permission to create a profile.</string>
+    <string name="createProfileErrorAlreadyInCircle">You\'ve already joined a care circle, so your role can\'t be changed.</string>
+    <string name="createProfileErrorPermissionDenied">You don\'t have permission to save your profile.</string>
     <string name="createProfileErrorOffline">You\'re offline. Check your connection and try again.</string>
     <string name="createProfileErrorUnknown">Couldn\'t create your profile. Please try again.</string>
 

@@ -18,9 +18,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -81,8 +79,11 @@ class CaregiverChoiceUITests {
   fun cancel_callsOnBackOnceAndDoesNotCreateOrJoin() {
     setScreen()
 
-    composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithText(context.getString(R.string.navigationCancel)).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON)
+        .assertIsDisplayed()
+        .performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -145,48 +146,12 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun cancel_isDisplayed() {
-    setScreen()
-
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertIsDisplayed()
-  }
-
-  @Test
   fun previewShowsWelcomeAndCancel() {
     composeTestRule.setContent { CaregiverChoicePreview() }
     composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
+    composeTestRule.onNodeWithText(context.getString(R.string.navigationCancel)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER).assertIsDisplayed()
-  }
-
-  @Test
-  fun previewRepository_readsTheNamedCaregiver() = runBlocking {
-    val profile = PreviewChoiceProfileRepository.getCurrentProfile().getOrNull()
-
-    assertEquals("Ada", profile?.person?.firstName)
-    assertEquals(Role.CAREGIVER, profile?.role)
-    assertEquals(null, PreviewChoiceProfileRepository.getProfile("other").getOrNull())
-  }
-
-  @Test
-  fun previewRepository_acceptsProfileCreation() = runBlocking {
-    assertTrue(
-        PreviewChoiceProfileRepository.createProfile(
-                Person(firstName = "Ada", lastName = "Lovelace"),
-                Role.CAREGIVER,
-            )
-            .isSuccess,
-    )
-  }
-
-  @Test
-  fun previewRepository_acceptsARoleCorrection() = runBlocking {
-    val person = Person(firstName = "Ada", lastName = "Lovelace")
-
-    assertTrue(
-        PreviewChoiceProfileRepository.updateOnboardingProfile(person, Role.PATIENT).isSuccess
-    )
   }
 
   @Test

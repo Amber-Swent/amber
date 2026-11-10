@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
@@ -151,7 +151,7 @@ internal fun InvitationRedemptionPreview() {
   AmberAppTheme { InvitationRedemptionScreen(viewModel = viewModel) }
 }
 
-internal object PreviewInvitationRedemptionRepository : InvitationRedemptionRepository {
+private object PreviewInvitationRedemptionRepository : InvitationRedemptionRepository {
   override suspend fun redeemInvitation(code: String): Result<InvitationRedemptionResult> =
       Result.success(InvitationRedemptionResult(careCircleId = "preview", role = Role.PATIENT))
 }

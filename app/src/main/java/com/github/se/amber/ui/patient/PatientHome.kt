@@ -44,7 +44,7 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
 /** No-op [ProfileRepository] used by Compose previews (and preview-driven tests). */
-internal object PreviewPatientHomeProfileRepository : ProfileRepository {
+private object PreviewPatientHomeProfileRepository : ProfileRepository {
   override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
       Result.success(Unit)
 

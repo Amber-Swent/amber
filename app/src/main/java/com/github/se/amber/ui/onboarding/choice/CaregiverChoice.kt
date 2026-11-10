@@ -182,7 +182,7 @@ fun CaregiverChoicePreview() {
   AmberAppTheme { CaregiverChoiceScreen(viewModel = viewModel) }
 }
 
-internal object PreviewChoiceProfileRepository : ProfileRepository {
+private object PreviewChoiceProfileRepository : ProfileRepository {
   override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
       Result.success(Unit)
 

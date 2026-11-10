@@ -29,7 +29,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -285,42 +284,6 @@ class PatientHomeScreenTest {
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
-  }
-
-  @Test
-  fun previewRepository_acceptsProfileCreation() = runBlocking {
-    val created =
-        PreviewPatientHomeProfileRepository.createProfile(
-            Person(firstName = "Ada", lastName = "Lovelace"),
-            Role.PATIENT,
-        )
-
-    assertTrue(created.isSuccess)
-  }
-
-  @Test
-  fun previewRepository_acceptsARoleCorrection() = runBlocking {
-    val updated =
-        PreviewPatientHomeProfileRepository.updateOnboardingProfile(
-            Person(firstName = "Ada", lastName = "Lovelace"),
-            Role.CAREGIVER,
-        )
-
-    assertTrue(updated.isSuccess)
-  }
-
-  @Test
-  fun previewRepository_readsNoCurrentProfile() = runBlocking {
-    val current = PreviewPatientHomeProfileRepository.getCurrentProfile().getOrNull()
-
-    assertEquals(null, current)
-  }
-
-  @Test
-  fun previewRepository_readsNoProfileForAnotherAccount() = runBlocking {
-    val other = PreviewPatientHomeProfileRepository.getProfile("other").getOrNull()
-
-    assertEquals(null, other)
   }
 
   @Test
