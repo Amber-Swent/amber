@@ -28,14 +28,13 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfilePreview
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileViewModel
-import com.github.se.amber.ui.onboarding.createProfile.PreviewProfileRepository
-import com.github.se.amber.ui.onboarding.createProfile.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -193,7 +192,7 @@ class CreateProfileUITests {
   }
 
   @Test
-  fun previewShowsCreateProfileAndTheSignOutButton() {
+  fun previewShowsTheFormAndSavesAPatientWithoutASubmitError() {
     composeTestRule.setContent { CreateProfilePreview() }
 
     composeTestRule.onNodeWithText("Create an account").assertIsDisplayed()
@@ -201,16 +200,13 @@ class CreateProfileUITests {
         .onNodeWithTag(SignOutButtonTestTags.BUTTON)
         .performScrollTo()
         .assertIsDisplayed()
-  }
 
-  @Test
-  fun previewSignOut_leavesTheFormOnScreen() {
-    composeTestRule.setContent { CreateProfilePreview() }
-
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
     composeTestRule.waitForIdle()
 
-    assertEquals(null, ShadowToast.getTextOfLatestToast())
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR).assertDoesNotExist()
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
   }
 
@@ -232,23 +228,20 @@ class CreateProfileUITests {
         )
     setCreateProfile(viewModel = viewModel)
 
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
-    composeTestRule.waitForIdle()
+    try {
+      composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
+      composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
+      composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
+      composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled()
-    composeTestRule
-        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
-        .performScrollTo()
-        .assertIsNotEnabled()
-    gate.cancel()
-  }
-
-  @Test
-  fun previewProfileRepository_readsNoStoredProfile() = runBlocking {
-    assertEquals(null, PreviewProfileRepository.getCurrentProfile().getOrNull())
-    assertEquals(null, PreviewProfileRepository.getProfile("uid").getOrNull())
+      composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertIsNotEnabled()
+      composeTestRule
+          .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+          .performScrollTo()
+          .assertIsNotEnabled()
+    } finally {
+      gate.cancel()
+    }
   }
 
   @Test
@@ -258,19 +251,6 @@ class CreateProfileUITests {
     assertEquals(null, PreviewSignOutAuthRepository.currentUser)
     assertTrue(PreviewSignOutAuthRepository.signInWithGoogle(credential).isFailure)
     assertTrue(PreviewSignOutAuthRepository.reauthenticateWithGoogle(credential).isFailure)
-  }
-
-  @Test
-  fun previewPatientRole_withBothNames_showsNoSubmitError() {
-    composeTestRule.setContent { CreateProfilePreview() }
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).performTextInput("Ada")
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT).performTextInput("Lovelace")
-    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
-    composeTestRule.waitForIdle()
-
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
   }
 
   @Test

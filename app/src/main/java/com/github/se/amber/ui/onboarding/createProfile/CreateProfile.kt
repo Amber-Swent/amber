@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,16 +29,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.authentication.AuthRepository
-import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.authentication.signOut.SignOutButton
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.onboarding.AmberHeader
@@ -96,7 +95,8 @@ fun CreateProfileScreen(
     }
   }
 
-  LaunchedEffect(signOutState.signedOut) { if (signOutState.signedOut) onSignedOut() }
+  val currentOnSignedOut by rememberUpdatedState(onSignedOut)
+  LaunchedEffect(signOutState.signedOut) { if (signOutState.signedOut) currentOnSignedOut() }
 
   Scaffold(
       modifier = modifier.fillMaxSize(),
@@ -216,30 +216,18 @@ private fun ProfileNameField(
 @Preview(showBackground = true)
 @Composable
 internal fun CreateProfilePreview() {
-  val profileViewModel = remember { CreateProfileViewModel(PreviewProfileRepository) }
+  val profileRepository =
+      object : ProfileRepository {
+        override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+            Result.success(Unit)
+
+        override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
+
+        override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
+      }
+  val profileViewModel = remember { CreateProfileViewModel(profileRepository) }
   val signOutViewModel = remember { SignOutViewModel(PreviewSignOutAuthRepository) }
   AmberAppTheme {
     CreateProfileScreen(viewModel = profileViewModel, signOutViewModel = signOutViewModel)
   }
-}
-
-internal object PreviewProfileRepository : ProfileRepository {
-  override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
-      Result.success(Unit)
-
-  override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
-
-  override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
-}
-
-internal object PreviewSignOutAuthRepository : AuthRepository {
-  override val currentUser: AuthUser? = null
-
-  override suspend fun signInWithGoogle(credential: Credential): Result<AuthUser> =
-      Result.failure(UnsupportedOperationException("Preview auth repository"))
-
-  override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
-      Result.failure(UnsupportedOperationException("Preview auth repository"))
-
-  override suspend fun signOut(): Result<Unit> = Result.success(Unit)
 }

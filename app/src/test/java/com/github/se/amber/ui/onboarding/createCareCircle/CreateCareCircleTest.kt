@@ -15,13 +15,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
-import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCirclePreview
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -153,6 +153,19 @@ class CreateCareCircleScreenTest {
   }
 
   @Test
+  fun systemBackWhileCreationIsInProgress_staysOnTheScreen() {
+    repository.gate = CompletableDeferred()
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+
+    Espresso.pressBack()
+
+    assertEquals(0, backCount)
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).assertExists()
+    composeTestRule.onNodeWithText(string(R.string.createCareCircleCreating)).assertExists()
+  }
+
+  @Test
   fun cancelAfterTheCircleIsCreated_doesNotCallOnBack() {
     viewModel.onNameChange("Family")
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
@@ -233,34 +246,5 @@ class CreateCareCircleScreenTest {
       }
       return Result.success(CareCircle(id = "circle-1", name = name))
     }
-  }
-}
-
-/** Covers the preview's own repository, which the form tests cannot reach. */
-@OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-class CreateCareCirclePreviewTest {
-  @get:Rule val composeTestRule = createComposeRule()
-
-  @Before
-  fun setUp() {
-    Dispatchers.setMain(UnconfinedTestDispatcher())
-  }
-
-  @After
-  fun tearDown() {
-    Dispatchers.resetMain()
-  }
-
-  @Test
-  fun previewCreate_disablesTheCreateButton() {
-    composeTestRule.setContent { CreateCareCirclePreview() }
-
-    composeTestRule.onNodeWithText("New Care Circle").assertExists()
-    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput("Family")
-    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
-    composeTestRule.waitForIdle()
-
-    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
   }
 }

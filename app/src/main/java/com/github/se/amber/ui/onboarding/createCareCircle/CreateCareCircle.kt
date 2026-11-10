@@ -7,6 +7,7 @@ package com.github.se.amber.ui.onboarding.createCareCircle
 
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,12 +61,14 @@ object CreateCareCircleTestTags {
  *
  * A blank or invalid name shows its error below the field and disables Create. Repository failures
  * are shown as a toast, while successful creation calls [onCreated] once. The top Cancel calls
- * [onBack]. Cancel does nothing while a create is in progress or after the circle has been created.
+ * [onBack]. Cancel and system back do nothing while a create is in progress or after the circle has
+ * been created.
  *
  * @param modifier Modifier applied to the root care circle layout.
  * @param context Used to display repository failures as a toast.
  * @param onCreated Called after the repository creates the circle.
  * @param onBack Called when the user taps Cancel, unless a create is in progress or finished.
+ *   System back is ignored in those same states.
  * @param viewModel ViewModel holding the form state and handling creation.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,7 +100,8 @@ fun CreateCareCircleScreen(
   // launch
   LaunchedEffect(viewModel) { viewModel.successEvents.collect { currentOnCreated() } }
 
-  val canLeave = !uiState.isLoading && !uiState.isCreated
+  val isEditable = !uiState.isLoading && !uiState.isCreated
+  BackHandler(enabled = !isEditable) {}
 
   Scaffold(
       modifier = modifier.fillMaxSize(),
@@ -108,7 +112,7 @@ fun CreateCareCircleScreen(
             title = {
               TopNavigationMenu(
                   action = TopNavigationAction.CANCEL,
-                  onBackClick = { if (canLeave) onBack() },
+                  onBackClick = { if (isEditable) onBack() },
               )
             }
         )
@@ -135,7 +139,7 @@ fun CreateCareCircleScreen(
           placeholder = stringResource(R.string.createCareCircleNamePlaceholder),
           error = uiState.nameError?.asString(resources),
           errorTestTag = CreateCareCircleTestTags.NAME_ERROR,
-          enabled = !uiState.isLoading && !uiState.isCreated,
+          enabled = isEditable,
       )
 
       DisplayCaregiverButton(
