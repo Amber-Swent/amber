@@ -147,7 +147,9 @@ class DeleteAccountViewModelTest {
     coEvery { circleRepository.getCircle("two") } returns
         Result.success(CareCircle(memberIds = listOf("caregiver")))
     coEvery { circleRepository.getCircle("three") } returns
-        Result.success(CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient")))
+        Result.success(
+            CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient"))
+        )
 
     viewModel.loadWarnings()
     advanceUntilIdle()
