@@ -209,6 +209,25 @@ class SelectedPictureReaderAndroidTest {
   }
 
   @Test
+  fun read_deletesTheCopyWhenThePictureCannotBeOpened() = runTest {
+    every { contentResolver.openInputStream(any()) } returns null
+
+    runCatching { createReader().read(uriString) }
+
+    assertEquals(emptyList<String>(), cacheDir.list()!!.toList())
+  }
+
+  @Test
+  fun read_deletesTheCopyWhenItIsNotAPicture() = runTest {
+    every { BitmapFactory.decodeFile(any(), any()) } returns null
+
+    val result = runCatching { createReader().read(uriString) }
+
+    assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+    assertEquals(emptyList<String>(), cacheDir.list()!!.toList())
+  }
+
+  @Test
   fun read_usesApplicationContextRatherThanGivenContext() = runTest {
     createReader().read(uriString)
 

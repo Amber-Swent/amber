@@ -67,16 +67,22 @@ class SelectedPictureReaderAndroid(
                 appContext.cacheDir,
             )
 
-        val input =
-            requireNotNull(appContext.contentResolver.openInputStream(parsedUri)) {
-              "Could not open selected picture"
-            }
+        try {
+          val input =
+              requireNotNull(appContext.contentResolver.openInputStream(parsedUri)) {
+                "Could not open selected picture"
+              }
 
-        input.use { source ->
-          file.outputStream().use { destination -> source.copyTo(destination) }
+          input.use { source ->
+            file.outputStream().use { destination -> source.copyTo(destination) }
+          }
+
+          decodePickedImage(file)
+        } catch (e: Throwable) {
+          // nothing else knows about the copy, so it would stay in the cache
+          file.delete()
+          throw e
         }
-
-        decodePickedImage(file)
       }
 }
 
@@ -124,23 +130,41 @@ private fun removeLocation(file: File) {
   }
 }
 
+/** Every GPS tag, as an app may save a place in any of them, such as the area's name. */
 private val LOCATION_TAGS =
     listOf(
+        ExifInterface.TAG_GPS_VERSION_ID,
         ExifInterface.TAG_GPS_LATITUDE,
         ExifInterface.TAG_GPS_LATITUDE_REF,
         ExifInterface.TAG_GPS_LONGITUDE,
         ExifInterface.TAG_GPS_LONGITUDE_REF,
         ExifInterface.TAG_GPS_ALTITUDE,
         ExifInterface.TAG_GPS_ALTITUDE_REF,
-        ExifInterface.TAG_GPS_DATESTAMP,
         ExifInterface.TAG_GPS_TIMESTAMP,
-        ExifInterface.TAG_GPS_PROCESSING_METHOD,
-        ExifInterface.TAG_GPS_IMG_DIRECTION,
-        ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
+        ExifInterface.TAG_GPS_DATESTAMP,
+        ExifInterface.TAG_GPS_SATELLITES,
+        ExifInterface.TAG_GPS_STATUS,
+        ExifInterface.TAG_GPS_MEASURE_MODE,
+        ExifInterface.TAG_GPS_DOP,
         ExifInterface.TAG_GPS_SPEED,
         ExifInterface.TAG_GPS_SPEED_REF,
         ExifInterface.TAG_GPS_TRACK,
         ExifInterface.TAG_GPS_TRACK_REF,
+        ExifInterface.TAG_GPS_IMG_DIRECTION,
+        ExifInterface.TAG_GPS_IMG_DIRECTION_REF,
+        ExifInterface.TAG_GPS_MAP_DATUM,
+        ExifInterface.TAG_GPS_DEST_LATITUDE,
+        ExifInterface.TAG_GPS_DEST_LATITUDE_REF,
+        ExifInterface.TAG_GPS_DEST_LONGITUDE,
+        ExifInterface.TAG_GPS_DEST_LONGITUDE_REF,
+        ExifInterface.TAG_GPS_DEST_BEARING,
+        ExifInterface.TAG_GPS_DEST_BEARING_REF,
+        ExifInterface.TAG_GPS_DEST_DISTANCE,
+        ExifInterface.TAG_GPS_DEST_DISTANCE_REF,
+        ExifInterface.TAG_GPS_PROCESSING_METHOD,
+        ExifInterface.TAG_GPS_AREA_INFORMATION,
+        ExifInterface.TAG_GPS_DIFFERENTIAL,
+        ExifInterface.TAG_GPS_H_POSITIONING_ERROR,
     )
 
 /** Lazily initialized provider for the Android selected-picture reader. */
