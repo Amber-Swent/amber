@@ -1,9 +1,12 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.data.account
 
+import androidx.credentials.CredentialManager
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.e2e.FirebaseEmulator
+import com.github.se.amber.model.authentication.AuthRepositoryFirebase
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Firebase
@@ -21,8 +24,6 @@ import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
-import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /** Checks the real Firebase pieces that the unit tests of account deletion replace with fakes. */
@@ -42,11 +43,7 @@ class AccountDeletionFirebaseTest {
 
   @Test
   fun anInterruptedDeletionIsOnlyFinishedOnceTheAccountIsReallyGone() = runBlocking {
-    val message = "Start the Firebase emulators: see FirebaseEmulator"
-    val required =
-        InstrumentationRegistry.getArguments().getString("requireFirebaseEmulators") == "true"
-    if (required) assertTrue(message, FirebaseEmulator.isRunning())
-    else assumeTrue(message, FirebaseEmulator.isRunning())
+    FirebaseEmulator.requireOrSkip()
     FirebaseEmulator.useForDefaultApp()
     val phone = Firebase.auth
     // A second session of the same user, standing in for the backend deleting the account
@@ -75,8 +72,13 @@ class AccountDeletionFirebaseTest {
         FirebaseAccountDeletionRepository(
             { clears++ },
             marker,
+            AuthRepositoryFirebase(
+                CredentialManager.create(
+                    InstrumentationRegistry.getInstrumentation().targetContext
+                ),
+                auth = phone,
+            ),
             Firebase.functions,
-            phone,
         )
 
     repository.finishInterruptedDeletion()

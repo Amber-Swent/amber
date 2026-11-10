@@ -18,10 +18,13 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -47,6 +50,7 @@ import org.robolectric.annotation.Config
 class AuthRepositoryFirebaseTest {
   private lateinit var auth: FirebaseAuth
   private lateinit var helper: GoogleSignInHelper
+  private lateinit var manager: CredentialManager
   private lateinit var repository: AuthRepositoryFirebase
   private lateinit var user: FirebaseUser
   private var currentFirebaseUser: FirebaseUser? = null
@@ -72,7 +76,7 @@ class AuthRepositoryFirebaseTest {
         .`when`(auth)
         .signOut()
 
-    val manager =
+    manager =
         object :
             CredentialManager by CredentialManager.create(RuntimeEnvironment.getApplication()) {
           override suspend fun clearCredentialState(request: ClearCredentialStateRequest) {
@@ -154,6 +158,7 @@ class AuthRepositoryFirebaseTest {
       return repository.reauthenticateWithGoogle(credential).exceptionOrNull()
     }
 
+    `when`(user.reload()).thenReturn(Tasks.forResult(null))
     assertSame(
         ReauthenticationError.WrongAccount,
         errorFor(FirebaseAuthInvalidUserException("ERROR_USER_MISMATCH", "Other account")),
@@ -174,6 +179,119 @@ class AuthRepositoryFirebaseTest {
       runBlocking { repository.reauthenticateWithGoogle(credential) }
     }
     Unit
+  }
+
+  @Test
+  fun reauthenticationReportsAMismatchAsAccountNotFoundWhenTheAccountIsGone() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reauthenticate(firebaseCredential))
+        .thenReturn(
+            Tasks.forException(
+                FirebaseAuthInvalidUserException("ERROR_USER_MISMATCH", "Other account")
+            )
+        )
+    `when`(user.reload())
+        .thenReturn(
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "Deleted"))
+        )
+
+    assertSame(
+        ReauthenticationError.AccountNotFound,
+        repository.reauthenticateWithGoogle(credential).exceptionOrNull(),
+    )
+  }
+
+  @Test
+  fun refreshCurrentUserReturnsNullWhenNobodyIsSignedIn() = runBlocking {
+    assertNull(repository.refreshCurrentUser())
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserKeepsAnAccountThatExists() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reload()).thenReturn(Tasks.forResult(null))
+
+    assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserKeepsTheAccountOffline() = runBlocking {
+    currentFirebaseUser = user
+    // Offline, the app must still open on the signed-in account
+    `when`(user.reload()).thenReturn(Tasks.forException(FirebaseNetworkException("Offline")))
+
+    assertEquals(AuthUser("user-123"), repository.refreshCurrentUser())
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserSignsOutOfADisabledAccount() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reload())
+        .thenReturn(
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_DISABLED", "Disabled"))
+        )
+
+    assertNull(repository.refreshCurrentUser())
+    verify(auth).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserRethrowsACancelledCheck() {
+    currentFirebaseUser = user
+    `when`(user.reload()).thenThrow(CancellationException("Cancelled"))
+
+    assertThrows(CancellationException::class.java) {
+      runBlocking { repository.refreshCurrentUser() }
+    }
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun reauthenticationKeepsAMismatchAsWrongAccountWhenTheAccountCannotBeChecked() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reauthenticate(firebaseCredential))
+        .thenReturn(
+            Tasks.forException(
+                FirebaseAuthInvalidUserException("ERROR_USER_MISMATCH", "Other account")
+            )
+        )
+    `when`(user.reload()).thenReturn(Tasks.forException(FirebaseNetworkException("Offline")))
+
+    assertSame(
+        ReauthenticationError.WrongAccount,
+        repository.reauthenticateWithGoogle(credential).exceptionOrNull(),
+    )
+    verify(auth, never()).signOut()
+  }
+
+  @Test
+  fun refreshCurrentUserSignsOutOfAnAccountThatIsGone() = runBlocking {
+    currentFirebaseUser = user
+    `when`(user.reload())
+        .thenReturn(
+            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "Deleted"))
+        )
+
+    assertNull(repository.refreshCurrentUser())
+    verify(auth).signOut()
+    assertTrue(cleanupCompleted)
+  }
+
+  @Test
+  fun refreshCurrentUserKeepsTheAccountWhenTheServerTakesTooLong() = runBlocking {
+    currentFirebaseUser = user
+    // a reload that never answers, as on a very slow connection
+    `when`(user.reload()).thenReturn(TaskCompletionSource<Void>().task)
+    val impatient = AuthRepositoryFirebase(manager, helper, auth, SHORT_ACCOUNT_CHECK)
+
+    // fails instead of hanging if the repository waited for the reload
+    val refreshed = withTimeout(TEST_DEADLINE) { impatient.refreshCurrentUser() }
+
+    assertEquals(AuthUser("user-123"), refreshed)
+    verify(auth, never()).signOut()
   }
 
   @Test
@@ -333,5 +451,11 @@ class AuthRepositoryFirebaseTest {
     val result = mock(AuthResult::class.java)
     `when`(result.user).thenReturn(firebaseUser)
     return result
+  }
+
+  private companion object {
+    /** Short enough that the test doesn't wait for the real timeout. */
+    val SHORT_ACCOUNT_CHECK = 50.milliseconds
+    val TEST_DEADLINE = 2.seconds
   }
 }

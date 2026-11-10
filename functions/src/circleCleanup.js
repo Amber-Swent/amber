@@ -103,15 +103,23 @@ function nicknamesWithout(uid, nicknames) {
 }
 
 /**
- * Removes the user from a circle's members, nicknames, patient and creator, in one transaction.
- * Leaves the circle as it is if they are its last member: it is then deleted as a whole.
+ * Removes the user from a circle's members, nicknames, patient and creator, and the circle from
+ * their profile, in one transaction. Leaves both as they are if they are its last member: the
+ * circle is then deleted as a whole, see forgetCircle.
+ *
+ * The profile must only list circles the app can read, ones that exist and list the user: the
+ * deletion screen reads every circle of the profile before letting the user retry.
  * @param {string} uid the user being deleted
  * @param {DocumentReference} circleRef the circle to leave
  * @returns {Promise<boolean>} whether they were its last member
  */
 async function leaveCircle(uid, circleRef) {
+  const profileRef = db.doc(`users/${uid}`);
   return db.runTransaction(async (transaction) => {
-    const circleSnapshot = await transaction.get(circleRef);
+    const [circleSnapshot, profile] = await Promise.all([
+      transaction.get(circleRef),
+      transaction.get(profileRef),
+    ]);
     // a double tap: another call deleted it first
     if (!circleSnapshot.exists) {
       return false;
@@ -126,7 +134,26 @@ async function leaveCircle(uid, circleRef) {
       ...(circle.patientId === uid ? { patientId: "" } : {}),
       ...(circle.createdBy === uid ? { createdBy: "" } : {}),
     });
+    if (profile.exists) {
+      transaction.update(profileRef, { circleIds: FieldValue.arrayRemove(circleRef.id) });
+    }
     return false;
+  });
+}
+
+/**
+ * Removes a circle about to be deleted from the user's profile, as leaveCircle does for a circle
+ * that stays.
+ * @param {string} uid the user being deleted
+ * @param {string} circleId the circle about to be deleted
+ */
+async function forgetCircle(uid, circleId) {
+  const profileRef = db.doc(`users/${uid}`);
+  await db.runTransaction(async (transaction) => {
+    const profile = await transaction.get(profileRef);
+    if (profile.exists) {
+      transaction.update(profileRef, { circleIds: FieldValue.arrayRemove(circleId) });
+    }
   });
 }
 
@@ -169,6 +196,9 @@ async function removeFromCircle(uid, circleSnapshot) {
   await removeFromAppointments(uid, circleRef);
   if (await leaveCircle(uid, circleRef)) {
     await deleteBucket(bucketName);
+    // Before the circle goes: a profile listing a deleted circle would block the deletion screen,
+    // while a retry still finds a circle the profile no longer lists, through memberIds
+    await forgetCircle(uid, circleRef.id);
     await db.recursiveDelete(circleRef);
   }
 }

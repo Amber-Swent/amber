@@ -13,9 +13,14 @@ import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Implements [AuthRepository] using Firebase Authentication and Credential Manager.
@@ -27,11 +32,14 @@ import kotlinx.coroutines.tasks.await
  * @param credentialManager The Android Credential Manager instance.
  * @param googleSignInHelper The Google sign-in credential converter.
  * @param auth The Firebase Authentication instance.
+ * @param accountCheckTimeout How long to wait for the server when checking that the signed-in
+ *   account still exists, before treating it as offline.
  */
 class AuthRepositoryFirebase(
     private val credentialManager: CredentialManager,
     private val googleSignInHelper: GoogleSignInHelper = GoogleSignInHandler(),
     private val auth: FirebaseAuth = Firebase.auth,
+    private val accountCheckTimeout: Duration = ACCOUNT_CHECK_TIMEOUT,
 ) : AuthRepository {
 
   override val currentUser: AuthUser?
@@ -62,9 +70,37 @@ class AuthRepositoryFirebase(
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
-      Result.failure(e.toReauthenticationError())
+      val error = e.toReauthenticationError()
+      // The session of a deleted account outlives it on the device, and Firebase then reports any
+      // Google account as another one
+      val isAccountGone =
+          error == ReauthenticationError.WrongAccount &&
+              auth.currentUser?.let { isGone(it) } == true
+      Result.failure(if (isAccountGone) ReauthenticationError.AccountNotFound else error)
     }
   }
+
+  override suspend fun refreshCurrentUser(): AuthUser? {
+    val user = auth.currentUser ?: return null
+    if (isGone(user)) signOut()
+    return currentUser
+  }
+
+  /** Whether the server no longer accepts [user]: deleted, disabled, or its session revoked. */
+  private suspend fun isGone(user: FirebaseUser): Boolean =
+      try {
+        // A slow connection must not hold the app on its loading screen: no answer counts as
+        // offline
+        withTimeoutOrNull(accountCheckTimeout) { user.reload().await() }
+        false
+      } catch (e: CancellationException) {
+        throw e
+      } catch (_: FirebaseAuthInvalidUserException) {
+        true
+      } catch (_: Exception) {
+        // Offline or unknown: the account may well exist
+        false
+      }
 
   private fun Exception.toReauthenticationError(): ReauthenticationError =
       when {
@@ -103,5 +139,6 @@ class AuthRepositoryFirebase(
   private companion object {
     const val ERROR_USER_MISMATCH = "ERROR_USER_MISMATCH"
     const val ERROR_USER_NOT_FOUND = "ERROR_USER_NOT_FOUND"
+    val ACCOUNT_CHECK_TIMEOUT = 5.seconds
   }
 }
