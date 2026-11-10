@@ -90,8 +90,6 @@ fun SeeMediasScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           DisplayPatientButton(
-              text = "See Pictures",
-          DisplayPatientButtonWithIcon(
               text = stringResource(R.string.seeMediasPictures),
               icon = Icons.Outlined.PhotoCamera,
               description = stringResource(R.string.seeMediasPicturesIcon),
@@ -99,8 +97,6 @@ fun SeeMediasScreen(
               testTag = SeeMediasTestTags.PICTURES_BUTTON,
           )
           DisplayPatientButton(
-              text = "See Texts",
-          DisplayPatientButtonWithIcon(
               text = stringResource(R.string.seeMediasTexts),
               icon = Icons.Outlined.Description,
               description = stringResource(R.string.seeMediasTextsIcon),
@@ -108,8 +104,6 @@ fun SeeMediasScreen(
               testTag = SeeMediasTestTags.TEXTS_BUTTON,
           )
           DisplayPatientButton(
-              text = "See Audio",
-          DisplayPatientButtonWithIcon(
               text = stringResource(R.string.seeMediasAudios),
               icon = Icons.Outlined.Mic,
               description = stringResource(R.string.seeMediasAudiosIcon),
