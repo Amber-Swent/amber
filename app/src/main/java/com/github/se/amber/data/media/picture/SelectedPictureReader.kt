@@ -6,6 +6,7 @@ package com.github.se.amber.data.media.picture
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.Firebase
 import com.google.firebase.app
@@ -80,7 +81,9 @@ class SelectedPictureReaderAndroid(
           decodePickedImage(file)
         } catch (e: Throwable) {
           // nothing else knows about the copy, so it would stay in the cache
-          file.delete()
+          if (!file.delete() && file.exists()) {
+            Log.w(TAG, "Couldn't delete the copy ${file.name}")
+          }
           throw e
         }
       }
@@ -129,6 +132,8 @@ private fun removeLocation(file: File) {
     metadata.saveAttributes()
   }
 }
+
+private const val TAG = "SelectedPictureReader"
 
 /** Every GPS tag, as an app may save a place in any of them, such as the area's name. */
 private val LOCATION_TAGS =
