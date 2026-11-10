@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.data.circle
 
@@ -85,5 +86,19 @@ class ActiveCircleRepositoryProviderTest {
 
     assertEquals(DataStoreActiveCircleRepository::class.java, provider.repository.javaClass)
     assertSame(Firebase.app, app)
+  }
+
+  @Test
+  fun defaultIsTheDataStoreRepository() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val app = mockk<FirebaseApp>()
+    mockkStatic(FirebaseApp::class)
+    every { FirebaseApp.getInstance() } returns app
+    every { app.applicationContext } returns context
+
+    val repository = ActiveCircleRepositoryProvider.default.repository
+
+    assertEquals(DataStoreActiveCircleRepository::class.java, repository.javaClass)
+    assertSame(repository, ActiveCircleRepositoryProvider.default.repository)
   }
 }

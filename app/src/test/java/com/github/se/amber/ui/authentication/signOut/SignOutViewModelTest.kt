@@ -5,15 +5,20 @@ package com.github.se.amber.ui.authentication.signOut
 
 import android.util.Log
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import io.mockk.unmockkObject
+import io.mockk.verify
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -218,5 +223,38 @@ class SignOutViewModelTest {
 
     assertTrue(viewModel.uiState.value.signedOut)
     assertFalse(viewModel.uiState.value.isSigningOut)
+  }
+
+  @Test
+  fun signOut_success_rethrowsWhenClearingTheActiveCircleIsCancelled() = runTest {
+    every { authRepo.currentUser } returns AuthUser("caregiver")
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+    coEvery { activeCircles.clear("caregiver") } throws CancellationException("left")
+
+    val viewModel = viewModel()
+    viewModel.signOut()
+
+    assertFalse(viewModel.uiState.value.signedOut)
+    assertTrue(viewModel.uiState.value.isSigningOut)
+    coVerify(exactly = 1) { activeCircles.clear("caregiver") }
+    verify(exactly = 0) { Log.e(any(), "Failed to clear the active circle", any()) }
+  }
+
+  @Test
+  fun signOut_success_clearsTheRepositoryFromTheProviderDefault() = runTest {
+    val provider = ActiveCircleRepositoryProvider { activeCircles }
+    mockkObject(ActiveCircleRepositoryProvider.Companion)
+    every { ActiveCircleRepositoryProvider.default } returns provider
+    every { authRepo.currentUser } returns AuthUser("caregiver")
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+    try {
+      val viewModel = SignOutViewModel(authRepo)
+      viewModel.signOut()
+
+      assertTrue(viewModel.uiState.value.signedOut)
+      coVerify(exactly = 1) { activeCircles.clear("caregiver") }
+    } finally {
+      unmockkObject(ActiveCircleRepositoryProvider.Companion)
+    }
   }
 }
