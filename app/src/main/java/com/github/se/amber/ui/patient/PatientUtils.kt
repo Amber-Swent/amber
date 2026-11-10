@@ -1,5 +1,7 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+
 
 package com.github.se.amber.ui.patient
 
@@ -86,39 +88,39 @@ fun DisplayPatientTitle(
 }
 
 /**
- * Displays a button with an icon, label, and click action.
+ * Displays a button with a label, an optional icon, and a click action.
  *
  * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
  * height)
  *
  * @param modifier modifier applied to the button
  * @param buttonHeight height of the button
- * @param buttonWidth fraction of the available width taken by the button
+ * @param buttonWidth fraction of the available width taken by the button Ignored when [fillWidth] is false.
  * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
  *   centered. If false, the button only wraps its content.
  * @param text label displayed on the button.
  * @param textStyle typography style of the button label
- * @param icon icon displayed on the button.
- * @param description content description for the icon.
+ * @param icon icon displayed after the label. No icon is displayed when null.
+ * @param description content description for the icon. Only used when [icon] is not null.
  * @param enabled say if the button is clickable or not
  * @param onClick callback invoked when the button is selected.
- * @param testTag test tag of the button
- * @param iconTestTag test tag of the icon
+ * @param testTag test tag of the button. Defaults to [PatientUtilsTestTags.BUTTON_WITH_ICON] when an icon is displayed, and to [PatientUtilsTestTags.BUTTON] otherwise.
+ * @param iconTestTag test tag of the icon. Only used when [icon] is not null.
  */
 @NonRestartableComposable
 @Composable
-fun DisplayPatientButtonWithIcon(
+fun DisplayPatientButton(
     modifier: Modifier = Modifier,
     buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = PATIENT_BUTTON_WIDTH,
     fillWidth: Boolean = true,
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
-    icon: ImageVector = Icons.Default.Add,
+    icon: ImageVector? = null,
     description: String = "",
     enabled: Boolean = true,
     onClick: () -> Unit = {},
-    testTag: String = PatientUtilsTestTags.BUTTON_WITH_ICON,
+    testTag: String? = null,
     iconTestTag: String = PatientUtilsTestTags.BUTTON_ICON,
 ) {
   val sizeModifier =
@@ -127,9 +129,13 @@ fun DisplayPatientButtonWithIcon(
             .wrapContentWidth(Alignment.CenterHorizontally)
             .fillMaxWidth(buttonWidth)
       } else Modifier
+    val resolvedTestTag =
+        testTag
+            ?: if (icon != null) PatientUtilsTestTags.BUTTON_WITH_ICON
+            else PatientUtilsTestTags.BUTTON
   Button(
       onClick = onClick,
-      modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(testTag),
+      modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(resolvedTestTag),
       enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
@@ -148,70 +154,16 @@ fun DisplayPatientButtonWithIcon(
           textAlign = TextAlign.Center,
           modifier = if (fillWidth) Modifier.weight(WEIGHT_ONE) else Modifier,
       )
-      Icon(
-          imageVector = icon,
-          contentDescription = description,
-          modifier =
-              (if (fillWidth) Modifier else Modifier.padding(start = PATIENT_PADDING_SMALL))
-                  .testTag(iconTestTag),
-      )
+      icon?.let {
+          Icon(
+              imageVector = it,
+              contentDescription = description,
+              modifier =
+                  (if (fillWidth) Modifier else Modifier.padding(start = PATIENT_PADDING_SMALL))
+                      .testTag(iconTestTag),
+          )
+      }
     }
-  }
-}
-
-/**
- * Displays a button, label, and click action.
- *
- * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
- * height)
- *
- * @param modifier modifier applied to the button
- * @param buttonHeight height of the button
- * @param buttonWidth fraction of the available width taken by the button
- * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
- *   centered. If false, the button only wraps its content.
- * @param text label displayed on the button.
- * @param textStyle typography style of the button label
- * @param enabled say if the button is clickable or not
- * @param onClick callback invoked when the button is selected.
- * @param testTag test tag of the button
- */
-@NonRestartableComposable
-@Composable
-fun DisplayPatientButton(
-    modifier: Modifier = Modifier,
-    buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
-    buttonWidth: Float = PATIENT_BUTTON_WIDTH,
-    fillWidth: Boolean = true,
-    text: String = "",
-    textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
-    enabled: Boolean = true,
-    onClick: () -> Unit = {},
-    testTag: String = PatientUtilsTestTags.BUTTON,
-) {
-  val sizeModifier =
-      if (fillWidth) {
-        Modifier.fillMaxWidth()
-            .wrapContentWidth(Alignment.CenterHorizontally)
-            .fillMaxWidth(buttonWidth)
-      } else Modifier
-  Button(
-      onClick = onClick,
-      modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(testTag),
-      enabled = enabled,
-      shape = RoundedCornerShape(ROUND_CORNER),
-      colors =
-          ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.tertiary,
-              contentColor = MaterialTheme.colorScheme.onTertiary,
-          ),
-  ) {
-    Text(
-        text,
-        style = textStyle,
-        textAlign = TextAlign.Center,
-        modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
-    )
   }
 }
 
@@ -283,7 +235,7 @@ fun DisplayPatientIconButton(
 
 @Preview(showBackground = true, name = "Patient utils light")
 @Composable
-internal fun DisplayPatientButtonsPreview() {
+internal fun DisplayPatientButtonsPreviewWILLBEDELETED() {
   AmberAppTheme(darkTheme = false) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -295,7 +247,7 @@ internal fun DisplayPatientButtonsPreview() {
           onClick = {},
           modifier = Modifier.weight(WEIGHT_ONE),
       )
-      DisplayPatientButtonWithIcon(
+      DisplayPatientButton(
           text = "Add",
           description = "Add patient",
           onClick = {},
@@ -314,7 +266,7 @@ internal fun DisplayPatientButtonsPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-internal fun DisplayPatientButtonsDarkPreview() {
+internal fun DisplayPatientButtonsDarkPreviewWILLBEDELETED() {
   AmberAppTheme(darkTheme = true) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
@@ -326,7 +278,7 @@ internal fun DisplayPatientButtonsDarkPreview() {
           onClick = {},
           modifier = Modifier.weight(WEIGHT_ONE),
       )
-      DisplayPatientButtonWithIcon(
+      DisplayPatientButton(
           text = "Add",
           description = "Add patient",
           onClick = {},

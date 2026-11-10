@@ -26,7 +26,7 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.PatientTab.Companion.patientTabs
 import com.github.se.amber.ui.navigation.Tab
-import com.github.se.amber.ui.patient.DisplayPatientButtonWithIcon
+import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
@@ -86,21 +86,21 @@ fun SeeMediasScreen(
             verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayPatientButtonWithIcon(
+          DisplayPatientButton(
               text = "See Pictures",
               icon = Icons.Outlined.PhotoCamera,
               description = "Picture",
               onClick = onSeePictureClick,
               testTag = SeeMediasTestTags.PICTURES_BUTTON,
           )
-          DisplayPatientButtonWithIcon(
+          DisplayPatientButton(
               text = "See Texts",
               icon = Icons.Outlined.Description,
               description = "Text",
               onClick = onSeeTextClick,
               testTag = SeeMediasTestTags.TEXTS_BUTTON,
           )
-          DisplayPatientButtonWithIcon(
+          DisplayPatientButton(
               text = "See Audio",
               icon = Icons.Outlined.Mic,
               description = "Audios",

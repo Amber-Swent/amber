@@ -128,10 +128,9 @@ class PatientUtilsTest {
   }
 
   // ---------- DisplayPatientButtonWithIcon ----------
-
   @Test
   fun buttonWithIcon_isDisplayed_withGivenText() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon(text = "Add") } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Add") } }
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
@@ -143,7 +142,7 @@ class PatientUtilsTest {
   fun buttonWithIcon_displaysIconWithDescription() {
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButtonWithIcon(
+        DisplayPatientButton(
             text = "Add",
             icon = Icons.Default.Add,
             description = "add icon",
@@ -161,7 +160,7 @@ class PatientUtilsTest {
   fun buttonWithIcon_click_invokesCallbackOnce() {
     var clickCount = 0
     composeTestRule.setContent {
-      AmberAppTheme { DisplayPatientButtonWithIcon(text = "Add", onClick = { clickCount++ }) }
+      AmberAppTheme { DisplayPatientButton(text = "Add", onClick = { clickCount++ }) }
     }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).performClick()
@@ -173,7 +172,7 @@ class PatientUtilsTest {
   fun buttonWithIcon_usesCustomTestTags() {
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButtonWithIcon(
+        DisplayPatientButton(
             text = "Add",
             testTag = "custom_button",
             iconTestTag = "custom_icon",
@@ -255,7 +254,7 @@ class PatientUtilsTest {
 
   @Test
   fun buttonWithIcon_withAllDefaults_clickDoesNothing() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon() } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton() } }
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON)
@@ -268,7 +267,7 @@ class PatientUtilsTest {
   fun buttonWithIcon_appliesCustomModifier() {
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButtonWithIcon(text = "Add", modifier = Modifier.width(200.dp))
+        DisplayPatientButton(text = "Add", modifier = Modifier.width(200.dp))
       }
     }
 
@@ -280,7 +279,7 @@ class PatientUtilsTest {
   @Test
   fun buttonWithIcon_updatesWhenTextChanges() {
     val text = mutableStateOf("First")
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon(text = text.value) } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = text.value) } }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertTextEquals("First")
 
@@ -309,7 +308,7 @@ class PatientUtilsTest {
     composeTestRule.setContent {
       AmberAppTheme {
         Box(Modifier.width(300.dp)) {
-          DisplayPatientButtonWithIcon(text = "Add", buttonWidth = 0.5f)
+          DisplayPatientButton(text = "Add", buttonWidth = 0.5f)
         }
       }
     }
@@ -338,7 +337,7 @@ class PatientUtilsTest {
   fun buttonWithIcon_withFullWidth_fillsParentAndStartsAtLeftEdge() {
     composeTestRule.setContent {
       AmberAppTheme {
-        Box(Modifier.width(300.dp)) { DisplayPatientButtonWithIcon(text = "Add", buttonWidth = 1f) }
+        Box(Modifier.width(300.dp)) { DisplayPatientButton(text = "Add", buttonWidth = 1f) }
       }
     }
 
@@ -474,7 +473,7 @@ class PatientUtilsTest {
   fun buttonWithIcon_usesCustomHeight() {
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButtonWithIcon(
+        DisplayPatientButton(
             text = "Add",
             buttonHeight = 80.dp,
         )
@@ -532,7 +531,7 @@ class PatientUtilsTest {
 
   @Test
   fun buttonWithIcon_isEnabledByDefault() {
-    composeTestRule.setContent { AmberAppTheme { DisplayPatientButtonWithIcon(text = "Add") } }
+    composeTestRule.setContent { AmberAppTheme { DisplayPatientButton(text = "Add") } }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertIsEnabled()
   }
@@ -542,7 +541,7 @@ class PatientUtilsTest {
     var clickCount = 0
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButtonWithIcon(text = "Add", enabled = false, onClick = { clickCount++ })
+        DisplayPatientButton(text = "Add", enabled = false, onClick = { clickCount++ })
       }
     }
 
@@ -560,7 +559,7 @@ class PatientUtilsTest {
     var clickCount = 0
     composeTestRule.setContent {
       AmberAppTheme {
-        DisplayPatientButtonWithIcon(
+        DisplayPatientButton(
             text = "Add",
             enabled = enabled.value,
             onClick = { clickCount++ },
@@ -585,7 +584,7 @@ class PatientUtilsTest {
 
   @Test
   fun preview_showsThePatientButtons() {
-    composeTestRule.setContent { DisplayPatientButtonsPreview() }
+    composeTestRule.setContent { DisplayPatientButtonsPreviewWILLBEDELETED() }
 
     // The labeled button takes a width fraction inside a weighted row, so it is composed but has
     // no size in this unbounded test. Existence still runs the preview.
@@ -596,7 +595,7 @@ class PatientUtilsTest {
 
   @Test
   fun darkPreview_showsThePatientButtons() {
-    composeTestRule.setContent { DisplayPatientButtonsDarkPreview() }
+    composeTestRule.setContent { DisplayPatientButtonsDarkPreviewWILLBEDELETED() }
 
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertExists()
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON_WITH_ICON).assertExists()
