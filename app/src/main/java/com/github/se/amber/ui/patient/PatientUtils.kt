@@ -6,6 +6,7 @@ package com.github.se.amber.ui.patient
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -118,7 +119,7 @@ fun DisplayPatientButton(
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
     icon: ImageVector? = null,
-    description: String = "",
+    description: String? = null,
     enabled: Boolean = true,
     onClick: () -> Unit = {},
     testTag: String? = null,
@@ -238,15 +239,15 @@ fun DisplayPatientCircularIconButton(
 @Composable
 internal fun DisplayPatientButtonsPreview() {
   AmberAppTheme(darkTheme = false) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       DisplayPatientButton(
           text = "Button",
           onClick = {},
-          modifier = Modifier.weight(WEIGHT_ONE),
+          modifier = Modifier,
       )
       DisplayPatientButton(
           text = "Add",
@@ -271,15 +272,15 @@ internal fun DisplayPatientButtonsPreview() {
 @Composable
 internal fun DisplayPatientButtonsDarkPreview() {
   AmberAppTheme(darkTheme = true) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       DisplayPatientButton(
           text = "Button",
           onClick = {},
-          modifier = Modifier.weight(WEIGHT_ONE),
+          modifier = Modifier,
       )
       DisplayPatientButton(
           text = "Add",
