@@ -21,13 +21,15 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 
 /**
@@ -265,9 +267,12 @@ class SeeAudiosViewModel(
       // The approved media flow is already ordered newest first.
       val mediaFlow: Flow<List<MediaItem>> = mediaRepository.observeApprovedMedia(circleId)
       mediaFlow
-          .catch { error ->
+          .retryWhen { error, attempt ->
             Log.e(TAG, "Error observing media", error)
-            setNonBlockingErrorMsg(R.string.seeAudiosErrorLoadMedia)
+            if (attempt == 0L) setNonBlockingErrorMsg(R.string.seeAudiosErrorLoadMedia)
+            // Retry the media subscription; the current list stays visible while we wait.
+            delay(3_000L.milliseconds)
+            true
           }
           .collect { media ->
             val audios = media.filterIsInstance<MediaItem.Audio>()

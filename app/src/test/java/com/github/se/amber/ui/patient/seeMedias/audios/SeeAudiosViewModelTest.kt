@@ -28,7 +28,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -55,10 +57,11 @@ class SeeAudiosViewModelTest {
   private val picture = MediaItem.Picture(id = "p1")
   private val text = MediaItem.Text(id = "t1")
   private lateinit var audioPlayer: FakeAudioPlayer
+  private val testDispatcher = UnconfinedTestDispatcher()
 
   @Before
   fun setUp() {
-    Dispatchers.setMain(UnconfinedTestDispatcher())
+    Dispatchers.setMain(testDispatcher)
     audioPlayer = FakeAudioPlayer()
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circle)
@@ -313,6 +316,31 @@ class SeeAudiosViewModelTest {
     val clearedState = viewModel.uiState.value as SeeAudiosUIState.Content
     assertEquals(listOf(audio), clearedState.allAudios)
     assertNull(clearedState.errorMsgRes)
+  }
+
+  @Test
+  fun media_flow_reconnects_after_error_without_leaving_screen() {
+    var subscriptions = 0
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow {
+          subscriptions++
+          if (subscriptions == 1) {
+            emit(listOf(audio))
+            throw IOException("offline")
+          }
+          emit(listOf(audio, secondAudio))
+          awaitCancellation()
+        }
+    val viewModel = createViewModel()
+    assertEquals(listOf(audio), (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios)
+
+    testDispatcher.scheduler.advanceTimeBy(3_000L)
+    testDispatcher.scheduler.runCurrent()
+
+    val state = viewModel.uiState.value as SeeAudiosUIState.Content
+    assertEquals(listOf(audio, secondAudio), state.allAudios)
+    assertNull(state.errorMsgRes)
+    assertEquals(2, subscriptions)
   }
 
   @Test
