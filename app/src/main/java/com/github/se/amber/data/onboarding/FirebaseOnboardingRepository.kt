@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty and Copilot
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.data.onboarding
 
@@ -46,7 +47,6 @@ class FirebaseOnboardingRepository(
                       profile.uid != uid ||
                       profile.person.id != uid -> throw OnboardingError.InvalidProfile
                   profile.role != Role.CAREGIVER -> throw OnboardingError.NotCaregiver
-                  profile.circleIds.isNotEmpty() -> throw OnboardingError.CareCircleAlreadyExists
                 }
 
                 CareCircle(
