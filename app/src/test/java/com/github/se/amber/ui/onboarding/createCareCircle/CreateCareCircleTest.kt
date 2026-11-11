@@ -1,10 +1,11 @@
 // Written by MeiliV, with assistance from OpenAI Codex
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding
 
 import android.content.Context
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -14,11 +15,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingError
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleTestTags
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleViewModel
@@ -51,15 +54,21 @@ class CreateCareCircleScreenTest {
 
   private lateinit var repository: FakeOnboardingRepository
   private lateinit var viewModel: CreateCareCircleViewModel
+  private var backCount = 0
 
   @Before
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     repository = FakeOnboardingRepository()
     viewModel = CreateCareCircleViewModel(repository)
+    backCount = 0
+    showScreen()
+  }
+
+  private fun showScreen(onBack: () -> Unit = { backCount++ }) {
     composeTestRule.setContent {
       AmberAppTheme(darkTheme = false, dynamicColor = false) {
-        CreateCareCircleScreen(viewModel = viewModel)
+        CreateCareCircleScreen(viewModel = viewModel, onBack = onBack)
       }
     }
   }
@@ -120,6 +129,68 @@ class CreateCareCircleScreenTest {
     viewModel.onNameChange("Family")
     composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
     composeTestRule.onNodeWithText(string(R.string.createCareCircleCreating)).assertExists()
+  }
+
+  @Test
+  fun cancelWhileTheFormIsIdle_callsOnBackOnceAndDoesNotCreate() {
+    composeTestRule.onNodeWithText("Cancel").assertExists()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(1, backCount)
+    assertEquals(emptyList<String>(), repository.submittedNames)
+  }
+
+  @Test
+  fun cancelWhileCreationIsInProgress_doesNotCallOnBack() {
+    repository.gate = CompletableDeferred()
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(0, backCount)
+    assertEquals(listOf("Family"), repository.submittedNames)
+  }
+
+  @Test
+  fun systemBackWhileCreationIsInProgress_staysOnTheScreen() {
+    repository.gate = CompletableDeferred()
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+
+    Espresso.pressBack()
+
+    assertEquals(0, backCount)
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).assertExists()
+    composeTestRule.onNodeWithText(string(R.string.createCareCircleCreating)).assertExists()
+  }
+
+  @Test
+  fun cancelAfterTheCircleIsCreated_doesNotCallOnBack() {
+    viewModel.onNameChange("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(0, backCount)
+    assertEquals(listOf("Family"), repository.submittedNames)
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun repositoryFailure_showsTheOfflineToastAndLeavesCreateEnabled() {
+    repository.failure = OnboardingError.Network
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).performTextInput("Family")
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).performClick()
+    composeTestRule.waitForIdle()
+
+    assertEquals(
+        "You're offline. Check your connection and try again.",
+        ShadowToast.getTextOfLatestToast(),
+    )
+    composeTestRule.onNodeWithTag(DisplayCaregiverButtonTestTags.BUTTON).assertIsEnabled()
+    composeTestRule.onNodeWithTag(CreateCareCircleTestTags.NAME_FIELD).assertIsEnabled()
   }
 
   @Test
