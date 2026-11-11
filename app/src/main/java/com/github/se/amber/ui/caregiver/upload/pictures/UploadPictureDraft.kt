@@ -21,11 +21,12 @@ private const val PLACE_LAT = "draft_place_lat"
 private const val PLACE_LNG = "draft_place_lng"
 private const val PLACE_NAME = "draft_place_name"
 private const val PLACE_ID = "draft_place_id"
+private const val CAPTURING = "draft_capturing"
 
 /**
- * Keeps what the user filled in, which Android restores if it kills the app while another one is in
- * front: the camera most of all. Only plain values can be saved this way. Place suggestions aren't
- * kept, as a new search finds them again.
+ * Keeps what the user filled in, and whether the camera is open, which Android restores if it kills
+ * the app while another one is in front: the camera most of all. Only plain values can be saved
+ * this way. Place suggestions aren't kept, as a new search finds them again.
  */
 internal fun SavedStateHandle.saveDraft(state: UploadPictureUIState) {
   val common = state.common
@@ -43,6 +44,7 @@ internal fun SavedStateHandle.saveDraft(state: UploadPictureUIState) {
   set(PLACE_LNG, picked?.lng)
   set(PLACE_NAME, picked?.placeName)
   set(PLACE_ID, common.location.selectedPlaceId)
+  set(CAPTURING, state.isCapturing)
 }
 
 /**
@@ -57,6 +59,8 @@ internal fun SavedStateHandle.restoreDraft(initial: UploadPictureUIState): Uploa
       pictureFile = picture,
       pictureWidth = if (picture != null) get(PICTURE_WIDTH) ?: 0 else 0,
       pictureHeight = if (picture != null) get(PICTURE_HEIGHT) ?: 0 else 0,
+      // The camera may still be open: its result comes back once the app is restored
+      isCapturing = get(CAPTURING) ?: false,
       common =
           initial.common.copy(
               description = get(DESCRIPTION) ?: "",

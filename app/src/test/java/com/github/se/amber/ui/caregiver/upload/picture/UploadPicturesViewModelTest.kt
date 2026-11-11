@@ -376,6 +376,46 @@ class UploadPictureViewModelTest {
   }
 
   @Test
+  fun aSecondTapWhileTheCaptureIsReadKeepsItsFileAndUploadWaitsForIt() {
+    val read = CompletableDeferred<PickedImage>()
+    coEvery { capturedPictureSource.newCaptureUri(any()) } returns CAPTURE_URI
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } coAnswers { read.await() }
+    val vm = readyViewModel()
+    vm.onTakePicture()
+    assertFalse(vm.uiState.value.canUpload)
+
+    vm.onPictureCaptured(CAPTURE_URI)
+    vm.onTakePicture()
+    coVerify(exactly = 1) { capturedPictureSource.newCaptureUri(any()) }
+    assertFalse(vm.uiState.value.canUpload)
+
+    read.complete(PickedImage(pictureFile, CAPTURE_WIDTH, CAPTURE_HEIGHT))
+    assertTrue(vm.uiState.value.canUpload)
+    vm.onTakePicture()
+    coVerify(exactly = 1) { capturedPictureSource.newCaptureUri(CAPTURE_URI) }
+  }
+
+  @Test
+  fun aSecondTapAfterAndroidKillsTheAppWithTheCameraOpenIsIgnored() {
+    coEvery { capturedPictureSource.newCaptureUri(any()) } returns CAPTURE_URI
+    coEvery { capturedPictureSource.read(CAPTURE_URI) } returns
+        PickedImage(pictureFile, CAPTURE_WIDTH, CAPTURE_HEIGHT)
+    val savedState = SavedStateHandle()
+    createViewModel(savedState).onTakePicture()
+
+    // a new process only gets what was saved
+    val after =
+        createViewModel(SavedStateHandle(savedState.keys().associateWith { savedState[it] }))
+    after.onTakePicture()
+    coVerify(exactly = 1) { capturedPictureSource.newCaptureUri(any()) }
+
+    after.onPictureCaptured(CAPTURE_URI)
+    assertEquals(pictureFile, after.uiState.value.pictureFile)
+    assertFalse(after.uiState.value.isCapturing)
+    coVerify(exactly = 0) { capturedPictureSource.discard(any()) }
+  }
+
+  @Test
   fun aCaptureIsDeletedOnceReplacedByAnotherCaptureOrAGalleryPicture() {
     val newerCapture = "content://com.github.se.amber.fileprovider/captured_pictures/2.jpg"
     coEvery { capturedPictureSource.read(any()) } returns PickedImage(pictureFile, 1, 1)

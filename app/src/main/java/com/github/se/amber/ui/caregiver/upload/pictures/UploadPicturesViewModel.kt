@@ -70,15 +70,17 @@ enum class UploadPictureViewModelErrorMessage(@param:StringRes val messageRes: I
  * @param pictureFile The local picture file selected for upload.
  * @param pictureWidth The width of the selected picture in pixels.
  * @param pictureHeight The height of the selected picture in pixels.
+ * @param isCapturing Whether the camera is open, or its picture is still being read.
  */
 data class UploadPictureUIState(
     override val common: CommonMediaUIState = CommonMediaUIState(),
     val pictureFile: File? = null,
     val pictureWidth: Int = 0,
     val pictureHeight: Int = 0,
+    val isCapturing: Boolean = false,
 ) : MediaUIState<UploadPictureUIState> {
   override val canUpload: Boolean
-    get() = pictureFile != null && common.canUpload
+    get() = pictureFile != null && !isCapturing && common.canUpload
 
   override fun withCommon(common: CommonMediaUIState): UploadPictureUIState = copy(common = common)
 }
@@ -125,8 +127,6 @@ class UploadPictureViewModel(
   /** URIs the camera app should save a new picture to: the screen opens the camera on each. */
   private val _cameraRequests = Channel<String>(Channel.BUFFERED)
   val cameraRequests: Flow<String> = _cameraRequests.receiveAsFlow()
-  // From the tap until the camera answers: a double tap must not open the camera twice
-  private var captureInProgress = false
   // The capture shown as the selected picture, deleted if it ends up not being uploaded
   private var selectedCaptureUri: String?
     get() = savedState[SELECTED_CAPTURE_KEY]
@@ -225,8 +225,10 @@ class UploadPictureViewModel(
 
   /** Prepares a file for a new picture and asks the screen to open the camera on it. */
   fun onTakePicture() {
-    if (captureInProgress || _uiState.value.common.isUploading) return
-    captureInProgress = true
+    val state = _uiState.value
+    if (state.isCapturing || state.common.isUploading) return
+    // Until the camera's picture is read: a second tap would delete the file being captured
+    setCapturing(true)
     viewModelScope.launch {
       try {
         _cameraRequests.send(capturedPictureSource.newCaptureUri(keeping = selectedCaptureUri))
@@ -234,7 +236,7 @@ class UploadPictureViewModel(
         throw e
       } catch (e: Exception) {
         Log.e(TAG, "Preparing a file for the camera failed", e)
-        captureInProgress = false
+        setCapturing(false)
         setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.messageRes)
       }
     }
@@ -247,7 +249,6 @@ class UploadPictureViewModel(
    * @param uri A URI sent through [cameraRequests].
    */
   fun onPictureCaptured(uri: String) {
-    captureInProgress = false
     viewModelScope.launch {
       try {
         val picture = capturedPictureSource.read(uri)
@@ -264,6 +265,8 @@ class UploadPictureViewModel(
         Log.e(TAG, "Reading the captured picture failed", e)
         setErrorMsg(UploadPictureViewModelErrorMessage.COULD_NOT_READ_PICTURE.messageRes)
         capturedPictureSource.discard(uri)
+      } finally {
+        setCapturing(false)
       }
     }
   }
@@ -274,8 +277,13 @@ class UploadPictureViewModel(
    * @param uri A URI sent through [cameraRequests].
    */
   fun onCaptureCancelled(uri: String) {
-    captureInProgress = false
-    viewModelScope.launch { capturedPictureSource.discard(uri) }
+    viewModelScope.launch {
+      try {
+        capturedPictureSource.discard(uri)
+      } finally {
+        setCapturing(false)
+      }
+    }
   }
 
   /**
@@ -296,6 +304,10 @@ class UploadPictureViewModel(
   /** A capture that wasn't uploaded is a private picture nothing will use any more. */
   override fun onCleared() {
     selectedCaptureUri?.let { uri -> cleanupScope.launch { capturedPictureSource.discard(uri) } }
+  }
+
+  private fun setCapturing(isCapturing: Boolean) {
+    _uiState.update { it.copy(isCapturing = isCapturing) }
   }
 
   /**
