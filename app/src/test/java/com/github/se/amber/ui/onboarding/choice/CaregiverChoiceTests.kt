@@ -1,5 +1,6 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.choice
 
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
@@ -15,6 +17,7 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -35,6 +38,9 @@ class CaregiverChoiceUITests {
   private fun profileRepository(displayName: String = "Sahra"): ProfileRepository =
       object : ProfileRepository {
         override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
+
+        override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+            Result.success(Unit)
 
         override suspend fun getCurrentProfile() =
             Result.success(
@@ -70,10 +76,14 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun backButton_click_invokesOnBackOnly() {
+  fun cancel_callsOnBackOnceAndDoesNotCreateOrJoin() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).performClick()
+    composeTestRule.onNodeWithText(context.getString(R.string.navigationCancel)).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON)
+        .assertIsDisplayed()
+        .performClick()
     composeTestRule.waitForIdle()
 
     assertEquals(1, backCount)
@@ -136,10 +146,12 @@ class CaregiverChoiceUITests {
   }
 
   @Test
-  fun backButton_isDisplay() {
-    setScreen()
+  fun previewShowsWelcomeAndCancel() {
+    composeTestRule.setContent { CaregiverChoicePreview() }
+    composeTestRule.waitForIdle()
 
-    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.BACK_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithText(context.getString(R.string.navigationCancel)).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CaregiverChoiceTestTags.WELCOME_HEADER).assertIsDisplayed()
   }
 
   @Test

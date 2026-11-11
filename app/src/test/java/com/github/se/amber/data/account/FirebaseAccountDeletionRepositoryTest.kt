@@ -2,11 +2,9 @@
 
 package com.github.se.amber.data.account
 
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.google.android.gms.tasks.Tasks
-import com.google.firebase.FirebaseNetworkException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthInvalidUserException
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.functions.FirebaseFunctionsException.Code
@@ -15,7 +13,12 @@ import com.google.firebase.functions.HttpsCallableResult
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -29,8 +32,6 @@ import org.mockito.Mockito.`when`
 
 class FirebaseAccountDeletionRepositoryTest {
   private lateinit var callable: HttpsCallableReference
-  private lateinit var auth: FirebaseAuth
-  private lateinit var user: FirebaseUser
   private lateinit var repository: FirebaseAccountDeletionRepository
   private var clears = 0
   private var clearLocalData: suspend () -> Unit = {}
@@ -48,6 +49,16 @@ class FirebaseAccountDeletionRepositoryTest {
           isSet = false
         }
       }
+  /** What the server says about the signed-in account: null if it's gone or nobody signed in. */
+  private var refreshedUser: suspend () -> AuthUser? = { AuthUser("uid") }
+  private var refreshes = 0
+  private val authRepository =
+      object : AuthRepository by mock(AuthRepository::class.java) {
+        override suspend fun refreshCurrentUser(): AuthUser? {
+          refreshes++
+          return refreshedUser()
+        }
+      }
 
   @Before
   fun setUp() {
@@ -58,10 +69,7 @@ class FirebaseAccountDeletionRepositoryTest {
       clears++
       clearLocalData()
     }
-    auth = mock(FirebaseAuth::class.java)
-    user = mock(FirebaseUser::class.java)
-    `when`(auth.currentUser).thenReturn(user)
-    repository = FirebaseAccountDeletionRepository(localData, marker, functions, auth)
+    repository = FirebaseAccountDeletionRepository(localData, marker, authRepository, functions)
   }
 
   private fun respondWith(data: Any?) {
@@ -202,37 +210,25 @@ class FirebaseAccountDeletionRepositoryTest {
 
   @Test
   fun anInterruptedDeletionClearsTheDeviceOnlyIfMarkedAndTheAccountIsGone() = runBlocking {
-    val gone = FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "Gone")
-    `when`(user.reload()).thenReturn(Tasks.forException(gone))
+    refreshedUser = { null }
 
     repository.finishInterruptedDeletion()
     assertEquals(0, clears)
-    verifyNoInteractions(user)
+    assertEquals("the account isn't checked without the marker", 0, refreshes)
 
     marker.set()
     repository.finishInterruptedDeletion()
     assertEquals(1, clears)
-
-    `when`(auth.currentUser).thenReturn(null)
-    repository.finishInterruptedDeletion()
-    assertEquals(2, clears)
     verifyNoInteractions(callable)
   }
 
   @Test
   fun anAccountThatMayStillExistKeepsItsDataAndItsMarker() = runBlocking {
     marker.set()
-    val answers =
-        listOf(
-            Tasks.forResult<Void>(null),
-            Tasks.forException(FirebaseNetworkException("Offline")),
-            Tasks.forException(FirebaseAuthInvalidUserException("ERROR_USER_DISABLED", "Disabled")),
-        )
-    for (answer in answers) {
-      `when`(user.reload()).thenReturn(answer)
+    // still there, or it couldn't be checked: AuthRepositoryFirebaseTest covers which is which
+    refreshedUser = { AuthUser("uid") }
 
-      repository.finishInterruptedDeletion()
-    }
+    repository.finishInterruptedDeletion()
 
     assertEquals(0, clears)
     assertTrue(marker.isSet)
@@ -241,7 +237,7 @@ class FirebaseAccountDeletionRepositoryTest {
   @Test
   fun cancellingWhileCheckingTheAccountOrClearingTheDeviceIsNotReportedAsAFailure() {
     marker.set()
-    `when`(user.reload()).thenReturn(Tasks.forException(CancellationException("Cancelled")))
+    refreshedUser = { throw CancellationException("Cancelled") }
     assertThrows(CancellationException::class.java) {
       runBlocking { repository.finishInterruptedDeletion() }
     }
@@ -280,5 +276,51 @@ class FirebaseAccountDeletionRepositoryTest {
 
     assertEquals(2, clears)
     verifyNoInteractions(callable)
+  }
+
+  @Test
+  fun aGoneAccountThatCouldNotBeClearedIsClearedAgainOnTheNextLaunch() = runBlocking {
+    clearLocalData = { throw IOException("Files left") }
+
+    val error = repository.clearGoneAccount().exceptionOrNull()
+
+    assertTrue(error is AccountDeletionError.LocalDataNotCleared)
+    assertTrue("the next launch must find the marker", marker.isSet)
+
+    // the next launch: the user was signed out, so nobody is signed in
+    refreshedUser = { null }
+    clearLocalData = {}
+    repository.finishInterruptedDeletion()
+
+    assertEquals(2, clears)
+    verifyNoInteractions(callable)
+  }
+
+  @Test
+  fun aGoneAccountIsClearedEvenIfTheMarkerCannotBeSaved() = runBlocking {
+    markerSaves = false
+
+    assertTrue(repository.clearGoneAccount().isSuccess)
+
+    assertEquals(1, clears)
+  }
+
+  @Test
+  fun aSecondClearWaitsForTheFirstToFinish() = runTest {
+    val firstMayFinish = CompletableDeferred<Unit>()
+    clearLocalData = { if (clears == 1) firstMayFinish.await() }
+
+    launch { repository.clearLocalData() }
+    launch { repository.clearLocalData() }
+    runCurrent()
+    assertEquals("the second clear waits for the lock", 1, clears)
+
+    firstMayFinish.complete(Unit)
+    advanceUntilIdle()
+    assertEquals(BOTH_CLEARS, clears)
+  }
+
+  private companion object {
+    const val BOTH_CLEARS = 2
   }
 }

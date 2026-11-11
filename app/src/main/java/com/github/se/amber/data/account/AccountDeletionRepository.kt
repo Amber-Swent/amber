@@ -35,6 +35,19 @@ interface AccountDeletionRepository {
   suspend fun clearLocalData(): Result<Unit>
 
   /**
+   * Clears this device for an account the server no longer accepts, found when the app opens: it
+   * may have been deleted from another phone, or by a deletion that stopped before clearing this
+   * one. The deletion marker is set first, so if clearing fails, [finishInterruptedDeletion] tries
+   * again on the next launch, as after a deletion from this phone.
+   *
+   * Like [clearLocalData], this restarts the app once the device is cleared.
+   *
+   * @return Only a failure, as [AccountDeletionError.LocalDataNotCleared]: on success the app
+   *   restarts before this returns.
+   */
+  suspend fun clearGoneAccount(): Result<Unit>
+
+  /**
    * Finishes a deletion the app couldn't: it may have died during the call to the backend, or
    * before the device was cleared. If one was started and the account is gone, the device is
    * cleared and the app restarts. If the account still exists, or that can't be told offline,

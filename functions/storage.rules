@@ -15,12 +15,12 @@ service firebase.storage {
     }
 
     // Set by deleteAccount: a file added after it looked for the user's files would be left behind.
-    // Reads stay allowed, as a failed deletion can leave this set.
+    // Reads stay allowed, as a failed deletion can leave this set. A user without a profile isn't
+    // being deleted, as in firestore.rules.
     function notBeingDeleted() {
-      let profile = firestore.get(
-        /databases/(default)/documents/users/$(request.auth.uid)
-      );
-      return profile.data.get('deletionRequested', false) != true;
+      let profilePath = /databases/(default)/documents/users/$(request.auth.uid);
+      return !firestore.exists(profilePath)
+        || firestore.get(profilePath).data.get('deletionRequested', false) != true;
     }
 
     function circleCaregiver(circleId) {

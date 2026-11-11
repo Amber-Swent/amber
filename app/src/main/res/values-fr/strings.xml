@@ -90,7 +90,6 @@
     <string name="caregiverChoiceInfo">Information</string>
     <string name="caregiverChoiceInviteHintCondition">Pour rejoindre un cercle de soins existant, vous devez avoir un lien d\'invitation.</string>
     <string name="caregiverChoiceInviteHintSolution">Tout aidant membre du cercle peut créer un lien pour vous.</string>
-    <string name="caregiverChoiceBack">Retour</string>
 
     <!-- CreateProfile -->
     <string name="createProfileTitle">Créer un compte</string>
@@ -104,7 +103,8 @@
     <string name="createProfileErrorInvalidName">Saisissez votre prénom et votre nom, puis réessayez.</string>
     <string name="createProfileErrorSessionExpired">Votre session a expiré. Connectez-vous, puis réessayez.</string>
     <string name="createProfileErrorExists">Un profil existe déjà pour ce compte.</string>
-    <string name="createProfileErrorPermissionDenied">Vous n\'avez pas l\'autorisation de créer un profil.</string>
+    <string name="createProfileErrorAlreadyInCircle">Vous avez déjà rejoint un cercle de soins, donc votre rôle ne peut pas être modifié.</string>
+    <string name="createProfileErrorPermissionDenied">Vous n\'avez pas l\'autorisation d\'enregistrer votre profil.</string>
     <string name="createProfileErrorOffline">Vous êtes hors ligne. Vérifiez votre connexion, puis réessayez.</string>
     <string name="createProfileErrorUnknown">Impossible de créer votre profil. Veuillez réessayer.</string>
 
@@ -188,6 +188,8 @@
 
     <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
     <string name="caregiverButtonDefaultText">Texte</string>
+    <!-- CaregiverIconButton: preview description (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="caregiverIconButtonAdd">Ajouter</string>
 
     <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
     <plurals name="textFieldMaxCharReached">
@@ -238,6 +240,8 @@
     <string name="uploadPictureUpload">Ajouter la photo</string>
     <string name="uploadPictureErrorSelect">Veuillez d\'abord sélectionner une photo</string>
     <string name="uploadPictureErrorRead">Impossible de lire votre photo</string>
+    <string name="uploadPictureErrorCamera">Impossible d\'ouvrir l\'appareil photo</string>
+    <string name="uploadPictureErrorNotAPhoto">Seules les photos peuvent être envoyées. Touchez l\'appareil photo pour prendre une photo.</string>
 
     <!-- UploadAudio -->
     <string name="uploadAudioTitle">Ajouter un audio</string>
@@ -290,6 +294,7 @@
     <string name="datePickerDone">OK</string>
 
     <!-- AudioRecorder -->
+    <string name="audioRecorderRecord">Enregistrer</string>
     <string name="audioRecorderDelete">Supprimer l\'audio</string>
     <string name="audioRecorderStop">Arrêter l\'enregistrement</string>
 

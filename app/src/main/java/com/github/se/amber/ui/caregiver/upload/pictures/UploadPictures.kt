@@ -6,6 +6,7 @@
 
 package com.github.se.amber.ui.caregiver.upload.pictures
 
+import android.content.ActivityNotFoundException
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -32,13 +33,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
@@ -72,9 +78,61 @@ object UploadPictureScreenTestTags {
   const val TAKE_PICTURE = "upload_picture_take"
   const val SELECT_PICTURE = "upload_picture_select"
   const val PICTURE_SELECTED = "upload_picture_selected"
+  const val DESCRIPTION = "upload_picture_description"
 
   const val SELECT_DATE = "upload_picture_selected_date"
   const val UPLOAD_BUTTON = "upload_picture_button"
+}
+
+/**
+ * What the screen can do with the camera.
+ *
+ * @property takePicture Starts a new capture.
+ * @property openCamera Opens the camera app, which saves its picture to the given URI.
+ */
+private class CameraActions(val takePicture: () -> Unit, val openCamera: (String) -> Unit)
+
+/**
+ * Connects the camera app to [viewModel]. It needs no camera permission: the camera app takes the
+ * picture, and declaring the permission would make launching it fail until the user grants it.
+ *
+ * @param viewModel The view model told about the results.
+ */
+@Composable
+private fun rememberCameraActions(
+    viewModel: UploadPictureViewModel = viewModel(factory = UploadPictureViewModel.Factory)
+): CameraActions {
+  // Saved because the system can kill the app while the camera is in front, and the camera's
+  // result only says whether it succeeded, not which file it was for
+  var pendingCaptureUri by rememberSaveable { mutableStateOf<String?>(null) }
+
+  val cameraLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        val uri = pendingCaptureUri ?: return@rememberLauncherForActivityResult
+        pendingCaptureUri = null
+        if (saved) viewModel.onPictureCaptured(uri) else viewModel.onCaptureCancelled(uri)
+      }
+
+  return remember(viewModel, cameraLauncher) {
+    CameraActions(
+        takePicture = viewModel::onTakePicture,
+        openCamera = { uri ->
+          fun cameraUnavailable() {
+            pendingCaptureUri = null
+            viewModel.onCameraUnavailable(uri)
+          }
+          pendingCaptureUri = uri
+          try {
+            cameraLauncher.launch(uri.toUri())
+          } catch (_: ActivityNotFoundException) {
+            cameraUnavailable()
+          } catch (_: SecurityException) {
+            // Android refuses the camera app if a library declares the CAMERA permission
+            cameraUnavailable()
+          }
+        },
+    )
+  }
 }
 
 /**
@@ -87,7 +145,7 @@ object UploadPictureScreenTestTags {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UploadPictureScreen(
-    viewModel: UploadPictureViewModel = viewModel(),
+    viewModel: UploadPictureViewModel = viewModel(factory = UploadPictureViewModel.Factory),
     onUpload: () -> Unit = {},
     goBack: () -> Unit = {},
 ) {
@@ -103,6 +161,7 @@ fun UploadPictureScreen(
       rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let { viewModel.selectPicture(it.toString()) }
       }
+  val camera = rememberCameraActions(viewModel)
 
   LaunchedEffect(errorMsgRes) {
     if (errorMsgRes != null) {
@@ -120,6 +179,7 @@ fun UploadPictureScreen(
       }
     }
   }
+  LaunchedEffect(camera) { viewModel.cameraRequests.collect(camera.openCamera) }
 
   Scaffold(
       topBar = {
@@ -152,9 +212,7 @@ fun UploadPictureScreen(
               icon = Icons.Outlined.PhotoCamera,
               contentDescription = stringResource(R.string.uploadPictureIcon),
               text = stringResource(R.string.uploadPictureTake),
-              onClick = {},
-              // TODO: implement the Take a Picture function,
-              //  once the Backend as been set up for it - M2
+              onClick = camera.takePicture,
           )
 
           // Display the "Choose a picture from the galeri"
@@ -181,7 +239,8 @@ fun UploadPictureScreen(
 
           // Display the Description field
           DisplayTextField(
-              modifier = Modifier.height(TEXT_FIELD_BIG),
+              modifier =
+                  Modifier.height(TEXT_FIELD_BIG).testTag(UploadPictureScreenTestTags.DESCRIPTION),
               value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
               label = stringResource(R.string.uploadPictureDescriptionLabel),

@@ -1,5 +1,6 @@
 // Written by Neha Chakraborty and Copilot
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.data.profile
 
@@ -23,6 +24,18 @@ interface ProfileRepository {
    * user and rejects an attempt to overwrite an existing profile.
    */
   suspend fun createProfile(person: Person, role: Role): Result<Unit>
+
+  /**
+   * Replaces the signed-in user's name and role while that profile still has no care circle.
+   *
+   * Used when onboarding goes back to the create-profile step and the user picks a different role.
+   * The returned [Result] fails only with [ProfileUpdateError]: `InvalidPersonDetails` when
+   * [person] has no valid name, `NotAuthenticated` when no user is signed in, `NoProfile` when
+   * nothing is stored yet, `AlreadyInCareCircle` when [UserProfile.circleIds] is no longer empty,
+   * `PermissionDenied` when Firestore rejects the write, `Network` for unavailable or timed-out
+   * Firestore operations, and `Unknown` for other failures. Cancellation is rethrown.
+   */
+  suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit>
 
   /**
    * Reads the profile of the current authenticated user.

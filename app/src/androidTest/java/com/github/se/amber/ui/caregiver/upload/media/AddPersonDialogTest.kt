@@ -1,6 +1,7 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -8,9 +9,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -18,10 +17,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.media.picture.SelectedPictureReader
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
@@ -30,8 +31,6 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
@@ -185,6 +184,9 @@ class AddPersonDialogTest {
           override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
               error("Not used by this test")
 
+          override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+              error("Not used by this test")
+
           override suspend fun getCurrentProfile(): Result<UserProfile?> =
               error("Not used by this test")
 
@@ -208,6 +210,7 @@ class AddPersonDialogTest {
         }
     viewModel =
         UploadPictureViewModel(
+            savedState = SavedStateHandle(),
             mediaRepo = mediaRepo,
             authRepo = fakeAuthRepo,
             profileRepo = fakeProfileRepo,
@@ -222,13 +225,7 @@ class AddPersonDialogTest {
         .onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON)
         .performScrollTo()
         .performClick()
-    // the screen has its own text fields: the first one in the dialog is First Name
-    composeTestRule
-        .onAllNodes(
-            hasTestTag(DisplayTextFieldTestTags.TEXT) and
-                hasAnyAncestor(hasTestTag(AddPersonDialogTestTags.DIALOG))
-        )[0]
-        .performTextInput("Anne")
+    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.FIRST_NAME).performTextInput("Anne")
     composeTestRule.onNode(hasText(addLabel) and hasClickAction()).performClick()
 
     composeTestRule.waitUntil(10_000) { viewModel.uiState.value.common.shownIds.isNotEmpty() }
