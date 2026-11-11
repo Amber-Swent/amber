@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.firestore
 
@@ -276,7 +277,11 @@ class FirestoreSecurityRulesTest {
     assertFalse(
         db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("other"))),
     )
-    assertFalse(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
+    assertTrue(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
+    val joined = onboard.copy(circleIds = listOf("c1"))
+    assertFalse(
+        db.rulesFor("new").canUpdateUser(joined, joined.copy(role = Role.PATIENT)),
+    )
     assertFalse(db.rulesFor("new").canDeleteUser())
   }
 
@@ -685,10 +690,17 @@ private class FirestoreSecurityRules(
 
   fun canUpdateUser(before: UserProfile, after: UserProfile): Boolean {
     if (!isSelf(before.uid) || isBeingDeleted() || after.uid != before.uid) return false
-    if (after.role != before.role) return false
+    if (after.role != Role.CAREGIVER && after.role != Role.PATIENT) return false
     val affected = affectedUserKeys(before, after)
-    return (affected.all { it == "person" } && after.circleIds == before.circleIds) ||
-        (affected == setOf("circleIds") && isInitialCareCircleLink(before, after))
+    val roleUnchanged = after.role == before.role
+    val circlesStayEmpty = before.circleIds.isEmpty() && after.circleIds.isEmpty()
+    return (roleUnchanged &&
+        affected.all { it == "person" } &&
+        after.circleIds == before.circleIds) ||
+        (roleUnchanged &&
+            affected == setOf("circleIds") &&
+            isInitialCareCircleLink(before, after)) ||
+        (circlesStayEmpty && affected.all { it == "role" || it == "person" })
   }
 
   fun canDeleteUser(): Boolean = false

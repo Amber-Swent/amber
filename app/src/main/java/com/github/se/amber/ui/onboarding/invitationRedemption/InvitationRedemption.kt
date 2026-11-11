@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.invitationRedemption
 
@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -28,15 +29,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
+import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.utils.asString
@@ -133,4 +138,20 @@ fun InvitationRedemptionScreen(
       )
     }
   }
+}
+
+@Preview(showBackground = true)
+@Composable
+internal fun InvitationRedemptionPreview() {
+  val viewModel = remember {
+    InvitationRedemptionViewModel(
+        invitationRedemptionRepository = PreviewInvitationRedemptionRepository,
+    )
+  }
+  AmberAppTheme { InvitationRedemptionScreen(viewModel = viewModel) }
+}
+
+private object PreviewInvitationRedemptionRepository : InvitationRedemptionRepository {
+  override suspend fun redeemInvitation(code: String): Result<InvitationRedemptionResult> =
+      Result.success(InvitationRedemptionResult(careCircleId = "preview", role = Role.PATIENT))
 }

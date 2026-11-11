@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty and Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.firestore
 
@@ -128,6 +129,7 @@ class FirestoreSecurityRulesEmulatorTest {
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertFails(peer, fs.patch("users/$peer", mapOf("role" to "PATIENT")))
     fs.assertSucceeds(
         peer,
         fs.set(
@@ -310,12 +312,30 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+  fun emptyCircle_roleAndNameChange_succeeds_enforcedByEmulator() {
     val uid = "existing-user"
     fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
 
-    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
-    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "Renamed")))
+  }
+
+  @Test
+  fun emptyCircle_cannotAttachCircleIds_enforcedByEmulator() {
+    val uid = "existing-user"
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
+
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", listOf("c1"), "First")))
+  }
+
+  @Test
+  fun joinedProfile_roleChange_fails_enforcedByEmulator() {
+    val uid = "joined-user"
+    fs.adminSet("users/$uid", user(uid, "PATIENT", listOf("c-joined"), "Joined"))
+
+    fs.assertFails(
+        uid,
+        fs.set("users/$uid", user(uid, "CAREGIVER", listOf("c-joined"), "Joined")),
+    )
   }
 
   @Test

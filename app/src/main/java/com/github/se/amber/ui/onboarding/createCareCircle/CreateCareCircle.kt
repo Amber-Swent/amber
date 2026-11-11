@@ -7,18 +7,19 @@ package com.github.se.amber.ui.onboarding.createCareCircle
 
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +39,9 @@ import com.github.se.amber.R
 import com.github.se.amber.data.onboarding.OnboardingRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -56,19 +60,24 @@ object CreateCareCircleTestTags {
  * Displays the first care circle form and connects it to [viewModel].
  *
  * A blank or invalid name shows its error below the field and disables Create. Repository failures
- * are shown as a toast, while successful creation calls [onCreated] once. The caller decides where
- * to navigate afterward.
+ * are shown as a toast, while successful creation calls [onCreated] once. The top Cancel calls
+ * [onBack]. Cancel and system back do nothing while a create is in progress or after the circle has
+ * been created.
  *
  * @param modifier Modifier applied to the root care circle layout.
  * @param context Used to display repository failures as a toast.
  * @param onCreated Called after the repository creates the circle.
+ * @param onBack Called when the user taps Cancel, unless a create is in progress or finished.
+ *   System back is ignored in those same states.
  * @param viewModel ViewModel holding the form state and handling creation.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateCareCircleScreen(
     modifier: Modifier = Modifier,
     context: Context = LocalContext.current,
     onCreated: () -> Unit = {},
+    onBack: () -> Unit = {},
     viewModel: CreateCareCircleViewModel = viewModel(),
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -91,16 +100,28 @@ fun CreateCareCircleScreen(
   // launch
   LaunchedEffect(viewModel) { viewModel.successEvents.collect { currentOnCreated() } }
 
-  Surface(
+  val isEditable = !uiState.isLoading && !uiState.isCreated
+  BackHandler(enabled = !isEditable) {}
+
+  Scaffold(
       modifier = modifier.fillMaxSize(),
-      color = MaterialTheme.colorScheme.background,
+      containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
-  ) {
+      topBar = {
+        TopAppBar(
+            title = {
+              TopNavigationMenu(
+                  action = TopNavigationAction.CANCEL,
+                  onBackClick = { if (isEditable) onBack() },
+              )
+            }
+        )
+      },
+  ) { innerPadding ->
     Column(
         modifier =
             Modifier.fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = CAREGIVER_PADDING_BIG, vertical = CAREGIVER_PADDING_BIG),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -108,13 +129,7 @@ fun CreateCareCircleScreen(
     ) {
       AmberHeader(horizontalAlignment = Alignment.CenterHorizontally)
 
-      Text(
-          text = stringResource(R.string.createCareCircleTitle),
-          modifier = Modifier.fillMaxWidth(WEIGHT_ONE).padding(top = CAREGIVER_PADDING_MEDIUM),
-          style = MaterialTheme.typography.headlineSmall,
-          textAlign = TextAlign.Center,
-          color = MaterialTheme.colorScheme.primary,
-      )
+      DisplayCaregiverTitle(title = stringResource(R.string.createCareCircleTitle))
 
       OnboardingOutlinedTextField(
           value = uiState.name,
@@ -124,7 +139,7 @@ fun CreateCareCircleScreen(
           placeholder = stringResource(R.string.createCareCircleNamePlaceholder),
           error = uiState.nameError?.asString(resources),
           errorTestTag = CreateCareCircleTestTags.NAME_ERROR,
-          enabled = !uiState.isLoading && !uiState.isCreated,
+          enabled = isEditable,
       )
 
       DisplayCaregiverButton(

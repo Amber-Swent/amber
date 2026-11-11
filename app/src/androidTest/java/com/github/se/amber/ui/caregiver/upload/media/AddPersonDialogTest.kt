@@ -1,6 +1,7 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -180,6 +181,9 @@ class AddPersonDialogTest {
     val fakeProfileRepo =
         object : ProfileRepository {
           override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+              error("Not used by this test")
+
+          override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
               error("Not used by this test")
 
           override suspend fun getCurrentProfile(): Result<UserProfile?> =
