@@ -27,6 +27,9 @@ private object PreviewDeleteAccountRepository :
 
   override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
 
+  override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+      error("Preview does not update profiles")
+
   override suspend fun getCurrentProfile(): Result<UserProfile?> =
       Result.success(UserProfile(uid = "preview-caregiver", role = Role.CAREGIVER))
 
