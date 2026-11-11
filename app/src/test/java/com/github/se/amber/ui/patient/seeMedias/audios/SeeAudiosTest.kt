@@ -155,6 +155,31 @@ class SeeAudiosScreenTest {
   }
 
   @Test
+  fun content_updates_when_audios_are_removed() {
+    val profile = UserProfile(uid = "patient", role = Role.PATIENT, person = Person())
+    val circle = CareCircle(id = "circle1")
+    val audio = MediaItem.Audio(id = "a1")
+    val secondAudio = MediaItem.Audio(id = "a2")
+    val uiState =
+        MutableStateFlow<SeeAudiosUIState>(
+            SeeAudiosUIState.Content(profile, circle, listOf(audio, secondAudio))
+        )
+    setContent(uiState = uiState)
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a2")).assertIsDisplayed()
+
+    composeTestRule.runOnIdle {
+      uiState.value = SeeAudiosUIState.Content(profile, circle, listOf(secondAudio))
+    }
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a2")).assertIsDisplayed()
+
+    composeTestRule.runOnIdle { uiState.value = SeeAudiosUIState.Empty(profile, circle) }
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a2")).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
+  }
+
+  @Test
   fun empty_state_shows_the_audio_message() {
     setContent()
 
@@ -278,6 +303,7 @@ class SeeAudiosScreenTest {
         .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
         .assertIsDisplayed()
         .assertTextEquals(string(R.string.seeAudiosEmpty))
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.CARD).assertDoesNotExist()
   }
 
   @Test
@@ -292,14 +318,21 @@ class SeeAudiosScreenTest {
     }
 
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.LOADING).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample1")).assertDoesNotExist()
 
     composeTestRule.runOnIdle { preview = 1 }
-    composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(SeeAudiosTestTags.ERROR)
+        .assertTextEquals(string(R.string.seeAudiosErrorLoadProfile))
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.LOADING).assertDoesNotExist()
 
     composeTestRule.runOnIdle { preview = 2 }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample1")).assertExists()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample2")).assertExists()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("sample1")).assertExists()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("sample2")).assertExists()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
   }
 
   @Test

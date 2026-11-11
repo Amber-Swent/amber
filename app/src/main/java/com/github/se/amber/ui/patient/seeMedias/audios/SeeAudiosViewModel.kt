@@ -90,9 +90,6 @@ class SeeAudiosViewModel(
   /** Reloads the screen after a blocking error. */
   fun retry() = load(showLoading = true)
 
-  /** Reloads data while keeping the current screen visible. */
-  fun refreshUIState() = load(showLoading = false)
-
   /**
    * Downloads [audio] on first play, then pauses or resumes its loaded file. Download and play
    * failures show an error on that audio card.
@@ -276,6 +273,10 @@ class SeeAudiosViewModel(
           }
           .collect { media ->
             val audios = media.filterIsInstance<MediaItem.Audio>()
+            if (activeAudioId != null && audios.none { it.id == activeAudioId }) {
+              playbackJob?.cancel()
+              activeFile?.let(audioPlayer::stop)
+            }
             _uiState.value =
                 if (audios.isEmpty()) {
                   SeeAudiosUIState.Empty(patientProfile = profile, careCircle = circle)

@@ -362,7 +362,7 @@
     <string name="seeAudiosRetry">Réessayer</string>
     <string name="seeAudiosErrorNoProfile">Aucun profil trouvé.</string>
     <string name="seeAudiosErrorLoadProfile">Impossible de charger le profil.</string>
-    <string name="seeAudiosErrorNoCircle">Aucun cercle de soins trouvé pour ce patient.</string>
+    <string name="seeAudiosErrorNoCircle">Vous ne faites pas encore partie d\'un cercle de soins.</string>
     <string name="seeAudiosErrorLoadCircle">Impossible de charger le cercle de soins.</string>
     <string name="seeAudiosErrorLoadMedia">Impossible de charger les médias.</string>
 

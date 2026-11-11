@@ -360,7 +360,7 @@
     <string name="seeAudiosRetry">Retry</string>
     <string name="seeAudiosErrorNoProfile">No profile found.</string>
     <string name="seeAudiosErrorLoadProfile">Failed to load the profile.</string>
-    <string name="seeAudiosErrorNoCircle">No care circle found for this patient.</string>
+    <string name="seeAudiosErrorNoCircle">You\'re not in a care circle yet..</string>
     <string name="seeAudiosErrorLoadCircle">Failed to load the care circle.</string>
     <string name="seeAudiosErrorLoadMedia">Failed to load the media.</string>
 
