@@ -27,6 +27,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
@@ -184,5 +185,26 @@ class DeleteAccountScreenTest {
 
     assertEquals(string(R.string.deleteAccountNetworkError), ShadowToast.getTextOfLatestToast())
     verify(exactly = 1) { viewModel.clearError() }
+  }
+
+  @Test
+  fun previewRendersWithoutFirebase() {
+    composeTestRule.setContent { DeleteAccountScreenPreview() }
+
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun previewUsesFrenchStrings() {
+    composeTestRule.setContent { DeleteAccountScreenPreview() }
+
+    composeTestRule
+        .onNodeWithTag(DeleteAccountTestTags.TITLE)
+        .assertTextEquals(string(R.string.deleteAccountTitle))
+    composeTestRule
+        .onNodeWithTag(DeleteAccountTestTags.BUTTON)
+        .assertTextEquals(string(R.string.deleteAccountTitle))
   }
 }

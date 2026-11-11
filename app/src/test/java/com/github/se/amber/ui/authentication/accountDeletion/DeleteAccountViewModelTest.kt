@@ -12,6 +12,7 @@ import androidx.credentials.exceptions.NoCredentialException
 import com.github.se.amber.R
 import com.github.se.amber.data.account.AccountDeletionError
 import com.github.se.amber.data.account.AccountDeletionRepository
+import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -207,6 +208,28 @@ class DeleteAccountViewModelTest {
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.warningsLoaded)
+  }
+
+  @Test
+  fun missingCirclePreventsDeletionDespiteOtherWarnings() = runTest {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(UserProfile(uid = "caregiver", circleIds = listOf("one", "missing")))
+    coEvery { circleRepository.getCircle("one") } returns
+        Result.success(CareCircle(name = "Arthur's family", memberIds = listOf("caregiver")))
+    coEvery { circleRepository.getCircle("missing") } returns
+        Result.failure(CareCircleError.NotFound)
+
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    viewModel.deleteAccount(context, credentialManager)
+
+    assertFalse(viewModel.uiState.value.warningsLoaded)
+    assertTrue(viewModel.uiState.value.warnings.isEmpty())
+    assertEquals(
+        R.string.deleteAccountCheckFamiliesError,
+        viewModel.uiState.value.errorMessageRes,
+    )
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
   }
 
   @Test
