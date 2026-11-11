@@ -39,6 +39,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
@@ -122,6 +124,12 @@ fun UploadAudioScreen(
       micLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
   }
+
+  // Android silences the microphone of an app that is no longer visible: the recording would go on,
+  // still shown as in progress, but only with silence. So it is stopped once the screen is hidden;
+  // what was recorded until then is kept, and the user can listen to it, send it or delete it.
+  // It does nothing if nothing is being recorded.
+  LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopRecording() }
 
   LaunchedEffect(errorMsgRes) {
     if (errorMsgRes != null) {

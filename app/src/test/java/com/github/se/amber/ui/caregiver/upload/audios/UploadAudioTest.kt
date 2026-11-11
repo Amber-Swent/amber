@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
@@ -138,6 +139,22 @@ class UploadAudioTest {
     clickRecord()
     answerPopup(PackageManager.PERMISSION_DENIED)
     verify(exactly = 0) { viewModel.startRecording() }
+  }
+
+  // ---------- app in the background ----------
+
+  @Test
+  fun opening_doesNotStopTheRecording() {
+    launchScreen()
+    verify(exactly = 0) { viewModel.stopRecording() }
+  }
+
+  @Test
+  fun movingTheAppToTheBackground_stopsTheRecording() {
+    launchScreen()
+    composeTestRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+    composeTestRule.waitForIdle()
+    verify(exactly = 1) { viewModel.stopRecording() }
   }
 
   // ---------- upload event ----------
