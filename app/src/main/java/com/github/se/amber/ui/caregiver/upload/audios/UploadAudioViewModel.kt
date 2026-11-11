@@ -278,7 +278,7 @@ class UploadAudioViewModel(
 
   /** Throws away the recording in progress, or the one that was recorded. */
   fun deleteRecording() {
-    discardRecording()?.delete()
+    discardRecording()?.let(::deleteOrWarn)
   }
 
   /** Cancel throws away the recording, in progress or recorded. */
@@ -335,11 +335,10 @@ class UploadAudioViewModel(
     val state = _uiState.value
     val file = state.audioFile
     file?.let { player.stop(it) }
-    // A recording that was never uploaded would stay on the phone until the next recording.
-    // An uploaded one was moved into the outbox: nothing is left at this path, so deleting does
-    // nothing.
-    // An upload still running is left alone: the outbox may be moving the file right now.
-    if (!state.common.isUploading) file?.delete()
+    // A recording that was never uploaded would stay on the phone until the next recording. An
+    // uploaded one was moved into the outbox: nothing is left at this path, so deleting does
+    // nothing. An upload still running is left alone: the outbox may be moving the file right now.
+    if (!state.common.isUploading) file?.let(::deleteOrWarn)
   }
 
   private companion object {

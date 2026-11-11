@@ -487,11 +487,13 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   @Volatile private var savedMedia: Pair<String, String>? = null
 
   /**
-   * The user cancels: stops the upload in progress, if any, so the media is not sent, and throws
-   * away what the screen holds (see [discardContent]). Always possible, also during an upload.
+   * The user cancels: stops the upload in progress, if any, and throws away what the screen holds
+   * (see [discardContent]). Always possible, also during an upload.
    *
-   * The media may reach the outbox just before the upload stops: it is then taken out of it. If its
-   * send had already begun, it may still reach Firebase ([MediaRepository.discardUnsent]).
+   * It takes the media back as far as it can, without guaranteeing it: the media may reach the
+   * outbox just before the upload stops, and is then taken out of it. But it may still be sent if
+   * it was already saved (the upload is over), if its send had already begun
+   * ([MediaRepository.discardUnsent]), or if taking it out of the outbox fails (only logged).
    */
   fun cancel() {
     val job = uploadJob
@@ -514,7 +516,19 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         }
       }
       savedMedia = null
-      leftover?.delete()
+      leftover?.let(::deleteOrWarn)
+    }
+  }
+
+  /**
+   * Deletes [file], and logs a warning if it is still there. A file left behind only wastes space
+   * in the cache, and the recorder or the picker deletes its leftovers later.
+   *
+   * @param file The file to delete.
+   */
+  protected fun deleteOrWarn(file: File) {
+    if (!file.delete() && file.exists()) {
+      Log.w(TAG, "Couldn't delete ${file.name}; it stays in the cache until it is cleaned up")
     }
   }
 

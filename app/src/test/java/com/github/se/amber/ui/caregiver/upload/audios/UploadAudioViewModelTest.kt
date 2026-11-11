@@ -3,6 +3,7 @@
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -26,8 +27,10 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
 import io.mockk.unmockkAll
+import io.mockk.verify
 import java.io.File
 import java.io.IOException
 import java.time.LocalDate
@@ -36,9 +39,11 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -617,6 +622,41 @@ class UploadAudioViewModelTest {
     assertEquals("user1", uploadedItem().authorId)
   }
 
+  // ---------- file that can't be deleted ----------
+
+  /**
+   * A recorded ViewModel whose file can't be deleted: a folder that isn't empty has taken its
+   * place.
+   */
+  private fun recordedViewModelWithAFileThatCantBeDeleted(): UploadAudioViewModel {
+    mockkStatic(Log::class)
+    every { Log.w(any<String>(), any<String>()) } returns 0
+    val vm = recordedViewModel()
+    val file = vm.uiState.value.audioFile!!
+    file.delete()
+    file.mkdir()
+    File(file, "inside").createNewFile()
+    return vm
+  }
+
+  @Test
+  fun deletingTheRecordingLogsAWarningWhenItsFileCantBeDeleted() {
+    recordedViewModelWithAFileThatCantBeDeleted().deleteRecording()
+    verify(exactly = 1) { Log.w(any<String>(), any<String>()) }
+  }
+
+  @Test
+  fun clearingTheViewModelLogsAWarningWhenTheFileCantBeDeleted() {
+    clear(recordedViewModelWithAFileThatCantBeDeleted())
+    verify(exactly = 1) { Log.w(any<String>(), any<String>()) }
+  }
+
+  @Test
+  fun cancelLogsAWarningWhenTheFileCantBeDeleted() {
+    recordedViewModelWithAFileThatCantBeDeleted().cancel()
+    verify(exactly = 1) { Log.w(any<String>(), any<String>()) }
+  }
+
   // ---------- onCleared ----------
 
   /** Clears [vm] the way Android does when its screen is gone: its store is cleared. */
@@ -732,6 +772,49 @@ class UploadAudioViewModelTest {
     vm.startRecording()
     vm.cancel()
     assertEquals(1, recorder.cancelCalls)
+  }
+
+  /** An upload that can't be canceled, like an outbox move already under way, until [gate]. */
+  private fun uploadStillRunningUntil(gate: CompletableDeferred<Unit>): UploadAudioViewModel {
+    coEvery { mediaRepo.addMedia(any(), any(), any()) } coAnswers
+        {
+          withContext(NonCancellable) { gate.await() }
+        }
+    return recordedViewModel().also { it.uploadMedia() }
+  }
+
+  @Test
+  fun cancelWaitsForTheUploadToStopBeforeTakingTheMediaOutOfTheOutbox() {
+    val vm = uploadStillRunningUntil(CompletableDeferred())
+    vm.cancel()
+    coVerify(exactly = 0) { mediaRepo.discardUnsent(any(), any()) }
+  }
+
+  @Test
+  fun cancelTakesTheMediaOutOfTheOutboxOnceTheUploadHasStopped() {
+    val gate = CompletableDeferred<Unit>()
+    val vm = uploadStillRunningUntil(gate)
+    vm.cancel()
+    gate.complete(Unit)
+    coVerify(exactly = 1) { mediaRepo.discardUnsent("circle1", "media1") }
+  }
+
+  @Test
+  fun aFailingDiscardStillDeletesTheRecordedFile() {
+    coEvery { mediaRepo.discardUnsent(any(), any()) } throws IOException("disk")
+    val vm = uploadInProgress()
+    val file = vm.uiState.value.audioFile!!
+    vm.cancel()
+    assertFalse(file.exists())
+  }
+
+  @Test
+  fun aFailingDiscardIsLogged() {
+    mockkStatic(Log::class)
+    every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+    coEvery { mediaRepo.discardUnsent(any(), any()) } throws IOException("disk")
+    uploadInProgress().cancel()
+    verify(exactly = 1) { Log.e(any<String>(), any<String>(), any<Throwable>()) }
   }
 
   @Test

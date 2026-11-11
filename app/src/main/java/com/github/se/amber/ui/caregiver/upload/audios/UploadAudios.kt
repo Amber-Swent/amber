@@ -87,8 +87,9 @@ object UploadAudioScreenTestTags {
  *   sending it to Firebase may still be pending, so the callback must not assume it has been
  *   delivered.
  * @param goBack The callback invoked when the user cancels (button or system back). Cancelling is
- *   always possible, also while the audio is being saved: the save is then stopped and nothing is
- *   sent.
+ *   always possible, also while the audio is being saved: the save is then stopped and the audio is
+ *   taken back as far as possible. It is best effort: once the audio is saved, or its send has
+ *   begun, it may still be sent.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,8 +130,8 @@ fun UploadAudioScreen(
     }
   }
 
-  // Cancel (button or system back): the ViewModel stops the save in progress,
-  // if any, and throws the audio away, so nothing is sent
+  // Cancel (button or system back): the ViewModel stops the save in progress, if any, and throws
+  // the audio away. Best effort: an audio already saved may still be sent
   val cancel = {
     viewModel.cancel()
     goBack()
