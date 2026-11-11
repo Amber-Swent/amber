@@ -1,13 +1,12 @@
 // Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
-package com.github.se.amber.ui.caregiver.upload
+package com.github.se.amber.data.media.picture
 
 import android.content.ContentResolver
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
-import com.github.se.amber.ui.caregiver.upload.picture.PickedImage
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReaderAndroid
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -207,6 +206,25 @@ class SelectedPictureReaderAndroidTest {
     runCatching { createReader().read(uriString) }
 
     verify(exactly = 0) { BitmapFactory.decodeFile(any(), any()) }
+  }
+
+  @Test
+  fun read_deletesTheCopyWhenThePictureCannotBeOpened() = runTest {
+    every { contentResolver.openInputStream(any()) } returns null
+
+    runCatching { createReader().read(uriString) }
+
+    assertEquals(emptyList<String>(), cacheDir.list()!!.toList())
+  }
+
+  @Test
+  fun read_deletesTheCopyWhenItIsNotAPicture() = runTest {
+    every { BitmapFactory.decodeFile(any(), any()) } returns null
+
+    val result = runCatching { createReader().read(uriString) }
+
+    assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+    assertEquals(emptyList<String>(), cacheDir.list()!!.toList())
   }
 
   @Test

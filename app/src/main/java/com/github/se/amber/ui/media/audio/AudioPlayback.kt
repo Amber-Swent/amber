@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
@@ -8,12 +9,8 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.progressSemantics
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.NonRestartableComposable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,11 +29,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.R
+import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.patient.DisplayPatientButton
-import com.github.se.amber.ui.patient.DisplayPatientIconButton
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
-import com.github.se.amber.ui.theme.PADDING_MINI
+import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
@@ -50,10 +46,6 @@ private const val SECONDS_PER_MINUTE = 60L
 private const val ZERO_MS = 0L
 private const val ZERO_FRACTION = 0f
 private const val SECOND_PAD_CHAR = '0'
-
-private const val PREVIEW_DURATION_MS = 190_000L
-private const val PREVIEW_PLAYING_POSITION_MS = 42_000L
-private const val PREVIEW_PAUSED_POSITION_MS = 95_000L
 
 /** How far one memo has played. Every memo except the active one is [AudioPlaybackState.Idle]. */
 sealed interface AudioPlaybackState {
@@ -119,6 +111,8 @@ object AudioPlaybackTestTags {
  * @param onPlayPause called for the play or pause button.
  * @param onRestart called for the restart button.
  * @param onRetry called for the retry button.
+ * @param waveform levels from 0 (silence) to 1 (the loudest), in playback order. The played portion
+ *   is colored by [DisplayAudioWaveform].
  */
 @NonRestartableComposable
 @Composable
@@ -128,6 +122,7 @@ fun DisplayAudioPlayback(
     onPlayPause: () -> Unit = {},
     onRestart: () -> Unit = {},
     onRetry: () -> Unit = {},
+    waveform: List<Float> = emptyList(),
 ) {
   Column(
       modifier =
@@ -150,7 +145,7 @@ fun DisplayAudioPlayback(
       is AudioPlaybackState.Idle,
       is AudioPlaybackState.Loading,
       is AudioPlaybackState.Playing,
-      is AudioPlaybackState.Paused -> PlaybackTransport(state, onPlayPause, onRestart)
+      is AudioPlaybackState.Paused -> PlaybackTransport(state, onPlayPause, onRestart, waveform)
     }
   }
 }
@@ -213,30 +208,30 @@ internal fun PlaybackTransport(
     state: AudioPlaybackState = AudioPlaybackState.Idle(),
     onPlayPause: () -> Unit = {},
     onRestart: () -> Unit = {},
+    waveform: List<Float> = emptyList(),
 ) {
   val enabled = playbackControlsEnabled(state)
-  Row(
-      horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-      verticalAlignment = Alignment.CenterVertically,
-  ) {
-    DisplayPatientIconButton(
-        icon = playPauseIcon(state),
-        description = stringResource(playPauseDescription(state)),
-        enabled = enabled,
-        showSpinner = state is AudioPlaybackState.Loading,
-        onClick = onPlayPause,
-        testTag = AudioPlaybackTestTags.PLAY_PAUSE,
-        spinnerTestTag = AudioPlaybackTestTags.SPINNER,
-    )
-    DisplayPatientIconButton(
-        icon = Icons.Outlined.Replay,
-        description = stringResource(R.string.audioPlaybackRestart),
-        enabled = enabled,
-        onClick = onRestart,
-        testTag = AudioPlaybackTestTags.RESTART,
-    )
-  }
-  PlaybackProgress(positionMs = state.positionMs, durationMs = state.durationMs)
+  val fraction = playbackFraction(state.positionMs, state.durationMs)
+  MediaAudio(
+      waveform = AudioWaveformState.Listening(levels = waveform, playedFraction = fraction),
+      leftIcon = playPauseIcon(state),
+      leftDescription = stringResource(playPauseDescription(state)),
+      onLeftClick = onPlayPause,
+      leftEnabled = enabled,
+      showLeftSpinner = state is AudioPlaybackState.Loading,
+      leftTestTag = AudioPlaybackTestTags.PLAY_PAUSE,
+      leftSpinnerTestTag = AudioPlaybackTestTags.SPINNER,
+      rightButton =
+          MediaAudioButton(
+              icon = Icons.Outlined.Replay,
+              description = stringResource(R.string.audioPlaybackRestart),
+              onClick = onRestart,
+              enabled = enabled,
+              testTag = AudioPlaybackTestTags.RESTART,
+          ),
+      waveformTestTag = AudioPlaybackTestTags.PROGRESS,
+      waveformModifier = Modifier.progressSemantics(fraction),
+  )
   Text(
       text = formatPlaybackTime(state.positionMs, state.durationMs),
       modifier = Modifier.fillMaxWidth(WEIGHT_ONE).testTag(AudioPlaybackTestTags.TIME),
@@ -266,52 +261,50 @@ internal fun PlaybackError(
   )
 }
 
+private const val PREVIEW_DURATION_MS = 190_000L
+private const val PREVIEW_PLAYING_POSITION_MS = 42_000L
+private const val PREVIEW_PAUSED_POSITION_MS = 95_000L
+private const val PREVIEW_WAVEFORM_PAIR = 2
+private val PREVIEW_WAVEFORM =
+    List(WAVEFORM_BARS) { if (it % PREVIEW_WAVEFORM_PAIR == 0) HALF else WEIGHT_ONE }
+
+/** The states shown by [AudioPlaybackLightPreview] and [AudioPlaybackDarkPreview]. */
 @Composable
-internal fun PlaybackProgress(positionMs: Long = ZERO_MS, durationMs: Long = ZERO_MS) {
-  val fraction = playbackFraction(positionMs, durationMs)
-  Box(
-      modifier =
-          Modifier.fillMaxWidth(WEIGHT_ONE)
-              .height(PADDING_MINI)
-              .clip(RoundedCornerShape(ROUND_CORNER))
-              .background(MaterialTheme.colorScheme.outline)
-              .progressSemantics(fraction)
-              .testTag(AudioPlaybackTestTags.PROGRESS)
-  ) {
-    Box(
-        modifier =
-            Modifier.fillMaxHeight()
-                .fillMaxWidth(fraction)
-                .background(MaterialTheme.colorScheme.secondary)
+private fun AudioPlaybackPreviewStates() {
+  Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
+    DisplayAudioPlayback(
+        state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS),
+        waveform = PREVIEW_WAVEFORM,
     )
+    DisplayAudioPlayback(
+        state =
+            AudioPlaybackState.Playing(
+                positionMs = PREVIEW_PLAYING_POSITION_MS,
+                durationMs = PREVIEW_DURATION_MS,
+            ),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(
+        state =
+            AudioPlaybackState.Paused(
+                positionMs = PREVIEW_PAUSED_POSITION_MS,
+                durationMs = PREVIEW_DURATION_MS,
+            ),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(
+        state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS),
+        waveform = PREVIEW_WAVEFORM,
+    )
+    DisplayAudioPlayback(state = AudioPlaybackState.Error())
   }
 }
 
 /** Preview of [DisplayAudioPlayback] in each state. */
 @Preview(showBackground = true, name = "Audio playback light")
 @Composable
-internal fun AudioPlaybackPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = false) {
-    Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
-      DisplayAudioPlayback(state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS))
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Playing(
-                  positionMs = PREVIEW_PLAYING_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              )
-      )
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Paused(
-                  positionMs = PREVIEW_PAUSED_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              )
-      )
-      DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS))
-      DisplayAudioPlayback(state = AudioPlaybackState.Error())
-    }
-  }
+internal fun AudioPlaybackLightPreview() {
+  AmberAppTheme(dynamicColor = false, darkTheme = false) { AudioPlaybackPreviewStates() }
 }
 
 @Preview(
@@ -321,25 +314,5 @@ internal fun AudioPlaybackPreview() {
 )
 @Composable
 internal fun AudioPlaybackDarkPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = true) {
-    Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_MEDIUM)) {
-      DisplayAudioPlayback(state = AudioPlaybackState.Idle(durationMs = PREVIEW_DURATION_MS))
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Playing(
-                  positionMs = PREVIEW_PLAYING_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              )
-      )
-      DisplayAudioPlayback(
-          state =
-              AudioPlaybackState.Paused(
-                  positionMs = PREVIEW_PAUSED_POSITION_MS,
-                  durationMs = PREVIEW_DURATION_MS,
-              )
-      )
-      DisplayAudioPlayback(state = AudioPlaybackState.Loading(durationMs = PREVIEW_DURATION_MS))
-      DisplayAudioPlayback(state = AudioPlaybackState.Error())
-    }
-  }
+  AmberAppTheme(dynamicColor = false, darkTheme = true) { AudioPlaybackPreviewStates() }
 }

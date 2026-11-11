@@ -184,6 +184,8 @@ dependencies {
   globalTestImplementation(libs.compose.test.junit)
   debugImplementation(libs.compose.test.manifest)
   androidTestImplementation(libs.androidx.navigation.testing)
+  // Drives the system Photo Picker in the end-to-end tests
+  androidTestImplementation(libs.androidx.uiautomator)
 
   // --------- Kaspresso test framework ----------
   globalTestImplementation(libs.kaspresso)
@@ -204,6 +206,7 @@ dependencies {
   // ----------          Coil         ------------
   // Decodes and displays local media files; the files themselves come from MediaFileCache.
   implementation(libs.coil.compose)
+  implementation(libs.androidx.exifinterface)
 
   // ----------         Firebase      ------------
   implementation(platform(libs.firebase.bom))
@@ -214,6 +217,10 @@ dependencies {
   implementation(libs.firebase.storage)
   // Task.await() for Firebase calls
   implementation(libs.kotlinx.coroutines.play.services)
+
+  // ----------       DataStore       ------------
+  // Remembers which care circle is active on this device, per signed-in user.
+  implementation(libs.androidx.datastore.preferences)
 
   // ----------      WorkManager      ------------
   // background sends of the media outbox

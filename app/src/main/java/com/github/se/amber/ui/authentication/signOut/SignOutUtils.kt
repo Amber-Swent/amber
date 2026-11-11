@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -25,12 +26,15 @@ import androidx.compose.ui.unit.Dp
 import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.ROUND_CORNER
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /** No-op [AuthRepository] used by Compose previews (and preview-driven tests). */
 internal object PreviewSignOutAuthRepository : AuthRepository {
@@ -43,6 +47,15 @@ internal object PreviewSignOutAuthRepository : AuthRepository {
       Result.failure(UnsupportedOperationException("Preview auth repository"))
 
   override suspend fun signOut(): Result<Unit> = Result.success(Unit)
+}
+
+/** No-op [ActiveCircleRepository] used by Compose previews, so they never open DataStore. */
+internal object PreviewActiveCircleRepository : ActiveCircleRepository {
+  override fun activeCircleId(uid: String, circleIds: List<String>): Flow<String?> = flowOf(null)
+
+  override suspend fun setActiveCircle(uid: String, id: String) = Unit
+
+  override suspend fun clear(uid: String) = Unit
 }
 
 /** Test tags owned by [SignOutButton]. */
@@ -100,7 +113,8 @@ fun SignOutButton(
   }
 }
 
-internal val previewSignOutViewModel = SignOutViewModel(PreviewSignOutAuthRepository)
+internal val previewSignOutViewModel =
+    SignOutViewModel(PreviewSignOutAuthRepository, PreviewActiveCircleRepository)
 
 /** Preview of [SignOutButton] using the Amber application theme. */
 @Preview(showBackground = true)

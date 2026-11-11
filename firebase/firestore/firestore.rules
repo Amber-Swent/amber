@@ -3,6 +3,8 @@
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Yuhan YANG, with assistance from Cursor.
 rules_version = '2';
 
 service cloud.firestore {
@@ -69,14 +71,19 @@ service cloud.firestore {
         && getAfter(userPath(request.auth.uid)).data.role == 'CAREGIVER';
     }
 
-    function isInitialCareCircleLink() {
-      let circleId = request.resource.data.circleIds[0];
+    // Caregiver-only. circleIds may gain exactly one id, including when the user already
+    // has circles, and only for a circle this same commit creates for that user.
+    function isOwnNewCareCircleLink() {
+      let beforeIds = resource.data.circleIds;
+      let afterIds = request.resource.data.circleIds;
+      let added = afterIds.removeAll(beforeIds);
       return resource.data.role == 'CAREGIVER'
-        && resource.data.circleIds.size() == 0
-        && request.resource.data.circleIds.size() == 1
-        && !exists(circlePath(circleId))
-        && circleDocAfter(circleId).createdBy == request.auth.uid
-        && circleDocAfter(circleId).memberIds == [request.auth.uid];
+        && afterIds.size() == beforeIds.size() + 1
+        && added.size() == 1
+        && beforeIds.removeAll(afterIds).size() == 0
+        && !exists(circlePath(added[0]))
+        && circleDocAfter(added[0]).createdBy == request.auth.uid
+        && circleDocAfter(added[0]).memberIds == [request.auth.uid];
     }
 
     function sharesCircleWith() {
@@ -148,18 +155,27 @@ service cloud.firestore {
       allow update: if isSelf(uid)
         && !isBeingDeleted()
         && request.resource.data.uid == uid
-        && request.resource.data.role == resource.data.role
+        && request.resource.data.role in ['CAREGIVER', 'PATIENT']
         && (
           (
-            request.resource.data.circleIds == resource.data.circleIds
+            request.resource.data.role == resource.data.role
+            && request.resource.data.circleIds == resource.data.circleIds
             && request.resource.data.diff(resource.data)
                  .affectedKeys().hasOnly(['person'])
           )
           || (
-            request.resource.data.person == resource.data.person
+            request.resource.data.role == resource.data.role
+            && request.resource.data.person == resource.data.person
             && request.resource.data.diff(resource.data)
                  .affectedKeys().hasOnly(['circleIds'])
-            && isInitialCareCircleLink()
+            && isOwnNewCareCircleLink()
+          )
+          || (
+            // A wrong onboarding role can be corrected until the user joins a circle.
+            resource.data.circleIds.size() == 0
+            && request.resource.data.circleIds.size() == 0
+            && request.resource.data.diff(resource.data)
+                 .affectedKeys().hasOnly(['role', 'person'])
           )
         );
 

@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
@@ -28,6 +29,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.R
+import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_HEIGHT
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import org.junit.Assert.assertEquals
@@ -151,12 +153,15 @@ class AudioPlaybackTest {
   }
 
   @Test
-  fun progressDefault_isEmpty() {
-    composeTestRule.setContent { AmberAppTheme { PlaybackProgress() } }
+  fun progressDefault_isTheSharedWaveform() {
+    composeTestRule.setContent { AmberAppTheme { PlaybackTransport() } }
 
     composeTestRule
         .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
         .assertRangeInfoEquals(rangeInfo(0f))
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.PROGRESS)
+        .assertHeightIsEqualTo(AUDIO_WAVEFORM_HEIGHT)
   }
 
   @Test
@@ -452,7 +457,7 @@ class AudioPlaybackTest {
 
   @Test
   fun preview_showsEveryPlaybackState() {
-    composeTestRule.setContent { AudioPlaybackPreview() }
+    composeTestRule.setContent { AudioPlaybackLightPreview() }
 
     composeTestRule.onNodeWithText("0:42 / 3:10").assertIsDisplayed()
     composeTestRule.onNodeWithText("1:35 / 3:10").assertIsDisplayed()
