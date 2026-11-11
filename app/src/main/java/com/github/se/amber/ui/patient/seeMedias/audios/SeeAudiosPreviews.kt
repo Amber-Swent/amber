@@ -1,5 +1,4 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
-// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 

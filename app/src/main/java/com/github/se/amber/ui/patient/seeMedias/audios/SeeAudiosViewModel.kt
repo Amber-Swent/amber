@@ -30,6 +30,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 
+/**
+ * Patient audio list state. Errors block the screen until data is loaded; later errors keep the
+ * current list visible. Playback state is exposed separately for each audio ID.
+ */
 sealed interface SeeAudiosUIState {
   data object Loading : SeeAudiosUIState
 
@@ -49,7 +53,15 @@ sealed interface SeeAudiosUIState {
   ) : SeeAudiosUIState
 }
 
-/** Loads the patient, care circle, and approved audio memories. */
+/**
+ * Loads the patient's approved audio memories from their first care circle. Uses the shared
+ * [AudioPlayer] and exposes the state of each audio card without changing the list state.
+ *
+ * @param mediaRepository observes approved media and downloads audio files.
+ * @param circleRepository loads the patient's care circle.
+ * @param profileRepository loads the current patient profile.
+ * @param audioPlayer plays audio and reports playback progress.
+ */
 class SeeAudiosViewModel(
     private val mediaRepository: MediaRepository = MediaRepositoryProvider.repository,
     private val circleRepository: CareCircleRepository =
@@ -73,10 +85,18 @@ class SeeAudiosViewModel(
     load()
   }
 
+  /** Reloads the screen after a blocking error. */
   fun retry() = load(showLoading = true)
 
+  /** Reloads data while keeping the current screen visible. */
   fun refreshUIState() = load(showLoading = false)
 
+  /**
+   * Downloads [audio] on first play, then pauses or resumes its loaded file. Download and play
+   * failures show an error on that audio card.
+   *
+   * @param audio the memory whose playback button was pressed.
+   */
   fun onPlayPause(audio: MediaItem.Audio) {
     val circle = (_uiState.value as? SeeAudiosUIState.Content)?.careCircle ?: return
     val playerState = audioPlayer.state.value
@@ -124,6 +144,7 @@ class SeeAudiosViewModel(
     _playbackStates.value += (id to state)
   }
 
+  /** Applies player progress only when its file matches this screen's active audio. */
   private fun updatePlaybackState(playerState: AudioState) {
     val id = activeAudioId ?: return
     if (loadingAudioId == id || _playbackStates.value[id] is AudioPlaybackState.Error) return
@@ -141,12 +162,14 @@ class SeeAudiosViewModel(
     setPlaybackState(id, state)
   }
 
+  /** Seeks the loaded [audio] to the start. */
   fun onRestart(audio: MediaItem.Audio) {
     if (activeAudioId == audio.id && audioPlayer.state.value.file == activeFile) {
       audioPlayer.seekTo(0L)
     }
   }
 
+  /** Clears the transient media-loading error after the screen displays it. */
   fun clearErrorMsg() {
     when (val state = _uiState.value) {
       is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsgRes = null)

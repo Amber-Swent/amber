@@ -49,7 +49,7 @@ import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH_BIG
 import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
-/** Test tags for the title and empty message on [SeeAudiosScreen]. */
+/** Test tags for the title, messages, and audio cards on [SeeAudiosScreen]. */
 object SeeAudiosTestTags {
   const val NO_AUDIOS = "see_audios_no_audios"
   const val ERROR = "see_audios_error"
@@ -61,11 +61,14 @@ object SeeAudiosTestTags {
 }
 
 /**
- * Displays the patient's approved audios and their media cards.
+ * Displays approved audios in a scrollable list with playback controls and a media card for each
+ * memory. Loading and blocking errors replace the list; playback errors stay on their audio card.
  *
- * @param audioViewModel provides the screen's UI state.
+ * @param audioViewModel provides list and per-card playback states.
  * @param onBackClick called when the top navigation action is selected.
  * @param onTabSelected called when a bottom navigation tab is selected.
+ * @param onPlayAudio optional callback after a playback button click.
+ * @param onReplayAudio optional callback after a restart button click.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
