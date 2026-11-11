@@ -252,6 +252,11 @@
     <string name="uploadAudioDescriptionEmpty">La description ne peut pas être vide</string>
     <string name="uploadAudioUploading">Envoi…</string>
     <string name="uploadAudioUpload">Ajouter l\'audio</string>
+    <string name="uploadAudioErrorRecord">Veuillez d\'abord enregistrer un audio</string>
+    <string name="uploadAudioErrorMicrophoneNotAllowed">L\'utilisation du micro n\'est pas autorisée</string>
+    <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
+    <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
+    <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Fermer</string>

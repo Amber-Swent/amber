@@ -251,6 +251,11 @@
     <string name="uploadAudioDescriptionEmpty">Description cannot be empty</string>
     <string name="uploadAudioUploading">Uploading…</string>
     <string name="uploadAudioUpload">Upload Audio</string>
+    <string name="uploadAudioErrorRecord">Please record an audio first</string>
+    <string name="uploadAudioErrorMicrophoneNotAllowed">The use of the microphone isn\'t permitted</string>
+    <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
+    <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
+    <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>
