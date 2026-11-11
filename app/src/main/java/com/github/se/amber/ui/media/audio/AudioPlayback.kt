@@ -31,7 +31,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.patient.DisplayPatientButton
-import com.github.se.amber.ui.patient.DisplayPatientCircularIconButton
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.HALF

@@ -4,12 +4,18 @@
 package com.github.se.amber.ui.media
 
 import android.content.Context
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -32,6 +38,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -78,16 +85,24 @@ class MediaCardTest {
   }
 
   // The ViewModel is created before the composition. Its load only runs once the card is expanded.
-  private fun setCard(media: MediaItem, testTag: String = "media_card") {
+  private fun setCard(
+      media: MediaItem,
+      testTag: String = "media_card",
+      modifier: Modifier = Modifier,
+      fontScale: Float = 1f,
+  ) {
     val viewModel = MediaCardViewModel(profileRepository, circleRepository)
     composeTestRule.setContent {
+      val density = LocalDensity.current
       AmberAppTheme(dynamicColor = false) {
-        MediaCard(
-            modifier = Modifier,
-            media = media,
-            testTag = testTag,
-            mediaCardViewModel = viewModel,
-        )
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+          MediaCard(
+              modifier = Modifier,
+              media = media,
+              testTag = testTag,
+              mediaCardViewModel = viewModel,
+          )
+        }
       }
     }
     composeTestRule.waitForIdle()
@@ -149,6 +164,59 @@ class MediaCardTest {
     composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("m1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertDoesNotExist()
+  }
+
+  // ---------- layout ----------
+
+  private val longLocation =
+      GeoLocation(
+          lat = 46.5,
+          lng = 6.6,
+          placeName = "Chemin des Très Longues Prairies de la Vallée de la Broye, Lausanne, Suisse",
+      )
+
+  /**
+   * With a narrow card and long texts, the toggle button must stay fully inside the card, must not
+   * overlap the date/location column, and must remain clickable.
+   */
+  private fun assertToggleSurvivesConstrainedLayout(fontScale: Float) {
+    setCard(
+        picture(
+            date = MemoryDate(year = 2024, month = Month.MARCH, day = 5),
+            location = longLocation,
+        ),
+        modifier = Modifier.width(200.dp),
+        fontScale = fontScale,
+    )
+
+    val toggleTag = MediaCardTestTags.toggleButtonTextShow("m1")
+    composeTestRule.onNodeWithTag(toggleTag).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).assertIsDisplayed()
+
+    val toggle = composeTestRule.onNodeWithTag(toggleTag).getUnclippedBoundsInRoot()
+    val date =
+        composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).getUnclippedBoundsInRoot()
+    val location =
+        composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).getUnclippedBoundsInRoot()
+    assertTrue("toggle must stay inside the card", toggle.right <= 200.dp)
+    assertTrue("toggle must not overlap the date", toggle.right <= date.left)
+    assertTrue("toggle must not overlap the location", toggle.right <= location.left)
+
+    // still clickable: the card expands
+    toggle()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertIsDisplayed()
+  }
+
+  @Test
+  fun toggleButton_staysVisibleAndClickable_withNarrowWidthAndLongLocation() {
+    assertToggleSurvivesConstrainedLayout(fontScale = 1f)
+  }
+
+  @Test
+  fun toggleButton_staysVisibleAndClickable_withNarrowWidthAndLargeFont() {
+    assertToggleSurvivesConstrainedLayout(fontScale = 2f)
   }
 
   // ---------- date ----------

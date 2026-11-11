@@ -12,6 +12,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -215,6 +218,18 @@ class PatientUtilsTest {
   }
 
   @Test
+  fun button_iconWithoutDescription_isDecorative() {
+    composeTestRule.setContent {
+      AmberAppTheme { DisplayPatientButton(text = "Add", icon = Icons.Default.Add) }
+    }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
+        .assertIsDisplayed()
+        .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+  }
+
+  @Test
   fun buttons_withAllDefaults_clickDoesNothing() {
     composeTestRule.setContent {
       AmberAppTheme {
@@ -334,7 +349,12 @@ class PatientUtilsTest {
       AmberAppTheme {
         Column {
           Box(Modifier.width(300.dp)) {
-            DisplayPatientButton(text = "Go", fillWidth = false, testTag = "plain")
+            DisplayPatientButton(
+                text = "Go",
+                buttonWidth = 0.3f,
+                fillWidth = false,
+                testTag = "plain",
+            )
           }
           Box(Modifier.width(300.dp)) {
             DisplayPatientButton(
@@ -375,8 +395,11 @@ class PatientUtilsTest {
         .onNodeWithTag(PatientUtilsTestTags.BUTTON_ICON, useUnmergedTree = true)
         .assertContentDescriptionEquals("add icon")
 
-    val ignored = composeTestRule.onNodeWithTag("ignored_width")
-    assertTrue(ignored.getUnclippedBoundsInRoot().width < 300.dp)
+    // buttonWidth (0.3f vs 1f) must have no effect when fillWidth = false.
+    val plainWidth = plain.getUnclippedBoundsInRoot().width
+    val ignoredWidth =
+        composeTestRule.onNodeWithTag("ignored_width").getUnclippedBoundsInRoot().width
+    assertEquals(plainWidth, ignoredWidth)
 
     composeTestRule.onNodeWithTag("explicit").assertWidthIsEqualTo(200.dp).performClick()
     assertEquals(1, clickCount)
