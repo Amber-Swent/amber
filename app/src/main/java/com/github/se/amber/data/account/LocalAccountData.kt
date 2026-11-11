@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.account
 
@@ -7,7 +8,6 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.media.MediaRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
-import java.io.IOException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -28,9 +28,8 @@ fun interface LocalAccountData {
 }
 
 /**
- * Clears the media and its background sends, the decoded pictures in memory and the temporary
- * pictures and voice memos in [cacheDir], then signs out, which also clears the credential provider
- * state: the local Firebase session would otherwise outlive the deleted account.
+ * Clears the phone through [DeviceLocalPhone], then signs out, which also clears the credential
+ * provider state: the local Firebase session would otherwise outlive the deleted account.
  *
  * Firestore's copy of the user's documents goes last, once everything else worked: clearing it
  * needs a stopped Firestore, which the repositories can't use any more, so the process ends. It
@@ -60,13 +59,19 @@ class DeviceLocalAccountData(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : LocalAccountData {
 
+  private val phone =
+      DeviceLocalPhone(
+          mediaRepository = mediaRepository,
+          imageMemory = imageMemory,
+          cacheDir = cacheDir,
+          ioDispatcher = ioDispatcher,
+      )
+
   override suspend fun clear(): Unit =
       withContext(NonCancellable) {
         val failures =
             listOf<suspend () -> Unit>(
-                    { mediaRepository.clearLocalMedia() },
-                    { imageMemory.clearAll() },
-                    { deleteTemporaryFiles() },
+                    { phone.clear() },
                     { authRepository.signOut().getOrThrow() },
                 )
                 .mapNotNull { step -> failureOf(step) }
@@ -92,30 +97,4 @@ class DeviceLocalAccountData(
       } catch (exception: Exception) {
         exception
       }
-
-  /**
-   * Deletes the files SelectedPictureReaderAndroid copies picked pictures to, camera photos, and
-   * voice memos that weren't uploaded: the recorder and the audio reader leave them as .m4a files
-   * anywhere in the cache.
-   */
-  private suspend fun deleteTemporaryFiles() =
-      withContext(ioDispatcher) {
-        val picked = cacheDir.listFiles { file ->
-          file.name.startsWith(PICKED_PREFIX) && file.name.endsWith(PICTURE_SUFFIX)
-        }
-        val memos = cacheDir.walkTopDown().filter { it.isFile && it.extension == MEMO_EXTENSION }
-        val captured = File(cacheDir, CAPTURED_DIR)
-        // map, not all: a file that can't be deleted must not keep the next ones
-        val allDeleted =
-            (picked.orEmpty().toList() + memos).map { it.delete() }.all { it } and
-                captured.deleteRecursively()
-        if (!allDeleted) throw IOException("Some temporary files could not be deleted")
-      }
-
-  private companion object {
-    const val PICKED_PREFIX = "picked_"
-    const val PICTURE_SUFFIX = ".jpg"
-    const val CAPTURED_DIR = "captured_pictures"
-    const val MEMO_EXTENSION = "m4a"
-  }
 }
