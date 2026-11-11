@@ -240,6 +240,8 @@
     <string name="uploadPictureUpload">Ajouter la photo</string>
     <string name="uploadPictureErrorSelect">Veuillez d\'abord sélectionner une photo</string>
     <string name="uploadPictureErrorRead">Impossible de lire votre photo</string>
+    <string name="uploadPictureErrorCamera">Impossible d\'ouvrir l\'appareil photo</string>
+    <string name="uploadPictureErrorNotAPhoto">Seules les photos peuvent être envoyées. Touchez l\'appareil photo pour prendre une photo.</string>
 
     <!-- UploadAudio -->
     <string name="uploadAudioTitle">Ajouter un audio</string>

@@ -5,6 +5,14 @@
 
 package com.github.se.amber.ui.caregiver.upload.pictures
 
+import android.content.ActivityNotFoundException
+import androidx.activity.compose.LocalActivityResultRegistryOwner
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.ActivityResultRegistryOwner
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -17,6 +25,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -24,6 +33,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.core.app.ActivityOptionsCompat
+import androidx.core.os.bundleOf
+import androidx.lifecycle.DEFAULT_ARGS_KEY
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewmodel.MutableCreationExtras
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.compose.viewModel as defaultViewModel
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
@@ -37,7 +54,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.io.File
 import java.time.Month
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -84,6 +103,40 @@ class UploadPicturesTest {
     }
   }
 
+  private val CAPTURE_URI = "content://test/capture.jpg"
+
+  /** Answers the camera without leaving the screen. */
+  private inner class FakeResults : ActivityResultRegistry() {
+    val launchedContracts = mutableListOf<ActivityResultContract<*, *>>()
+    var pictureSaved = true
+    var launchFailure: RuntimeException? = null
+    var answersAtOnce = true
+    var pendingRequest: Int? = null
+
+    override fun <I, O> onLaunch(
+        requestCode: Int,
+        contract: ActivityResultContract<I, O>,
+        input: I,
+        options: ActivityOptionsCompat?,
+    ) {
+      launchedContracts += contract
+      launchFailure?.let { throw it }
+      if (answersAtOnce) dispatchResult(requestCode, pictureSaved) else pendingRequest = requestCode
+    }
+  }
+
+  @Composable
+  private fun ScreenWithCamera(results: ActivityResultRegistry) {
+    val owner = remember {
+      object : ActivityResultRegistryOwner {
+        override val activityResultRegistry = results
+      }
+    }
+    CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner) {
+      UploadPictureScreen(viewModel = viewModel)
+    }
+  }
+
   private fun fillValidForm() {
     composeTestRule.runOnIdle {
       uiStateFlow.value =
@@ -97,6 +150,89 @@ class UploadPicturesTest {
                       date = MemoryDate(2000, Month.OCTOBER, 10),
                   ),
           )
+    }
+  }
+
+  // ---------- camera ----------
+
+  @Test
+  fun cameraButtonStartsACaptureAndEachResultIsReportedForItsFile() {
+    val requests = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    every { viewModel.cameraRequests } returns requests
+    val results = FakeResults()
+    composeTestRule.setContent { ScreenWithCamera(results) }
+    fun openCamera(uri: String) {
+      composeTestRule.runOnIdle { requests.tryEmit(uri) }
+      composeTestRule.waitForIdle()
+    }
+
+    // no permission is asked for: nothing is launched until the camera itself is opened
+    composeTestRule
+        .onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE)
+        .performScrollTo()
+        .performClick()
+    composeTestRule.waitForIdle()
+    verify(exactly = 1) { viewModel.onTakePicture() }
+    assertTrue(results.launchedContracts.isEmpty())
+
+    openCamera("content://test/saved.jpg")
+    verify(exactly = 1) { viewModel.onPictureCaptured("content://test/saved.jpg") }
+
+    results.pictureSaved = false
+    openCamera("content://test/cancelled.jpg")
+    verify(exactly = 1) { viewModel.onCaptureCancelled("content://test/cancelled.jpg") }
+
+    results.launchFailure = ActivityNotFoundException()
+    openCamera("content://test/no_app.jpg")
+    verify(exactly = 1) { viewModel.onCameraUnavailable("content://test/no_app.jpg") }
+
+    results.launchFailure = SecurityException("Camera permission not granted")
+    openCamera("content://test/refused.jpg")
+    verify(exactly = 1) { viewModel.onCameraUnavailable("content://test/refused.jpg") }
+  }
+
+  @Test
+  fun theCameraResultReachesTheRightFileAfterTheActivityIsRecreated() {
+    val requests = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    every { viewModel.cameraRequests } returns requests
+    val results = FakeResults().apply { answersAtOnce = false }
+    val restoration = StateRestorationTester(composeTestRule)
+    restoration.setContent { ScreenWithCamera(results) }
+    composeTestRule.runOnIdle { requests.tryEmit(CAPTURE_URI) }
+    composeTestRule.waitForIdle()
+
+    restoration.emulateSavedInstanceStateRestore()
+    composeTestRule.runOnIdle { results.dispatchResult(results.pendingRequest!!, true) }
+
+    composeTestRule.waitForIdle()
+    verify(exactly = 1) { viewModel.onPictureCaptured(CAPTURE_URI) }
+  }
+
+  @Test
+  fun theDefaultViewModelRestoresItsSavedForm() {
+    val draft =
+        SavedStateHandle().apply {
+          saveDraft(UploadPictureUIState(common = CommonMediaUIState(description = "At the lake")))
+        }
+    lateinit var restored: UploadPictureViewModel
+    composeTestRule.setContent {
+      val owner = checkNotNull(LocalViewModelStoreOwner.current)
+      // what Android hands the factory when it restores the screen
+      val extras =
+          MutableCreationExtras(
+                  (owner as HasDefaultViewModelProviderFactory).defaultViewModelCreationExtras
+              )
+              .apply {
+                set(
+                    DEFAULT_ARGS_KEY,
+                    bundleOf(*draft.keys().map { it to draft.get<Any>(it) }.toTypedArray()),
+                )
+              }
+      restored = defaultViewModel(factory = UploadPictureViewModel.Factory, extras = extras)
+    }
+
+    composeTestRule.runOnIdle {
+      assertEquals("At the lake", restored.uiState.value.common.description)
     }
   }
 

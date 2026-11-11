@@ -405,6 +405,12 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       shownIds: List<String>,
   ): MediaItem
 
+  /** Called once the repository has saved the media, before the screen is told it was uploaded. */
+  protected open fun onUploaded() {
+    // Nothing to do by default: only a screen that keeps files of its own (the picture's camera
+    // captures) needs to know the upload took its file
+  }
+
   /** This circle's saved places that are real points on the map. */
   private fun CareCircle.pickablePlaces(): Map<String, Place> = places.filterValues {
     it.location.lat != null && it.location.lng != null
@@ -599,6 +605,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         mediaRepo.addMedia(circle, item, fileOf(state))
         // Saved for good: cancel no longer has anything to take back
         savedMedia = null
+        onUploaded()
         updateCommon { it.copy(isUploading = false) }
         _events.send(MediaEvent.Uploaded)
       } catch (e: CancellationException) {
