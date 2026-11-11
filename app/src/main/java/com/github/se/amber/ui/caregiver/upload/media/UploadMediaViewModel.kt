@@ -48,6 +48,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -603,6 +604,9 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         savedMedia = circle.id to id
         val item = createItem(id, saved, ready.authorId, circle, ready.date, shownIds)
         mediaRepo.addMedia(circle, item, fileOf(state))
+        // addMedia can't always be stopped halfway: if the user canceled meanwhile, the media is in
+        // the outbox all the same. Stopping here keeps savedMedia, so cancel takes it out.
+        ensureActive()
         // Saved for good: cancel no longer has anything to take back
         savedMedia = null
         onUploaded()
