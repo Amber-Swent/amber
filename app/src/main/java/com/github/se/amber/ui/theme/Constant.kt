@@ -128,6 +128,7 @@ const val SECOND_FIELD_WIDTH = 2
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f
 const val HALF = 0.5f
+const val WEIGHT_FIFTEENTH = 0.15f
 
 const val WEIGHT_TWO = 2f
 

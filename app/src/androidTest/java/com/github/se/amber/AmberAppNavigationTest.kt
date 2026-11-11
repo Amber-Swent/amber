@@ -76,9 +76,12 @@ class AmberAppNavigationTest {
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
     const val CAREGIVER_PARAMETERS_SIGN_OUT = CaregiverParametersTestTags.SIGN_OUT_BUTTON
+    const val CAREGIVER_PARAMETERS_DELETE_ACCOUNT =
+        CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON
     const val CREATE_INVITATION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val SIGN_OUT_CONFIRM = SignOutButtonTestTags.BUTTON
     const val SIGN_OUT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val DELETE_ACCOUNT_CANCEL = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Patient
     val PATIENT_TAB_HOME = tabTag(PatientTab.Home)
@@ -346,6 +349,20 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_PARAMETERS_SIGN_OUT)
 
     assertRoute(CaregiverScreen.SignOut.route)
+  }
+
+  @Test
+  fun parameters_deleteAccount_opensConfirmation_thenCancelReturnsToParameters() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+
+    click(Tags.CAREGIVER_PARAMETERS_DELETE_ACCOUNT)
+
+    assertRoute(CaregiverScreen.DeleteAccount.route)
+
+    click(Tags.DELETE_ACCOUNT_CANCEL)
+
+    assertRoute(CaregiverScreen.Parameters.route)
   }
 
   @Test
