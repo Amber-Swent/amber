@@ -97,7 +97,7 @@ class MediaCardTest {
       AmberAppTheme(dynamicColor = false) {
         CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
           MediaCard(
-              modifier = Modifier,
+              modifier = modifier,
               media = media,
               testTag = testTag,
               mediaCardViewModel = viewModel,
@@ -175,37 +175,40 @@ class MediaCardTest {
           placeName = "Chemin des Très Longues Prairies de la Vallée de la Broye, Lausanne, Suisse",
       )
 
-  /**
-   * With a narrow card and long texts, the toggle button must stay fully inside the card, must not
-   * overlap the date/location column, and must remain clickable.
-   */
+  private val cardWidth = 200.dp
+
+  /** The toggle, the date and the location are displayed, and the toggle overlaps neither. */
+  private fun assertHeaderLayoutIsSound(toggleTag: String) {
+    composeTestRule.onNodeWithTag(toggleTag).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).assertIsDisplayed()
+
+    val toggleBounds = composeTestRule.onNodeWithTag(toggleTag).getUnclippedBoundsInRoot()
+    val dateBounds =
+        composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).getUnclippedBoundsInRoot()
+    val locationBounds =
+        composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).getUnclippedBoundsInRoot()
+    assertTrue("toggle must stay inside the card", toggleBounds.right <= cardWidth)
+    assertTrue("toggle must not overlap the date", toggleBounds.right <= dateBounds.left)
+    assertTrue("toggle must not overlap the location", toggleBounds.right <= locationBounds.left)
+  }
+
+  /** Checks the header layout both collapsed and expanded, in a narrow card with long texts. */
   private fun assertToggleSurvivesConstrainedLayout(fontScale: Float) {
     setCard(
         picture(
             date = MemoryDate(year = 2024, month = Month.MARCH, day = 5),
             location = longLocation,
         ),
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.width(cardWidth),
         fontScale = fontScale,
     )
 
-    val toggleTag = MediaCardTestTags.toggleButtonTextShow("m1")
-    composeTestRule.onNodeWithTag(toggleTag).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).assertIsDisplayed()
+    assertHeaderLayoutIsSound(MediaCardTestTags.toggleButtonTextShow("m1"))
 
-    val toggle = composeTestRule.onNodeWithTag(toggleTag).getUnclippedBoundsInRoot()
-    val date =
-        composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).getUnclippedBoundsInRoot()
-    val location =
-        composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).getUnclippedBoundsInRoot()
-    assertTrue("toggle must stay inside the card", toggle.right <= 200.dp)
-    assertTrue("toggle must not overlap the date", toggle.right <= date.left)
-    assertTrue("toggle must not overlap the location", toggle.right <= location.left)
-
-    // still clickable: the card expands
+    // still clickable: the card expands, and the header (with the longer "hide" text) stays sound
     toggle()
-    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("m1")).assertIsDisplayed()
+    assertHeaderLayoutIsSound(MediaCardTestTags.toggleButtonTextHide("m1"))
     composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertIsDisplayed()
   }
 
@@ -216,6 +219,12 @@ class MediaCardTest {
 
   @Test
   fun toggleButton_staysVisibleAndClickable_withNarrowWidthAndLargeFont() {
+    assertToggleSurvivesConstrainedLayout(fontScale = 2f)
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun toggleButton_staysVisibleAndClickable_inFrench_withNarrowWidthAndLargeFont() {
     assertToggleSurvivesConstrainedLayout(fontScale = 2f)
   }
 
