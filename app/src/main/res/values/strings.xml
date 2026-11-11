@@ -357,6 +357,12 @@
     <!-- SeeAudios -->
     <string name="seeAudiosTitle">See Audios</string>
     <string name="seeAudiosEmpty">There are no audios yet.</string>
+    <string name="seeAudiosRetry">Retry</string>
+    <string name="seeAudiosErrorNoProfile">No profile found.</string>
+    <string name="seeAudiosErrorLoadProfile">Failed to load the profile.</string>
+    <string name="seeAudiosErrorNoCircle">You\'re not in a care circle yet..</string>
+    <string name="seeAudiosErrorLoadCircle">Failed to load the care circle.</string>
+    <string name="seeAudiosErrorLoadMedia">Failed to load the media.</string>
 
     <!-- MediaCard: the details under a picture or an audio (ui/media/MediaCard.kt) -->
     <string name="mediaCardShowInfos">show infos</string>
