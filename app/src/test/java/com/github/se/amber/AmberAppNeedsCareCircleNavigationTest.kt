@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber
 
@@ -17,6 +18,8 @@ import com.github.se.amber.data.invitation.InvitationRedemptionRepositoryProvide
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.data.session.SessionRepository
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.AuthUser
@@ -57,6 +60,12 @@ class AmberAppNeedsCareCircleNavigationTest {
   fun stubDefaultProviders() {
     mockkObject(AuthRepositoryProvider)
     every { AuthRepositoryProvider.repository } returns UnusedAuthRepository
+
+    mockkObject(SessionRepositoryProvider.Companion)
+    every { SessionRepositoryProvider.default } returns
+        SessionRepositoryProvider {
+          SessionRepository { AuthRepositoryProvider.repository.signOut() }
+        }
 
     mockkObject(ProfileRepositoryProvider.Companion)
     mockkObject(InvitationRedemptionRepositoryProvider.Companion)

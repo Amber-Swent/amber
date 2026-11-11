@@ -1,4 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.account
 
@@ -11,8 +12,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Clears the media this device keeps for the signed-in user. Account deletion uses it, and sign-out
- * will use the same place, so the steps are not copied into each flow.
+ * Clears the media this device keeps for the signed-in user. Account deletion and sign-out share
+ * it, so the steps are not copied into each flow.
  *
  * @param mediaRepository Holds the media kept on the phone and their pending sends.
  * @param imageMemory Holds the decoded pictures; clearLocalMedia doesn't clear these.

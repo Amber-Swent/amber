@@ -2,6 +2,7 @@
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -35,9 +36,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.signOut.PreviewSessionRepository
 import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.navigation.TopNavigationAction
@@ -243,7 +246,12 @@ internal fun CreateProfilePreview() {
         override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
       }
   val profileViewModel = remember { CreateProfileViewModel(profileRepository) }
-  val signOutViewModel = remember { SignOutViewModel(PreviewSignOutAuthRepository) }
+  val signOutViewModel = remember {
+    SignOutViewModel(
+        authRepository = PreviewSignOutAuthRepository,
+        sessionRepositoryProvider = SessionRepositoryProvider { PreviewSessionRepository },
+    )
+  }
   AmberAppTheme {
     CreateProfileScreen(viewModel = profileViewModel, signOutViewModel = signOutViewModel)
   }

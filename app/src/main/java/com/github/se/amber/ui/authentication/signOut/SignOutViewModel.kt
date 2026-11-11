@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -8,6 +9,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,10 +37,16 @@ data class SignOutUIState(
  * ViewModel that owns the shared sign-out action used by [SignOutButton] (and therefore by
  * [SignOutScreen] and onboarding flows that reuse the helper).
  *
- * @param authRepository Repository used to end the authenticated session.
+ * @param authRepository Read after a failed sign-out, to tell a session that is already gone from
+ *   one that is still open.
+ * @param sessionRepositoryProvider Gives the repository that clears this phone and then ends the
+ *   session. The repository is created when the user signs out, so opening the screen doesn't build
+ *   the media layer.
  */
 class SignOutViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
+    private val sessionRepositoryProvider: SessionRepositoryProvider =
+        SessionRepositoryProvider.default,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(SignOutUIState())
   val uiState: StateFlow<SignOutUIState> = _uiState.asStateFlow()
@@ -66,12 +74,15 @@ class SignOutViewModel(
     _uiState.update { it.copy(signedOut = signedOut) }
   }
 
-  /** Initiates sign-out and updates the UI state on success or failure. */
+  /**
+   * Clears the phone and then ends the session. A failed clear leaves the user signed in, shows
+   * [R.string.signOutError], and can be tried again.
+   */
   fun signOut() {
     if (_uiState.value.isSigningOut) return
     _uiState.update { it.copy(isSigningOut = true) }
     viewModelScope.launch {
-      authRepository
+      sessionRepositoryProvider.repository
           .signOut()
           .fold(
               onSuccess = { _uiState.update { it.copy(signedOut = true, isSigningOut = false) } },

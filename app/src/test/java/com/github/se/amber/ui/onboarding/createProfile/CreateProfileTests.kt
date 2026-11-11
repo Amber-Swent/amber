@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.createProfile
 
@@ -22,6 +23,8 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.session.SessionRepository
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
@@ -84,7 +87,7 @@ class CreateProfileUITests {
                     override suspend fun getProfile(uid: String) = Result.success(null)
                   },
           ),
-      signOutViewModel: SignOutViewModel = SignOutViewModel(idleAuthRepository()),
+      signOutViewModel: SignOutViewModel = viewModelFor(idleAuthRepository()),
       onSignedOut: () -> Unit = {},
   ) {
     composeTestRule.setContent {
@@ -277,7 +280,7 @@ class CreateProfileUITests {
     setCreateProfile(
         viewModel = viewModel,
         signOutViewModel =
-            SignOutViewModel(
+            viewModelFor(
                 countingAuthRepository(
                     signOutResult = Result.success(Unit),
                     onSignOut = { signOutCalls++ },
@@ -309,7 +312,7 @@ class CreateProfileUITests {
     val gate = CompletableDeferred<Unit>()
     setCreateProfile(
         signOutViewModel =
-            SignOutViewModel(
+            viewModelFor(
                 object : AuthRepository {
                   override val currentUser: AuthUser? = AuthUser("uid")
 
@@ -367,7 +370,7 @@ class CreateProfileUITests {
     setCreateProfile(
         viewModel = profileViewModel,
         signOutViewModel =
-            SignOutViewModel(
+            viewModelFor(
                 countingAuthRepository(
                     signOutResult = Result.success(Unit),
                     onSignOut = { signOutCalls++ },
@@ -389,7 +392,7 @@ class CreateProfileUITests {
     var signedOutCount = 0
     setCreateProfile(
         signOutViewModel =
-            SignOutViewModel(
+            viewModelFor(
                 countingAuthRepository(
                     signOutResult = Result.failure(IllegalStateException("offline")),
                     currentUser = AuthUser("uid"),
@@ -436,6 +439,13 @@ class CreateProfileUITests {
         .assertTextEquals(string(R.string.createProfileFillOut))
   }
 }
+
+private fun viewModelFor(authRepository: AuthRepository) =
+    SignOutViewModel(
+        authRepository = authRepository,
+        sessionRepositoryProvider =
+            SessionRepositoryProvider { SessionRepository { authRepository.signOut() } },
+    )
 
 private fun idleAuthRepository(): AuthRepository = countingAuthRepository(Result.success(Unit))
 

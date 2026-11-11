@@ -1,10 +1,13 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.authentication.signOut
 
 import android.util.Log
 import com.github.se.amber.R
+import com.github.se.amber.data.session.SessionRepository
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import io.mockk.coEvery
@@ -59,7 +62,7 @@ class SignOutViewModelTest {
   fun signOut_success_setsSignedOutAndStopsSigningOut() = runTest {
     coEvery { authRepo.signOut() } returns Result.success(Unit)
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.signedOut)
@@ -72,7 +75,7 @@ class SignOutViewModelTest {
     val pending = CompletableDeferred<Result<Unit>>()
     coEvery { authRepo.signOut() } coAnswers { pending.await() }
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.isSigningOut)
@@ -87,7 +90,7 @@ class SignOutViewModelTest {
     val pending = CompletableDeferred<Result<Unit>>()
     coEvery { authRepo.signOut() } coAnswers { pending.await() }
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
     viewModel.signOut()
 
@@ -102,7 +105,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns null
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
 
     assertTrue(viewModel.uiState.value.signedOut)
@@ -114,7 +117,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns AuthUser("uid")
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
 
     assertFalse(viewModel.uiState.value.signedOut)
@@ -126,7 +129,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns AuthUser("uid")
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
     assertFalse(viewModel.uiState.value.signedOut)
 
@@ -142,7 +145,7 @@ class SignOutViewModelTest {
     every { authRepo.currentUser } returns AuthUser("uid")
     coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
 
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.signOut()
     assertEquals(R.string.signOutError, viewModel.uiState.value.errorMsgRes)
 
@@ -153,7 +156,7 @@ class SignOutViewModelTest {
 
   @Test
   fun setSignedOut_true_updatesUiState() {
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
 
     viewModel.setSignedOut(true)
 
@@ -162,11 +165,18 @@ class SignOutViewModelTest {
 
   @Test
   fun setSignedOut_false_clearsSignedOutFlag() {
-    val viewModel = SignOutViewModel(authRepo)
+    val viewModel = signOutViewModel(authRepo)
     viewModel.setSignedOut(true)
 
     viewModel.setSignedOut(false)
 
     assertFalse(viewModel.uiState.value.signedOut)
   }
+
+  private fun signOutViewModel(authRepository: AuthRepository) =
+      SignOutViewModel(
+          authRepository = authRepository,
+          sessionRepositoryProvider =
+              SessionRepositoryProvider { SessionRepository { authRepository.signOut() } },
+      )
 }

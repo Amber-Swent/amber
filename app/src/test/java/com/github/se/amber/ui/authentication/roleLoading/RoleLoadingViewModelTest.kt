@@ -2,6 +2,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.roleloading
 
@@ -11,6 +12,8 @@ import com.github.se.amber.data.account.AccountDeletionError
 import com.github.se.amber.data.account.AccountDeletionRepository
 import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.session.SessionRepository
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Role
@@ -71,6 +74,7 @@ class RoleLoadingViewModelTest {
             profileRepository,
             authRepository,
             AccountDeletionRepositoryProvider { deletionRepository },
+            SessionRepositoryProvider { SessionRepository { authRepository.signOut() } },
         )
   }
 

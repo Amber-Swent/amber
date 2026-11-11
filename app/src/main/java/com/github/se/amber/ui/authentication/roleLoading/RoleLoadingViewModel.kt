@@ -2,6 +2,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.authentication.roleLoading
 
@@ -13,6 +14,7 @@ import com.github.se.amber.R
 import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.user.Role
@@ -62,17 +64,23 @@ data class RoleLoadingUIState(
  * from the error state.
  *
  * @param profileRepository Reads the signed-in user's profile.
- * @param authRepository Checks the signed-in account with the server, and signs out.
+ * @param authRepository Checks the signed-in account with the server, and whether a failed sign-out
+ *   already ended the session.
  * @param deletionRepositoryProvider Gives the repository that clears this device when the signed-in
  *   account no longer exists. Unlike what the provider's KDoc asks of ViewModels, this takes the
  *   provider on purpose: the repository is then only created in that rare case, as creating it sets
  *   up Cloud Functions, the deletion marker and the image loader.
+ * @param sessionRepositoryProvider Gives the repository that clears this phone and then ends the
+ *   session. It is created when the user signs out, so loading a role doesn't build the media
+ *   layer.
  */
 class RoleLoadingViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
     private val deletionRepositoryProvider: AccountDeletionRepositoryProvider =
         AccountDeletionRepositoryProvider.default,
+    private val sessionRepositoryProvider: SessionRepositoryProvider =
+        SessionRepositoryProvider.default,
 ) : ViewModel() {
   private val _state = MutableStateFlow(RoleLoadingUIState())
   val state: StateFlow<RoleLoadingUIState> = _state
@@ -146,11 +154,15 @@ class RoleLoadingViewModel(
         Role.PATIENT -> CareCircleDestination.Invitation
       }
 
+  /**
+   * Clears the phone and then ends the session. A failed clear leaves the user signed in, shows
+   * [R.string.signOutError], and can be tried again.
+   */
   fun signOut() {
     if (_state.value.isSigningOut) return
     _state.update { it.copy(isSigningOut = true) }
     viewModelScope.launch {
-      authRepository
+      sessionRepositoryProvider.repository
           .signOut()
           .fold(
               onSuccess = { _state.update { it.copy(signedOut = true, isSigningOut = false) } },
