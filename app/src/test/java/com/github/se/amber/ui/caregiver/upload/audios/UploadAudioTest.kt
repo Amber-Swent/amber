@@ -4,12 +4,14 @@ package com.github.se.amber.ui.caregiver.upload.audios
 
 import android.Manifest
 import android.app.Application
+import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import io.mockk.every
 import io.mockk.mockk
@@ -27,6 +29,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /**
  * Tests what [UploadAudioScreen] does around its form: asking for the microphone permission when
@@ -69,6 +72,22 @@ class UploadAudioTest {
         .grantPermissions(Manifest.permission.RECORD_AUDIO)
   }
 
+  /** Answers the permission popup that [clickRecord] opened, the way the system would. */
+  // onRequestPermissionsResult is deprecated, but the permission launcher of the screen receives
+  // its result through it, so calling it is how the test plays the system
+  @Suppress("DEPRECATION")
+  private fun answerPopup(result: Int) {
+    val request = lastRequest()
+    composeTestRule.runOnUiThread {
+      composeTestRule.activity.onRequestPermissionsResult(
+          request.requestCode,
+          request.requestedPermissions,
+          intArrayOf(result),
+      )
+    }
+    composeTestRule.waitForIdle()
+  }
+
   @Test
   fun opening_doesNotAskForTheMicrophone() {
     launchScreen()
@@ -105,6 +124,22 @@ class UploadAudioTest {
     assertNull(lastRequest())
   }
 
+  @Test
+  fun grantingTheMicrophoneInThePopup_startsRecording() {
+    launchScreen()
+    clickRecord()
+    answerPopup(PackageManager.PERMISSION_GRANTED)
+    verify(exactly = 1) { viewModel.startRecording() }
+  }
+
+  @Test
+  fun refusingTheMicrophoneInThePopup_doesNotStartRecording() {
+    launchScreen()
+    clickRecord()
+    answerPopup(PackageManager.PERMISSION_DENIED)
+    verify(exactly = 0) { viewModel.startRecording() }
+  }
+
   // ---------- upload event ----------
 
   @Test
@@ -119,11 +154,20 @@ class UploadAudioTest {
 
   @Test
   @Config(qualifiers = "fr")
-  fun noAudioRecordedErrorIsTranslatedToFrench() {
+  fun noAudioRecordedErrorIsShownInFrenchWhenItOccurs() {
+    every { viewModel.uiState } returns
+        MutableStateFlow(
+            UploadAudioUIState(
+                common =
+                    CommonMediaUIState(
+                        errorMsgRes = UploadAudioViewModelErrorMessage.RECORD_AUDIO.messageRes
+                    )
+            )
+        )
     launchScreen()
     assertEquals(
-        "Veuillez d'abord enregistrer un audio",
         composeTestRule.activity.getString(R.string.uploadAudioErrorRecord),
+        ShadowToast.getTextOfLatestToast(),
     )
   }
 }

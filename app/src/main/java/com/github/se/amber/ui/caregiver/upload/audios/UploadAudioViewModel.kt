@@ -32,6 +32,7 @@ import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
 import java.io.File
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -120,8 +121,8 @@ class UploadAudioViewModel(
 
   /**
    * The task started by [startRecording]: it starts the recorder, then waits for the recorder to
-   * stop by itself (time or size limit) to keep the recording. Canceled when the user stops or
-   * deletes the recording, so it doesn't keep it a second time.
+   * stop by itself (time or size limit) and hands over to [saveRecordingOnce]. Canceled when the
+   * user stops or deletes the recording.
    */
   private var recordingJob: Job? = null
 
@@ -132,8 +133,10 @@ class UploadAudioViewModel(
   private var amplitudeJob: Job? = null
 
   /**
-   * The task started by [stopRecording] that takes the finished recording from the recorder. Kept
-   * to ignore a second tap on stop while it still runs, and to cancel it if the user deletes.
+   * The one task that takes the finished recording from the recorder, started by [stopRecording] or
+   * when the recorder stops at a limit. Kept so that only one runs: a second `recorder.stop()`
+   * would find no recording, and canceling the first could delete its file. Also canceled if the
+   * user deletes.
    */
   private var stoppingJob: Job? = null
 
@@ -220,7 +223,7 @@ class UploadAudioViewModel(
       // twice the same level, so the waveform would freeze during a silence
       amplitudeJob = launch {
         while (true) {
-          delay(AMPLITUDE_SAMPLE_MS)
+          delay(AMPLITUDE_SAMPLE_MS.milliseconds)
           val level = recorder.amplitude.value
           // the screen draws WAVEFORM_BARS bars at most: keep the latest ones, or the drawing
           // would freeze after the first few seconds
@@ -230,16 +233,25 @@ class UploadAudioViewModel(
       // the recorder stops by itself at its limits: keep what was recorded
       recorder.isRecording.first { !it }
       amplitudeJob?.cancel()
-      saveRecording()
+      saveRecordingOnce()
     }
   }
 
   /** Stops the recording and keeps it: [UploadAudioUIState.waveform] then holds the full audio. */
   fun stopRecording() {
     if (_uiState.value.recordingState != AudioRecordingState.RECORDING) return
-    if (stoppingJob?.isActive == true) return
     recordingJob?.cancel()
     amplitudeJob?.cancel()
+    saveRecordingOnce()
+  }
+
+  /**
+   * Starts saving the recording, unless it is already being saved, whether the recorder stopped at
+   * a limit or the user tapped stop meanwhile. It runs in its own task, so stopping the
+   * [recordingJob] doesn't cancel it.
+   */
+  private fun saveRecordingOnce() {
+    if (stoppingJob?.isActive == true) return
     stoppingJob = viewModelScope.launch { saveRecording() }
   }
 
@@ -320,7 +332,14 @@ class UploadAudioViewModel(
 
   override fun onCleared() {
     recorder.cancel()
-    _uiState.value.audioFile?.let { player.stop(it) }
+    val state = _uiState.value
+    val file = state.audioFile
+    file?.let { player.stop(it) }
+    // A recording that was never uploaded would stay on the phone until the next recording.
+    // An uploaded one was moved into the outbox: nothing is left at this path, so deleting does
+    // nothing.
+    // An upload still running is left alone: the outbox may be moving the file right now.
+    if (!state.common.isUploading) file?.delete()
   }
 
   private companion object {

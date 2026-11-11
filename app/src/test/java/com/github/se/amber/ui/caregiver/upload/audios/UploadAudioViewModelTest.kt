@@ -3,10 +3,15 @@
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.media.audio.AudioRecorder
 import com.github.se.amber.data.media.audio.FakeAudioPlayer
 import com.github.se.amber.data.media.audio.FakeAudioRecorder
+import com.github.se.amber.data.media.audio.LocalAudio
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -92,7 +97,7 @@ class UploadAudioViewModelTest {
 
   // ---------- helpers ----------
 
-  private fun createViewModel() =
+  private fun createViewModel(recorder: AudioRecorder = this.recorder) =
       UploadAudioViewModel(
           mediaRepo = mediaRepo,
           authRepo = authRepo,
@@ -349,6 +354,52 @@ class UploadAudioViewModelTest {
 
   // ---------- stopRecording ----------
 
+  /** A recorder whose [stop] waits for [stopGate], like one that takes time to finish the file. */
+  private class SlowStopRecorder(private val fake: FakeAudioRecorder) : AudioRecorder by fake {
+    val stopGate = CompletableDeferred<Unit>()
+    var stopCalls = 0
+      private set
+
+    override suspend fun stop(): LocalAudio {
+      stopCalls++
+      stopGate.await()
+      return fake.stop()
+    }
+  }
+
+  /** The recorder reached its limit and its recording is being saved: stop is still pending. */
+  private fun savingAfterALimit(): Pair<UploadAudioViewModel, SlowStopRecorder> {
+    val slow = SlowStopRecorder(recorder)
+    val vm = createViewModel(slow)
+    vm.startRecording()
+    recorder.reachLimit()
+    return vm to slow
+  }
+
+  @Test
+  fun stopTappedWhileALimitSaveIsRunningDoesNotStopTheRecorderTwice() {
+    val (vm, slow) = savingAfterALimit()
+    vm.stopRecording()
+    slow.stopGate.complete(Unit)
+    assertEquals(1, slow.stopCalls)
+  }
+
+  @Test
+  fun stopTappedWhileALimitSaveIsRunningStillKeepsTheRecording() {
+    val (vm, slow) = savingAfterALimit()
+    vm.stopRecording()
+    slow.stopGate.complete(Unit)
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun stopTappedWhileALimitSaveIsRunningKeepsTheRecordedFile() {
+    val (vm, slow) = savingAfterALimit()
+    vm.stopRecording()
+    slow.stopGate.complete(Unit)
+    assertTrue(vm.uiState.value.audioFile!!.exists())
+  }
+
   @Test
   fun stopRecordingWithoutRecordingDoesNothing() {
     createViewModel().stopRecording()
@@ -503,7 +554,7 @@ class UploadAudioViewModelTest {
   fun clearingTheViewModelStopsThePlayback() {
     val vm = recordedViewModel()
     vm.playRecording()
-    vm.javaClass.getDeclaredMethod("onCleared").apply { isAccessible = true }.invoke(vm)
+    clear(vm)
     assertNull(player.state.value.file)
   }
 
@@ -568,12 +619,41 @@ class UploadAudioViewModelTest {
 
   // ---------- onCleared ----------
 
+  /** Clears [vm] the way Android does when its screen is gone: its store is cleared. */
+  private fun clear(vm: UploadAudioViewModel) {
+    val store = ViewModelStore()
+    ViewModelProvider(
+        store,
+        object : ViewModelProvider.Factory {
+          @Suppress("UNCHECKED_CAST")
+          override fun <T : ViewModel> create(modelClass: Class<T>): T = vm as T
+        },
+    )[UploadAudioViewModel::class.java]
+    store.clear()
+  }
+
   @Test
   fun clearingTheViewModelCancelsTheRecorder() {
     val vm = createViewModel()
     vm.startRecording()
-    vm.javaClass.getDeclaredMethod("onCleared").apply { isAccessible = true }.invoke(vm)
+    clear(vm)
     assertEquals(1, recorder.cancelCalls)
+  }
+
+  @Test
+  fun clearingTheViewModelDeletesTheRecordedFileThatWasNotUploaded() {
+    val vm = recordedViewModel()
+    val file = vm.uiState.value.audioFile!!
+    clear(vm)
+    assertFalse(file.exists())
+  }
+
+  @Test
+  fun clearingTheViewModelLeavesTheFileAloneWhileTheUploadIsRunning() {
+    val vm = uploadInProgress()
+    val file = vm.uiState.value.audioFile!!
+    clear(vm)
+    assertTrue(file.exists())
   }
 
   // ---------- cancel ----------
