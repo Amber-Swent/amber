@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -209,6 +210,7 @@ class AddPersonDialogTest {
         }
     viewModel =
         UploadPictureViewModel(
+            savedState = SavedStateHandle(),
             mediaRepo = mediaRepo,
             authRepo = fakeAuthRepo,
             profileRepo = fakeProfileRepo,

@@ -239,6 +239,8 @@
     <string name="uploadPictureUpload">Upload Picture</string>
     <string name="uploadPictureErrorSelect">Please select a picture first</string>
     <string name="uploadPictureErrorRead">Could not read your picture</string>
+    <string name="uploadPictureErrorCamera">Could not open the camera</string>
+    <string name="uploadPictureErrorNotAPhoto">Only photos can be uploaded. Tap the camera to take a photo.</string>
 
     <!-- UploadAudio -->
     <string name="uploadAudioTitle">Upload Audio</string>

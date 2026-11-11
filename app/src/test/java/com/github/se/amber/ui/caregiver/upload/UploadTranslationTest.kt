@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload
 
@@ -182,6 +183,18 @@ class UploadTranslationTest {
     composeTestRule
         .onNodeWithTag(DatePickerTestTags.dialogTitle(DateField.MONTH))
         .assertTextEquals("Choisir le mois")
+  }
+
+  @Test
+  fun cameraErrorsAreInFrench() {
+    assertEquals(
+        "Impossible d'ouvrir l'appareil photo",
+        context.getString(UploadPictureViewModelErrorMessage.COULD_NOT_OPEN_CAMERA.messageRes),
+    )
+    assertEquals(
+        "Seules les photos peuvent être envoyées. Touchez l'appareil photo pour prendre une photo.",
+        context.getString(UploadPictureViewModelErrorMessage.NOT_A_PHOTO.messageRes),
+    )
   }
 
   @Test
