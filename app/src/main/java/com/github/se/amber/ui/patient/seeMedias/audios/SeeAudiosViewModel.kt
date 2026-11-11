@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.media.audio.AudioPlayer
+import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.R
@@ -16,6 +18,8 @@ import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.UserProfile
+import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,11 +53,15 @@ class SeeAudiosViewModel(
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    private val audioPlayer: AudioPlayer = AudioPlayerProvider.player,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow<SeeAudiosUIState>(SeeAudiosUIState.Loading)
   val uiState: StateFlow<SeeAudiosUIState> = _uiState.asStateFlow()
 
   private var loadJob: Job? = null
+  private var playbackJob: Job? = null
+  private var activeAudioId: String? = null
+  private var activeFile: File? = null
 
   init {
     load()
@@ -62,6 +70,33 @@ class SeeAudiosViewModel(
   fun retry() = load(showLoading = true)
 
   fun refreshUIState() = load(showLoading = false)
+
+  fun onPlayPause(audio: MediaItem.Audio) {
+    val circle = (_uiState.value as? SeeAudiosUIState.Content)?.careCircle ?: return
+    val playerState = audioPlayer.state.value
+    if (activeAudioId == audio.id && playerState.file == activeFile && activeFile != null) {
+      if (playerState.isPlaying) audioPlayer.pause() else audioPlayer.resume()
+      return
+    }
+
+    playbackJob?.cancel()
+    playbackJob = viewModelScope.launch {
+      try {
+        val file = mediaRepository.getFile(circle, audio)
+        activeAudioId = audio.id
+        activeFile = file
+        audioPlayer.play(file)
+      } catch (error: IOException) {
+        Log.e(TAG, "Error playing audio", error)
+      }
+    }
+  }
+
+  fun onRestart(audio: MediaItem.Audio) {
+    if (activeAudioId == audio.id && audioPlayer.state.value.file == activeFile) {
+      audioPlayer.seekTo(0L)
+    }
+  }
 
   fun clearErrorMsg() {
     when (val state = _uiState.value) {
@@ -138,6 +173,12 @@ class SeeAudiosViewModel(
                 }
           }
     }
+  }
+
+  override fun onCleared() {
+    playbackJob?.cancel()
+    activeFile?.let(audioPlayer::stop)
+    super.onCleared()
   }
 
   private companion object {

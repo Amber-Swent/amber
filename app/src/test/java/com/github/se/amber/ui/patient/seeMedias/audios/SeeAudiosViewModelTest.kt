@@ -4,6 +4,7 @@ package com.github.se.amber.ui.patient.seeMedias.audios
 
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.media.audio.FakeAudioPlayer
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
@@ -14,6 +15,8 @@ import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -42,10 +45,12 @@ class SeeAudiosViewModelTest {
   private val secondAudio = MediaItem.Audio(id = "a2")
   private val picture = MediaItem.Picture(id = "p1")
   private val text = MediaItem.Text(id = "t1")
+  private lateinit var audioPlayer: FakeAudioPlayer
 
   @Before
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
+    audioPlayer = FakeAudioPlayer()
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
@@ -57,7 +62,59 @@ class SeeAudiosViewModelTest {
   }
 
   private fun createViewModel() =
-      SeeAudiosViewModel(mediaRepository, circleRepository, profileRepository)
+      SeeAudiosViewModel(mediaRepository, circleRepository, profileRepository, audioPlayer)
+
+  @Test
+  fun play_pause_resume_and_restart_loaded_audio() {
+    val file = File("audio.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+    assertEquals(listOf(file), audioPlayer.played)
+    assertTrue(audioPlayer.state.value.isPlaying)
+
+    viewModel.onPlayPause(audio)
+    assertEquals(false, audioPlayer.state.value.isPlaying)
+    viewModel.onPlayPause(audio)
+    assertTrue(audioPlayer.state.value.isPlaying)
+    coVerify(exactly = 1) { mediaRepository.getFile(circle, audio) }
+
+    audioPlayer.seekTo(2_000L)
+    viewModel.onRestart(audio)
+    assertEquals(0L, audioPlayer.state.value.positionMs)
+  }
+
+  @Test
+  fun switching_audio_loads_and_plays_the_selected_file() {
+    val firstFile = File("first.m4a")
+    val secondFile = File("second.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(audio, secondAudio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns firstFile
+    coEvery { mediaRepository.getFile(circle, secondAudio) } returns secondFile
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+    viewModel.onPlayPause(secondAudio)
+    viewModel.onRestart(audio)
+
+    assertEquals(listOf(firstFile, secondFile), audioPlayer.played)
+    assertEquals(secondFile, audioPlayer.state.value.file)
+  }
+
+  @Test
+  fun download_failure_does_not_crash_or_replace_content() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } throws IOException("offline")
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.Content)
+    assertTrue(audioPlayer.played.isEmpty())
+  }
 
   @Test
   fun empty_when_there_are_no_audios() {

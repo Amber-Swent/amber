@@ -186,8 +186,14 @@ fun SeeAudiosScreen(
                   DisplayAudioPlayback(
                       state = AudioPlaybackState.Idle(durationMs = audio.durationMs),
                       waveform = audio.waveform,
-                      onPlayPause = { onPlayAudio(audio.id) },
-                      onRestart = { onReplayAudio(audio.id) },
+                      onPlayPause = {
+                        audioViewModel.onPlayPause(audio)
+                        onPlayAudio(audio.id)
+                      },
+                      onRestart = {
+                        audioViewModel.onRestart(audio)
+                        onReplayAudio(audio.id)
+                      },
                   )
                 }
                 MediaCard(

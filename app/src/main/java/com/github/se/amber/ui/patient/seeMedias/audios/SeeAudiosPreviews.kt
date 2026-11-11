@@ -13,6 +13,8 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.media.audio.AudioPlayer
+import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -27,7 +29,9 @@ import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
 import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import java.lang.reflect.Proxy
+import java.io.File
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -112,7 +116,16 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
     }
   }
 
-  private val audiosViewModel = SeeAudiosViewModel(media, circles, profiles)
+  private val previewPlayer =
+      object : AudioPlayer {
+        override val state = MutableStateFlow(AudioState())
+        override suspend fun play(file: File) = Unit
+        override fun pause() = Unit
+        override fun resume() = Unit
+        override fun seekTo(positionMs: Long) = Unit
+        override fun stop(file: File) = Unit
+      }
+  private val audiosViewModel = SeeAudiosViewModel(media, circles, profiles, previewPlayer)
 
   override val defaultViewModelProviderFactory =
       object : ViewModelProvider.Factory {
