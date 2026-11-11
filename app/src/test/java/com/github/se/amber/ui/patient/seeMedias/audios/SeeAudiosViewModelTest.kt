@@ -18,12 +18,14 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import java.io.File
 import java.io.IOException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -360,5 +362,135 @@ class SeeAudiosViewModelTest {
     viewModel.refreshUIState()
 
     assertEquals(listOf(audio), (viewModel.uiState.value as SeeAudiosUIState.Content).allAudios)
+  }
+
+  @Test
+  fun download_stays_loading_until_file_arrives() {
+    val pendingFile = CompletableDeferred<File>()
+    val file = File("delayed.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } coAnswers { pendingFile.await() }
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Loading)
+    assertTrue(audioPlayer.played.isEmpty())
+
+    pendingFile.complete(file)
+    assertEquals(listOf(file), audioPlayer.played)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Playing)
+  }
+
+  @Test
+  fun selecting_another_audio_cancels_the_pending_download() {
+    val pendingFile = CompletableDeferred<File>()
+    val secondFile = File("second.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(audio, secondAudio))
+    coEvery { mediaRepository.getFile(circle, audio) } coAnswers { pendingFile.await() }
+    coEvery { mediaRepository.getFile(circle, secondAudio) } returns secondFile
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+    viewModel.onPlayPause(secondAudio)
+    pendingFile.complete(File("stale.m4a"))
+
+    assertEquals(listOf(secondFile), audioPlayer.played)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Idle)
+    assertTrue(viewModel.playbackStates.value[secondAudio.id] is AudioPlaybackState.Playing)
+  }
+
+  @Test
+  fun another_player_file_resets_active_card_and_restart_does_nothing() {
+    val file = File("audio.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+
+    runBlocking { audioPlayer.play(File("other-screen.m4a")) }
+    viewModel.onRestart(audio)
+
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Idle)
+    assertEquals(File("other-screen.m4a"), audioPlayer.state.value.file)
+  }
+
+  @Test
+  fun refresh_failure_preserves_content_with_a_transient_error() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    val viewModel = createViewModel()
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw IOException("offline") }
+
+    viewModel.refreshUIState()
+
+    val state = viewModel.uiState.value as SeeAudiosUIState.Content
+    assertEquals(listOf(audio), state.allAudios)
+    assertEquals(R.string.seeAudiosErrorLoadMedia, state.errorMsgRes)
+  }
+
+  @Test
+  fun playback_controls_do_nothing_without_content() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+    viewModel.onRestart(audio)
+
+    assertTrue(viewModel.playbackStates.value.isEmpty())
+    assertTrue(audioPlayer.played.isEmpty())
+    coVerify(exactly = 0) { mediaRepository.getFile(any(), any()) }
+  }
+
+  @Test
+  fun finished_audio_is_paused_at_the_start_and_can_resume() {
+    val file = File("audio.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+    audioPlayer.seekTo(2_000L)
+
+    audioPlayer.finish()
+
+    assertEquals(
+        AudioPlaybackState.Paused(positionMs = 0L, durationMs = audioPlayer.durationMs),
+        viewModel.playbackStates.value[audio.id],
+    )
+    viewModel.onPlayPause(audio)
+    assertTrue(audioPlayer.state.value.isPlaying)
+    coVerify(exactly = 1) { mediaRepository.getFile(circle, audio) }
+  }
+
+  @Test
+  fun refresh_failure_preserves_empty_state_with_a_transient_error() {
+    val viewModel = createViewModel()
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw IOException("offline") }
+
+    viewModel.refreshUIState()
+
+    val state = viewModel.uiState.value as SeeAudiosUIState.Empty
+    assertEquals(profile, state.patientProfile)
+    assertEquals(circle, state.careCircle)
+    assertEquals(R.string.seeAudiosErrorLoadMedia, state.errorMsgRes)
+    viewModel.clearErrorMsg()
+    assertNull((viewModel.uiState.value as SeeAudiosUIState.Empty).errorMsgRes)
+  }
+
+  @Test
+  fun retry_after_media_failure_replaces_error_with_fresh_content() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flow { throw IOException("offline") }
+    val viewModel = createViewModel()
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.BlockingError)
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(secondAudio))
+
+    viewModel.retry()
+
+    val state = viewModel.uiState.value as SeeAudiosUIState.Content
+    assertEquals(listOf(secondAudio), state.allAudios)
+    assertNull(state.errorMsgRes)
   }
 }

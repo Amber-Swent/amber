@@ -30,6 +30,7 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
@@ -43,6 +44,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -163,6 +165,67 @@ class SeeAudiosScreenTest {
         .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
         .assertIsDisplayed()
         .assertTextEquals(string(R.string.seeAudiosEmpty))
+  }
+
+  @Test
+  fun loading_hides_messages_and_audio_controls() {
+    setContent(state = SeeAudiosUIState.Loading)
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.CARD).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun blocking_error_shows_message_and_retry_calls_view_model() {
+    val viewModel =
+        setContent(state = SeeAudiosUIState.BlockingError(R.string.seeAudiosErrorLoadMedia))
+
+    composeTestRule
+        .onNodeWithTag(SeeAudiosTestTags.ERROR)
+        .assertTextEquals(string(R.string.seeAudiosErrorLoadMedia))
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
+    verify(exactly = 1) { viewModel.retry() }
+  }
+
+  @Test
+  fun empty_state_error_shows_toast_and_clears_message() {
+    val viewModel =
+        setContent(
+            state =
+                SeeAudiosUIState.Empty(
+                    UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+                    CareCircle(id = "circle1"),
+                    errorMsgRes = R.string.seeAudiosErrorLoadMedia,
+                )
+        )
+
+    composeTestRule.waitForIdle()
+    assertEquals(string(R.string.seeAudiosErrorLoadMedia), ShadowToast.getTextOfLatestToast())
+    verify(exactly = 1) { viewModel.clearErrorMsg() }
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
+  }
+
+  @Test
+  fun content_error_shows_toast_without_hiding_audio() {
+    val audio = MediaItem.Audio(id = "a1")
+    val viewModel =
+        setContent(
+            state =
+                SeeAudiosUIState.Content(
+                    UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+                    CareCircle(id = "circle1"),
+                    listOf(audio),
+                    errorMsgRes = R.string.seeAudiosErrorLoadMedia,
+                )
+        )
+
+    composeTestRule.waitForIdle()
+    assertEquals(string(R.string.seeAudiosErrorLoadMedia), ShadowToast.getTextOfLatestToast())
+    verify(exactly = 1) { viewModel.clearErrorMsg() }
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio(audio.id)).assertIsDisplayed()
   }
 
   @Test
