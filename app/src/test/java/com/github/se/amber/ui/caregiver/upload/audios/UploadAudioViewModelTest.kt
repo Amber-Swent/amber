@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelStore
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.AudioRecorder
+import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.media.audio.FakeAudioPlayer
 import com.github.se.amber.data.media.audio.FakeAudioRecorder
 import com.github.se.amber.data.media.audio.LocalAudio
@@ -48,7 +49,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -366,18 +366,6 @@ class UploadAudioViewModelTest {
     assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
-  @Test
-  fun startListening_isNotImplementedYet_throws() {
-    val vm = createViewModel()
-    assertThrows(NotImplementedError::class.java) { vm.startListening() }
-  }
-
-  @Test
-  fun stopListening_isNotImplementedYet_throws() {
-    val vm = createViewModel()
-    assertThrows(NotImplementedError::class.java) { vm.stopListening() }
-  }
-
   // ---------- stopRecording ----------
 
   /** A recorder whose [stop] waits for [stopGate], like one that takes time to finish the file. */
@@ -566,6 +554,105 @@ class UploadAudioViewModelTest {
     val vm = recordedViewModel()
     vm.playRecording()
     assertNull(vm.uiState.value.common.errorMsgRes)
+  }
+
+  @Test
+  fun playRecordingSwitchesToListening() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    assertEquals(AudioRecordingState.LISTENING, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun playRecordingFailureStaysRecorded() {
+    player.playError = IOException("corrupted")
+    val vm = recordedViewModel()
+    vm.playRecording()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun listeningFollowsThePlayedFraction() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    player.seekTo(player.durationMs / 2)
+    assertEquals(0.5f, vm.uiState.value.playedFraction, 0f)
+  }
+
+  @Test
+  fun listeningUntilTheEndGoesBackToRecorded() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    player.finish()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun listeningUntilTheEndResetsThePlayedFraction() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    player.seekTo(player.durationMs / 2)
+    player.finish()
+    assertEquals(NO_PLAYED_FRACTION, vm.uiState.value.playedFraction, 0f)
+  }
+
+  @Test
+  fun anotherAudioReplacingTheOneListenedToGoesBackToRecorded() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    player.state.value = AudioState()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  // ---------- stopListening ----------
+
+  @Test
+  fun stopListeningGoesBackToRecorded() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    vm.stopListening()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun stopListeningStopsThePlayer() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    vm.stopListening()
+    assertNull(player.state.value.file)
+  }
+
+  @Test
+  fun stopListeningResetsThePlayedFraction() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    player.seekTo(player.durationMs / 2)
+    vm.stopListening()
+    assertEquals(NO_PLAYED_FRACTION, vm.uiState.value.playedFraction, 0f)
+  }
+
+  @Test
+  fun stopListeningWhenNotListeningKeepsTheState() {
+    val vm = recordedViewModel()
+    vm.stopListening()
+    assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun playingAgainAfterStoppingStartsFromTheBeginning() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    vm.stopListening()
+    vm.playRecording()
+    assertEquals(2, player.played.size)
+  }
+
+  @Test
+  fun deleteRecordingWhileListeningGoesBackToIdle() {
+    val vm = recordedViewModel()
+    vm.playRecording()
+    vm.deleteRecording()
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
   @Test

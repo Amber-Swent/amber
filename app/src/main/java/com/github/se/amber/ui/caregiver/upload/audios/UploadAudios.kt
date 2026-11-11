@@ -206,7 +206,7 @@ fun UploadAudioScreen(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
                     waveform = uiState.waveform,
                     onDelete = viewModel::deleteRecording,
-                    onPlay = viewModel::startListening,
+                    onPlay = viewModel::playRecording,
                 )
             AudioRecordingState.LISTENING ->
                 DisplayAudioRecorder(

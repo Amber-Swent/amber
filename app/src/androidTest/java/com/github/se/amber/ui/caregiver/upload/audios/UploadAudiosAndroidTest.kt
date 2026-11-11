@@ -172,7 +172,7 @@ class UploadAudiosAndroidTest {
   fun clickingPlayOnceRecordedStartsListening() {
     launchScreen(recorded)
     tagged(AudioRecorderTestTags.PLAY_BUTTON).performScrollTo().performClick()
-    verify(exactly = 1) { viewModel.startListening() }
+    verify(exactly = 1) { viewModel.playRecording() }
   }
 
   // ---------- listening ----------
