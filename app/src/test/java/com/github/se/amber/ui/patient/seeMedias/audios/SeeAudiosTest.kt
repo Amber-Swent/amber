@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -281,6 +282,29 @@ class SeeAudiosScreenTest {
         .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
         .assertIsDisplayed()
         .assertTextEquals(string(R.string.seeAudiosEmpty))
+  }
+
+  @Test
+  fun loading_preview_shows_title_without_audio() {
+    composeTestRule.setContent { SeeAudiosLoadingPreview() }
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample1")).assertDoesNotExist()
+  }
+
+  @Test
+  fun error_preview_shows_blocking_error() {
+    composeTestRule.setContent { SeeAudiosErrorPreview() }
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertIsDisplayed()
+  }
+
+  @Test
+  fun content_preview_shows_sample_audios() {
+    composeTestRule.setContent { SeeAudiosContentPreview() }
+
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample1")).assertExists()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample2")).assertExists()
   }
 
   @Test
