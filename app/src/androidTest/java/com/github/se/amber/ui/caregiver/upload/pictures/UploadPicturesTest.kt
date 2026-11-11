@@ -34,6 +34,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.core.app.ActivityOptionsCompat
+import androidx.core.os.bundleOf
+import androidx.lifecycle.DEFAULT_ARGS_KEY
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewmodel.MutableCreationExtras
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel as defaultViewModel
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
@@ -50,6 +56,7 @@ import java.io.File
 import java.time.Month
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -202,12 +209,31 @@ class UploadPicturesTest {
   }
 
   @Test
-  fun theDefaultViewModelCanBeBuiltWithItsSavedState() {
+  fun theDefaultViewModelRestoresItsSavedForm() {
+    val draft =
+        SavedStateHandle().apply {
+          saveDraft(UploadPictureUIState(common = CommonMediaUIState(description = "At the lake")))
+        }
+    lateinit var restored: UploadPictureViewModel
     composeTestRule.setContent {
-      defaultViewModel<UploadPictureViewModel>(factory = UploadPictureViewModel.Factory)
+      val owner = checkNotNull(LocalViewModelStoreOwner.current)
+      // what Android hands the factory when it restores the screen
+      val extras =
+          MutableCreationExtras(
+                  (owner as HasDefaultViewModelProviderFactory).defaultViewModelCreationExtras
+              )
+              .apply {
+                set(
+                    DEFAULT_ARGS_KEY,
+                    bundleOf(*draft.keys().map { it to draft.get<Any>(it) }.toTypedArray()),
+                )
+              }
+      restored = defaultViewModel(factory = UploadPictureViewModel.Factory, extras = extras)
     }
 
-    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      assertEquals("At the lake", restored.uiState.value.common.description)
+    }
   }
 
   // ---------- initial screen ----------
