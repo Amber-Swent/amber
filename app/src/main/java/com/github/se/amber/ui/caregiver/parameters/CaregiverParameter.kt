@@ -94,6 +94,7 @@ fun CaregiverParameterScreen(
   val createInvitationLabel = stringResource(R.string.caregiverParameterCreateInvitation)
   val enterInvitationLabel = stringResource(R.string.caregiverParameterEnterInvitation)
   val signOutLabel = stringResource(R.string.caregiverParameterSignOut)
+  val deleteAccountLabel = stringResource(R.string.caregiverParameterDeleteAccount)
 
   LaunchedEffect(uiState.errorMsgRes) {
     uiState.errorMsgRes?.let { errorMsgRes ->
@@ -163,8 +164,8 @@ fun CaregiverParameterScreen(
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON),
               icon = Icons.Outlined.Delete,
-              text = stringResource(R.string.caregiverParameterDeleteAccount),
-              description = stringResource(R.string.caregiverParameterDeleteAccount),
+              text = deleteAccountLabel,
+              description = deleteAccountLabel,
               onClick = onDeleteAccountClick,
           )
 

@@ -7,6 +7,7 @@ import androidx.annotation.StringRes
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
@@ -21,6 +22,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.ReauthenticationError
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.utils.UiText
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -41,7 +43,7 @@ import kotlinx.coroutines.launch
  * @param isDeleting Whether reauthentication, remote deletion, or local cleanup is in progress.
  *   While true, the screen shows progress and blocks Cancel and system Back.
  * @param warningsLoaded Whether all family reads succeeded and deletion may be confirmed.
- * @param warnings Last-member or last-caregiver consequences to show before confirmation.
+ * @param warnings Named, per-family consequences to show before confirmation.
  * @param errorMessageRes A string resource for the screen to display once, then clear with
  *   [DeleteAccountViewModel.clearError].
  * @param localCleanupNeeded Whether the remote account is already gone. The next confirmation calls
@@ -51,7 +53,7 @@ data class DeleteAccountUIState(
     val isLoading: Boolean = true,
     val isDeleting: Boolean = false,
     val warningsLoaded: Boolean = false,
-    val warnings: List<Int> = emptyList(),
+    val warnings: List<UiText.Resource> = emptyList(),
     @param:StringRes val errorMessageRes: Int? = null,
     val localCleanupNeeded: Boolean = false,
 )
@@ -84,7 +86,15 @@ class DeleteAccountViewModel(
     _uiState.update { it.copy(errorMessageRes = null) }
   }
 
-  /** Reads every family before enabling confirmation; a failed read can be retried. */
+  /**
+   * Reads every family before enabling confirmation. Every circle ID in the caregiver profile must
+   * resolve: a missing or unreadable circle is not skipped, because its deletion consequences
+   * cannot be shown. This preserves the profile/circle invariant described in
+   * `functions/src/circleCleanup.js`.
+   *
+   * Retry handles temporary read failures. A permanently stale circle ID needs data repair before
+   * account deletion can proceed; repeating Retry alone will not resolve it.
+   */
   fun loadWarnings() {
     if (
         _uiState.value.warningsLoaded || _uiState.value.isDeleting || warningJob?.isActive == true
@@ -98,18 +108,18 @@ class DeleteAccountViewModel(
             profileRepository.getCurrentProfile().getOrThrow()
                 ?: error("The caregiver profile is unavailable")
         check(profile.role == Role.CAREGIVER) { "Only caregivers can use this screen" }
-        val warnings = mutableSetOf<Int>()
+        val warnings = mutableListOf<UiText.Resource>()
         for (circleId in profile.circleIds) {
           val circle = circleRepository.getCircle(circleId).getOrThrow()
-          if (circle.memberIds.size == 1) {
-            warnings += R.string.deleteAccountLastMemberWarning
+          if (circle.memberIds.all { it == profile.uid }) {
+            warnings +=
+                UiText.Resource(R.string.deleteAccountLastMemberWarning, listOf(circle.name))
           } else if (circle.memberIds.filter { it != circle.patientId } == listOf(profile.uid)) {
-            warnings += R.string.deleteAccountLastCaregiverWarning
+            warnings +=
+                UiText.Resource(R.string.deleteAccountLastCaregiverWarning, listOf(circle.name))
           }
         }
-        _uiState.update {
-          it.copy(isLoading = false, warningsLoaded = true, warnings = warnings.toList())
-        }
+        _uiState.update { it.copy(isLoading = false, warningsLoaded = true, warnings = warnings) }
       } catch (error: CancellationException) {
         throw error
       } catch (_: Exception) {
@@ -153,6 +163,10 @@ class DeleteAccountViewModel(
             )
       } catch (_: GetCredentialCancellationException) {
         _uiState.update { it.copy(isDeleting = false) }
+      } catch (_: NoCredentialException) {
+        _uiState.update {
+          it.copy(isDeleting = false, errorMessageRes = R.string.deleteAccountNoGoogleAccountError)
+        }
       } catch (error: CancellationException) {
         throw error
       } catch (_: Exception) {

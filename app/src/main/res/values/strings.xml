@@ -155,18 +155,19 @@
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Delete account</string>
-    <string name="deleteAccountExplanation">Deletion is permanent. Your uploads and stories are removed for the whole family, and pictures of you are removed from other people\'s stories. Photos of you uploaded by others stay. You are also removed from appointments.</string>
+    <string name="deleteAccountExplanation">Deletion is permanent. Everything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
     <string name="deleteAccountProgress">Deleting your account. This may take a few minutes.</string>
     <string name="deleteAccountCleanupLabel">Finish deleting</string>
-    <string name="deleteAccountCheckingLabel">Checking your families...</string>
+    <string name="deleteAccountCheckingLabel">Checking your families…</string>
     <string name="deleteAccountRetryLabel">Retry</string>
-    <string name="deleteAccountLastMemberWarning">You are this family\'s last member. The whole family and its media will be deleted.</string>
-    <string name="deleteAccountLastCaregiverWarning">You are this family\'s last caregiver. The family will continue with no one to manage it.</string>
+    <string name="deleteAccountLastMemberWarning">You are the last member of %1$s. This family and all its media will be deleted.</string>
+    <string name="deleteAccountLastCaregiverWarning">You are the last caregiver of %1$s. This family will continue with no one to manage it.</string>
     <string name="deleteAccountCheckFamiliesError">Could not check your families. Please try again.</string>
     <string name="deleteAccountCleanupError">Your account was deleted, but this device could not be cleared. Tap Finish deleting to retry.</string>
     <string name="deleteAccountUnknownError">Could not delete the account. Please try again.</string>
     <string name="deleteAccountNetworkError">Check your connection and try again.</string>
     <string name="deleteAccountWrongAccountError">Use the Google account you\'re signed in with.</string>
+    <string name="deleteAccountNoGoogleAccountError">No Google account found. Please add one to your device to confirm account deletion.</string>
     <string name="deleteAccountReauthenticationError">Could not confirm your Google account. Please try again.</string>
     <string name="deleteAccountReauthenticationRequiredError">Confirm your Google account again and retry.</string>
 

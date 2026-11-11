@@ -109,15 +109,6 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
-  fun deleteAccountButtonIsDisplayed() {
-    setScreen()
-
-    composeTestRule
-        .onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON)
-        .assertIsDisplayed()
-  }
-
-  @Test
   fun invitationHintIsDisplayed() {
     setScreen()
 
@@ -175,7 +166,10 @@ class CaregiverParameterScreenTest {
     var deleteAccountClicks = 0
     setScreen(onDeleteAccountClick = { deleteAccountClicks++ })
 
-    composeTestRule.onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON).performClick()
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON)
+        .assertIsDisplayed()
+        .performClick()
 
     assertEquals(1, deleteAccountClicks)
   }

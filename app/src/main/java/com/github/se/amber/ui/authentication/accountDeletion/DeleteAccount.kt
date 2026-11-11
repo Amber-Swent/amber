@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.authentication.accountDeletion
 
 import android.widget.Toast
@@ -27,19 +28,18 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
-import com.github.se.amber.ui.patient.DisplayPatientButton
-import com.github.se.amber.ui.patient.DisplayPatientTitle
-import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.PATIENT_PADDING_BIG
-import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.WEIGHT_FIFTEENTH
+import com.github.se.amber.ui.utils.asString
 
 /** Tags for the title, explanation, and confirmation button. */
 object DeleteAccountTestTags {
@@ -82,20 +82,22 @@ fun DeleteAccountScreen(
   }
   Scaffold(
       topBar = {
-        Column(modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL)) {
-          if (!uiState.isDeleting) {
-            TopNavigationMenu(action = TopNavigationAction.CANCEL, onBackClick = onBack)
-          }
-          TopAppBar(
-              title = {
-                DisplayPatientTitle(
-                    modifier = Modifier,
+        TopAppBar(
+            title = {
+              Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
+                if (!uiState.isDeleting) {
+                  TopNavigationMenu(
+                      action = TopNavigationAction.CANCEL,
+                      onBackClick = onBack,
+                  )
+                }
+                DisplayCaregiverTitle(
+                    modifier = Modifier.testTag(DeleteAccountTestTags.TITLE),
                     title = stringResource(R.string.deleteAccountTitle),
-                    testTag = DeleteAccountTestTags.TITLE,
                 )
-              },
-          )
-        }
+              }
+            }
+        )
       },
       content = { paddingValues ->
         BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -105,12 +107,12 @@ fun DeleteAccountScreen(
                       .verticalScroll(rememberScrollState())
                       .heightIn(min = maxHeight)
                       .padding(
-                          start = PATIENT_PADDING_BIG,
-                          end = PATIENT_PADDING_BIG,
-                          bottom = maxHeight * 0.15f,
+                          start = CAREGIVER_PADDING_BIG,
+                          end = CAREGIVER_PADDING_BIG,
+                          bottom = maxHeight * WEIGHT_FIFTEENTH,
                       ),
               verticalArrangement =
-                  Arrangement.spacedBy(PATIENT_PADDING_BIG, Alignment.CenterVertically),
+                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
@@ -120,51 +122,49 @@ fun DeleteAccountScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().testTag(DeleteAccountTestTags.EXPLANATION),
             )
-            uiState.warnings.forEach { warningRes ->
+            uiState.warnings.forEach { warning ->
               Text(
-                  text = stringResource(warningRes),
+                  text = warning.asString(resources),
                   color = MaterialTheme.colorScheme.error,
                   style = MaterialTheme.typography.bodyLarge,
                   textAlign = TextAlign.Center,
               )
             }
-            if (uiState.isDeleting) {
-              Text(
-                  text = stringResource(R.string.deleteAccountProgress),
-                  color = MaterialTheme.colorScheme.onBackground,
-                  style = MaterialTheme.typography.bodyLarge,
-                  textAlign = TextAlign.Center,
-              )
-            } else if (uiState.warningsLoaded) {
-              DisplayPatientButton(
-                  text =
-                      if (uiState.localCleanupNeeded)
-                          stringResource(R.string.deleteAccountCleanupLabel)
-                      else stringResource(R.string.deleteAccountTitle),
-                  onClick = { viewModel.deleteAccount(context, credentialManager) },
-                  modifier = Modifier.testTag(DeleteAccountTestTags.BUTTON),
-              )
-            } else if (uiState.isLoading) {
-              Text(
-                  text = stringResource(R.string.deleteAccountCheckingLabel),
-                  color = MaterialTheme.colorScheme.onBackground,
-                  style = MaterialTheme.typography.bodyLarge,
-              )
-            } else {
-              DisplayCaregiverButton(
-                  text = stringResource(R.string.deleteAccountRetryLabel),
-                  onClick = viewModel::loadWarnings,
-              )
+            when {
+              uiState.isDeleting -> {
+                Text(
+                    text = stringResource(R.string.deleteAccountProgress),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+              }
+              uiState.warningsLoaded -> {
+                DisplayCaregiverButton(
+                    text =
+                        if (uiState.localCleanupNeeded)
+                            stringResource(R.string.deleteAccountCleanupLabel)
+                        else stringResource(R.string.deleteAccountTitle),
+                    onClick = { viewModel.deleteAccount(context, credentialManager) },
+                    buttonTestTag = DeleteAccountTestTags.BUTTON,
+                )
+              }
+              uiState.isLoading -> {
+                Text(
+                    text = stringResource(R.string.deleteAccountCheckingLabel),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+              }
+              else -> {
+                DisplayCaregiverButton(
+                    text = stringResource(R.string.deleteAccountRetryLabel),
+                    onClick = viewModel::loadWarnings,
+                )
+              }
             }
           }
         }
       },
   )
-}
-
-/** Preview of [DeleteAccountScreen] in the Amber theme. */
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-internal fun DeleteAccountScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { DeleteAccountScreen() }
 }

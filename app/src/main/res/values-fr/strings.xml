@@ -24,7 +24,7 @@
     <string name="screenTitleCaregiverParameters">Paramètres</string>
     <string name="screenTitleCaregiverSignOut">Déconnexion</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
-    <string name="screenTitleCaregiverDeleteAccount">Supprimer le compte</string>
+    <string name="screenTitleCaregiverDeleteAccount">Supprimer son compte</string>
     <string name="screenTitlePatientHome">Accueil</string>
     <string name="screenTitlePatientSeeMedias">Voir les médias</string>
     <string name="screenTitlePatientSeePictures">Voir les photos</string>
@@ -153,19 +153,20 @@
     <string name="caregiverParameterDeleteAccount">Supprimer son compte</string>
 
     <!-- DeleteAccount -->
-    <string name="deleteAccountTitle">Supprimer le compte</string>
-    <string name="deleteAccountExplanation">La suppression est définitive. Vos contenus importés et vos histoires sont supprimés pour toute la famille, et les photos de vous sont retirées des histoires des autres. Les photos de vous importées par d\'autres personnes restent. Vous êtes également retiré des rendez-vous.</string>
+    <string name="deleteAccountTitle">Supprimer son compte</string>
+    <string name="deleteAccountExplanation">La suppression est définitive. Vos contenus importés et vos histoires sont supprimés pour toute la famille, y compris des histoires des autres personnes. Les photos de vous importées par d\'autres personnes restent, même si vous y figurez. Vous êtes également retiré des rendez-vous.</string>
     <string name="deleteAccountProgress">Suppression de votre compte en cours. Cela peut prendre quelques minutes.</string>
     <string name="deleteAccountCleanupLabel">Terminer la suppression</string>
-    <string name="deleteAccountCheckingLabel">Vérification de vos familles...</string>
+    <string name="deleteAccountCheckingLabel">Vérification de vos familles…</string>
     <string name="deleteAccountRetryLabel">Réessayer</string>
-    <string name="deleteAccountLastMemberWarning">Vous êtes le dernier membre de cette famille. Toute la famille et ses médias seront supprimés.</string>
-    <string name="deleteAccountLastCaregiverWarning">Vous êtes le dernier aidant de cette famille. Elle continuera sans personne pour la gérer.</string>
+    <string name="deleteAccountLastMemberWarning">Vous êtes le dernier membre de %1$s. Cette famille et tous ses médias seront supprimés.</string>
+    <string name="deleteAccountLastCaregiverWarning">Vous êtes le dernier aidant de %1$s. Cette famille continuera sans personne pour la gérer.</string>
     <string name="deleteAccountCheckFamiliesError">Impossible de vérifier vos familles. Veuillez réessayer.</string>
     <string name="deleteAccountCleanupError">Votre compte a été supprimé, mais les données de cet appareil n\'ont pas pu être effacées. Appuyez sur «&#160;Terminer la suppression&#160;» pour réessayer.</string>
     <string name="deleteAccountUnknownError">Impossible de supprimer le compte. Veuillez réessayer.</string>
     <string name="deleteAccountNetworkError">Vérifiez votre connexion et réessayez.</string>
     <string name="deleteAccountWrongAccountError">Utilisez le compte Google avec lequel vous êtes connecté.</string>
+    <string name="deleteAccountNoGoogleAccountError">Aucun compte Google trouvé. Ajoutez-en un à votre appareil pour confirmer la suppression du compte.</string>
     <string name="deleteAccountReauthenticationError">Impossible de confirmer votre compte Google. Veuillez réessayer.</string>
     <string name="deleteAccountReauthenticationRequiredError">Confirmez de nouveau votre compte Google et réessayez.</string>
 

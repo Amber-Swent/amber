@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.authentication.accountDeletion
 
 import android.content.Context
@@ -7,6 +8,7 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import com.github.se.amber.R
 import com.github.se.amber.data.account.AccountDeletionError
 import com.github.se.amber.data.account.AccountDeletionRepository
@@ -17,6 +19,7 @@ import com.github.se.amber.model.authentication.ReauthenticationError
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.utils.UiText
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -113,42 +116,53 @@ class DeleteAccountViewModelTest {
   @Test
   fun lastMemberWarningIsLoadedBeforeConfirmation() = runTest {
     coEvery { circleRepository.getCircle("circle") } returns
-        Result.success(CareCircle(memberIds = listOf("caregiver")))
+        Result.success(CareCircle(name = "Arthur's family", memberIds = listOf("caregiver")))
 
     viewModel.loadWarnings()
     advanceUntilIdle()
 
     assertTrue(viewModel.uiState.value.warningsLoaded)
-    assertEquals(R.string.deleteAccountLastMemberWarning, viewModel.uiState.value.warnings.single())
+    assertEquals(
+        UiText.Resource(R.string.deleteAccountLastMemberWarning, listOf("Arthur's family")),
+        viewModel.uiState.value.warnings.single(),
+    )
   }
 
   @Test
   fun lastCaregiverWarningIsLoaded() = runTest {
     coEvery { circleRepository.getCircle("circle") } returns
         Result.success(
-            CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient"))
+            CareCircle(
+                name = "Arthur's family",
+                patientId = "patient",
+                memberIds = listOf("caregiver", "patient"),
+            )
         )
 
     viewModel.loadWarnings()
     advanceUntilIdle()
 
     assertEquals(
-        R.string.deleteAccountLastCaregiverWarning,
+        UiText.Resource(R.string.deleteAccountLastCaregiverWarning, listOf("Arthur's family")),
         viewModel.uiState.value.warnings.single(),
     )
   }
 
   @Test
-  fun warningsAcrossFamiliesAreDeduplicated() = runTest {
+  fun warningsAcrossFamiliesNameEveryAffectedFamily() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.success(UserProfile(uid = "caregiver", circleIds = listOf("one", "two", "three")))
     coEvery { circleRepository.getCircle("one") } returns
-        Result.success(CareCircle(memberIds = listOf("caregiver")))
+        Result.success(CareCircle(name = "Arthur's family", memberIds = listOf("caregiver")))
     coEvery { circleRepository.getCircle("two") } returns
-        Result.success(CareCircle(memberIds = listOf("caregiver")))
+        Result.success(CareCircle(name = "Lucy's family", memberIds = listOf("caregiver")))
     coEvery { circleRepository.getCircle("three") } returns
         Result.success(
-            CareCircle(patientId = "patient", memberIds = listOf("caregiver", "patient"))
+            CareCircle(
+                name = "Mia's family",
+                patientId = "patient",
+                memberIds = listOf("caregiver", "patient"),
+            )
         )
 
     viewModel.loadWarnings()
@@ -156,8 +170,9 @@ class DeleteAccountViewModelTest {
 
     assertEquals(
         listOf(
-            R.string.deleteAccountLastMemberWarning,
-            R.string.deleteAccountLastCaregiverWarning,
+            UiText.Resource(R.string.deleteAccountLastMemberWarning, listOf("Arthur's family")),
+            UiText.Resource(R.string.deleteAccountLastMemberWarning, listOf("Lucy's family")),
+            UiText.Resource(R.string.deleteAccountLastCaregiverWarning, listOf("Mia's family")),
         ),
         viewModel.uiState.value.warnings,
     )
@@ -241,6 +256,24 @@ class DeleteAccountViewModelTest {
 
     assertFalse(viewModel.uiState.value.isDeleting)
     assertEquals(R.string.deleteAccountWrongAccountError, viewModel.uiState.value.errorMessageRes)
+    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+  }
+
+  @Test
+  fun missingGoogleAccountShowsDedicatedMessageWithoutDeleting() = runTest {
+    viewModel.loadWarnings()
+    advanceUntilIdle()
+    coEvery { credentialManager.getCredential(context, any<GetCredentialRequest>()) } throws
+        NoCredentialException()
+
+    viewModel.deleteAccount(context, credentialManager)
+    advanceUntilIdle()
+
+    assertEquals(
+        R.string.deleteAccountNoGoogleAccountError,
+        viewModel.uiState.value.errorMessageRes,
+    )
+    assertFalse(viewModel.uiState.value.isDeleting)
     coVerify(exactly = 0) { deletionRepository.deleteAccount() }
   }
 
