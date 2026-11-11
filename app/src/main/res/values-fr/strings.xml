@@ -252,7 +252,6 @@
     <string name="uploadAudioUpload">Ajouter l\'audio</string>
     <string name="uploadAudioErrorRecord">Veuillez d\'abord enregistrer un audio</string>
     <string name="uploadAudioErrorMicrophoneNotAllowed">L\'utilisation du micro n\'est pas autorisée</string>
-    <string name="uploadAudioErrorMicrophoneBusy">Le micro est utilisé par une autre application</string>
     <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
     <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
     <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>

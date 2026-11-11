@@ -30,16 +30,14 @@ import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
 import java.io.File
-import java.io.IOException
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -55,7 +53,6 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
   COULD_NOT_START_RECORDING(R.string.uploadAudioErrorStartRecording),
   COULD_NOT_STOP_RECORDING(R.string.uploadAudioErrorStopRecording),
   COULD_NOT_PLAY_RECORDING(R.string.uploadAudioErrorPlayRecording),
-  MICROPHONE_BUSY(R.string.uploadAudioErrorMicrophoneBusy),
 }
 
 /**
@@ -211,9 +208,6 @@ class UploadAudioViewModel(
       } catch (e: SecurityException) {
         setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.messageRes)
         return@launch
-      } catch (e: IOException) {
-        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.messageRes)
-        return@launch
       } catch (e: Exception) {
         Log.e(TAG, "Could not start the recording", e)
         setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.messageRes)
@@ -222,16 +216,17 @@ class UploadAudioViewModel(
       _uiState.update {
         it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
       }
-      amplitudeJob =
-          recorder.amplitude
-              // the screen draws WAVEFORM_BARS bars at most: keep the latest ones, or the drawing
-              // would freeze after the first few seconds
-              .onEach { level ->
-                _uiState.update {
-                  it.copy(waveform = (it.waveform + level).takeLast(WAVEFORM_BARS))
-                }
-              }
-              .launchIn(this)
+      // The level is read on a timer, not collected: amplitude is a StateFlow, which doesn't emit
+      // twice the same level, so the waveform would freeze during a silence
+      amplitudeJob = launch {
+        while (true) {
+          delay(AMPLITUDE_SAMPLE_MS)
+          val level = recorder.amplitude.value
+          // the screen draws WAVEFORM_BARS bars at most: keep the latest ones, or the drawing
+          // would freeze after the first few seconds
+          _uiState.update { it.copy(waveform = (it.waveform + level).takeLast(WAVEFORM_BARS)) }
+        }
+      }
       // the recorder stops by itself at its limits: keep what was recorded
       recorder.isRecording.first { !it }
       amplitudeJob?.cancel()
@@ -330,5 +325,8 @@ class UploadAudioViewModel(
 
   private companion object {
     const val TAG = "UploadAudioViewModel"
+
+    /** How often the microphone level is read: the period the recorder updates it at. */
+    const val AMPLITUDE_SAMPLE_MS = 100L
   }
 }

@@ -7,7 +7,6 @@ import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.FakeAudioPlayer
 import com.github.se.amber.data.media.audio.FakeAudioRecorder
-import com.github.se.amber.data.media.audio.MicrophoneUnavailableException
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
@@ -111,6 +110,12 @@ class UploadAudioViewModelTest {
     vm.stopRecording()
     vm.setDescription("Grandma's story")
     return vm
+  }
+
+  /** Moves the clock on, so the ViewModel reads the microphone level the given times. */
+  private fun advanceBy(ms: Long) {
+    testDispatcher.scheduler.advanceTimeBy(ms)
+    testDispatcher.scheduler.runCurrent()
   }
 
   private fun uploadedItem(): MediaItem.Audio {
@@ -223,7 +228,8 @@ class UploadAudioViewModelTest {
   fun waveformGrowsWithTheMicrophoneLevel() {
     val vm = createViewModel()
     vm.startRecording()
-    recorder.emitAmplitude(0.7f)
+    recorder.amplitude.value = 0.7f
+    advanceBy(100)
     assertEquals(listOf(0.7f), vm.uiState.value.waveform)
   }
 
@@ -231,15 +237,28 @@ class UploadAudioViewModelTest {
   fun waveformGrowsForEachSampleEvenWhenTheLevelDoesNotChange() {
     val vm = createViewModel()
     vm.startRecording()
-    repeat(3) { recorder.emitAmplitude(0.4f) }
+    recorder.amplitude.value = 0.4f
+    advanceBy(300)
     assertEquals(3, vm.uiState.value.waveform.size)
+  }
+
+  @Test
+  fun waveformStopsGrowingOnceTheRecordingIsStopped() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    advanceBy(500)
+    assertEquals(recorder.waveform, vm.uiState.value.waveform)
   }
 
   @Test
   fun waveformKeepsOnlyTheLatestLevelsOnceFull() {
     val vm = createViewModel()
     vm.startRecording()
-    repeat(WAVEFORM_BARS + 5) { recorder.emitAmplitude((it + 1) / 100f) }
+    repeat(WAVEFORM_BARS + 5) {
+      recorder.amplitude.value = (it + 1) / 100f
+      advanceBy(100)
+    }
     assertEquals(WAVEFORM_BARS, vm.uiState.value.waveform.size)
   }
 
@@ -247,7 +266,10 @@ class UploadAudioViewModelTest {
   fun waveformEndsWithTheLatestLevelOnceFull() {
     val vm = createViewModel()
     vm.startRecording()
-    repeat(WAVEFORM_BARS + 5) { recorder.emitAmplitude((it + 1) / 100f) }
+    repeat(WAVEFORM_BARS + 5) {
+      recorder.amplitude.value = (it + 1) / 100f
+      advanceBy(100)
+    }
     assertEquals((WAVEFORM_BARS + 5) / 100f, vm.uiState.value.waveform.last())
   }
 
@@ -307,33 +329,22 @@ class UploadAudioViewModelTest {
   }
 
   @Test
-  fun startRecordingWithBusyMicrophoneSetsTheBusyError() {
-    recorder.startError = MicrophoneUnavailableException("in use")
-    val vm = createViewModel()
-    vm.startRecording()
-    assertEquals(
-        UploadAudioViewModelErrorMessage.MICROPHONE_BUSY.messageRes,
-        vm.uiState.value.common.errorMsgRes,
-    )
-  }
-
-  @Test
-  fun startRecordingWithBusyMicrophoneStaysIdle() {
-    recorder.startError = MicrophoneUnavailableException("in use")
-    val vm = createViewModel()
-    vm.startRecording()
-    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
-  }
-
-  @Test
-  fun startRecordingWithAFileThatCantBeCreatedDoesNotBlameTheMicrophone() {
-    recorder.startError = IOException("no space left")
+  fun startRecordingWithAnIOExceptionSetsTheCouldNotStartError() {
+    recorder.startError = IOException("in use")
     val vm = createViewModel()
     vm.startRecording()
     assertEquals(
         UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.messageRes,
         vm.uiState.value.common.errorMsgRes,
     )
+  }
+
+  @Test
+  fun startRecordingWithAnIOExceptionStaysIdle() {
+    recorder.startError = IOException("in use")
+    val vm = createViewModel()
+    vm.startRecording()
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
   }
 
   // ---------- stopRecording ----------

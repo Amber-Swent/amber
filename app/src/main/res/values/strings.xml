@@ -251,7 +251,6 @@
     <string name="uploadAudioUpload">Upload Audio</string>
     <string name="uploadAudioErrorRecord">Please record an audio first</string>
     <string name="uploadAudioErrorMicrophoneNotAllowed">The use of the microphone isn\'t permitted</string>
-    <string name="uploadAudioErrorMicrophoneBusy">The microphone is used by another application</string>
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
