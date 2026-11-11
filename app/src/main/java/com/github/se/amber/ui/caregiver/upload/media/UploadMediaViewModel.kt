@@ -36,10 +36,15 @@ import com.github.se.amber.ui.utils.errorText
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -286,6 +291,8 @@ private sealed interface UploadCheck {
  * @param profileRepo The repository used to load the authenticated user's profile.
  * @param circleRepo The repository used to load the user's care circle.
  * @param placeRepo The repository used to find real places from what the user types.
+ * @param cleanupScope Where [cancel] finishes its cleanup. It is not the ViewModel's own scope,
+ *   which ends as soon as the screen is left, and cancel is usually followed by leaving the screen.
  */
 abstract class MediaViewModel<S : MediaUIState<S>>(
     initialState: S,
@@ -296,6 +303,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         CareCircleRepositoryProvider.default.repository,
     protected val placeRepo: PlaceSearchRepository =
         PlaceSearchRepositoryProvider.default.repository,
+    private val cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : ViewModel() {
   /** Writable state, for the subclass to update its own fields. */
   protected val _uiState = MutableStateFlow(initialState)
@@ -469,6 +477,56 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     }
   }
 
+  /** The upload in progress, kept so [cancel] can stop it. */
+  private var uploadJob: Job? = null
+
+  /**
+   * Care circle id and media id of the upload in progress, from the moment its id is known until it
+   * is saved. If [cancel] comes in between, the media may already be in the outbox.
+   */
+  @Volatile private var savedMedia: Pair<String, String>? = null
+
+  /**
+   * The user cancels: stops the upload in progress, if any, so the media is not sent, and throws
+   * away what the screen holds (see [discardContent]). Always possible, also during an upload.
+   *
+   * The media may reach the outbox just before the upload stops: it is then taken out of it. If its
+   * send had already begun, it may still reach Firebase ([MediaRepository.discardUnsent]).
+   */
+  fun cancel() {
+    val job = uploadJob
+    uploadJob = null
+    updateCommon { it.copy(isUploading = false) }
+    val leftover = discardContent()
+    // cleanupScope, not viewModelScope: the screen is left right after cancel(), which ends
+    // viewModelScope and would cut this cleanup short
+    // Waiting for the upload to stop first: it must not add the media after it was taken out, nor
+    // lose its file while still using it
+    cleanupScope.launch {
+      job?.cancelAndJoin()
+      savedMedia?.let { (circleId, mediaId) ->
+        try {
+          mediaRepo.discardUnsent(circleId, mediaId)
+        } catch (e: CancellationException) {
+          throw e
+        } catch (e: Exception) {
+          Log.e(TAG, "Could not take the canceled media out of the outbox", e)
+        }
+      }
+      savedMedia = null
+      leftover?.delete()
+    }
+  }
+
+  /**
+   * Throws away what the screen holds for the media, for [cancel]: stops what uses it and clears it
+   * from the UI state, without deleting its file yet.
+   *
+   * @return The file to delete once the upload has stopped, or null if there is none. Nothing by
+   *   default.
+   */
+  protected open fun discardContent(): File? = null
+
   /** Uploads the media currently stored in the UI state. */
   fun uploadMedia() {
     val state = _uiState.value
@@ -519,17 +577,21 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     val saved = state.withCommon(state.common.copy(description = state.common.description.trim()))
 
     updateCommon { it.copy(isUploading = true) }
-    viewModelScope.launch {
+    uploadJob = viewModelScope.launch {
       try {
         val id = mediaRepo.newMediaId(circle.id)
+        savedMedia = circle.id to id
         val item = createItem(id, saved, ready.authorId, circle, ready.date, shownIds)
         mediaRepo.addMedia(circle, item, fileOf(state))
+        // Saved for good: cancel no longer has anything to take back
+        savedMedia = null
         updateCommon { it.copy(isUploading = false) }
         _events.send(MediaEvent.Uploaded)
       } catch (e: CancellationException) {
         throw e
       } catch (e: Exception) {
         Log.e(TAG, "Uploading the media failed", e)
+        savedMedia = null
         updateCommon { it.copy(isUploading = false) }
         setErrorMsg(MediaViewModelErrorMessage.UNKNOW_ERROR.messageRes)
       }

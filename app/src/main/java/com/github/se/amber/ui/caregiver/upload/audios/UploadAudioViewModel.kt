@@ -33,7 +33,10 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -97,6 +100,7 @@ class UploadAudioViewModel(
     profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
+    cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val recorder: AudioRecorder = AudioRecorderProvider.recorder,
     private val player: AudioPlayer = AudioPlayerProvider.player,
 ) :
@@ -110,6 +114,7 @@ class UploadAudioViewModel(
         profileRepo = profileRepo,
         circleRepo = circleRepo,
         placeRepo = placeRepo,
+        cleanupScope = cleanupScope,
     ) {
 
   // A Job is a handle on a coroutine (a task running in the background, started with `launch`).
@@ -264,14 +269,27 @@ class UploadAudioViewModel(
 
   /** Throws away the recording in progress, or the one that was recorded. */
   fun deleteRecording() {
+    discardRecording()?.delete()
+  }
+
+  /** Cancel throws away the recording, in progress or recorded. */
+  override fun discardContent(): File? = discardRecording()
+
+  /**
+   * Stops everything that uses the recording and clears it from the state.
+   *
+   * @return The recorded file, not deleted yet, or null if there was none.
+   */
+  private fun discardRecording(): File? {
     recordingJob?.cancel()
     amplitudeJob?.cancel()
     stoppingJob?.cancel()
     playingJob?.cancel()
     recorder.cancel()
-    _uiState.value.audioFile?.let { player.stop(it) }
-    _uiState.value.audioFile?.delete()
+    val file = _uiState.value.audioFile
+    file?.let { player.stop(it) }
     resetRecording()
+    return file
   }
 
   private fun resetRecording() {

@@ -27,6 +27,8 @@ import java.io.File
 import java.io.IOException
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -97,6 +99,7 @@ class UploadAudioViewModelTest {
           profileRepo = profileRepo,
           circleRepo = circleRepo,
           placeRepo = placeRepo,
+          cleanupScope = CoroutineScope(testDispatcher),
           recorder = recorder,
           player = player,
       )
@@ -510,5 +513,91 @@ class UploadAudioViewModelTest {
     vm.startRecording()
     vm.javaClass.getDeclaredMethod("onCleared").apply { isAccessible = true }.invoke(vm)
     assertEquals(1, recorder.cancelCalls)
+  }
+
+  // ---------- cancel ----------
+
+  /**
+   * An upload that never finishes: the media is in the outbox but [uploadMedia] is still waiting.
+   */
+  private fun uploadInProgress(): UploadAudioViewModel {
+    coEvery { mediaRepo.addMedia(any(), any(), any()) } coAnswers
+        {
+          CompletableDeferred<Unit>().await()
+        }
+    return recordedViewModel().also { it.uploadMedia() }
+  }
+
+  @Test
+  fun cancelDuringTheUploadStopsShowingTheUpload() {
+    val vm = uploadInProgress()
+    vm.cancel()
+    assertFalse(vm.uiState.value.common.isUploading)
+  }
+
+  @Test
+  fun cancelDuringTheUploadTakesTheMediaOutOfTheOutbox() {
+    uploadInProgress().cancel()
+    coVerify(exactly = 1) { mediaRepo.discardUnsent("circle1", "media1") }
+  }
+
+  @Test
+  fun cancelDuringTheUploadClearsTheAudioFileFromTheState() {
+    val vm = uploadInProgress()
+    vm.cancel()
+    assertNull(vm.uiState.value.audioFile)
+  }
+
+  @Test
+  fun cancelDuringTheUploadDeletesTheRecordedFile() {
+    val vm = uploadInProgress()
+    val file = vm.uiState.value.audioFile!!
+    vm.cancel()
+    assertFalse(file.exists())
+  }
+
+  @Test
+  fun cancelDuringTheUploadClearsTheRecordingFromTheState() {
+    val vm = uploadInProgress()
+    vm.cancel()
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun cancelWithoutUploadDoesNotTouchTheOutbox() {
+    recordedViewModel().cancel()
+    coVerify(exactly = 0) { mediaRepo.discardUnsent(any(), any()) }
+  }
+
+  @Test
+  fun cancelWithoutUploadDeletesTheRecordedFile() {
+    val vm = recordedViewModel()
+    val file = vm.uiState.value.audioFile!!
+    vm.cancel()
+    assertFalse(file.exists())
+  }
+
+  @Test
+  fun cancelAfterASuccessfulUploadDoesNotTakeTheMediaOutOfTheOutbox() {
+    val vm = recordedViewModel()
+    vm.uploadMedia()
+    vm.cancel()
+    coVerify(exactly = 0) { mediaRepo.discardUnsent(any(), any()) }
+  }
+
+  @Test
+  fun cancelWhileRecordingCancelsTheRecorder() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.cancel()
+    assertEquals(1, recorder.cancelCalls)
+  }
+
+  @Test
+  fun aFailingDiscardDoesNotCrashTheCancel() {
+    coEvery { mediaRepo.discardUnsent(any(), any()) } throws IOException("disk")
+    val vm = uploadInProgress()
+    vm.cancel()
+    assertFalse(vm.uiState.value.common.isUploading)
   }
 }

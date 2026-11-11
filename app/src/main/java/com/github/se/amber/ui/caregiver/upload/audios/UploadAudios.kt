@@ -8,6 +8,7 @@ package com.github.se.amber.ui.caregiver.upload.audios
 import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -81,8 +82,13 @@ object UploadAudioScreenTestTags {
  * Displays the Audio upload screen.
  *
  * @param viewModel The view model that manages the screen state and actions.
- * @param onUpload The callback invoked after the upload action is requested.
- * @param goBack The callback invoked when the user cancels the upload.
+ * @param onUpload The callback invoked once the audio has been saved (on [MediaEvent.Uploaded]),
+ *   not when the user taps the upload button. The audio is only saved locally at that point:
+ *   sending it to Firebase may still be pending, so the callback must not assume it has been
+ *   delivered.
+ * @param goBack The callback invoked when the user cancels (button or system back). Cancelling is
+ *   always possible, also while the audio is being saved: the save is then stopped and nothing is
+ *   sent.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,6 +129,15 @@ fun UploadAudioScreen(
     }
   }
 
+  // Cancel (button or system back): the ViewModel stops the save in progress,
+  // if any, and throws the audio away, so nothing is sent
+  val cancel = {
+    viewModel.cancel()
+    goBack()
+  }
+  // Without it, system back would leave the screen without calling viewModel.cancel()
+  BackHandler(onBack = cancel)
+
   // The upload is over: leave the screen only once it really succeeded
   val currentOnUpload by rememberUpdatedState(onUpload)
   LaunchedEffect(Unit) {
@@ -138,7 +153,7 @@ fun UploadAudioScreen(
         TopAppBar(
             title = {
               Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, cancel)
                 DisplayCaregiverTitle(
                     Modifier.testTag(UploadAudioScreenTestTags.TITLE),
                     stringResource(R.string.uploadAudioTitle),
