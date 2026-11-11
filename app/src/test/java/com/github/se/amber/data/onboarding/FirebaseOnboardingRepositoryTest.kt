@@ -1,4 +1,5 @@
 // This file was written by Neha Chakraborty and Copilot
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.data.onboarding
 
@@ -16,11 +17,15 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Transaction
+import io.mockk.CapturingSlot
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -42,6 +47,7 @@ class FirebaseOnboardingRepositoryTest {
   private lateinit var user: FirebaseUser
   private lateinit var transaction: Transaction
   private lateinit var repository: FirebaseOnboardingRepository
+  private lateinit var arrayUnion: FieldValue
 
   @Before
   fun setUp() {
@@ -61,8 +67,16 @@ class FirebaseOnboardingRepositoryTest {
     every { users.document(uid) } returns profileDocument
     every { circles.document() } returns circleDocument
     every { circleDocument.id } returns circleId
+    mockkStatic(FieldValue::class)
+    arrayUnion = mockk()
+    every { FieldValue.arrayUnion(any()) } returns arrayUnion
 
     repository = FirebaseOnboardingRepository(auth, firestore) { createdAt }
+  }
+
+  @After
+  fun tearDown() {
+    unmockkStatic(FieldValue::class)
   }
 
   @Test
@@ -117,51 +131,111 @@ class FirebaseOnboardingRepositoryTest {
   }
 
   @Test
-  fun createInitialCareCircle_rejectsCaregiverAlreadyLinkedToCircleWithoutWriting() = runBlocking {
-    stubTransactionWithProfile(profile = profile(circleIds = listOf("existing-circle")))
+  fun createInitialCareCircle_rejectsPatientWhoAlreadyHasCirclesWithoutWriting() = runBlocking {
+    stubTransactionWithProfile(
+        profile =
+            profile(
+                role = Role.PATIENT,
+                circleIds = listOf("existing-circle", "another-circle"),
+            ),
+    )
 
     val result = repository.createInitialCareCircle("Family")
 
-    assertFailure<OnboardingError.CareCircleAlreadyExists>(result)
+    assertFailure<OnboardingError.NotCaregiver>(result)
     verify(exactly = 0) { transaction.set(circleDocument, any<CareCircle>()) }
     verify(exactly = 0) { transaction.update(profileDocument, any<String>(), any<Any>()) }
   }
 
   @Test
   fun createInitialCareCircle_createsAndLinksCircleWithinTransaction() = runBlocking {
-    val createdCircle = slot<CareCircle>()
-    val updatedField = slot<String>()
-    val updatedValue = slot<FieldValue>()
-    val profileSnapshot = profileSnapshot(profile = profile())
-    every { transaction.get(profileDocument) } returns profileSnapshot
-    every { transaction.set(circleDocument, capture(createdCircle)) } returns transaction
-    every {
-      transaction.update(profileDocument, capture(updatedField), capture(updatedValue))
-    } returns transaction
+    val write = stubSuccessfulTransaction(profile())
+
+    val result = repository.createInitialCareCircle("  Family  ")
+
+    assertCircleCreatedAndLinked(result, name = "Family", write = write)
+  }
+
+  @Test
+  fun createInitialCareCircle_createsSecondCircleAndArrayUnionsItsId() = runBlocking {
+    val write = stubSuccessfulTransaction(profile(circleIds = listOf("existing-circle")))
+
+    val result = repository.createInitialCareCircle("Parents")
+
+    assertCircleCreatedAndLinked(result, name = "Parents", write = write)
+  }
+
+  @Test
+  fun createInitialCareCircle_createsCircleWhenCaregiverAlreadyHasSeveral() = runBlocking {
+    val write =
+        stubSuccessfulTransaction(
+            profile(circleIds = listOf("circle-a", "circle-b", "circle-c")),
+        )
+
+    val result = repository.createInitialCareCircle("  Neighbors  ")
+
+    assertCircleCreatedAndLinked(result, name = "Neighbors", write = write)
+  }
+
+  @Test
+  fun createInitialCareCircle_arrayUnionsEachNewIdWhenCreatingMultipleCircles() = runBlocking {
+    val firstNewCircle = mockk<DocumentReference>()
+    val secondNewCircle = mockk<DocumentReference>()
+    every { firstNewCircle.id } returns "new-circle-1"
+    every { secondNewCircle.id } returns "new-circle-2"
+    every { circles.document() } returnsMany listOf(firstNewCircle, secondNewCircle)
+
+    val createdCircles = mutableListOf<CareCircle>()
+    val updatedFields = mutableListOf<String>()
+    val updatedValues = mutableListOf<Any>()
+    every { transaction.get(profileDocument) } returns
+        profileSnapshot(profile(circleIds = listOf("existing-circle")))
+    every { transaction.set(any<DocumentReference>(), any<CareCircle>()) } answers
+        {
+          createdCircles += secondArg<CareCircle>()
+          transaction
+        }
+    every { transaction.update(profileDocument, any<String>(), any()) } answers
+        {
+          updatedFields += secondArg<String>()
+          updatedValues += thirdArg<Any>()
+          transaction
+        }
     every { firestore.runTransaction<CareCircle>(any()) } answers
         {
           val circle = firstArg<Transaction.Function<CareCircle>>().apply(transaction)
           Tasks.forResult(circle)
         }
 
-    val result = repository.createInitialCareCircle("  Family  ")
+    val firstResult = repository.createInitialCareCircle("Family")
+    val secondResult = repository.createInitialCareCircle("Friends")
 
-    assertTrue(result.isSuccess)
     assertEquals(
         CareCircle(
-            id = circleId,
+            id = "new-circle-1",
             name = "Family",
             memberIds = listOf(uid),
             createdBy = uid,
             createdAt = createdAt,
         ),
-        result.getOrThrow(),
+        firstResult.getOrThrow(),
     )
-    assertEquals(result.getOrThrow(), createdCircle.captured)
-    assertEquals("circleIds", updatedField.captured)
-    assertTrue(updatedValue.isCaptured)
-    verify(exactly = 1) { transaction.set(circleDocument, any<CareCircle>()) }
-    verify(exactly = 1) { transaction.update(profileDocument, any<String>(), any<Any>()) }
+    assertEquals(
+        CareCircle(
+            id = "new-circle-2",
+            name = "Friends",
+            memberIds = listOf(uid),
+            createdBy = uid,
+            createdAt = createdAt,
+        ),
+        secondResult.getOrThrow(),
+    )
+    assertEquals(listOf(firstResult.getOrThrow(), secondResult.getOrThrow()), createdCircles)
+    assertEquals(listOf("circleIds", "circleIds"), updatedFields)
+    assertIsArrayUnionOf(updatedValues[0], "new-circle-1")
+    assertIsArrayUnionOf(updatedValues[1], "new-circle-2")
+    verify(exactly = 1) { transaction.set(firstNewCircle, any<CareCircle>()) }
+    verify(exactly = 1) { transaction.set(secondNewCircle, any<CareCircle>()) }
   }
 
   @Test
@@ -226,6 +300,57 @@ class FirebaseOnboardingRepositoryTest {
     val result = repository.createInitialCareCircle("Family")
 
     assertUnknownFailure(result, source)
+  }
+
+  private class CircleTransaction(
+      val createdCircle: CapturingSlot<CareCircle> = slot(),
+      val updatedField: CapturingSlot<String> = slot(),
+      val updatedValue: CapturingSlot<Any> = slot(),
+  )
+
+  private fun stubSuccessfulTransaction(currentProfile: UserProfile): CircleTransaction {
+    val write = CircleTransaction()
+    every { transaction.get(profileDocument) } returns profileSnapshot(currentProfile)
+    every { transaction.set(circleDocument, capture(write.createdCircle)) } returns transaction
+    every {
+      transaction.update(
+          profileDocument,
+          capture(write.updatedField),
+          capture(write.updatedValue),
+      )
+    } returns transaction
+    every { firestore.runTransaction<CareCircle>(any()) } answers
+        {
+          val circle = firstArg<Transaction.Function<CareCircle>>().apply(transaction)
+          Tasks.forResult(circle)
+        }
+    return write
+  }
+
+  private fun assertCircleCreatedAndLinked(
+      result: Result<CareCircle>,
+      name: String,
+      write: CircleTransaction,
+  ) {
+    val created =
+        CareCircle(
+            id = circleId,
+            name = name,
+            memberIds = listOf(uid),
+            createdBy = uid,
+            createdAt = createdAt,
+        )
+    assertEquals(created, result.getOrThrow())
+    assertEquals(created, write.createdCircle.captured)
+    assertEquals("circleIds", write.updatedField.captured)
+    assertIsArrayUnionOf(write.updatedValue.captured, circleId)
+    verify(exactly = 1) { transaction.set(circleDocument, any<CareCircle>()) }
+    verify(exactly = 1) { transaction.update(profileDocument, any<String>(), any<Any>()) }
+  }
+
+  private fun assertIsArrayUnionOf(value: Any, element: String) {
+    assertSame(arrayUnion, value)
+    verify { FieldValue.arrayUnion(element) }
   }
 
   private fun stubTransactionWithProfile(

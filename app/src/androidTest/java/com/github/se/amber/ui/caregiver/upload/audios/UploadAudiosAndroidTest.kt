@@ -2,6 +2,7 @@
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import android.widget.Toast
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -14,20 +15,28 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.test.platform.app.InstrumentationRegistry
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.media.AudioRecordingState
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.media.audio.AudioRecorderTestTags
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
 /** Compose tests for the recording part of [UploadAudioScreen]. The ViewModel is mocked. */
-class UploadAudiosTest {
+class UploadAudiosAndroidTest {
 
   @get:Rule val composeTestRule = createComposeRule()
 
@@ -48,15 +57,26 @@ class UploadAudiosTest {
 
   @Before
   fun setUp() {
+    // Already granted, so the permission popup of the screen doesn't cover the tests
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.uiAutomation.grantRuntimePermission(
+        instrumentation.targetContext.packageName,
+        android.Manifest.permission.RECORD_AUDIO,
+    )
     uiStateFlow = MutableStateFlow(UploadAudioUIState())
     viewModel = mockk(relaxed = true)
     every { viewModel.uiState } returns uiStateFlow
     every { viewModel.involvedOptions } returns MutableStateFlow(emptyMap())
+    every { viewModel.placeOptions } returns MutableStateFlow(emptyMap())
+    every { viewModel.events } returns emptyFlow()
   }
 
-  private fun launchScreen(state: UploadAudioUIState = UploadAudioUIState()) {
+  private fun launchScreen(
+      state: UploadAudioUIState = UploadAudioUIState(),
+      goBack: () -> Unit = {},
+  ) {
     uiStateFlow.value = state
-    composeTestRule.setContent { UploadAudioScreen(viewModel = viewModel) }
+    composeTestRule.setContent { UploadAudioScreen(viewModel = viewModel, goBack = goBack) }
   }
 
   private fun setState(state: UploadAudioUIState) {
@@ -155,6 +175,76 @@ class UploadAudiosTest {
     launchScreen(recorded)
     setState(UploadAudioUIState())
     tagged(UploadAudioScreenTestTags.RECORD_AUDIO).assertIsDisplayed()
+  }
+
+  // ---------- microphone error ----------
+
+  private val microphoneError =
+      UploadAudioUIState(
+          common =
+              CommonMediaUIState(
+                  errorMsgRes = UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.messageRes
+              )
+      )
+
+  // The error is a Toast, which is not part of the Compose tree: Toast.makeText is mocked, so no
+  // real toast is shown and the message given to it can be checked.
+  private fun withMockedToast(block: () -> Unit) {
+    mockkStatic(Toast::class)
+    try {
+      every { Toast.makeText(any(), any<CharSequence>(), any()) } returns mockk(relaxed = true)
+      block()
+    } finally {
+      unmockkStatic(Toast::class)
+    }
+  }
+
+  @Test
+  fun aMicrophoneErrorIsShownInAToastWithTheMicrophoneMessage() = withMockedToast {
+    launchScreen()
+    setState(microphoneError)
+    composeTestRule.waitForIdle()
+    val expectedMessage =
+        InstrumentationRegistry.getInstrumentation()
+            .targetContext
+            .getString(R.string.uploadAudioErrorMicrophoneNotAllowed)
+    verify { Toast.makeText(any(), expectedMessage, any()) }
+  }
+
+  @Test
+  fun aMicrophoneErrorIsClearedOnceShown() = withMockedToast {
+    launchScreen()
+    setState(microphoneError)
+    composeTestRule.waitForIdle()
+    verify { viewModel.clearErrorMsg() }
+  }
+
+  // ---------- cancel ----------
+
+  @Test
+  fun cancelGoesBackWhenNothingIsBeingSaved() {
+    var goBackCount = 0
+    launchScreen(goBack = { goBackCount++ })
+    tagged(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    assertEquals(1, goBackCount)
+  }
+
+  @Test
+  fun cancelWhileTheAudioIsBeingSavedStillGoesBack() {
+    var goBackCount = 0
+    launchScreen(
+        UploadAudioUIState(common = CommonMediaUIState(isUploading = true)),
+        goBack = { goBackCount++ },
+    )
+    tagged(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    assertEquals(1, goBackCount)
+  }
+
+  @Test
+  fun cancelTellsTheViewModelToStopTheUpload() {
+    launchScreen(UploadAudioUIState(common = CommonMediaUIState(isUploading = true)))
+    tagged(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    verify(exactly = 1) { viewModel.cancel() }
   }
 
   // ---------- scrolling ----------

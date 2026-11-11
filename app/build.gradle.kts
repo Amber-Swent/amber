@@ -218,6 +218,10 @@ dependencies {
   // Task.await() for Firebase calls
   implementation(libs.kotlinx.coroutines.play.services)
 
+  // ----------       DataStore       ------------
+  // Remembers which care circle is active on this device, per signed-in user.
+  implementation(libs.androidx.datastore.preferences)
+
   // ----------      WorkManager      ------------
   // background sends of the media outbox
   implementation(libs.androidx.work.runtime.ktx)

@@ -1,193 +1,350 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.audios
 
-import androidx.lifecycle.ViewModel
+import android.util.Log
+import androidx.annotation.StringRes
+import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
+import com.github.se.amber.data.media.audio.AudioPlayer
+import com.github.se.amber.data.media.audio.AudioPlayerProvider
+import com.github.se.amber.data.media.audio.AudioRecorder
+import com.github.se.amber.data.media.audio.AudioRecorderProvider
+import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.AudioRecordingState
+import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
+import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.MemoryDate
-import com.github.se.amber.model.user.Person
-import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
+import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
+import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
 import java.io.File
 import java.time.LocalDate
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
- * Represents the state displayed by the picture upload screen.
+ * Error messages specific to the caregiver Upload Audio ViewModel; the ones shared with the other
+ * upload screens are in [com.github.se.amber.ui.caregiver.upload.media.MediaViewModelErrorMessage].
  *
- * @param description The description entered for the picture.
- * @param date The date associated with the picture, if one was selected.
- * @param location Where the picture was taken: the place search and the picked place.
- * @param shownIds The IDs of the people tagged in the picture.
- * @param audioFile The recorded audio, once the recording is over.
- * @param waveform The levels of the audio so far (while recording) or in full (once recorded).
- * @param recordingState Whether the audio is not yet recorded, being recorded, or recorded.
- * @param isUploading Whether an upload is currently in progress.
- * @param errorMsg The error message to display, if any.
+ * @property messageRes the message shown to the user, as a string resource.
  */
-data class UploadAudioUIState(
-    val description: String = "",
-    val date: MemoryDate? = null,
-    val location: MediaLocationUIState = MediaLocationUIState(),
-    val shownIds: Set<String> = emptySet(),
-    val audioFile: File? = null,
-    val waveform: List<Float> = emptyList(),
-    val isUploading: Boolean = false,
-    val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
-    val errorMsg: String? = null,
-    val isAddPersonOpen: Boolean = false,
-    val isAddingPerson: Boolean = false,
-    val personFirstName: String = "",
-    val personLastName: String = "",
-    val personNickname: String = "",
-) {
-  val canUpload: Boolean
-    get() =
-        audioFile != null &&
-            recordingState == AudioRecordingState.RECORDED &&
-            description.isNotBlank() &&
-            date != null &&
-            location.hasValidPlace &&
-            !isUploading
+enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int) {
+  RECORD_AUDIO(R.string.uploadAudioErrorRecord),
+  MICROPHONE_NOT_ALLOWED(R.string.uploadAudioErrorMicrophoneNotAllowed),
+  COULD_NOT_START_RECORDING(R.string.uploadAudioErrorStartRecording),
+  COULD_NOT_STOP_RECORDING(R.string.uploadAudioErrorStopRecording),
+  COULD_NOT_PLAY_RECORDING(R.string.uploadAudioErrorPlayRecording),
 }
 
 /**
- * Manages the state and user actions for the picture upload screen.
+ * Represents the state displayed by the audio upload screen.
+ *
+ * @param common The fields shared with the other upload screens: description, date, place, people,
+ *   upload progress and error message.
+ * @param audioFile The recorded audio, once the recording is over.
+ * @param durationMs How long the recorded audio lasts, 0 until the recording is over.
+ * @param waveform The levels of the audio so far (while recording) or in full (once recorded).
+ * @param recordingState Whether the audio is not yet recorded, being recorded, or recorded.
+ */
+data class UploadAudioUIState(
+    override val common: CommonMediaUIState = CommonMediaUIState(),
+    val audioFile: File? = null,
+    val durationMs: Long = 0L,
+    val waveform: List<Float> = emptyList(),
+    val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
+) : MediaUIState<UploadAudioUIState> {
+  override val canUpload: Boolean
+    get() = audioFile != null && recordingState == AudioRecordingState.RECORDED && common.canUpload
+
+  override fun withCommon(common: CommonMediaUIState): UploadAudioUIState = copy(common = common)
+}
+
+/**
+ * Manages the state and user actions for the audio upload screen. What it shares with the other
+ * upload screens (circle, description, date, place, people, upload) is in [MediaViewModel]; this
+ * class only adds the recording.
  *
  * @param mediaRepo The repository used to create and upload media items.
  * @param authRepo The repository used to access the currently authenticated user.
  * @param profileRepo The repository used to load the authenticated user's profile.
  * @param circleRepo The repository used to load the user's care circle.
  * @param placeRepo The repository used to find real places from what the user types.
+ * @param recorder The microphone recorder.
+ * @param player The app's audio player, used to listen to the recording before uploading it.
  */
 class UploadAudioViewModel(
-    private val mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
-    private val authRepo: AuthRepository = AuthRepositoryProvider.repository,
-    private val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
-    private val circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
-    private val placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
-) : ViewModel() {
-  private val _uiState =
-      MutableStateFlow(UploadAudioUIState(date = MemoryDate(LocalDate.now().year)))
-  val uiState: StateFlow<UploadAudioUIState> = _uiState.asStateFlow()
-  private val _careCircle = MutableStateFlow<CareCircle?>(null)
-  val careCircle: StateFlow<CareCircle?> = _careCircle.asStateFlow()
+    mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
+    authRepo: AuthRepository = AuthRepositoryProvider.repository,
+    profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
+    cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+    private val recorder: AudioRecorder = AudioRecorderProvider.recorder,
+    private val player: AudioPlayer = AudioPlayerProvider.player,
+) :
+    MediaViewModel<UploadAudioUIState>(
+        initialState =
+            UploadAudioUIState(
+                common = CommonMediaUIState(date = MemoryDate(LocalDate.now().year))
+            ),
+        mediaRepo = mediaRepo,
+        authRepo = authRepo,
+        profileRepo = profileRepo,
+        circleRepo = circleRepo,
+        placeRepo = placeRepo,
+        cleanupScope = cleanupScope,
+    ) {
 
-  private val _members = MutableStateFlow<Map<String, Person>?>(null)
-  // people saved by the add-person dialog before the circle arrived, keyed by id
-  val involvedOptions: StateFlow<Map<String, String>> = MutableStateFlow(emptyMap())
-
-  /** Clears the current error message from the UI state. */
-  fun clearErrorMsg() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
+  // A Job is a handle on a coroutine (a task running in the background, started with `launch`).
+  // Keeping it lets us check whether the task is still running (`isActive`) and cancel it
+  // e.g. when the user deletes the recording.
 
   /**
-   * Sets the error message shown by the audio upload screen.
-   *
-   * @param errorMsg The error message to display.
+   * The task started by [startRecording]: it starts the recorder, then waits for the recorder to
+   * stop by itself (time or size limit) and hands over to [saveRecordingOnce]. Canceled when the
+   * user stops or deletes the recording.
    */
-  internal fun setErrorMsg(errorMsg: String) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
+  private var recordingJob: Job? = null
 
   /**
-   * Updates the audio description in the UI state.
-   *
-   * @param description The new audio description.
+   * The task that adds each microphone level to the waveform while recording. Canceled as soon as
+   * the recording ends, so the waveform no longer grows.
    */
-  fun setDescription(description: String) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
+  private var amplitudeJob: Job? = null
 
   /**
-   * Updates the audio date in the UI state.
+   * The one task that takes the finished recording from the recorder, started by [stopRecording] or
+   * when the recorder stops at a limit. Kept so that only one runs: a second `recorder.stop()`
+   * would find no recording, and canceling the first could delete its file. Also canceled if the
+   * user deletes.
+   */
+  private var stoppingJob: Job? = null
+
+  /** The task started by [playRecording]. Canceled if the user plays again or deletes. */
+  private var playingJob: Job? = null
+
+  /**
+   * Checks whether an audio has been recorded for upload.
    *
+   * @param state The current audio upload UI state.
+   * @return The error to show if no audio is recorded, as a string resource, or null if it is.
+   */
+  @StringRes
+  override fun checkContent(state: UploadAudioUIState): Int? =
+      if (state.audioFile == null || state.recordingState != AudioRecordingState.RECORDED)
+          UploadAudioViewModelErrorMessage.RECORD_AUDIO.messageRes
+      else null
+
+  /**
+   * Gets the recorded audio file.
+   *
+   * @param state The current audio upload UI state.
+   * @return The recorded file, or null if nothing is recorded.
+   */
+  override fun fileOf(state: UploadAudioUIState): File? = state.audioFile
+
+  /**
+   * Creates a media item containing the recorded audio and its upload metadata.
+   *
+   * @param id The unique identifier assigned to the media item.
+   * @param state The current audio upload UI state.
+   * @param authorId The identifier of the user who uploaded the audio.
+   * @param circle The care circle associated with the audio.
    * @param date The date associated with the audio.
+   * @param shownIds The identifiers of people shown in the audio.
+   * @return The audio media item to save and upload.
    */
-  fun setDate(date: MemoryDate?) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  /**
-   * Adds a person to the tagged people, or removes them if already tagged.
-   *
-   * @param id The ID of the person to select or deselect.
-   */
-  fun toggleShownId(id: String) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  /** Opens the add-person dialog. */
-  fun onAddPerson() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  /**
-   * Updates the first name typed in the add-person dialog.
-   *
-   * @param firstName The new first name.
-   */
-  fun setPersonFirstName(firstName: String) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  /**
-   * Updates the last name typed in the add-person dialog.
-   *
-   * @param lastName The new last name.
-   */
-  fun setPersonLastName(lastName: String) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  /**
-   * Updates the nickname typed in the add-person dialog.
-   *
-   * @param nickName The new nickname.
-   */
-  fun setPersonNickname(nickName: String) {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  /** Closes the add-person dialog and clears its fields, unless a person is being saved. */
-  fun dismissAddPerson() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
-
-  fun addPerson() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
-  }
+  override fun createItem(
+      id: String,
+      state: UploadAudioUIState,
+      authorId: String,
+      circle: CareCircle,
+      date: MemoryDate,
+      shownIds: List<String>,
+  ): MediaItem =
+      MediaItem.Audio(
+          id = id,
+          authorId = authorId,
+          storagePath = "careCircles/${circle.id}/media/$id.m4a",
+          createdAt = System.currentTimeMillis(),
+          description = state.common.description,
+          date = date,
+          location = state.common.location.pickedPlace,
+          shownIds = shownIds,
+          authorizedIds = emptyList(),
+          status = MediaStatus.APPROVED,
+          durationMs = state.durationMs,
+          waveform = state.waveform,
+      )
 
   /** Starts recording; [UploadAudioUIState.waveform] then grows with the microphone level. */
   fun startRecording() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+    if (_uiState.value.recordingState != AudioRecordingState.IDLE) return
+    // The state stays IDLE while the recorder starts: a second tap then would cancel this start and
+    // begin another one
+    if (recordingJob?.isActive == true) return
+    recordingJob = viewModelScope.launch {
+      try {
+        recorder.start()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: SecurityException) {
+        setErrorMsg(UploadAudioViewModelErrorMessage.MICROPHONE_NOT_ALLOWED.messageRes)
+        return@launch
+      } catch (e: Exception) {
+        Log.e(TAG, "Could not start the recording", e)
+        setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_START_RECORDING.messageRes)
+        return@launch
+      }
+      _uiState.update {
+        it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
+      }
+      // The level is read on a timer, not collected: amplitude is a StateFlow, which doesn't emit
+      // twice the same level, so the waveform would freeze during a silence
+      amplitudeJob = launch {
+        while (true) {
+          delay(AMPLITUDE_SAMPLE_MS.milliseconds)
+          val level = recorder.amplitude.value
+          // the screen draws WAVEFORM_BARS bars at most: keep the latest ones, or the drawing
+          // would freeze after the first few seconds
+          _uiState.update { it.copy(waveform = (it.waveform + level).takeLast(WAVEFORM_BARS)) }
+        }
+      }
+      // the recorder stops by itself at its limits: keep what was recorded
+      recorder.isRecording.first { !it }
+      amplitudeJob?.cancel()
+      saveRecordingOnce()
+    }
   }
 
   /** Stops the recording and keeps it: [UploadAudioUIState.waveform] then holds the full audio. */
   fun stopRecording() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+    if (_uiState.value.recordingState != AudioRecordingState.RECORDING) return
+    recordingJob?.cancel()
+    amplitudeJob?.cancel()
+    saveRecordingOnce()
+  }
+
+  /**
+   * Starts saving the recording, unless it is already being saved, whether the recorder stopped at
+   * a limit or the user tapped stop meanwhile. It runs in its own task, so stopping the
+   * [recordingJob] doesn't cancel it.
+   */
+  private fun saveRecordingOnce() {
+    if (stoppingJob?.isActive == true) return
+    stoppingJob = viewModelScope.launch { saveRecording() }
+  }
+
+  /** Takes the finished recording from the recorder and puts it in the state. */
+  private suspend fun saveRecording() {
+    try {
+      val audio = recorder.stop()
+      _uiState.update {
+        it.copy(
+            audioFile = audio.file,
+            durationMs = audio.durationMs,
+            waveform = audio.waveform,
+            recordingState = AudioRecordingState.RECORDED,
+        )
+      }
+    } catch (e: CancellationException) {
+      throw e
+    } catch (e: Exception) {
+      Log.e(TAG, "Could not keep the recording", e)
+      resetRecording()
+      setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.messageRes)
+    }
   }
 
   /** Throws away the recording in progress, or the one that was recorded. */
   fun deleteRecording() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+    discardRecording()?.let(::deleteOrWarn)
   }
 
-  fun uploadAudio() {
-    TODO("Will be implemented once a global ViewModel is defined and can be extended.")
+  /** Cancel throws away the recording, in progress or recorded. */
+  override fun discardContent(): File? = discardRecording()
+
+  /**
+   * Stops everything that uses the recording and clears it from the state.
+   *
+   * @return The recorded file, not deleted yet, or null if there was none.
+   */
+  private fun discardRecording(): File? {
+    recordingJob?.cancel()
+    amplitudeJob?.cancel()
+    stoppingJob?.cancel()
+    playingJob?.cancel()
+    recorder.cancel()
+    val file = _uiState.value.audioFile
+    file?.let { player.stop(it) }
+    resetRecording()
+    return file
+  }
+
+  private fun resetRecording() {
+    _uiState.update {
+      it.copy(
+          audioFile = null,
+          durationMs = 0L,
+          waveform = emptyList(),
+          recordingState = AudioRecordingState.IDLE,
+      )
+    }
+  }
+
+  /** Plays the recorded audio from the start. It does nothing until the audio is recorded. */
+  fun playRecording() {
+    val state = _uiState.value
+    val file = state.audioFile ?: return
+    if (state.recordingState != AudioRecordingState.RECORDED) return
+    playingJob?.cancel()
+    playingJob = viewModelScope.launch {
+      try {
+        player.play(file)
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.e(TAG, "Could not play the recording", e)
+        setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.messageRes)
+      }
+    }
+  }
+
+  override fun onCleared() {
+    recorder.cancel()
+    val state = _uiState.value
+    val file = state.audioFile
+    file?.let { player.stop(it) }
+    // A recording that was never uploaded would stay on the phone until the next recording. An
+    // uploaded one was moved into the outbox: nothing is left at this path, so deleting does
+    // nothing. An upload still running is left alone: the outbox may be moving the file right now.
+    if (!state.common.isUploading) file?.let(::deleteOrWarn)
+  }
+
+  private companion object {
+    const val TAG = "UploadAudioViewModel"
+
+    /** How often the microphone level is read: the period the recorder updates it at. */
+    const val AMPLITUDE_SAMPLE_MS = 100L
   }
 }

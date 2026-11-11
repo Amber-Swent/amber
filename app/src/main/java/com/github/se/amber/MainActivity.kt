@@ -30,6 +30,7 @@ import androidx.navigation.navigation
 import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.resources.C
+import com.github.se.amber.ui.authentication.accountDeletion.DeleteAccountScreen
 import com.github.se.amber.ui.authentication.roleLoading.RoleLoadingScreen
 import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signOut.SignOutScreen
@@ -37,6 +38,7 @@ import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
+import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
 import com.github.se.amber.ui.navigation.AuthScreen
@@ -178,8 +180,9 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Upload.route) {
         UploadScreen(
-            // onUploadAudioClick and onUploadTextClick will be implemented in M2/M3
+            // onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
+            onUploadAudioClick = { navigationActions.navigateTo(CaregiverScreen.UploadAudio) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
@@ -194,9 +197,11 @@ fun AmberApp(
             goBack = { navigationActions.goBack() },
         )
       }
-      @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadAudio.route) {
-        // TODO in M2/M3
+        UploadAudioScreen(
+            onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            goBack = { navigationActions.goBack() },
+        )
       }
       composable(route = CaregiverScreen.Parameters.route) {
         CaregiverParameterScreen(
@@ -211,11 +216,18 @@ fun AmberApp(
               navigationActions.navigateTo(OnboardingScreen.EnterInvitation)
             },
             onSignOutClick = { navigationActions.navigateTo(CaregiverScreen.SignOut) },
+            onDeleteAccountClick = { navigationActions.navigateTo(CaregiverScreen.DeleteAccount) },
         )
       }
       composable(route = CaregiverScreen.SignOut.route) {
         SignOutScreen(
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onBack = { navigationActions.goBack() },
+        )
+      }
+      composable(route = CaregiverScreen.DeleteAccount.route) {
+        DeleteAccountScreen(
+            credentialManager = credentialManager,
             onBack = { navigationActions.goBack() },
         )
       }

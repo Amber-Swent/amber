@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -21,6 +22,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -99,5 +103,17 @@ class SignOutButtonTest {
     composeTestRule.setContent { SignOutButtonPreview() }
 
     composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun previewActiveCircleRepositoryIgnoresReadsAndWrites() = runTest {
+    val circles = listOf("circle-a", "circle-b")
+
+    assertNull(PreviewActiveCircleRepository.activeCircleId("caregiver", circles).first())
+
+    PreviewActiveCircleRepository.setActiveCircle("caregiver", "circle-b")
+    PreviewActiveCircleRepository.clear("caregiver")
+
+    assertNull(PreviewActiveCircleRepository.activeCircleId("caregiver", circles).first())
   }
 }
