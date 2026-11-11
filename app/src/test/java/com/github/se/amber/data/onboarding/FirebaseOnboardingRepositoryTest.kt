@@ -13,15 +13,19 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Transaction
 import io.mockk.CapturingSlot
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -43,6 +47,7 @@ class FirebaseOnboardingRepositoryTest {
   private lateinit var user: FirebaseUser
   private lateinit var transaction: Transaction
   private lateinit var repository: FirebaseOnboardingRepository
+  private lateinit var arrayUnion: FieldValue
 
   @Before
   fun setUp() {
@@ -62,8 +67,16 @@ class FirebaseOnboardingRepositoryTest {
     every { users.document(uid) } returns profileDocument
     every { circles.document() } returns circleDocument
     every { circleDocument.id } returns circleId
+    mockkStatic(FieldValue::class)
+    arrayUnion = mockk()
+    every { FieldValue.arrayUnion(any()) } returns arrayUnion
 
     repository = FirebaseOnboardingRepository(auth, firestore) { createdAt }
+  }
+
+  @After
+  fun tearDown() {
+    unmockkStatic(FieldValue::class)
   }
 
   @Test
@@ -336,11 +349,8 @@ class FirebaseOnboardingRepositoryTest {
   }
 
   private fun assertIsArrayUnionOf(value: Any, element: String) {
-    assertEquals("ArrayUnionFieldValue", value.javaClass.simpleName)
-    val elements =
-        value.javaClass.getDeclaredMethod("getElements").apply { isAccessible = true }.invoke(value)
-            as List<*>
-    assertEquals(listOf(element), elements)
+    assertSame(arrayUnion, value)
+    verify { FieldValue.arrayUnion(element) }
   }
 
   private fun stubTransactionWithProfile(

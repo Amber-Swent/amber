@@ -5,8 +5,11 @@ package com.github.se.amber.data.circle
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -16,7 +19,8 @@ import kotlinx.coroutines.flow.map
  *
  * Reading applies the circle list it is given: a stored id that is no longer in that list falls
  * back to the first non-blank id and is left in storage, so the choice returns if the circle comes
- * back. [clear] is the only way the choice is removed.
+ * back. [clear] is the only way the choice is removed. A read that fails with [IOException] is
+ * treated as no stored choice, so the same fallback applies.
  */
 class DataStoreActiveCircleRepository(
     private val dataStore: DataStore<Preferences>,
@@ -26,6 +30,13 @@ class DataStoreActiveCircleRepository(
     if (uid.isBlank()) return flowOf(null)
     val key = key(uid)
     return dataStore.data
+        .catch { exception ->
+          if (exception is IOException) {
+            emit(emptyPreferences())
+          } else {
+            throw exception
+          }
+        }
         .map { preferences -> resolve(preferences[key], circleIds) }
         .distinctUntilChanged()
   }

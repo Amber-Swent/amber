@@ -1,6 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
-// Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -204,8 +204,13 @@ class SignOutViewModelTest {
 
   @Test
   fun signOut_failureAfterTheSessionEnded_clearsTheActiveCircle() = runTest {
-    every { authRepo.currentUser } returnsMany listOf(AuthUser("caregiver"), null)
-    coEvery { authRepo.signOut() } returns Result.failure(RuntimeException("fail"))
+    var user: AuthUser? = AuthUser("caregiver")
+    every { authRepo.currentUser } answers { user }
+    coEvery { authRepo.signOut() } coAnswers
+        {
+          user = null
+          Result.failure(RuntimeException("fail"))
+        }
 
     val viewModel = viewModel()
     viewModel.signOut()

@@ -21,7 +21,7 @@ private val Context.activeCircleDataStore: DataStore<Preferences> by
  * tries again.
  */
 class ActiveCircleRepositoryProvider(
-    factory: () -> ActiveCircleRepository = { firebaseRepository() },
+    factory: () -> ActiveCircleRepository = { dataStoreRepository() },
 ) {
   val repository: ActiveCircleRepository by lazy(factory)
 
@@ -30,7 +30,7 @@ class ActiveCircleRepositoryProvider(
     val default = ActiveCircleRepositoryProvider()
 
     /** Builds the DataStore repository for [context]. Tests pass their own context. */
-    internal fun firebaseRepository(
+    internal fun dataStoreRepository(
         context: Context = Firebase.app.applicationContext,
     ): ActiveCircleRepository = DataStoreActiveCircleRepository(context.activeCircleDataStore)
   }

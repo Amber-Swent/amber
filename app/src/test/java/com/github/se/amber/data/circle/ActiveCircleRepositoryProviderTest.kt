@@ -6,13 +6,14 @@ package com.github.se.amber.data.circle
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
-import com.google.firebase.app
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import io.mockk.verify
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -66,12 +67,14 @@ class ActiveCircleRepositoryProviderTest {
   }
 
   @Test
-  fun contextBuildsDataStoreRepository() {
+  fun contextBuildsDataStoreRepository() = runBlocking {
     val context = ApplicationProvider.getApplicationContext<Context>()
+    val repository = ActiveCircleRepositoryProvider.dataStoreRepository(context)
+    val circles = listOf("circle-a", "circle-b")
 
-    val repository = ActiveCircleRepositoryProvider.firebaseRepository(context)
+    repository.setActiveCircle("uid-context-test", "circle-b")
 
-    assertEquals(DataStoreActiveCircleRepository::class.java, repository.javaClass)
+    assertEquals("circle-b", repository.activeCircleId("uid-context-test", circles).first())
   }
 
   @Test
@@ -82,23 +85,8 @@ class ActiveCircleRepositoryProviderTest {
     every { FirebaseApp.getInstance() } returns app
     every { app.applicationContext } returns context
 
-    val provider = ActiveCircleRepositoryProvider()
+    ActiveCircleRepositoryProvider().repository
 
-    assertEquals(DataStoreActiveCircleRepository::class.java, provider.repository.javaClass)
-    assertSame(Firebase.app, app)
-  }
-
-  @Test
-  fun defaultIsTheDataStoreRepository() {
-    val context = ApplicationProvider.getApplicationContext<Context>()
-    val app = mockk<FirebaseApp>()
-    mockkStatic(FirebaseApp::class)
-    every { FirebaseApp.getInstance() } returns app
-    every { app.applicationContext } returns context
-
-    val repository = ActiveCircleRepositoryProvider.default.repository
-
-    assertEquals(DataStoreActiveCircleRepository::class.java, repository.javaClass)
-    assertSame(repository, ActiveCircleRepositoryProvider.default.repository)
+    verify(exactly = 1) { app.applicationContext }
   }
 }

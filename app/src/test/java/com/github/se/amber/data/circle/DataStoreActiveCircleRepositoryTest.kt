@@ -5,10 +5,13 @@ package com.github.se.amber.data.circle
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import java.io.IOException
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -114,6 +117,23 @@ class DataStoreActiveCircleRepositoryTest {
     collecting.cancel()
 
     assertEquals(listOf("circle-a", "circle-b"), seen.toList())
+  }
+
+  @Test
+  fun readFailureFallsBackToTheFirstCircle() = runTest {
+    val broken =
+        object : DataStore<Preferences> {
+          override val data: Flow<Preferences> = flow { throw IOException("disk") }
+
+          override suspend fun updateData(
+              transform: suspend (t: Preferences) -> Preferences
+          ): Preferences = error("unused")
+        }
+    val repository = DataStoreActiveCircleRepository(broken)
+
+    val active = repository.activeCircleId("caregiver", listOf("circle-a", "circle-b")).first()
+
+    assertEquals("circle-a", active)
   }
 
   @Test
