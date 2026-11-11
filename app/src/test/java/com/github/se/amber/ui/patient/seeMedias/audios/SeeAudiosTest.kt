@@ -1,6 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -25,8 +24,8 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.MediaCardViewModel
-import com.github.se.amber.ui.media.audio.AudioPlaybackTestTags
 import com.github.se.amber.ui.media.audio.AudioPlaybackState
+import com.github.se.amber.ui.media.audio.AudioPlaybackTestTags
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
@@ -65,8 +64,7 @@ class SeeAudiosScreenTest {
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
                   when (modelClass) {
                     SeeAudiosViewModel::class.java -> audioViewModel as T
-                    MediaCardViewModel::class.java ->
-                        MediaCardViewModel(mockk(), mockk()) as T
+                    MediaCardViewModel::class.java -> MediaCardViewModel(mockk(), mockk()) as T
                     else -> error("Unexpected ViewModel: $modelClass")
                   }
             }

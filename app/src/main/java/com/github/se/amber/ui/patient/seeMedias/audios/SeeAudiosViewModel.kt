@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.media.audio.AudioPlayer
@@ -13,7 +14,6 @@ import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
-import com.github.se.amber.R
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
@@ -86,17 +86,27 @@ class SeeAudiosViewModel(
     }
 
     playbackJob?.cancel()
-    loadingAudioId?.takeIf { it != audio.id }?.let { id ->
-      setPlaybackState(id, AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L))
-    }
+    loadingAudioId
+        ?.takeIf { it != audio.id }
+        ?.let { id ->
+          setPlaybackState(
+              id,
+              AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L),
+          )
+        }
     loadingAudioId = audio.id
     setPlaybackState(audio.id, AudioPlaybackState.Loading(durationMs = audio.durationMs))
     playbackJob = viewModelScope.launch {
       try {
         val file = mediaRepository.getFile(circle, audio)
-        activeAudioId?.takeIf { it != audio.id }?.let { id ->
-          setPlaybackState(id, AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L))
-        }
+        activeAudioId
+            ?.takeIf { it != audio.id }
+            ?.let { id ->
+              setPlaybackState(
+                  id,
+                  AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L),
+              )
+            }
         activeAudioId = audio.id
         activeFile = file
         audioPlayer.play(file)
@@ -111,7 +121,7 @@ class SeeAudiosViewModel(
   }
 
   private fun setPlaybackState(id: String, state: AudioPlaybackState) {
-      _playbackStates.value += (id to state)
+    _playbackStates.value += (id to state)
   }
 
   private fun updatePlaybackState(playerState: AudioState) {

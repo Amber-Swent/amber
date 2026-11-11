@@ -1,5 +1,4 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
-// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -41,7 +40,12 @@ class SeeAudiosViewModelTest {
   private val circleRepository = mockk<CareCircleRepository>()
   private val profileRepository = mockk<ProfileRepository>()
   private val profile =
-      UserProfile(uid = "patient", role = Role.PATIENT, person = Person(), circleIds = listOf("circle1"))
+      UserProfile(
+          uid = "patient",
+          role = Role.PATIENT,
+          person = Person(),
+          circleIds = listOf("circle1"),
+      )
   private val circle = CareCircle(id = "circle1")
   private val audio = MediaItem.Audio(id = "a1")
   private val secondAudio = MediaItem.Audio(id = "a2")

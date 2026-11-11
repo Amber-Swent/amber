@@ -24,18 +24,23 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.MediaCardViewModel
-import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.WEIGHT_ONE
-import java.lang.reflect.Proxy
 import java.io.File
+import java.lang.reflect.Proxy
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 
-private enum class PreviewAudioState { Loading, Empty, Error, Content }
+private enum class PreviewAudioState {
+  Loading,
+  Empty,
+  Error,
+  Content,
+}
 
 private val previewWaveformPattern = listOf(HALF, WEIGHT_ONE, HALF, AUDIO_WAVEFORM_MIN_LEVEL)
 private val previewWaveform =
@@ -85,44 +90,50 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
   private val profiles = PreviewProfiles(profile, state == PreviewAudioState.Error)
   private val circles = PreviewCircles(circle)
 
-  private val media = previewRepository<MediaRepository> { method ->
-    when (method) {
-      "observeApprovedMedia" ->
-          when (state) {
-            PreviewAudioState.Loading -> flow<List<MediaItem>> { awaitCancellation() }
-            PreviewAudioState.Content ->
-                flowOf(
-                    listOf(
-                        MediaItem.Audio(
-                            id = "sample1",
-                            authorId = profile.uid,
-                            description = "I have the best gossip...",
-                            shownIds = listOf("relative"),
-                            waveform = previewWaveform,
-                        ),
-                        MediaItem.Audio(
-                            id = "sample2",
-                            authorId = profile.uid,
-                            description = "I saw otters at the zoo today!",
-                            shownIds = listOf("relative"),
-                            waveform = previewWaveform.asReversed(),
-                        ),
+  private val media =
+      previewRepository<MediaRepository> { method ->
+        when (method) {
+          "observeApprovedMedia" ->
+              when (state) {
+                PreviewAudioState.Loading -> flow<List<MediaItem>> { awaitCancellation() }
+                PreviewAudioState.Content ->
+                    flowOf(
+                        listOf(
+                            MediaItem.Audio(
+                                id = "sample1",
+                                authorId = profile.uid,
+                                description = "I have the best gossip...",
+                                shownIds = listOf("relative"),
+                                waveform = previewWaveform,
+                            ),
+                            MediaItem.Audio(
+                                id = "sample2",
+                                authorId = profile.uid,
+                                description = "I saw otters at the zoo today!",
+                                shownIds = listOf("relative"),
+                                waveform = previewWaveform.asReversed(),
+                            ),
+                        )
                     )
-                )
-            PreviewAudioState.Empty,
-            PreviewAudioState.Error -> flowOf(emptyList<MediaItem>())
-          }
-      else -> error("Unexpected media call: $method")
-    }
-  }
+                PreviewAudioState.Empty,
+                PreviewAudioState.Error -> flowOf(emptyList<MediaItem>())
+              }
+          else -> error("Unexpected media call: $method")
+        }
+      }
 
   private val previewPlayer =
       object : AudioPlayer {
         override val state = MutableStateFlow(AudioState())
+
         override suspend fun play(file: File) = Unit
+
         override fun pause() = Unit
+
         override fun resume() = Unit
+
         override fun seekTo(positionMs: Long) = Unit
+
         override fun stop(file: File) = Unit
       }
   private val audiosViewModel = SeeAudiosViewModel(media, circles, profiles, previewPlayer)
