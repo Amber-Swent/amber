@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -9,8 +10,10 @@ import com.github.se.amber.model.media.SendState
 /** How a [MediaSender.send] attempt ended. */
 enum class SendResult {
   /**
-   * The media is in Firebase, or no longer in the outbox (e.g. discarded, or sent by an earlier
-   * attempt), or [SendState.FAILED] until the user retries it: nothing left for this job to do.
+   * Nothing left for this job to do. The media is in Firebase, or no longer in the outbox (e.g.
+   * discarded, or sent by an earlier attempt), or [SendState.FAILED] until the user retries it, or
+   * it is still [SendState.WAITING] because the signed-in user isn't its author: the job stops, and
+   * a later start of the app schedules it again.
    */
   DONE,
 
@@ -74,6 +77,12 @@ fun interface MediaSender {
    * otherwise [SendResult.RETRY] without counting: [SendResult.DONE] would end the job and leave
    * the entry without one. For the same reason, an entry already [SendState.SENDING] when the
    * attempt starts gives [SendResult.RETRY].
+   *
+   * A [SendState.WAITING] entry is attempted only when someone is signed in and they are its
+   * [MediaItem.authorId]. Otherwise the attempt doesn't start: nothing is uploaded, no failed
+   * attempt is counted, the entry stays [SendState.WAITING], and the result is [SendResult.DONE],
+   * so the job stops instead of retrying for hours. The entry never becomes [SendState.FAILED] for
+   * this reason. The next start of the app schedules the waiting entry again.
    */
   suspend fun send(circleId: String, mediaId: String): SendResult
 

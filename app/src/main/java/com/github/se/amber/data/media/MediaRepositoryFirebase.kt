@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -12,6 +13,8 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.media.SendState
 import com.github.se.amber.model.media.isMediaOf
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
@@ -60,6 +63,11 @@ class MediaRepositoryFirebase(
     private val outbox: MediaOutbox,
     private val firestore: FirebaseFirestore,
     private val scheduler: MediaSendScheduler,
+    /**
+     * Uid of the user signed in at the moment it is read, or null if nobody is. Read on each
+     * attempt: a media is sent only when this uid is its [MediaItem.authorId].
+     */
+    private val signedInUserId: () -> String? = { Firebase.auth.currentUser?.uid },
 ) : MediaRepository, MediaSender {
 
   /**
@@ -123,10 +131,10 @@ class MediaRepositoryFirebase(
       mediaDocument(circleId, mediaId).get().await().toMediaItem()
 
   /**
-   * What the security rules check is checked here first (as far as the phone can: not that
-   * [MediaItem.authorId] is the signed-in user, nor that the user is a member of [circle]), so a
-   * media they would refuse never waits in the outbox. [send] doesn't check again: it sees nothing
-   * but outbox entries.
+   * What the security rules check is checked here first (as far as the phone can: not that the user
+   * is a member of [circle]), so a media they would refuse never waits in the outbox. [send] checks
+   * again that the signed-in user is [MediaItem.authorId], because that user can change before the
+   * job runs. Membership is still only checked by the rules.
    *
    * If scheduling its send fails once the media is saved, the call still returns normally: the
    * media is saved, and [scheduleWaitingSends] schedules it at the next start of the app.
@@ -191,10 +199,17 @@ class MediaRepositoryFirebase(
    * [SendResult.DONE]: either another job is sending it (only for a moment, after
    * [MediaSendScheduler.reschedule]), or an earlier attempt couldn't put it back, and it stays so
    * until the next start of the app. Ending the job then would leave the entry without one.
+   *
+   * A [SendState.WAITING] entry is attempted only when someone is signed in and that person is its
+   * [MediaItem.authorId] ([isWaitingUnderAnotherAccount]). Otherwise nothing is uploaded or
+   * counted, the entry stays [SendState.WAITING], and the result is [SendResult.DONE]: the job
+   * stops instead of retrying for hours. It never becomes [SendState.FAILED] for this reason.
+   * [scheduleWaitingSends] schedules it again at the next start of the app.
    */
   override suspend fun send(circleId: String, mediaId: String): SendResult =
       try {
         when {
+          isWaitingUnderAnotherAccount(circleId, mediaId) -> SendResult.DONE
           outbox.startSending(circleId, mediaId) -> attemptAndRecord(circleId, mediaId)
           outbox.get(circleId, mediaId)?.state == SendState.SENDING -> SendResult.RETRY
           else -> SendResult.DONE // gone, or FAILED until the user retries
@@ -204,8 +219,9 @@ class MediaRepositoryFirebase(
         withContext(NonCancellable) { resetSendingQuietly(circleId, mediaId, e) }
         throw e
       } catch (e: Exception) {
-        // only a failed write of startSending or of the attempt's end gets here: try again later,
-        // nothing counted. Left SENDING, the entry would wait for the next start of the app
+        // only a failed read or write of the outbox gets here (the attempt itself records its own
+        // errors): try again later, nothing counted. Left SENDING, the entry would wait for the
+        // next start of the app
         Log.w(TAG, "Couldn't update the outbox entry of media $mediaId of $circleId", e)
         resetSendingQuietly(circleId, mediaId, e)
         SendResult.RETRY
@@ -319,6 +335,39 @@ class MediaRepositoryFirebase(
     recentlySent.value = emptyMap()
     runAll({ scheduler.cancelAll() }, { outbox.clear() }, { cache.clear() })
   }
+
+  /**
+   * Whether the entry [mediaId] of [circleId] is [SendState.WAITING] for someone who isn't signed
+   * in: nobody is, the signed-in user can't be read, or their uid isn't the media's
+   * [MediaItem.authorId]. The entry is left as it is. Any other entry (missing, already sending, or
+   * failed) is not this case, and [send] handles it as before.
+   */
+  private suspend fun isWaitingUnderAnotherAccount(circleId: String, mediaId: String): Boolean {
+    val entry = outbox.get(circleId, mediaId) ?: return false
+    if (entry.state != SendState.WAITING) return false
+    val uid = signedInUid()
+    if (!uid.isNullOrBlank() && uid == entry.item.authorId) return false
+    Log.w(
+        TAG,
+        "Not sending media $mediaId of $circleId: the signed-in user isn't its author. " +
+            "It stays waiting",
+    )
+    return true
+  }
+
+  /**
+   * The uid [signedInUserId] reports, or null if it can't be read. A failure here is treated as
+   * nobody signed in: sending anyway could upload the media under another account.
+   */
+  private fun signedInUid(): String? =
+      try {
+        signedInUserId()
+      } catch (e: CancellationException) {
+        throw e
+      } catch (e: Exception) {
+        Log.w(TAG, "Couldn't read the signed-in user before a send", e)
+        null
+      }
 
   /**
    * Runs the timed attempt at sending [mediaId] of [circleId], whose entry is now

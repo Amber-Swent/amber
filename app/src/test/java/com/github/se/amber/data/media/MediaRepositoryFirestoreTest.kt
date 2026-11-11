@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -136,7 +137,16 @@ class MediaRepositoryFirestoreTest {
   private fun TestScope.newRepository(
       cache: MediaFileCache = newCache(),
       outbox: MediaOutbox = newOutbox(),
-  ) = MediaRepositoryFirebase(fileStorage, cache, outbox, firestore, scheduler)
+  ) =
+      MediaRepositoryFirebase(
+          fileStorage,
+          cache,
+          outbox,
+          firestore,
+          scheduler,
+          // these tests send media authored by "u1"; that user is the one signed in
+          signedInUserId = { "u1" },
+      )
 
   /** A file holding [content], as the camera would give it. */
   private fun source(content: String = "bytes"): File = tmp.newFile().apply { writeText(content) }
