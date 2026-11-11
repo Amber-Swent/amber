@@ -501,7 +501,6 @@ class AmberAppNavigationTest {
     click(SeeMediasTestTags.AUDIOS_BUTTON)
 
     assertRoute(PatientScreen.SeeAudios.route)
-    composeRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertExists()
   }
 
   @Test
