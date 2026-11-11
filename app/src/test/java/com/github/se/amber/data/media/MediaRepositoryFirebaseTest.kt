@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -9,10 +10,12 @@ import com.github.se.amber.model.media.SendState
 import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.mockk
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -59,14 +62,21 @@ class MediaRepositoryFirebaseTest {
   private fun TestScope.newOutbox() =
       MediaOutbox(outboxDir, ioDispatcher = StandardTestDispatcher(testScheduler))
 
-  private fun TestScope.newRepository(outbox: MediaOutbox = newOutbox()) =
-      MediaRepositoryFirebase(
-          fileStorage,
-          MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler)),
-          outbox,
-          mockk<FirebaseFirestore>(),
-          scheduler,
-      )
+  private fun TestScope.newRepository(
+      outbox: MediaOutbox = newOutbox(),
+      signedInUserId: (() -> String?)? = null,
+  ): MediaRepositoryFirebase {
+    val cache = MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler))
+    val firestore = mockk<FirebaseFirestore>()
+    return if (signedInUserId == null) {
+      MediaRepositoryFirebase(fileStorage, cache, outbox, firestore, scheduler)
+    } else {
+      MediaRepositoryFirebase(fileStorage, cache, outbox, firestore, scheduler, signedInUserId)
+    }
+  }
+
+  private fun failedAttempts(circleId: String, mediaId: String): Int =
+      JSONObject(File(outboxDir, "$circleId/$mediaId.json").readText()).getInt("failedAttempts")
 
   private fun cachedFileNames() = cacheDir.listFiles().orEmpty().map { it.name }.sorted()
 
@@ -267,5 +277,49 @@ class MediaRepositoryFirebaseTest {
     assertEquals(listOf("careCircles_c1_media_m1.jpg"), cachedFileNames())
     assertEquals(listOf("m2"), repository.unsentIds("c1"))
     assertEquals(emptyList<String>(), scheduler.calls)
+  }
+
+  @Test
+  fun aSendUnderAnotherAccountStaysWaitingAndNeverCountsAFailure() = runTest {
+    val outbox = newOutbox()
+    newRepository(outbox).addMedia(c1, picture("c1", "m1"), source("photo bytes"))
+    fileStorage.calls.clear()
+    val notTheAuthor =
+        mapOf<String, () -> String?>(
+            "nobody signed in" to { null },
+            "the signed-in user can't be read" to { throw IllegalStateException("auth") },
+            "another account" to { "arthur" },
+            "a blank uid" to { "" },
+        )
+
+    for ((case, uid) in notTheAuthor) {
+      val repository = newRepository(outbox, uid)
+      val results = List(MediaSender.MAX_FAILED_ATTEMPTS) { repository.send("c1", "m1") }
+
+      assertEquals(case, List(MediaSender.MAX_FAILED_ATTEMPTS) { SendResult.DONE }, results)
+      assertEquals(
+          case,
+          OutboxEntry(picture("c1", "m1"), SendState.WAITING),
+          outbox.get("c1", "m1"),
+      )
+      assertEquals(case, 0, failedAttempts("c1", "m1"))
+      assertEquals(case, emptyList<String>(), fileStorage.calls)
+    }
+  }
+
+  @Test
+  fun aCancelledReadOfTheSignedInUserStopsTheSendAndCountsNothing() = runTest {
+    val outbox = newOutbox()
+    val repository =
+        newRepository(outbox, signedInUserId = { throw CancellationException("stopped") })
+    repository.addMedia(c1, picture("c1", "m1"), source())
+    fileStorage.calls.clear()
+
+    val error = runCatching { repository.send("c1", "m1") }.exceptionOrNull()
+
+    assertTrue("failed with $error", error is CancellationException)
+    assertEquals(SendState.WAITING, outbox.get("c1", "m1")?.state)
+    assertEquals(0, failedAttempts("c1", "m1"))
+    assertEquals(emptyList<String>(), fileStorage.calls)
   }
 }

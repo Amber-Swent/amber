@@ -16,6 +16,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,10 +49,14 @@ class SignOutViewModelTest {
   @get:Rule val mainRule = MainDispatcherRule()
 
   private lateinit var authRepo: AuthRepository
+  private val sessionCalls = mutableListOf<String>()
+  private var clearFailure: Exception? = null
 
   @Before
   fun setup() {
     authRepo = mockk(relaxed = true)
+    sessionCalls.clear()
+    clearFailure = null
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -67,6 +72,7 @@ class SignOutViewModelTest {
 
     assertTrue(viewModel.uiState.value.signedOut)
     assertFalse(viewModel.uiState.value.isSigningOut)
+    assertEquals(listOf("signOut"), sessionCalls)
     coVerify(exactly = 1) { authRepo.signOut() }
   }
 
@@ -110,6 +116,30 @@ class SignOutViewModelTest {
 
     assertTrue(viewModel.uiState.value.signedOut)
     assertNull(viewModel.uiState.value.errorMsgRes)
+  }
+
+  @Test
+  fun signOut_clearFails_keepsTheUserSignedInAndCanBeRetried() = runTest {
+    every { authRepo.currentUser } returns AuthUser("uid")
+    clearFailure = IOException("Media left")
+    val viewModel = signOutViewModel(authRepo)
+
+    viewModel.signOut()
+
+    assertFalse(viewModel.uiState.value.signedOut)
+    assertFalse(viewModel.uiState.value.isSigningOut)
+    assertEquals(R.string.signOutError, viewModel.uiState.value.errorMsgRes)
+    assertEquals(listOf("signOut"), sessionCalls)
+    coVerify(exactly = 0) { authRepo.signOut() }
+
+    clearFailure = null
+    sessionCalls.clear()
+    coEvery { authRepo.signOut() } returns Result.success(Unit)
+    viewModel.signOut()
+
+    assertTrue(viewModel.uiState.value.signedOut)
+    assertFalse(viewModel.uiState.value.isSigningOut)
+    coVerify(exactly = 1) { authRepo.signOut() }
   }
 
   @Test
@@ -177,6 +207,12 @@ class SignOutViewModelTest {
       SignOutViewModel(
           authRepository = authRepository,
           sessionRepositoryProvider =
-              SessionRepositoryProvider { SessionRepository { authRepository.signOut() } },
+              SessionRepositoryProvider {
+                SessionRepository {
+                  sessionCalls += "signOut"
+                  val failure = clearFailure
+                  if (failure != null) Result.failure(failure) else authRepository.signOut()
+                }
+              },
       )
 }

@@ -40,6 +40,7 @@ import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -137,6 +138,7 @@ class MediaRepositoryFirestoreTest {
   private fun TestScope.newRepository(
       cache: MediaFileCache = newCache(),
       outbox: MediaOutbox = newOutbox(),
+      signedInUserId: () -> String? = { "u1" },
   ) =
       MediaRepositoryFirebase(
           fileStorage,
@@ -144,8 +146,8 @@ class MediaRepositoryFirestoreTest {
           outbox,
           firestore,
           scheduler,
-          // these tests send media authored by "u1"; that user is the one signed in
-          signedInUserId = { "u1" },
+          // these tests send media authored by "u1", unless a test signs someone else in
+          signedInUserId = signedInUserId,
       )
 
   /** A file holding [content], as the camera would give it. */
@@ -179,6 +181,9 @@ class MediaRepositoryFirestoreTest {
       requireNotNull(StorageException.fromExceptionAndHttpCode(null, httpCode))
 
   private suspend fun MediaOutbox.stateOf(mediaId: String) = get("c1", mediaId)?.state
+
+  private fun failedAttempts(mediaId: String = "m1"): Int =
+      JSONObject(File(outboxDir, "c1/$mediaId.json").readText()).getInt("failedAttempts")
 
   /** A document a newer app version could write: a kind of media this one doesn't know. */
   private fun unreadableDocument(id: String) = documentOf(id, mapOf("id" to id, "type" to "video"))
@@ -688,6 +693,31 @@ class MediaRepositoryFirestoreTest {
     assertEquals(SendResult.RETRY, secondRun)
     // a media no longer in the outbox has nothing left to send
     assertEquals(SendResult.DONE, repository.send("c1", "unknown"))
+  }
+
+  @Test
+  fun aWaitingMediaIsSentOnlyWhenItsAuthorIsSignedIn() = runTest {
+    stubStoredDocument(noDocument())
+    val outbox = newOutbox()
+    newRepository(outbox = outbox).addMedia(circle, picture, source("photo bytes"))
+    val someoneElse = newRepository(outbox = outbox, signedInUserId = { "arthur" })
+    val blocked = List(MediaSender.MAX_FAILED_ATTEMPTS) { someoneElse.send("c1", "m1") }
+
+    assertEquals(List(MediaSender.MAX_FAILED_ATTEMPTS) { SendResult.DONE }, blocked)
+    assertEquals(SendState.WAITING, outbox.stateOf("m1"))
+    assertEquals(0, failedAttempts())
+    assertEquals(emptyList<String>(), events)
+
+    // the same entry still sends once its author is the one signed in
+    assertEquals(SendResult.DONE, newRepository(outbox = outbox).send("c1", "m1"))
+
+    assertEquals(
+        listOf("upload bucket-c1:careCircles/c1/media/m1.jpg", "create document"),
+        events,
+    )
+    assertEquals("photo bytes", fileStorage.lastUploadedContent)
+    assertEquals(picture.toMap() + ("id" to "m1"), created.captured)
+    assertNull(outbox.get("c1", "m1"))
   }
 
   @Test
