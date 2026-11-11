@@ -1,37 +1,53 @@
 // Written by Alaabrine with the aid of AI coding agent
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.onboarding.createProfile
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.signOut.PreviewActiveCircleRepository
+import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
+import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
+import com.github.se.amber.ui.navigation.TopNavigationAction
+import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.onboarding.AmberHeader
 import com.github.se.amber.ui.onboarding.OnboardingOutlinedTextField
 import com.github.se.amber.ui.patient.DisplayPatientButton
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
@@ -53,31 +69,61 @@ object CreateProfileTestTags {
  * Amber users are either a Patient or a Caregiver. This screen collects a first and last name, then
  * persists the profile when the user taps one of those role buttons. Validation and the repository
  * write live in [CreateProfileViewModel]; this composable only renders [viewModel] state and
- * forwards user actions. [onProfileCreated] should navigate to the next onboarding step.
+ * forwards user actions. [onProfileCreated] should navigate to the next onboarding step. The top
+ * Sign out action ends the session without saving a profile. [onSignedOut] runs after that
+ * succeeds. Sign out does nothing while a profile save is in progress, and the role buttons do
+ * nothing while sign-out is in progress.
  *
  * @param modifier Modifier applied to the root profile layout.
  * @param onProfileCreated called with the saved [Role] after a successful create.
+ * @param onSignedOut called after the top Sign out action ends the session.
  * @param viewModel UI state and events for this screen. Defaults to a ViewModel scoped to the
  *   composition; tests can pass a custom instance with a fake profile repository.
+ * @param signOutViewModel shared sign-out action used by the top bar.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateProfileScreen(
     modifier: Modifier = Modifier,
     onProfileCreated: (Role) -> Unit = {},
+    onSignedOut: () -> Unit = {},
     viewModel: CreateProfileViewModel = viewModel(),
+    signOutViewModel: SignOutViewModel = viewModel(),
 ) {
+  val context = LocalContext.current
+  val resources = LocalResources.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val signOutState by signOutViewModel.uiState.collectAsStateWithLifecycle()
 
-  Surface(
+  LaunchedEffect(signOutState.errorMsgRes) {
+    signOutState.errorMsgRes?.let { errorMsgRes ->
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
+      signOutViewModel.clearErrorMsg()
+    }
+  }
+
+  val currentOnSignedOut by rememberUpdatedState(onSignedOut)
+  LaunchedEffect(signOutState.signedOut) { if (signOutState.signedOut) currentOnSignedOut() }
+
+  Scaffold(
       modifier = modifier.fillMaxSize(),
-      color = MaterialTheme.colorScheme.background,
+      containerColor = MaterialTheme.colorScheme.background,
       contentColor = MaterialTheme.colorScheme.onBackground,
-  ) {
+      topBar = {
+        TopAppBar(
+            title = {
+              TopNavigationMenu(
+                  action = TopNavigationAction.SIGN_OUT,
+                  onBackClick = { if (!uiState.isSaving) signOutViewModel.signOut() },
+              )
+            }
+        )
+      },
+  ) { innerPadding ->
     Column(
         modifier =
             Modifier.fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
+                .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = CAREGIVER_PADDING_BIG, vertical = CAREGIVER_PADDING_BIG),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -125,14 +171,15 @@ fun CreateProfileScreen(
           color = MaterialTheme.colorScheme.secondary,
       )
 
+      val canChooseRole = uiState.canSubmit && !signOutState.isSigningOut
       DisplayPatientButton(
           text = stringResource(R.string.createProfilePatient),
-          enabled = uiState.canSubmit,
+          enabled = canChooseRole,
           onClick = { viewModel.onRoleSelected(Role.PATIENT, onProfileCreated) },
       )
       DisplayPatientButton(
           text = stringResource(R.string.createProfileCaregiver),
-          enabled = uiState.canSubmit,
+          enabled = canChooseRole,
           testTag = CreateProfileTestTags.CAREGIVER_BUTTON,
           onClick = { viewModel.onRoleSelected(Role.CAREGIVER, onProfileCreated) },
       )
@@ -180,4 +227,28 @@ private fun ProfileNameField(
       error = error,
       errorTestTag = errorTag,
   )
+}
+
+@Preview(showBackground = true)
+@Composable
+internal fun CreateProfilePreview() {
+  val profileRepository =
+      object : ProfileRepository {
+        override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
+            Result.success(Unit)
+
+        override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+            Result.success(Unit)
+
+        override suspend fun getCurrentProfile(): Result<UserProfile?> = Result.success(null)
+
+        override suspend fun getProfile(uid: String): Result<UserProfile?> = Result.success(null)
+      }
+  val profileViewModel = remember { CreateProfileViewModel(profileRepository) }
+  val signOutViewModel = remember {
+    SignOutViewModel(PreviewSignOutAuthRepository, PreviewActiveCircleRepository)
+  }
+  AmberAppTheme {
+    CreateProfileScreen(viewModel = profileViewModel, signOutViewModel = signOutViewModel)
+  }
 }

@@ -2,6 +2,8 @@
 // Modified by Neha Chakraborty and Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.firestore
 
@@ -276,8 +278,117 @@ class FirestoreSecurityRulesTest {
     assertFalse(
         db.rulesFor("new").canUpdateUser(onboard, onboard.copy(circleIds = listOf("other"))),
     )
-    assertFalse(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
+    assertTrue(db.rulesFor("new").canUpdateUser(onboard, personOnly.copy(role = Role.PATIENT)))
+    val joined = onboard.copy(circleIds = listOf("c1"))
+    assertFalse(
+        db.rulesFor("new").canUpdateUser(joined, joined.copy(role = Role.PATIENT)),
+    )
     assertFalse(db.rulesFor("new").canDeleteUser())
+  }
+
+  @Test
+  fun circleIdsUpdate_acceptsASecondNewlyCreatedCircle() {
+    val db = FakeFirestore()
+    val caregiver = UserProfile(uid = "care", role = Role.CAREGIVER, circleIds = listOf("c1"))
+    db.putUser(caregiver)
+    db.putCircle(CareCircle(id = "c1", memberIds = listOf("care"), createdBy = "care"))
+    db.stageCircle(
+        CareCircle(id = "c2", memberIds = listOf("care"), createdBy = "care", createdAt = 1L),
+    )
+
+    assertTrue(
+        db.rulesFor("care")
+            .canUpdateUser(caregiver, caregiver.copy(circleIds = listOf("c1", "c2"))),
+    )
+  }
+
+  @Test
+  fun circleIdsUpdate_refusesSomeoneElsesCircle() {
+    val db = FakeFirestore()
+    val caregiver = UserProfile(uid = "care", role = Role.CAREGIVER, circleIds = listOf("c1"))
+    db.putUser(caregiver)
+    db.stageCircle(
+        CareCircle(
+            id = "theirs",
+            memberIds = listOf("other"),
+            createdBy = "other",
+            createdAt = 1L,
+        ),
+    )
+    db.stageCircle(
+        CareCircle(
+            id = "shared",
+            memberIds = listOf("care", "other"),
+            createdBy = "care",
+            createdAt = 1L,
+        ),
+    )
+    db.putCircle(
+        CareCircle(id = "earlier", memberIds = listOf("care"), createdBy = "care", createdAt = 1L),
+    )
+
+    val rules = db.rulesFor("care")
+    assertFalse(
+        rules.canUpdateUser(caregiver, caregiver.copy(circleIds = listOf("c1", "theirs"))),
+    )
+    assertFalse(
+        rules.canUpdateUser(caregiver, caregiver.copy(circleIds = listOf("c1", "shared"))),
+    )
+    assertFalse(
+        rules.canUpdateUser(caregiver, caregiver.copy(circleIds = listOf("c1", "earlier"))),
+    )
+  }
+
+  @Test
+  fun circleIdsUpdate_refusesAddingTwoCirclesAtOnce() {
+    val db = FakeFirestore()
+    val caregiver = UserProfile(uid = "care", role = Role.CAREGIVER, circleIds = listOf("c1"))
+    db.putUser(caregiver)
+    db.stageCircle(
+        CareCircle(id = "c2", memberIds = listOf("care"), createdBy = "care", createdAt = 1L),
+    )
+    db.stageCircle(
+        CareCircle(id = "c3", memberIds = listOf("care"), createdBy = "care", createdAt = 1L),
+    )
+
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateUser(caregiver, caregiver.copy(circleIds = listOf("c1", "c2", "c3"))),
+    )
+  }
+
+  @Test
+  fun circleIdsUpdate_refusesRemovingACircle() {
+    val db = FakeFirestore()
+    val caregiver = UserProfile(uid = "care", role = Role.CAREGIVER, circleIds = listOf("c1", "c2"))
+    db.putUser(caregiver)
+
+    val rules = db.rulesFor("care")
+    assertFalse(rules.canUpdateUser(caregiver, caregiver.copy(circleIds = listOf("c1"))))
+    assertFalse(rules.canUpdateUser(caregiver, caregiver.copy(circleIds = emptyList())))
+  }
+
+  @Test
+  fun circleIdsUpdate_refusesAPatientCreatingACircle() {
+    val db = FakeFirestore()
+    val patient = UserProfile(uid = "pat", role = Role.PATIENT, circleIds = emptyList())
+    val patientWithCircle = patient.copy(circleIds = listOf("c1"))
+    db.putUser(patient)
+    db.stageCircle(
+        CareCircle(id = "c-pat", memberIds = listOf("pat"), createdBy = "pat", createdAt = 1L),
+    )
+    db.stageCircle(
+        CareCircle(id = "c2", memberIds = listOf("pat"), createdBy = "pat", createdAt = 1L),
+    )
+
+    val rules = db.rulesFor("pat")
+    assertFalse(rules.canUpdateUser(patient, patient.copy(circleIds = listOf("c-pat"))))
+    assertFalse(
+        rules.canUpdateUser(
+            patientWithCircle,
+            patientWithCircle.copy(circleIds = listOf("c1", "c2")),
+        ),
+    )
   }
 
   @Test
@@ -685,19 +796,29 @@ private class FirestoreSecurityRules(
 
   fun canUpdateUser(before: UserProfile, after: UserProfile): Boolean {
     if (!isSelf(before.uid) || isBeingDeleted() || after.uid != before.uid) return false
-    if (after.role != before.role) return false
+    if (after.role != Role.CAREGIVER && after.role != Role.PATIENT) return false
     val affected = affectedUserKeys(before, after)
-    return (affected.all { it == "person" } && after.circleIds == before.circleIds) ||
-        (affected == setOf("circleIds") && isInitialCareCircleLink(before, after))
+    val roleUnchanged = after.role == before.role
+    val circlesStayEmpty = before.circleIds.isEmpty() && after.circleIds.isEmpty()
+    return (roleUnchanged &&
+        affected.all { it == "person" } &&
+        after.circleIds == before.circleIds) ||
+        (roleUnchanged &&
+            affected == setOf("circleIds") &&
+            isOwnNewCareCircleLink(before, after)) ||
+        (circlesStayEmpty && affected.all { it == "role" || it == "person" })
   }
 
   fun canDeleteUser(): Boolean = false
 
-  private fun isInitialCareCircleLink(before: UserProfile, after: UserProfile): Boolean {
-    val circleId = after.circleIds.singleOrNull() ?: return false
+  private fun isOwnNewCareCircleLink(before: UserProfile, after: UserProfile): Boolean {
+    val added = after.circleIds.filter { it !in before.circleIds }
+    val removed = before.circleIds.filter { it !in after.circleIds }
+    val circleId = added.singleOrNull() ?: return false
     val createdCircle = lookup.circleAfter(circleId) ?: return false
     return before.role == Role.CAREGIVER &&
-        before.circleIds.isEmpty() &&
+        removed.isEmpty() &&
+        after.circleIds.size == before.circleIds.size + 1 &&
         lookup.circle(circleId) == null &&
         createdCircle.createdBy == authUid &&
         createdCircle.memberIds == listOf(authUid)

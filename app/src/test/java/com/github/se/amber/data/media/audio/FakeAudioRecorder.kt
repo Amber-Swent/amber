@@ -3,6 +3,7 @@
 package com.github.se.amber.data.media.audio
 
 import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -33,6 +34,12 @@ class FakeAudioRecorder(private val directory: File, var durationMs: Long = 3_00
   /** Thrown by every [start] while it is set, before anything is recorded. */
   var startError: Exception? = null
 
+  /**
+   * While it is set, [start] suspends until it is completed, like a recorder that takes time to
+   * start. It is counted in [startCalls] as soon as it is called.
+   */
+  var startGate: CompletableDeferred<Unit>? = null
+
   /** Thrown by every [stop] while it is set, after the recording's file is deleted. */
   var stopError: Exception? = null
 
@@ -59,6 +66,7 @@ class FakeAudioRecorder(private val directory: File, var durationMs: Long = 3_00
 
   override suspend fun start() {
     startCalls++
+    startGate?.await()
     startError?.let { throw it }
     check(file == null) { "Already recording" }
     file = File.createTempFile("recorded_", ".m4a", directory)
