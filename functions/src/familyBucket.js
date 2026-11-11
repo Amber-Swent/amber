@@ -11,6 +11,8 @@ const { app } = require("./firebase");
 
 const bucketLocation = defineString("STORAGE_BUCKET_LOCATION");
 const STORAGE_NOT_FOUND = 404;
+// A bucket that already exists, or is already linked to Firebase
+const STORAGE_ALREADY_EXISTS = 409;
 
 /**
  * Derives the name of a circle's bucket from a hash of the project and circle ids.
@@ -56,7 +58,7 @@ async function ensureFamilyBucket(projectId, circleId) {
       },
     });
   } catch (error) {
-    if (error.code !== 409) {
+    if (error.code !== STORAGE_ALREADY_EXISTS) {
       throw error;
     }
 
@@ -98,8 +100,8 @@ async function ensureFirebaseLinkedBucket(projectId, bucketName) {
       body: "{}",
     },
   );
-  // 409: already linked by an earlier, retried run
-  if (!response.ok && response.status !== 409) {
+  // already linked by an earlier, retried run
+  if (!response.ok && response.status !== STORAGE_ALREADY_EXISTS) {
     throw new Error(
       `Could not link bucket ${bucketName} to Firebase: ${response.status} ${await response.text()}`,
     );

@@ -1,0 +1,161 @@
+# Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
+name: E2E - End-to-end tests
+
+# The end-to-end tests (package com.github.se.amber.e2e) drive the whole app against the Firebase
+# emulators. They are slow, so they don't run on every push:
+# - every night on main, so a merge that breaks a journey is caught the next morning;
+# - when a PR has the "e2e" label: it runs then, and again on each push while the label is there;
+# - or when this workflow is run by hand (Actions > E2E - End-to-end tests > Run workflow).
+#
+# It is a workflow of its own, not a job of ci.yml, so a label never re-runs or skips the required
+# CI check, and it runs next to CI rather than after it.
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      # adding the "e2e" label starts the end-to-end tests
+      - labeled
+
+  # every night at 2:00 UTC (3:00 in Switzerland in winter, 4:00 in summer), on main
+  schedule:
+    - cron: "0 2 * * *"
+
+  # a manual run is always a request to run the end-to-end tests
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer run of the same PR (a push, or the "e2e" label added again) cancels the one still going.
+# Another label gets a group of its own (its run id): its run skips its job, and must not cancel a
+# run that tests the code.
+concurrency:
+  group: >-
+    e2e-${{ github.event.pull_request.number || github.ref }}-${{
+    (github.event.action == 'labeled' && github.event.label.name != 'e2e') && github.run_id || 'code' }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: End-to-end tests
+    # always at night and on a manual run; on a PR only with the "e2e" label, and a label other than
+    # "e2e" is not a reason to run again
+    if: >-
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'e2e') &&
+        (github.event.action != 'labeled' || github.event.label.name == 'e2e'))
+    runs-on: ubuntu-latest
+    # a stuck emulator or Photo Picker must not hold the runner for hours
+    timeout-minutes: 30
+
+    # The set-up steps, up to "Install Functions dependencies", are the same as in ci.yml: keep them
+    # in sync (versions of the actions, the AVD and firebase-tools), so both workflows test on the
+    # same set-up.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup JDK
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad #v6
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 #v6
+
+      # The same AVD as ci.yml's, restored from the cache the two workflows share
+      - name: AVD cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34
+
+      - name: create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d #v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Decode google-services.json
+        env:
+          GOOGLE_SERVICES: ${{ secrets.GOOGLE_SERVICES }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES" ]; then
+            echo "$GOOGLE_SERVICES" | base64 --decode > ./app/google-services.json
+          else
+            echo "::warning::GOOGLE_SERVICES secret is not set. google-services.json will not be created."
+          fi
+
+      - name: Decode debug keystore
+        env:
+          CI_DEBUG_KEYSTORE: ${{ secrets.CI_DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$CI_DEBUG_KEYSTORE" ]; then
+            echo "$CI_DEBUG_KEYSTORE" | base64 --decode > app/ci-debug.keystore
+          else
+            echo "::warning::CI_DEBUG_KEYSTORE is not set. Using the default debug signing key."
+          fi
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install Firebase CLI
+        run: npm install --global --ignore-scripts firebase-tools@15.30.1
+
+      - name: Firebase emulators cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-15.30.1
+
+      # The Functions emulator loads the functions from functions/node_modules.
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions --ignore-scripts
+
+      # Only the e2e package. The Storage emulator is started too, for the tests that store files:
+      # they give their circle a bucket there, since the bucket trigger skips itself in the emulator.
+      - name: End-to-end tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d #v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: firebase emulators:exec --project demo-amber --only auth,firestore,functions,storage './gradlew connectedDebugAndroidTest --build-cache -Pandroid.testInstrumentationRunnerArguments.package=com.github.se.amber.e2e -Pandroid.testInstrumentationRunnerArguments.requireFirebaseEmulators=true'
+
+      - name: Upload end-to-end test reports
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4
+        with:
+          name: e2e-test-reports
+          path: |
+            app/build/reports/androidTests/connected
+            app/build/outputs/androidTest-results/connected

@@ -4,6 +4,7 @@
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.firestore
 
@@ -129,6 +130,7 @@ class FirestoreSecurityRulesEmulatorTest {
         circle(circleId, care, listOf(care, peer), patientId = ""),
     )
     fs.adminSet("users/$peer", user(peer, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.assertFails(peer, fs.patch("users/$peer", mapOf("role" to "PATIENT")))
     fs.assertSucceeds(
         peer,
         fs.set(
@@ -360,12 +362,30 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   @Test
-  fun profileOverwrite_cannotChangeRoleOrCircles_enforcedByEmulator() {
+  fun emptyCircle_roleAndNameChange_succeeds_enforcedByEmulator() {
     val uid = "existing-user"
     fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "PATIENT", emptyList(), "First")))
 
-    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
-    fs.assertFails(uid, fs.set("users/$uid", user(uid, "PATIENT", listOf("c1"), "First")))
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "Renamed")))
+  }
+
+  @Test
+  fun emptyCircle_cannotAttachCircleIds_enforcedByEmulator() {
+    val uid = "existing-user"
+    fs.assertSucceeds(uid, fs.set("users/$uid", user(uid, "CAREGIVER", emptyList(), "First")))
+
+    fs.assertFails(uid, fs.set("users/$uid", user(uid, "CAREGIVER", listOf("c1"), "First")))
+  }
+
+  @Test
+  fun joinedProfile_roleChange_fails_enforcedByEmulator() {
+    val uid = "joined-user"
+    fs.adminSet("users/$uid", user(uid, "PATIENT", listOf("c-joined"), "Joined"))
+
+    fs.assertFails(
+        uid,
+        fs.set("users/$uid", user(uid, "CAREGIVER", listOf("c-joined"), "Joined")),
+    )
   }
 
   @Test
@@ -586,7 +606,7 @@ class FirestoreSecurityRulesEmulatorTest {
     )
     fs.assertFails(
         gone,
-        fs.set("invitations/code", invite("code", circleId, gone, expiresAt = 4_000_000_000_000L)),
+        fs.set("invitations/code", invite("code", circleId, gone, expiresAt = FAR_FUTURE_EXPIRY)),
     )
     // a failed deletion must not lock the user out of their data, and the others aren't affected
     fs.assertSucceeds(gone, fs.get("users/$gone"))
@@ -623,6 +643,9 @@ class FirestoreSecurityRulesEmulatorTest {
   }
 
   companion object {
+    /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
+    private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
+
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long
       get() = System.currentTimeMillis()
