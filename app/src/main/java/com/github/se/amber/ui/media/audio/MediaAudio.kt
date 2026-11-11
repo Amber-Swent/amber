@@ -1,6 +1,6 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
-// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
 
