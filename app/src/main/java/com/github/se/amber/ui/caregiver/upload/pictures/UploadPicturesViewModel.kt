@@ -304,7 +304,6 @@ class UploadPictureViewModel(
   /** A capture that wasn't uploaded is a private picture nothing will use any more. */
   override fun onCleared() {
     selectedCaptureUri?.let { uri -> cleanupScope.launch { capturedPictureSource.discard(uri) } }
-    super.onCleared()
   }
 
   private fun setCapturing(isCapturing: Boolean) {
