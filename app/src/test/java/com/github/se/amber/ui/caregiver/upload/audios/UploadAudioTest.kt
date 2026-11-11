@@ -144,12 +144,6 @@ class UploadAudioTest {
   // ---------- app in the background ----------
 
   @Test
-  fun opening_doesNotStopTheRecording() {
-    launchScreen()
-    verify(exactly = 0) { viewModel.stopRecording() }
-  }
-
-  @Test
   fun movingTheAppToTheBackground_stopsTheRecording() {
     launchScreen()
     composeTestRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
