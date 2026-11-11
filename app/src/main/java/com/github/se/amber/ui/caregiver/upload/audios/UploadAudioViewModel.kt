@@ -200,7 +200,9 @@ class UploadAudioViewModel(
   /** Starts recording; [UploadAudioUIState.waveform] then grows with the microphone level. */
   fun startRecording() {
     if (_uiState.value.recordingState != AudioRecordingState.IDLE) return
-    recordingJob?.cancel()
+    // The state stays IDLE while the recorder starts: a second tap then would cancel this start and
+    // begin another one
+    if (recordingJob?.isActive == true) return
     recordingJob = viewModelScope.launch {
       try {
         recorder.start()
