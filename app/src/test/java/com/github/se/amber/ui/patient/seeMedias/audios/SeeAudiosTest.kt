@@ -26,6 +26,7 @@ import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.media.MediaCardTestTags
 import com.github.se.amber.ui.media.MediaCardViewModel
 import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import com.github.se.amber.ui.media.audio.AudioPlaybackTestTags
@@ -333,6 +334,44 @@ class SeeAudiosScreenTest {
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("sample1")).assertExists()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("sample2")).assertExists()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
+  }
+
+  @Test
+  fun content_preview_expands_sample_card_with_people() {
+    composeTestRule.setContent { SeeAudiosContentPreview() }
+
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("sample1")).performClick()
+
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.description("sample1"))
+        .assertTextEquals("I have the best gossip...")
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.relatedItem("sample1", 0))
+        .assertTextEquals("Evangeline")
+  }
+
+  @Test
+  fun error_preview_retry_keeps_blocking_error_visible() {
+    composeTestRule.setContent { SeeAudiosErrorPreview() }
+
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performClick()
+
+    composeTestRule
+        .onNodeWithTag(SeeAudiosTestTags.ERROR)
+        .assertTextEquals(string(R.string.seeAudiosErrorLoadProfile))
+  }
+
+  @Test
+  fun content_preview_second_card_can_expand_and_collapse() {
+    composeTestRule.setContent { SeeAudiosContentPreview() }
+
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("sample2")).performClick()
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.description("sample2"))
+        .assertTextEquals("I saw otters at the zoo today!")
+
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextHide("sample2")).performClick()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.description("sample2")).assertDoesNotExist()
   }
 
   @Test

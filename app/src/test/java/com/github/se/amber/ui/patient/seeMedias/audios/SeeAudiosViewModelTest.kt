@@ -2,8 +2,10 @@
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
+import androidx.lifecycle.ViewModelStore
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.media.audio.FakeAudioPlayer
 import com.github.se.amber.data.profile.ProfileRepository
@@ -16,6 +18,7 @@ import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import java.io.IOException
@@ -187,6 +190,39 @@ class SeeAudiosViewModelTest {
 
     assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Error)
     assertTrue(viewModel.uiState.value is SeeAudiosUIState.Content)
+  }
+
+  @Test
+  fun failed_player_can_retry_the_same_audio() {
+    val file = File("audio.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    audioPlayer.playError = IOException("broken")
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Error)
+
+    audioPlayer.playError = null
+    viewModel.onPlayPause(audio)
+
+    assertEquals(listOf(file), audioPlayer.played)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Playing)
+  }
+
+  @Test
+  fun player_update_does_not_clear_playback_error() {
+    val file = File("broken.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    audioPlayer.playError = IOException("broken")
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+
+    audioPlayer.state.value = AudioState(file = file)
+
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Error)
+    audioPlayer.state.value = AudioState()
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Error)
   }
 
   @Test
@@ -497,6 +533,29 @@ class SeeAudiosViewModelTest {
   }
 
   @Test
+  fun card_stays_loading_until_player_finishes_starting() {
+    val file = File("audio.m4a")
+    val started = CompletableDeferred<Unit>()
+    val state = MutableStateFlow(AudioState())
+    val player = mockk<AudioPlayer>()
+    every { player.state } returns state
+    coEvery { player.play(file) } coAnswers
+        {
+          state.value = AudioState(file = file, isPlaying = true)
+          started.await()
+        }
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    val viewModel = SeeAudiosViewModel(mediaRepository, circleRepository, profileRepository, player)
+
+    viewModel.onPlayPause(audio)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Loading)
+
+    started.complete(Unit)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Playing)
+  }
+
+  @Test
   fun selecting_another_audio_cancels_the_pending_download() {
     val pendingFile = CompletableDeferred<File>()
     val secondFile = File("second.m4a")
@@ -613,6 +672,66 @@ class SeeAudiosViewModelTest {
     viewModel.onPlayPause(audio)
     assertTrue(audioPlayer.state.value.isPlaying)
     coVerify(exactly = 1) { mediaRepository.getFile(circle, audio) }
+  }
+
+  @Test
+  fun tapping_same_audio_during_download_uses_latest_request() {
+    val firstDownload = CompletableDeferred<File>()
+    val latestFile = File("latest.m4a")
+    var downloads = 0
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } coAnswers
+        {
+          if (++downloads == 1) firstDownload.await() else latestFile
+        }
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+    viewModel.onPlayPause(audio)
+    firstDownload.complete(File("stale.m4a"))
+
+    assertEquals(2, downloads)
+    assertEquals(listOf(latestFile), audioPlayer.played)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Playing)
+  }
+
+  @Test
+  fun clearing_view_model_stops_its_loaded_audio() {
+    val file = File("audio.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns file
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+
+    ViewModelStore().apply { put("audios", viewModel) }.clear()
+
+    assertNull(audioPlayer.state.value.file)
+  }
+
+  @Test
+  fun clearing_view_model_cancels_pending_download() {
+    val pendingFile = CompletableDeferred<File>()
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } coAnswers { pendingFile.await() }
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+
+    ViewModelStore().apply { put("audios", viewModel) }.clear()
+    pendingFile.complete(File("late.m4a"))
+
+    assertTrue(audioPlayer.played.isEmpty())
+  }
+
+  @Test
+  fun clearing_view_model_before_playback_keeps_other_audio_playing() {
+    val otherFile = File("other-screen.m4a")
+    runBlocking { audioPlayer.play(otherFile) }
+    val viewModel = createViewModel()
+
+    ViewModelStore().apply { put("audios", viewModel) }.clear()
+
+    assertEquals(otherFile, audioPlayer.state.value.file)
+    assertTrue(audioPlayer.state.value.isPlaying)
   }
 
   @Test
