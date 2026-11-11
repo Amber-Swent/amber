@@ -484,8 +484,7 @@ class SeeAudiosViewModelTest {
         flow { throw IOException("offline") }
     val viewModel = createViewModel()
     assertTrue(viewModel.uiState.value is SeeAudiosUIState.BlockingError)
-    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
-        flowOf(listOf(secondAudio))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(secondAudio))
 
     viewModel.retry()
 
