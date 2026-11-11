@@ -1,7 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent.
-// Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.invitationRedemption
 
@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
@@ -27,6 +28,7 @@ import com.github.se.amber.data.invitation.InvitationRedemptionResult
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionPreview
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionScreen
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionTestTags
 import com.github.se.amber.ui.onboarding.invitationRedemption.InvitationRedemptionViewModel
@@ -301,6 +303,14 @@ class InvitationRedemptionUITests {
         ),
     )
     composeTestRule.waitUntil(timeoutMillis = 3_000) { redeemSuccessCount == 1 }
+  }
+
+  @Test
+  fun previewShowsTheInvitationTitleAndCancel() {
+    composeTestRule.setContent { InvitationRedemptionPreview() }
+
+    composeTestRule.onNodeWithText(string(R.string.invitationRedemptionTitle)).assertIsDisplayed()
+    composeTestRule.onNodeWithText(string(R.string.navigationCancel)).assertIsDisplayed()
   }
 
   private companion object {

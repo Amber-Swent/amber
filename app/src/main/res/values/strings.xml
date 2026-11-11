@@ -91,7 +91,6 @@
     <string name="caregiverChoiceInfo">Info</string>
     <string name="caregiverChoiceInviteHintCondition">To join an existing care circle, you must have an invite link.</string>
     <string name="caregiverChoiceInviteHintSolution">Any caregiver belonging to the circle can create a link for you.</string>
-    <string name="caregiverChoiceBack">Back</string>
 
     <!-- CreateProfile -->
     <string name="createProfileTitle">Create an account</string>
@@ -105,7 +104,8 @@
     <string name="createProfileErrorInvalidName">Enter your first and last name and try again.</string>
     <string name="createProfileErrorSessionExpired">Your session expired. Sign in and try again.</string>
     <string name="createProfileErrorExists">A profile already exists for this account.</string>
-    <string name="createProfileErrorPermissionDenied">You don\'t have permission to create a profile.</string>
+    <string name="createProfileErrorAlreadyInCircle">You\'ve already joined a care circle, so your role can\'t be changed.</string>
+    <string name="createProfileErrorPermissionDenied">You don\'t have permission to save your profile.</string>
     <string name="createProfileErrorOffline">You\'re offline. Check your connection and try again.</string>
     <string name="createProfileErrorUnknown">Couldn\'t create your profile. Please try again.</string>
 
@@ -189,6 +189,8 @@
 
     <!-- CaregiverButton: default label of the caregiver buttons (ui/caregiver/CaregiverUtils.kt) -->
     <string name="caregiverButtonDefaultText">Text</string>
+    <!-- CaregiverIconButton: preview description (ui/caregiver/CaregiverUtils.kt) -->
+    <string name="caregiverIconButtonAdd">Add</string>
 
     <!-- TextField: limits under the caregiver text fields (ui/caregiver/CaregiverUtils.kt) -->
     <plurals name="textFieldMaxCharReached">
@@ -294,6 +296,7 @@
     <string name="datePickerDone">Done</string>
 
     <!-- AudioRecorder -->
+    <string name="audioRecorderRecord">Record</string>
     <string name="audioRecorderDelete">Delete the audio</string>
     <string name="audioRecorderStop">Stop the recording</string>
 
