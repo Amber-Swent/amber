@@ -98,7 +98,9 @@ private class CameraActions(val takePicture: () -> Unit, val openCamera: (String
  * @param viewModel The view model told about the results.
  */
 @Composable
-private fun rememberCameraActions(viewModel: UploadPictureViewModel): CameraActions {
+private fun rememberCameraActions(
+    viewModel: UploadPictureViewModel = viewModel(factory = UploadPictureViewModel.Factory)
+): CameraActions {
   // Saved because the system can kill the app while the camera is in front, and the camera's
   // result only says whether it succeeded, not which file it was for
   var pendingCaptureUri by rememberSaveable { mutableStateOf<String?>(null) }
