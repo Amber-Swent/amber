@@ -21,7 +21,7 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import java.io.File
-import java.io.IOException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -100,12 +100,30 @@ class SeeAudiosViewModel(
   fun onPlayPause(audio: MediaItem.Audio) {
     val circle = (_uiState.value as? SeeAudiosUIState.Content)?.careCircle ?: return
     val playerState = audioPlayer.state.value
+
+    // Audio already loaded
     if (activeAudioId == audio.id && playerState.file == activeFile && activeFile != null) {
+      // If an audio is downloading when this method is called, the download is canceled
+      loadingAudioId
+          ?.takeIf { it != audio.id }
+          ?.let { id ->
+            playbackJob?.cancel()
+            // Audio that was downloading is set to Idle
+            setPlaybackState(
+                id,
+                AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L),
+            )
+            loadingAudioId = null
+          }
       if (playerState.isPlaying) audioPlayer.pause() else audioPlayer.resume()
       return
     }
 
+    // Currently played audio is paused when another one is downloaded
     playbackJob?.cancel()
+    if (activeFile != null && playerState.file == activeFile && playerState.isPlaying) {
+      audioPlayer.pause()
+    }
     loadingAudioId
         ?.takeIf { it != audio.id }
         ?.let { id ->
@@ -132,7 +150,9 @@ class SeeAudiosViewModel(
         audioPlayer.play(file)
         loadingAudioId = null
         updatePlaybackState(audioPlayer.state.value)
-      } catch (error: IOException) {
+      } catch (error: CancellationException) {
+        throw error
+      } catch (error: Exception) {
         Log.e(TAG, "Error playing audio", error)
         loadingAudioId = null
         setPlaybackState(audio.id, AudioPlaybackState.Error(durationMs = audio.durationMs))
@@ -147,8 +167,14 @@ class SeeAudiosViewModel(
   /** Applies player progress only when its file matches this screen's active audio. */
   private fun updatePlaybackState(playerState: AudioState) {
     val id = activeAudioId ?: return
-    if (loadingAudioId == id || _playbackStates.value[id] is AudioPlaybackState.Error) return
-    val durationMs = _playbackStates.value[id]?.durationMs ?: 0L
+    if (loadingAudioId == id) return
+    val previousState = _playbackStates.value[id]
+    if (
+        previousState is AudioPlaybackState.Error &&
+            (playerState.file == null || playerState.file == activeFile)
+    )
+        return
+    val durationMs = previousState?.durationMs ?: 0L
     val state =
         if (activeFile != null && playerState.file == activeFile) {
           if (playerState.isPlaying) {
@@ -156,7 +182,19 @@ class SeeAudiosViewModel(
           } else {
             AudioPlaybackState.Paused(playerState.positionMs, playerState.durationMs)
           }
+        } else if (
+            activeFile != null &&
+                playerState.file == null &&
+                previousState is AudioPlaybackState.Playing
+        ) {
+          AudioPlaybackState.Error(durationMs = durationMs)
         } else {
+          // Idle if the current file is not the file for the active audio
+          // Only setting the state to Idle without the above "else if" was hiding player failures
+          // that
+          // would clear the current file to null, therefore entering this else condition and
+          // setting the
+          // state to Idle instead showing an error.
           AudioPlaybackState.Idle(durationMs = durationMs)
         }
     setPlaybackState(id, state)
@@ -250,7 +288,7 @@ class SeeAudiosViewModel(
   override fun onCleared() {
     playbackJob?.cancel()
     activeFile?.let(audioPlayer::stop)
-    super.onCleared()
+    super.onCleared() // NOSONAR: the parent may add cleanup here later
   }
 
   private companion object {

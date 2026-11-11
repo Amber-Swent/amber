@@ -32,6 +32,7 @@ import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceTestTags
 import com.github.se.amber.ui.patient.parameters.PatientParameterTestTags
 import com.github.se.amber.ui.patient.seeMedias.SeeMediasTestTags
+import com.github.se.amber.ui.patient.seeMedias.audios.SeeAudiosTestTags
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -551,6 +552,7 @@ class AmberAppNavigationTest {
 
     click(SeeMediasTestTags.AUDIOS_BUTTON)
 
+    composeRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertExists()
     assertRoute(PatientScreen.SeeAudios.route)
   }
 

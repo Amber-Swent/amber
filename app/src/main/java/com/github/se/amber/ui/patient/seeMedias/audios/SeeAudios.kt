@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -54,6 +55,7 @@ object SeeAudiosTestTags {
   const val NO_AUDIOS = "see_audios_no_audios"
   const val ERROR = "see_audios_error"
   const val TITLE = "see_audios_title"
+  const val LOADING = "see_audios_loading"
 
   fun audio(id: String = "") = "see_audios_audio_$id"
 
@@ -67,8 +69,6 @@ object SeeAudiosTestTags {
  * @param audioViewModel provides list and per-card playback states.
  * @param onBackClick called when the top navigation action is selected.
  * @param onTabSelected called when a bottom navigation tab is selected.
- * @param onPlayAudio optional callback after a playback button click.
- * @param onReplayAudio optional callback after a restart button click.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,8 +76,6 @@ fun SeeAudiosScreen(
     audioViewModel: SeeAudiosViewModel = viewModel(),
     onBackClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = {},
-    onPlayAudio: (String) -> Unit = {},
-    onReplayAudio: (String) -> Unit = {},
 ) {
   val uiState by audioViewModel.uiState.collectAsStateWithLifecycle()
   val playbackStates by audioViewModel.playbackStates.collectAsStateWithLifecycle()
@@ -131,7 +129,7 @@ fun SeeAudiosScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center,
             ) {
-              CircularProgressIndicator()
+              CircularProgressIndicator(modifier = Modifier.testTag(SeeAudiosTestTags.LOADING))
             }
           }
 
@@ -179,35 +177,31 @@ fun SeeAudiosScreen(
           is SeeAudiosUIState.Content -> {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
+                contentPadding = PaddingValues(PATIENT_PADDING_SMALL),
                 verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             ) {
               items(actualState.allAudios, key = { it.id }) { audio ->
-                Box(
-                    modifier =
-                        Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG)
-                            .testTag(SeeAudiosTestTags.audio(audio.id))
-                ) {
+                // Wrapping the two components into a column with padding so that the audio and its
+                // MediaCard do not touch
+                Column(verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL)) {
                   DisplayAudioPlayback(
+                      modifier =
+                          Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG)
+                              .testTag(SeeAudiosTestTags.audio(audio.id)),
                       state =
                           playbackStates[audio.id]
                               ?: AudioPlaybackState.Idle(durationMs = audio.durationMs),
                       waveform = audio.waveform,
-                      onPlayPause = {
-                        audioViewModel.onPlayPause(audio)
-                        onPlayAudio(audio.id)
-                      },
-                      onRestart = {
-                        audioViewModel.onRestart(audio)
-                        onReplayAudio(audio.id)
-                      },
+                      onPlayPause = { audioViewModel.onPlayPause(audio) },
+                      onRestart = { audioViewModel.onRestart(audio) },
                       onRetry = { audioViewModel.onPlayPause(audio) },
                   )
+                  MediaCard(
+                      modifier = Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG),
+                      media = audio,
+                      testTag = SeeAudiosTestTags.audioCard(audio.id),
+                  )
                 }
-                MediaCard(
-                    modifier = Modifier.fillMaxWidth(PATIENT_BUTTON_WIDTH_BIG),
-                    media = audio,
-                    testTag = SeeAudiosTestTags.audioCard(audio.id),
-                )
               }
             }
           }

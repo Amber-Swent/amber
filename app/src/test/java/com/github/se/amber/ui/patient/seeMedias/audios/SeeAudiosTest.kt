@@ -5,6 +5,9 @@ package com.github.se.amber.ui.patient.seeMedias.audios
 
 import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -80,13 +83,12 @@ class SeeAudiosScreenTest {
               UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
               CareCircle(id = "circle1"),
           ),
-      onPlayAudio: (String) -> Unit = {},
-      onReplayAudio: (String) -> Unit = {},
+      uiState: MutableStateFlow<SeeAudiosUIState> = MutableStateFlow(state),
       playbackStates: MutableStateFlow<Map<String, AudioPlaybackState>> =
           MutableStateFlow(emptyMap()),
   ): SeeAudiosViewModel {
     val viewModel = mockk<SeeAudiosViewModel>(relaxed = true)
-    every { viewModel.uiState } returns MutableStateFlow(state)
+    every { viewModel.uiState } returns uiState
     every { viewModel.playbackStates } returns playbackStates
     composeTestRule.setContent {
       CompositionLocalProvider(LocalViewModelStoreOwner provides testOwner(viewModel)) {
@@ -95,8 +97,6 @@ class SeeAudiosScreenTest {
               audioViewModel = viewModel,
               onBackClick = onBackClick,
               onTabSelected = onTabSelected,
-              onPlayAudio = onPlayAudio,
-              onReplayAudio = onReplayAudio,
           )
         }
       }
@@ -136,25 +136,22 @@ class SeeAudiosScreenTest {
   @Test
   fun content_shows_audio_and_card_and_calls_controls() {
     val audio = MediaItem.Audio(id = "a1")
-    var played: String? = null
-    var replayed: String? = null
-    setContent(
-        state =
-            SeeAudiosUIState.Content(
-                UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
-                CareCircle(id = "circle1"),
-                listOf(audio),
-            ),
-        onPlayAudio = { played = it },
-        onReplayAudio = { replayed = it },
-    )
+    val viewModel =
+        setContent(
+            state =
+                SeeAudiosUIState.Content(
+                    UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+                    CareCircle(id = "circle1"),
+                    listOf(audio),
+                ),
+        )
 
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audioCard("a1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.PLAY_PAUSE).performClick()
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RESTART).performClick()
-    assertEquals("a1", played)
-    assertEquals("a1", replayed)
+    verify(exactly = 1) { viewModel.onPlayPause(audio) }
+    verify(exactly = 1) { viewModel.onRestart(audio) }
   }
 
   @Test
@@ -175,6 +172,7 @@ class SeeAudiosScreenTest {
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.CARD).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.LOADING).assertIsDisplayed()
   }
 
   @Test
@@ -191,40 +189,39 @@ class SeeAudiosScreenTest {
   }
 
   @Test
-  fun empty_state_error_shows_toast_and_clears_message() {
+  fun empty_and_content_errors_show_toast_without_hiding_the_screen() {
+    val profile = UserProfile(uid = "patient", role = Role.PATIENT, person = Person())
+    val circle = CareCircle(id = "circle1")
+    val uiState =
+        MutableStateFlow<SeeAudiosUIState>(
+            SeeAudiosUIState.Empty(profile, circle, errorMsgRes = R.string.seeAudiosErrorLoadMedia)
+        )
     val viewModel =
         setContent(
-            state =
-                SeeAudiosUIState.Empty(
-                    UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
-                    CareCircle(id = "circle1"),
-                    errorMsgRes = R.string.seeAudiosErrorLoadMedia,
-                )
+            uiState = uiState,
         )
 
     composeTestRule.waitForIdle()
     assertEquals(string(R.string.seeAudiosErrorLoadMedia), ShadowToast.getTextOfLatestToast())
     verify(exactly = 1) { viewModel.clearErrorMsg() }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
-  }
 
-  @Test
-  fun content_error_shows_toast_without_hiding_audio() {
     val audio = MediaItem.Audio(id = "a1")
-    val viewModel =
-        setContent(
-            state =
-                SeeAudiosUIState.Content(
-                    UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
-                    CareCircle(id = "circle1"),
-                    listOf(audio),
-                    errorMsgRes = R.string.seeAudiosErrorLoadMedia,
-                )
-        )
+    composeTestRule.runOnIdle { uiState.value = SeeAudiosUIState.Empty(profile, circle) }
+    composeTestRule.waitForIdle()
+    composeTestRule.runOnIdle {
+      uiState.value =
+          SeeAudiosUIState.Content(
+              profile,
+              circle,
+              listOf(audio),
+              errorMsgRes = R.string.seeAudiosErrorLoadMedia,
+          )
+    }
 
     composeTestRule.waitForIdle()
     assertEquals(string(R.string.seeAudiosErrorLoadMedia), ShadowToast.getTextOfLatestToast())
-    verify(exactly = 1) { viewModel.clearErrorMsg() }
+    verify(exactly = 2) { viewModel.clearErrorMsg() }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio(audio.id)).assertIsDisplayed()
   }
 
@@ -284,24 +281,23 @@ class SeeAudiosScreenTest {
   }
 
   @Test
-  fun loading_preview_shows_title_without_audio() {
-    composeTestRule.setContent { SeeAudiosLoadingPreview() }
+  fun loading_error_and_content_previews_show_their_states() {
+    var preview by mutableIntStateOf(0)
+    composeTestRule.setContent {
+      when (preview) {
+        0 -> SeeAudiosLoadingPreview()
+        1 -> SeeAudiosErrorPreview()
+        else -> SeeAudiosContentPreview()
+      }
+    }
 
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample1")).assertDoesNotExist()
-  }
 
-  @Test
-  fun error_preview_shows_blocking_error() {
-    composeTestRule.setContent { SeeAudiosErrorPreview() }
-
+    composeTestRule.runOnIdle { preview = 1 }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertIsDisplayed()
-  }
 
-  @Test
-  fun content_preview_shows_sample_audios() {
-    composeTestRule.setContent { SeeAudiosContentPreview() }
-
+    composeTestRule.runOnIdle { preview = 2 }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample1")).assertExists()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("sample2")).assertExists()
   }

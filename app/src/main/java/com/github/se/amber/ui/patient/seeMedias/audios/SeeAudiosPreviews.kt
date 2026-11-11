@@ -18,8 +18,10 @@ import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
@@ -29,9 +31,10 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.HALF
 import com.github.se.amber.ui.theme.WEIGHT_ONE
 import java.io.File
-import java.lang.reflect.Proxy
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -46,11 +49,40 @@ private val previewWaveformPattern = listOf(HALF, WEIGHT_ONE, HALF, AUDIO_WAVEFO
 private val previewWaveform =
     List(WAVEFORM_BARS) { previewWaveformPattern[it % previewWaveformPattern.size] }
 
-/** A local repository stub. Unexpected calls fail visibly instead of reaching Firebase. */
-private inline fun <reified T> previewRepository(crossinline answer: (String) -> Any?): T =
-    Proxy.newProxyInstance(T::class.java.classLoader, arrayOf(T::class.java)) { _, method, _ ->
-      answer(method.name)
-    } as T
+/** Only the approved-media observation is used by this preview. */
+private class PreviewMediaRepository(private val media: Flow<List<MediaItem>>) : MediaRepository {
+  override fun observeApprovedMedia(circleId: String): Flow<List<MediaItem>> = media
+
+  override fun newMediaId(circleId: String): String = unused()
+
+  override fun observeMediaShowing(circleId: String, shownId: String): Flow<List<MediaItem>> =
+      unused()
+
+  override fun observeCircleMedia(circleId: String): Flow<List<CircleMedia>> = unused()
+
+  override suspend fun getMedia(circleId: String, mediaId: String): MediaItem? = unused()
+
+  override suspend fun addMedia(circle: CareCircle, item: MediaItem, file: File?) = unused()
+
+  override fun observeOutbox(circleId: String): Flow<List<OutboxEntry>> = unused()
+
+  override suspend fun retrySend(circleId: String, mediaId: String) = unused()
+
+  override suspend fun discardUnsent(circleId: String, mediaId: String) = unused()
+
+  override suspend fun updateMedia(circleId: String, item: MediaItem) = unused()
+
+  override suspend fun deleteMedia(circle: CareCircle, item: MediaItem) = unused()
+
+  override suspend fun getFile(circle: CareCircle, item: MediaItem): File = unused()
+
+  override suspend fun clearLocalMedia(circleId: String) = unused()
+
+  override suspend fun clearLocalMedia() = unused()
+
+  private fun unused(): Nothing =
+      error("Not used by SeeAudios previews") // Used to avoid code repetition
+}
 
 private class PreviewProfiles(
     private val profile: UserProfile,
@@ -94,40 +126,36 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
   private val circles = PreviewCircles(circle)
 
   private val media =
-      previewRepository<MediaRepository> { method ->
-        when (method) {
-          "observeApprovedMedia" ->
-              when (state) {
-                PreviewAudioState.Loading -> flow<List<MediaItem>> { awaitCancellation() }
-                PreviewAudioState.Content ->
-                    flowOf(
-                        listOf(
-                            MediaItem.Audio(
-                                id = "sample1",
-                                authorId = profile.uid,
-                                description = "I have the best gossip...",
-                                shownIds = listOf("relative"),
-                                waveform = previewWaveform,
-                            ),
-                            MediaItem.Audio(
-                                id = "sample2",
-                                authorId = profile.uid,
-                                description = "I saw otters at the zoo today!",
-                                shownIds = listOf("relative"),
-                                waveform = previewWaveform.asReversed(),
-                            ),
-                        )
+      PreviewMediaRepository(
+          when (state) {
+            PreviewAudioState.Loading -> flow { awaitCancellation() }
+            PreviewAudioState.Content ->
+                flowOf(
+                    listOf(
+                        MediaItem.Audio(
+                            id = "sample1",
+                            authorId = profile.uid,
+                            description = "I have the best gossip...",
+                            shownIds = listOf("relative"),
+                            waveform = previewWaveform,
+                        ),
+                        MediaItem.Audio(
+                            id = "sample2",
+                            authorId = profile.uid,
+                            description = "I saw otters at the zoo today!",
+                            shownIds = listOf("relative"),
+                            waveform = previewWaveform.asReversed(),
+                        ),
                     )
-                PreviewAudioState.Empty,
-                PreviewAudioState.Error -> flowOf(emptyList<MediaItem>())
-              }
-          else -> error("Unexpected media call: $method")
-        }
-      }
+                )
+            PreviewAudioState.Empty,
+            PreviewAudioState.Error -> flowOf(emptyList())
+          }
+      )
 
   private val previewPlayer =
       object : AudioPlayer {
-        override val state = MutableStateFlow(AudioState())
+        override val state: StateFlow<AudioState> = MutableStateFlow(AudioState())
 
         override suspend fun play(file: File) = Unit
 
