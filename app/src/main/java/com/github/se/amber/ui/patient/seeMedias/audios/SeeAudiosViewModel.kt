@@ -10,6 +10,7 @@ import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioPlayerProvider
+import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.R
@@ -18,6 +19,7 @@ import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.Job
@@ -57,13 +59,17 @@ class SeeAudiosViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow<SeeAudiosUIState>(SeeAudiosUIState.Loading)
   val uiState: StateFlow<SeeAudiosUIState> = _uiState.asStateFlow()
+  private val _playbackStates = MutableStateFlow<Map<String, AudioPlaybackState>>(emptyMap())
+  val playbackStates: StateFlow<Map<String, AudioPlaybackState>> = _playbackStates.asStateFlow()
 
   private var loadJob: Job? = null
   private var playbackJob: Job? = null
   private var activeAudioId: String? = null
   private var activeFile: File? = null
+  private var loadingAudioId: String? = null
 
   init {
+    viewModelScope.launch { audioPlayer.state.collect(::updatePlaybackState) }
     load()
   }
 
@@ -80,16 +86,49 @@ class SeeAudiosViewModel(
     }
 
     playbackJob?.cancel()
+    loadingAudioId?.takeIf { it != audio.id }?.let { id ->
+      setPlaybackState(id, AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L))
+    }
+    loadingAudioId = audio.id
+    setPlaybackState(audio.id, AudioPlaybackState.Loading(durationMs = audio.durationMs))
     playbackJob = viewModelScope.launch {
       try {
         val file = mediaRepository.getFile(circle, audio)
+        activeAudioId?.takeIf { it != audio.id }?.let { id ->
+          setPlaybackState(id, AudioPlaybackState.Idle(durationMs = _playbackStates.value[id]?.durationMs ?: 0L))
+        }
         activeAudioId = audio.id
         activeFile = file
         audioPlayer.play(file)
+        loadingAudioId = null
+        updatePlaybackState(audioPlayer.state.value)
       } catch (error: IOException) {
         Log.e(TAG, "Error playing audio", error)
+        loadingAudioId = null
+        setPlaybackState(audio.id, AudioPlaybackState.Error(durationMs = audio.durationMs))
       }
     }
+  }
+
+  private fun setPlaybackState(id: String, state: AudioPlaybackState) {
+      _playbackStates.value += (id to state)
+  }
+
+  private fun updatePlaybackState(playerState: AudioState) {
+    val id = activeAudioId ?: return
+    if (loadingAudioId == id || _playbackStates.value[id] is AudioPlaybackState.Error) return
+    val durationMs = _playbackStates.value[id]?.durationMs ?: 0L
+    val state =
+        if (activeFile != null && playerState.file == activeFile) {
+          if (playerState.isPlaying) {
+            AudioPlaybackState.Playing(playerState.positionMs, playerState.durationMs)
+          } else {
+            AudioPlaybackState.Paused(playerState.positionMs, playerState.durationMs)
+          }
+        } else {
+          AudioPlaybackState.Idle(durationMs = durationMs)
+        }
+    setPlaybackState(id, state)
   }
 
   fun onRestart(audio: MediaItem.Audio) {

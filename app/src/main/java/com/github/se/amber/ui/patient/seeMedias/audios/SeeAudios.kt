@@ -77,6 +77,7 @@ fun SeeAudiosScreen(
     onReplayAudio: (String) -> Unit = {},
 ) {
   val uiState by audioViewModel.uiState.collectAsStateWithLifecycle()
+  val playbackStates by audioViewModel.playbackStates.collectAsStateWithLifecycle()
   val context = LocalContext.current
   val resources = LocalResources.current
   val errorMsgRes =
@@ -184,7 +185,9 @@ fun SeeAudiosScreen(
                             .testTag(SeeAudiosTestTags.audio(audio.id))
                 ) {
                   DisplayAudioPlayback(
-                      state = AudioPlaybackState.Idle(durationMs = audio.durationMs),
+                      state =
+                          playbackStates[audio.id]
+                              ?: AudioPlaybackState.Idle(durationMs = audio.durationMs),
                       waveform = audio.waveform,
                       onPlayPause = {
                         audioViewModel.onPlayPause(audio)
@@ -194,6 +197,7 @@ fun SeeAudiosScreen(
                         audioViewModel.onRestart(audio)
                         onReplayAudio(audio.id)
                       },
+                      onRetry = { audioViewModel.onPlayPause(audio) },
                   )
                 }
                 MediaCard(

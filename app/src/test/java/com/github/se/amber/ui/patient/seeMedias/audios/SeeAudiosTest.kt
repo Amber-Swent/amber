@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -25,6 +26,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.MediaCardViewModel
 import com.github.se.amber.ui.media.audio.AudioPlaybackTestTags
+import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
@@ -32,6 +34,7 @@ import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -79,9 +82,12 @@ class SeeAudiosScreenTest {
           ),
       onPlayAudio: (String) -> Unit = {},
       onReplayAudio: (String) -> Unit = {},
-  ) {
+      playbackStates: MutableStateFlow<Map<String, AudioPlaybackState>> =
+          MutableStateFlow(emptyMap()),
+  ): SeeAudiosViewModel {
     val viewModel = mockk<SeeAudiosViewModel>(relaxed = true)
     every { viewModel.uiState } returns MutableStateFlow(state)
+    every { viewModel.playbackStates } returns playbackStates
     composeTestRule.setContent {
       CompositionLocalProvider(LocalViewModelStoreOwner provides testOwner(viewModel)) {
         AmberAppTheme(dynamicColor = false) {
@@ -95,6 +101,36 @@ class SeeAudiosScreenTest {
         }
       }
     }
+    return viewModel
+  }
+
+  @Test
+  fun playback_state_updates_the_card_and_retry_calls_view_model() {
+    val audio = MediaItem.Audio(id = "a1")
+    val playbackStates =
+        MutableStateFlow<Map<String, AudioPlaybackState>>(
+            mapOf(audio.id to AudioPlaybackState.Playing(2_000L, 5_000L))
+        )
+    val viewModel =
+        setContent(
+            state =
+                SeeAudiosUIState.Content(
+                    UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
+                    CareCircle(id = "circle1"),
+                    listOf(audio),
+                ),
+            playbackStates = playbackStates,
+        )
+
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.TIME).assertTextEquals("0:02 / 0:05")
+    composeTestRule.runOnIdle {
+      playbackStates.value = mapOf(audio.id to AudioPlaybackState.Error())
+    }
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.ERROR)
+        .assertTextEquals(string(R.string.audioPlaybackError))
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RETRY).performClick()
+    verify { viewModel.onPlayPause(audio) }
   }
 
   @Test

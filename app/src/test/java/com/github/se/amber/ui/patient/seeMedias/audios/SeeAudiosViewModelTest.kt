@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -12,6 +13,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.media.audio.AudioPlaybackState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -74,16 +76,20 @@ class SeeAudiosViewModelTest {
     viewModel.onPlayPause(audio)
     assertEquals(listOf(file), audioPlayer.played)
     assertTrue(audioPlayer.state.value.isPlaying)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Playing)
 
     viewModel.onPlayPause(audio)
     assertEquals(false, audioPlayer.state.value.isPlaying)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Paused)
     viewModel.onPlayPause(audio)
     assertTrue(audioPlayer.state.value.isPlaying)
     coVerify(exactly = 1) { mediaRepository.getFile(circle, audio) }
 
     audioPlayer.seekTo(2_000L)
+    assertEquals(2_000L, viewModel.playbackStates.value[audio.id]?.positionMs)
     viewModel.onRestart(audio)
     assertEquals(0L, audioPlayer.state.value.positionMs)
+    assertEquals(0L, viewModel.playbackStates.value[audio.id]?.positionMs)
   }
 
   @Test
@@ -102,6 +108,8 @@ class SeeAudiosViewModelTest {
 
     assertEquals(listOf(firstFile, secondFile), audioPlayer.played)
     assertEquals(secondFile, audioPlayer.state.value.file)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Idle)
+    assertTrue(viewModel.playbackStates.value[secondAudio.id] is AudioPlaybackState.Playing)
   }
 
   @Test
@@ -114,6 +122,41 @@ class SeeAudiosViewModelTest {
 
     assertTrue(viewModel.uiState.value is SeeAudiosUIState.Content)
     assertTrue(audioPlayer.played.isEmpty())
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Error)
+  }
+
+  @Test
+  fun failed_download_can_be_retried_without_affecting_another_card() {
+    val firstFile = File("first.m4a")
+    val secondFile = File("second.m4a")
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
+        flowOf(listOf(audio, secondAudio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns firstFile
+    coEvery { mediaRepository.getFile(circle, secondAudio) } throws IOException("offline")
+    val viewModel = createViewModel()
+    viewModel.onPlayPause(audio)
+
+    viewModel.onPlayPause(secondAudio)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Playing)
+    assertTrue(viewModel.playbackStates.value[secondAudio.id] is AudioPlaybackState.Error)
+
+    coEvery { mediaRepository.getFile(circle, secondAudio) } returns secondFile
+    viewModel.onPlayPause(secondAudio)
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Idle)
+    assertTrue(viewModel.playbackStates.value[secondAudio.id] is AudioPlaybackState.Playing)
+  }
+
+  @Test
+  fun failed_play_shows_an_error_on_its_card() {
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
+    coEvery { mediaRepository.getFile(circle, audio) } returns File("broken.m4a")
+    audioPlayer.playError = IOException("broken")
+    val viewModel = createViewModel()
+
+    viewModel.onPlayPause(audio)
+
+    assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Error)
+    assertTrue(viewModel.uiState.value is SeeAudiosUIState.Content)
   }
 
   @Test
