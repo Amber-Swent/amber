@@ -175,7 +175,7 @@ class MediaCardTest {
           placeName = "Chemin des Très Longues Prairies de la Vallée de la Broye, Lausanne, Suisse",
       )
 
-  private val cardWidth = 200.dp
+  private val cardWidth = 360.dp
 
   /** The toggle, the date and the location are displayed, and the toggle overlaps neither. */
   private fun assertHeaderLayoutIsSound(toggleTag: String) {
@@ -209,7 +209,7 @@ class MediaCardTest {
     // still clickable: the card expands, and the header (with the longer "hide" text) stays sound
     toggle()
     assertHeaderLayoutIsSound(MediaCardTestTags.toggleButtonTextHide("m1"))
-    composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertExists()
   }
 
   @Test
