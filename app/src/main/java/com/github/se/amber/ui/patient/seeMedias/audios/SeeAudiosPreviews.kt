@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -58,6 +59,9 @@ private class PreviewProfiles(
 ) : ProfileRepository {
   override suspend fun createProfile(person: Person, role: Role): Result<Unit> =
       error("Preview does not create profiles")
+
+  override suspend fun updateOnboardingProfile(person: Person, role: Role): Result<Unit> =
+      error("Preview does not update profiles")
 
   override suspend fun getCurrentProfile(): Result<UserProfile?> =
       if (showError) Result.failure(Exception("preview")) else Result.success(profile)
