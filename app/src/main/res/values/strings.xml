@@ -293,6 +293,7 @@
     <string name="audioRecorderRecord">Record</string>
     <string name="audioRecorderDelete">Delete the audio</string>
     <string name="audioRecorderStop">Stop the recording</string>
+    <string name="audioRecorderStopListening">Stop listening</string>
 
     <!-- MediaImage -->
     <string name="mediaImageFallbackDescription">Photo</string>

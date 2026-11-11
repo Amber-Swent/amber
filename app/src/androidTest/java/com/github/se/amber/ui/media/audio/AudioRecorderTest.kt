@@ -2,10 +2,14 @@
 
 package com.github.se.amber.ui.media.audio
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.platform.app.InstrumentationRegistry
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
@@ -25,6 +29,9 @@ class AudioRecorderTest {
   @get:Rule val composeTestRule = createComposeRule()
 
   private val waveform = List(WAVEFORM_BARS) { it / WAVEFORM_BARS.toFloat() }
+
+  private fun string(@StringRes id: Int): String =
+      InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
 
   private var deleteCount = 0
   private var stopCount = 0
@@ -138,6 +145,22 @@ class AudioRecorderTest {
     launch(recordingState = AudioRecordingState.LISTENING)
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).performClick()
     Assert.assertEquals(1, stopCount)
+  }
+
+  @Test
+  fun whileRecordingTheStopButtonIsDescribedAsStoppingTheRecording() {
+    launch(recordingState = AudioRecordingState.RECORDING)
+    composeTestRule
+        .onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON)
+        .assertContentDescriptionEquals(string(R.string.audioRecorderStop))
+  }
+
+  @Test
+  fun whileListeningTheStopButtonIsDescribedAsStoppingTheListening() {
+    launch(recordingState = AudioRecordingState.LISTENING)
+    composeTestRule
+        .onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON)
+        .assertContentDescriptionEquals(string(R.string.audioRecorderStopListening))
   }
 
   // ---------- Waveform Levels ----------

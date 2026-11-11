@@ -38,11 +38,9 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.HALF
+import com.github.se.amber.ui.theme.NO_PLAYED_FRACTION
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
-
-/** None of the waveform has been played yet. */
-private const val NO_PLAYED_FRACTION = 0f
 
 /** Test tags owned by [MediaAudio]. Callers can pass their own. */
 object MediaAudioTestTags {

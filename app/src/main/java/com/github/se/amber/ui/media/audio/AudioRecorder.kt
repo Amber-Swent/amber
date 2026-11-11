@@ -26,10 +26,8 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.HALF
+import com.github.se.amber.ui.theme.NO_PLAYED_FRACTION
 import com.github.se.amber.ui.theme.ROUND_CORNER
-
-/** No part of the audio has been heard yet. */
-private const val NO_PLAYED_FRACTION = 0f
 
 /** Test tags owned by [DisplayAudioRecorder]. */
 object AudioRecorderTestTags {
@@ -104,7 +102,12 @@ fun DisplayAudioRecorder(
           if (isStopShown) {
             MediaAudioButton(
                 icon = Icons.Outlined.Stop,
-                description = stringResource(R.string.audioRecorderStop),
+                description =
+                    stringResource(
+                        if (recordingState == AudioRecordingState.LISTENING)
+                            R.string.audioRecorderStopListening
+                        else R.string.audioRecorderStop
+                    ),
                 onClick = onStop,
                 testTag = AudioRecorderTestTags.STOP_BUTTON,
             )

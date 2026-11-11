@@ -19,6 +19,7 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
+import com.github.se.amber.ui.theme.NO_PLAYED_FRACTION
 import java.io.File
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +50,7 @@ data class UploadAudioUIState(
     val waveform: List<Float> = emptyList(),
     val isUploading: Boolean = false,
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
-    val playedFraction: Float = 0f,
+    val playedFraction: Float = NO_PLAYED_FRACTION,
     val errorMsg: String? = null,
     val isAddPersonOpen: Boolean = false,
     val isAddingPerson: Boolean = false,

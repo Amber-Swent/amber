@@ -172,6 +172,7 @@ class UploadAudiosTest {
   @Test
   fun whileListeningTheDeleteAndStopButtonsAreDisplayed() {
     launchScreen(listening)
+    tagged(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
     tagged(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
   }
 
