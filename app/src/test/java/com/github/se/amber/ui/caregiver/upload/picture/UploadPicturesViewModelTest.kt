@@ -8,6 +8,8 @@ package com.github.se.amber.ui.caregiver.upload.picture
 
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.media.picture.PickedImage
+import com.github.se.amber.data.media.picture.SelectedPictureReader
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle

@@ -15,6 +15,8 @@ import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
+import com.github.se.amber.data.media.picture.SelectedPictureReader
+import com.github.se.amber.data.media.picture.reader
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
@@ -28,8 +30,6 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
-import com.github.se.amber.ui.caregiver.upload.picture.SelectedPictureReader
-import com.github.se.amber.ui.caregiver.upload.picture.reader
 import java.io.File
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
