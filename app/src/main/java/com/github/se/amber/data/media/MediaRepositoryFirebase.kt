@@ -4,6 +4,7 @@
 package com.github.se.amber.data.media
 
 import android.util.Log
+import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.circle.hasStorageBucket
 import com.github.se.amber.model.media.CircleMedia
@@ -13,8 +14,6 @@ import com.github.se.amber.model.media.MediaStatus
 import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.media.SendState
 import com.github.se.amber.model.media.isMediaOf
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
@@ -64,10 +63,10 @@ class MediaRepositoryFirebase(
     private val firestore: FirebaseFirestore,
     private val scheduler: MediaSendScheduler,
     /**
-     * Uid of the user signed in at the moment it is read, or null if nobody is. Read on each
-     * attempt: a media is sent only when this uid is its [MediaItem.authorId].
+     * The signed-in user, read on each attempt. A media is sent only when
+     * [AuthRepository.currentUser]'s uid is its [MediaItem.authorId].
      */
-    private val signedInUserId: () -> String? = { Firebase.auth.currentUser?.uid },
+    private val authRepository: AuthRepository,
 ) : MediaRepository, MediaSender {
 
   /**
@@ -338,14 +337,14 @@ class MediaRepositoryFirebase(
 
   /**
    * Whether the entry [mediaId] of [circleId] is [SendState.WAITING] for someone who isn't signed
-   * in: nobody is, the signed-in user can't be read, or their uid isn't the media's
-   * [MediaItem.authorId]. The entry is left as it is. Any other entry (missing, already sending, or
-   * failed) is not this case, and [send] handles it as before.
+   * in: nobody is, their uid is blank, or it isn't the media's [MediaItem.authorId]. The entry is
+   * left as it is. Any other entry (missing, already sending, or failed) is not this case, and
+   * [send] handles it as before.
    */
   private suspend fun isWaitingUnderAnotherAccount(circleId: String, mediaId: String): Boolean {
     val entry = outbox.get(circleId, mediaId) ?: return false
     if (entry.state != SendState.WAITING) return false
-    val uid = signedInUid()
+    val uid = authRepository.currentUser?.uid
     if (!uid.isNullOrBlank() && uid == entry.item.authorId) return false
     Log.w(
         TAG,
@@ -354,20 +353,6 @@ class MediaRepositoryFirebase(
     )
     return true
   }
-
-  /**
-   * The uid [signedInUserId] reports, or null if it can't be read. A failure here is treated as
-   * nobody signed in: sending anyway could upload the media under another account.
-   */
-  private fun signedInUid(): String? =
-      try {
-        signedInUserId()
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        Log.w(TAG, "Couldn't read the signed-in user before a send", e)
-        null
-      }
 
   /**
    * Runs the timed attempt at sending [mediaId] of [circleId], whose entry is now

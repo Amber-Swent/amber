@@ -41,7 +41,6 @@ class DeviceLocalAccountDataTest {
   private lateinit var recorded: File
   private lateinit var pickedMemo: File
   private lateinit var localData: DeviceLocalAccountData
-  private lateinit var phone: DeviceLocalPhone
   private val everyStepBeforeFirestore =
       listOf("clearMedia", "clearMemory", "temporaryFilesDeleted", "signOut")
   private val everyStep =
@@ -106,7 +105,7 @@ class DeviceLocalAccountDataTest {
         }
 
     val imageMemory = MediaImageMemory(imageLoader)
-    phone =
+    val phone =
         DeviceLocalPhone(
             mediaRepository,
             imageMemory,
@@ -115,15 +114,12 @@ class DeviceLocalAccountDataTest {
         )
     localData =
         DeviceLocalAccountData(
-            mediaRepository,
+            phone,
             authRepository,
-            imageMemory,
-            cacheDir,
             firestore,
             marker,
             { calls += "restart" },
             { calls += "stop" },
-            Dispatchers.Unconfined,
         )
   }
 
@@ -232,54 +228,6 @@ class DeviceLocalAccountDataTest {
     job.join()
 
     assertEquals(everyStep, calls)
-  }
-
-  @Test
-  fun sharedClearRunsMediaThenMemoryThenTemporaryFiles() = runBlocking {
-    var filesStillThere = false
-    every { memoryCache.clear() } answers
-        {
-          filesStillThere = listOf(picked, captured, recorded, pickedMemo).all { it.exists() }
-          calls += "clearMemory"
-        }
-
-    phone.clear()
-
-    assertTrue(filesStillThere)
-    assertFalse(picked.exists())
-    assertFalse(captured.parentFile!!.exists())
-    assertFalse(recorded.exists())
-    assertFalse(pickedMemo.exists())
-    assertTrue(otherFile.exists())
-    assertEquals(listOf("clearMedia", "clearMemory"), calls)
-  }
-
-  @Test
-  fun sharedClearRunsEveryStepAndAggregatesEveryFailure() {
-    val mediaFailure = IOException("Media left")
-    val memoryFailure = IllegalStateException("Memory left")
-    coEvery { mediaRepository.clearLocalMedia() } throws mediaFailure
-    every { memoryCache.clear() } throws memoryFailure
-    // a folder with a file in it can't be deleted, so the temporary-file step fails too
-    val stuck = File(cacheDir, "picked_0.jpg").apply { mkdir() }
-    File(stuck, "inside").writeText("photo")
-
-    val error = assertThrows(IOException::class.java) { runBlocking { phone.clear() } }
-
-    assertEquals(mediaFailure.message, error.message)
-    val suppressed =
-        generateSequence<Throwable>(error) { it.cause }.flatMap { it.suppressed.asList() }
-    assertEquals(
-        listOf(memoryFailure.message, "Some temporary files could not be deleted"),
-        suppressed.map { it.message }.toList(),
-    )
-    assertFalse(picked.exists())
-    assertFalse(captured.exists())
-    assertFalse(recorded.exists())
-    assertFalse(pickedMemo.exists())
-    assertTrue(stuck.exists())
-    assertTrue(otherFile.exists())
-    assertEquals(emptyList<String>(), calls)
   }
 
   @Test

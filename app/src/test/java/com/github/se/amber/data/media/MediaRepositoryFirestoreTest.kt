@@ -3,6 +3,8 @@
 
 package com.github.se.amber.data.media
 
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
@@ -138,7 +140,7 @@ class MediaRepositoryFirestoreTest {
   private fun TestScope.newRepository(
       cache: MediaFileCache = newCache(),
       outbox: MediaOutbox = newOutbox(),
-      signedInUserId: () -> String? = { "u1" },
+      authRepository: AuthRepository = signedInAs("u1"),
   ) =
       MediaRepositoryFirebase(
           fileStorage,
@@ -146,9 +148,13 @@ class MediaRepositoryFirestoreTest {
           outbox,
           firestore,
           scheduler,
-          // these tests send media authored by "u1", unless a test signs someone else in
-          signedInUserId = signedInUserId,
+          authRepository,
       )
+
+  /** A signed-in user with [uid], or nobody when [uid] is null. These tests send media of "u1". */
+  private fun signedInAs(uid: String?): AuthRepository = mockk {
+    every { currentUser } returns uid?.let { AuthUser(it) }
+  }
 
   /** A file holding [content], as the camera would give it. */
   private fun source(content: String = "bytes"): File = tmp.newFile().apply { writeText(content) }
@@ -700,7 +706,7 @@ class MediaRepositoryFirestoreTest {
     stubStoredDocument(noDocument())
     val outbox = newOutbox()
     newRepository(outbox = outbox).addMedia(circle, picture, source("photo bytes"))
-    val someoneElse = newRepository(outbox = outbox, signedInUserId = { "arthur" })
+    val someoneElse = newRepository(outbox = outbox, authRepository = signedInAs("arthur"))
     val blocked = List(MediaSender.MAX_FAILED_ATTEMPTS) { someoneElse.send("c1", "m1") }
 
     assertEquals(List(MediaSender.MAX_FAILED_ATTEMPTS) { SendResult.DONE }, blocked)

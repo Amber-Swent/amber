@@ -1,6 +1,5 @@
 // Written by Alaabrine, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
-// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber
 

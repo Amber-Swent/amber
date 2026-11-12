@@ -2,7 +2,6 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.authentication.roleLoading
 

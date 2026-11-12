@@ -2,7 +2,6 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -26,8 +25,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.credentials.Credential
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.se.amber.R
-import com.github.se.amber.data.session.SessionRepository
-import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -45,11 +42,6 @@ internal object PreviewSignOutAuthRepository : AuthRepository {
   override suspend fun reauthenticateWithGoogle(credential: Credential): Result<Unit> =
       Result.failure(UnsupportedOperationException("Preview auth repository"))
 
-  override suspend fun signOut(): Result<Unit> = Result.success(Unit)
-}
-
-/** No-op [SessionRepository] used by Compose previews (and preview-driven tests). */
-internal object PreviewSessionRepository : SessionRepository {
   override suspend fun signOut(): Result<Unit> = Result.success(Unit)
 }
 
@@ -109,10 +101,7 @@ fun SignOutButton(
 }
 
 internal val previewSignOutViewModel =
-    SignOutViewModel(
-        authRepository = PreviewSignOutAuthRepository,
-        sessionRepositoryProvider = SessionRepositoryProvider { PreviewSessionRepository },
-    )
+    SignOutViewModel(authRepository = PreviewSignOutAuthRepository)
 
 /** Preview of [SignOutButton] using the Amber application theme. */
 @Preview(showBackground = true)

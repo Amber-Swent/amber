@@ -1,5 +1,4 @@
 // Written by Alaabrine, with assistance from Cursor.
-// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.account
 
@@ -30,29 +29,25 @@ class DeviceLocalPhone(
   /**
    * Cancels the send jobs and clears the outbox and media cache, then clears the decoded pictures,
    * then deletes the temporary upload files. Every step is still attempted when an earlier one
-   * fails.
+   * fails. A cancellation stops at once and is rethrown.
    *
    * @throws Exception if something couldn't be cleared: it may still be on the device. The first
    *   failure is thrown, and any later ones are added to it. Clearing can run again.
    */
   suspend fun clear() {
-    val failures =
-        listOf<suspend () -> Unit>(
-                { mediaRepository.clearLocalMedia() },
-                { imageMemory.clearAll() },
-                { deleteTemporaryFiles() },
-            )
-            .mapNotNull { step -> failureOf(step) }
-    failures.firstOrNull()?.let { first ->
-      failures.drop(1).forEach(first::addSuppressed)
-      throw first
-    }
+    runEveryStep(
+        { mediaRepository.clearLocalMedia() },
+        { imageMemory.clearAll() },
+        { deleteTemporaryFiles() },
+    )
   }
 
   /**
    * Deletes the files SelectedPictureReaderAndroid copies picked pictures to, camera photos, and
    * voice memos that weren't uploaded: the recorder and the audio reader leave them as .m4a files
    * anywhere in the cache.
+   *
+   * @throws IOException if some are still there afterwards, naming one of them.
    */
   private suspend fun deleteTemporaryFiles() =
       withContext(ioDispatcher) {
@@ -61,19 +56,13 @@ class DeviceLocalPhone(
         }
         val memos = cacheDir.walkTopDown().filter { it.isFile && it.extension == MEMO_EXTENSION }
         val captured = File(cacheDir, CAPTURED_DIR)
-        // map, not all: a file that can't be deleted must not keep the next ones
-        val allDeleted =
-            (picked.orEmpty().toList() + memos).map { it.delete() }.all { it } and
-                captured.deleteRecursively()
-        if (!allDeleted) throw IOException("Some temporary files could not be deleted")
-      }
-
-  private suspend fun failureOf(step: suspend () -> Unit): Exception? =
-      try {
-        step()
-        null
-      } catch (exception: Exception) {
-        exception
+        // File.delete() also returns false when the file was already gone, which is fine.
+        // walkBottomUp visits the files of captured_pictures before the folder itself.
+        val files = picked.orEmpty().toList() + memos + captured.walkBottomUp()
+        val left = files.filter { !it.delete() && it.exists() }
+        if (left.isNotEmpty()) {
+          throw IOException("Could not delete ${left.size} temporary file(s), e.g. ${left.first()}")
+        }
       }
 
   private companion object {

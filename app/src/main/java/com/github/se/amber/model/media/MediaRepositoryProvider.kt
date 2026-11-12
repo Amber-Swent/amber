@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.model.media
 
@@ -11,6 +12,7 @@ import com.github.se.amber.data.media.MediaRepositoryFirebase
 import com.github.se.amber.data.media.MediaSendWorkerFactory
 import com.github.se.amber.data.media.MediaSendWorkerScheduler
 import com.github.se.amber.data.media.MediaSender
+import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.google.firebase.Firebase
 import com.google.firebase.app
 import com.google.firebase.firestore.firestore
@@ -58,6 +60,7 @@ object MediaRepositoryProvider {
             outbox = MediaOutbox(File(context.filesDir, OUTBOX_DIR)),
             firestore = Firebase.firestore,
             scheduler = MediaSendWorkerScheduler(context),
+            authRepository = AuthRepositoryProvider.repository,
         )
         .also { repository ->
           scope.launch {
