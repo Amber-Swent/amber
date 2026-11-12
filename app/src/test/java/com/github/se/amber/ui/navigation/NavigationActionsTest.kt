@@ -1,4 +1,5 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.navigation
 
@@ -113,8 +114,8 @@ class NavigationActionsTest {
     // check that there are no early return for a screen that is not a top-level destination
     // check that it calls the navigate function
     optionsUsedToNavigateTo(
-        CaregiverScreen.UploadText,
-        fromRoute = CaregiverScreen.UploadText.route,
+        CaregiverScreen.UploadPicture,
+        fromRoute = CaregiverScreen.UploadPicture.route,
     )
   }
 
@@ -134,7 +135,7 @@ class NavigationActionsTest {
 
   @Test
   fun nonTopLevel_isSimplyPushed() {
-    val options = optionsUsedToNavigateTo(CaregiverScreen.UploadText)
+    val options = optionsUsedToNavigateTo(CaregiverScreen.UploadPicture)
 
     assertFalse(options.shouldLaunchSingleTop())
     assertNull(options.popUpToRoute)
