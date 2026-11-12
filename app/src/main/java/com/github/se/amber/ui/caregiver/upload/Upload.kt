@@ -49,17 +49,14 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 
 object UploadTestTags {
   const val TITLE = "upload_title"
-  const val TEXT_BUTTON = "upload_text_button"
   const val PICTURE_BUTTON = "upload_picture_button"
   const val AUDIO_BUTTON = "upload_audio_button"
 }
 
 /**
- * Displays the caregiver upload menu for text, picture, and audio stories along with bottom
- * navigation.
+ * Displays the caregiver upload menu for picture and audio stories along with bottom navigation.
  *
  * @param viewModel view model that stores the upload screen state.
- * @param onUploadTextClick callback invoked when text upload is selected.
  * @param onUploadPictureClick callback invoked when picture upload is selected.
  * @param onUploadAudioClick callback invoked when audio upload is selected.
  * @param onTabSelected callback invoked when a bottom navigation tab is selected.
@@ -68,7 +65,6 @@ object UploadTestTags {
 @Composable
 fun UploadScreen(
     viewModel: UploadViewModel = viewModel(),
-    onUploadTextClick: () -> Unit = {},
     onUploadPictureClick: () -> Unit = {},
     onUploadAudioClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = {},
@@ -114,18 +110,6 @@ fun UploadScreen(
                     .padding(CAREGIVER_PADDING_SMALL),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
-
-          /* Text upload is planned for a later sprint.
-          DisplayCaregiverButton(
-              modifier = Modifier.testTag(TEXT_BUTTON),
-              widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
-              icon = Icons.Outlined.Description,
-              text = "Upload Text",
-              description = "Text",
-              onClick = { onUploadTextClick() },
-          )
-           */
-
           DisplayCaregiverButton(
               modifier = Modifier.testTag(PICTURE_BUTTON),
               widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
