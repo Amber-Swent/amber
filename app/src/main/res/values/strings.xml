@@ -276,6 +276,11 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
+    <string name="uploadAudioErrorMaxLength">Maximum recording length reached. Your audio was kept.</string>
+    <string name="uploadAudioInfoIcon">Information</string>
+    <string name="uploadAudioRecordingInfoFirst">Your story is being recorded</string>
+    <string name="uploadAudioRecordingInfoSecond">Click on the square to finish the record</string>
+    <string name="uploadAudioRecordedInfo">Your audio is recorded!</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>

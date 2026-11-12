@@ -57,6 +57,7 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
   COULD_NOT_START_RECORDING(R.string.uploadAudioErrorStartRecording),
   COULD_NOT_STOP_RECORDING(R.string.uploadAudioErrorStopRecording),
   COULD_NOT_PLAY_RECORDING(R.string.uploadAudioErrorPlayRecording),
+  MAX_LENGTH_REACHED(R.string.uploadAudioErrorMaxLength),
 }
 
 /**
@@ -239,7 +240,7 @@ class UploadAudioViewModel(
       // the recorder stops by itself at its limits: keep what was recorded
       recorder.isRecording.first { !it }
       amplitudeJob?.cancel()
-      saveRecordingOnce()
+      saveRecordingOnce(reachedLimit = true)
     }
   }
 
@@ -255,14 +256,22 @@ class UploadAudioViewModel(
    * Starts saving the recording, unless it is already being saved, whether the recorder stopped at
    * a limit or the user tapped stop meanwhile. It runs in its own task, so stopping the
    * [recordingJob] doesn't cancel it.
+   *
+   * @param reachedLimit Whether the recorder stopped by itself at its time or size limit, so the
+   *   user is told why the recording ended.
    */
-  private fun saveRecordingOnce() {
+  private fun saveRecordingOnce(reachedLimit: Boolean = false) {
     if (stoppingJob?.isActive == true) return
-    stoppingJob = viewModelScope.launch { saveRecording() }
+    stoppingJob = viewModelScope.launch { saveRecording(reachedLimit) }
   }
 
-  /** Takes the finished recording from the recorder and puts it in the state. */
-  private suspend fun saveRecording() {
+  /**
+   * Takes the finished recording from the recorder and puts it in the state.
+   *
+   * @param reachedLimit Whether the recorder stopped by itself at a limit; the user is then told
+   *   once the recording is kept.
+   */
+  private suspend fun saveRecording(reachedLimit: Boolean = false) {
     try {
       val audio = recorder.stop()
       _uiState.update {
@@ -273,6 +282,7 @@ class UploadAudioViewModel(
             recordingState = AudioRecordingState.RECORDED,
         )
       }
+      if (reachedLimit) setErrorMsg(UploadAudioViewModelErrorMessage.MAX_LENGTH_REACHED.messageRes)
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {

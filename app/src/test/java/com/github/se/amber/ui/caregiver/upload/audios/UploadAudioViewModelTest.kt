@@ -449,6 +449,37 @@ class UploadAudioViewModelTest {
   }
 
   @Test
+  fun recorderStoppingByItself_TellsTheUserTheMaximumLengthWasReached() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.MAX_LENGTH_REACHED.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
+  }
+
+  @Test
+  fun userStoppingTheRecordingDoesNotTellTheMaximumLengthWasReached() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertNull(vm.uiState.value.common.errorMsgRes)
+  }
+
+  @Test
+  fun aFailedSaveAfterTheLimitShowsTheStopErrorInsteadOfTheMaximumLength() {
+    recorder.stopError = IllegalStateException("too short")
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
+  }
+
+  @Test
   fun stopRecordingFailureSetsTheStopError_andGoesBackToIdle() {
     recorder.stopError = IllegalStateException("too short")
     val vm = createViewModel()

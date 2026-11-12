@@ -2,6 +2,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -67,6 +68,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
+import com.github.se.amber.ui.utils.DisplayInformation
 import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
@@ -79,6 +81,8 @@ object UploadAudioScreenTestTags {
   const val LISTENING = "upload_audio_listening"
   const val SELECT_DATE = "upload_audio_selected_date"
   const val UPLOAD_BUTTON = "upload_audio_button"
+  const val RECORDING_INFO = "upload_audio_recording_info"
+  const val RECORDED_INFO = "upload_audio_recorded_info"
 }
 
 /**
@@ -217,6 +221,27 @@ fun UploadAudioScreen(
                     onDelete = viewModel::deleteRecording,
                     onStop = viewModel::stopListening,
                 )
+          }
+
+          // Tells the user what is happening and what to do next
+          when (uiState.recordingState) {
+            AudioRecordingState.RECORDING ->
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING_INFO),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences =
+                        listOf(
+                            stringResource(R.string.uploadAudioRecordingInfoFirst),
+                            stringResource(R.string.uploadAudioRecordingInfoSecond),
+                        ),
+                )
+            AudioRecordingState.RECORDED ->
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDED_INFO),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences = listOf(stringResource(R.string.uploadAudioRecordedInfo)),
+                )
+            else -> Unit
           }
 
           // Display the Description field
