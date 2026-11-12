@@ -11,6 +11,8 @@ import com.github.se.amber.data.account.AccountDeletionError
 import com.github.se.amber.data.account.AccountDeletionRepository
 import com.github.se.amber.data.account.AccountDeletionRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.session.SessionRepository
+import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Role
@@ -24,6 +26,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
+import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,6 +53,8 @@ class RoleLoadingViewModelTest {
   private lateinit var authRepository: AuthRepository
   private lateinit var deletionRepository: AccountDeletionRepository
   private lateinit var viewModel: RoleLoadingViewModel
+  private val sessionCalls = mutableListOf<String>()
+  private var clearFailure: Exception? = null
 
   @Before
   fun setUp() {
@@ -71,6 +76,13 @@ class RoleLoadingViewModelTest {
             profileRepository,
             authRepository,
             AccountDeletionRepositoryProvider { deletionRepository },
+            SessionRepositoryProvider {
+              SessionRepository {
+                sessionCalls += "signOut"
+                val failure = clearFailure
+                if (failure != null) Result.failure(failure) else authRepository.signOut()
+              }
+            },
         )
   }
 
@@ -290,6 +302,7 @@ class RoleLoadingViewModelTest {
     assertTrue(state.signedOut)
     assertFalse(state.isSigningOut)
     assertNull(state.errorMsgRes)
+    assertEquals(listOf("signOut"), sessionCalls)
     coVerify(exactly = 1) { authRepository.signOut() }
   }
 
@@ -347,6 +360,31 @@ class RoleLoadingViewModelTest {
     assertTrue(state.signedOut)
     assertFalse(state.isSigningOut)
     assertNull(state.errorMsgRes)
+  }
+
+  @Test
+  fun signOut_clearFails_keepsTheUserSignedInAndCanBeRetried() = runTest {
+    clearFailure = IOException("Media left")
+    every { authRepository.currentUser } returns AuthUser("uid123")
+
+    viewModel.signOut()
+    advanceUntilIdle()
+
+    assertFalse(viewModel.state.value.signedOut)
+    assertFalse(viewModel.state.value.isSigningOut)
+    assertEquals(signOutErrorMsg, viewModel.state.value.errorMsgRes)
+    assertEquals(listOf("signOut"), sessionCalls)
+    coVerify(exactly = 0) { authRepository.signOut() }
+
+    clearFailure = null
+    sessionCalls.clear()
+    coEvery { authRepository.signOut() } returns Result.success(Unit)
+    viewModel.signOut()
+    advanceUntilIdle()
+
+    assertTrue(viewModel.state.value.signedOut)
+    assertFalse(viewModel.state.value.isSigningOut)
+    coVerify(exactly = 1) { authRepository.signOut() }
   }
 
   @Test
