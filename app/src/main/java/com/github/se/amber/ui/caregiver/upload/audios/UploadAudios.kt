@@ -1,10 +1,16 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,11 +31,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
@@ -42,8 +53,10 @@ import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreenTestTags.SELECT_DATE
 import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreenTestTags.UPLOAD_BUTTON
 import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialog
+import com.github.se.amber.ui.caregiver.upload.media.DisplayLocation
 import com.github.se.amber.ui.caregiver.upload.media.DisplayScrollableDatePicker
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolved
+import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -54,6 +67,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
+import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Audio components. */
@@ -70,8 +84,14 @@ object UploadAudioScreenTestTags {
  * Displays the Audio upload screen.
  *
  * @param viewModel The view model that manages the screen state and actions.
- * @param onUpload The callback invoked after the upload action is requested.
- * @param goBack The callback invoked when the user cancels the upload.
+ * @param onUpload The callback invoked once the audio has been saved (on [MediaEvent.Uploaded]),
+ *   not when the user taps the upload button. The audio is only saved locally at that point:
+ *   sending it to Firebase may still be pending, so the callback must not assume it has been
+ *   delivered.
+ * @param goBack The callback invoked when the user cancels (button or system back). Cancelling is
+ *   always possible, also while the audio is being saved: the save is then stopped and the audio is
+ *   taken back as far as possible. It is best effort: once the audio is saved, or its send has
+ *   begun, it may still be sent.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,36 +102,67 @@ fun UploadAudioScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val options by viewModel.involvedOptions.collectAsStateWithLifecycle()
-  //    val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
-  val errorMessage = uiState.errorMsg
+  val placeOptions by viewModel.placeOptions.collectAsStateWithLifecycle()
+  val errorMsgRes = uiState.common.errorMsgRes
   val context = LocalContext.current
+  // Configuration-aware resources, so the toast follows the app language
+  val resources = LocalResources.current
 
-  LaunchedEffect(errorMessage) {
-    if (errorMessage != null) {
-      Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+  // Recording starts only once the microphone is allowed. The popup is shown on each click while
+  // it is not (Android stops showing it by itself after the user refuses twice).
+  val micLauncher =
+      rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.startRecording()
+      }
+  val onRecordClick = {
+    val granted =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+    if (granted) {
+      viewModel.startRecording()
+    } else {
+      micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+  }
+
+  // Android silences the microphone of an app that is no longer visible: the recording would go on,
+  // still shown as in progress, but only with silence. So it is stopped once the screen is hidden;
+  // what was recorded until then is kept, and the user can listen to it, send it or delete it.
+  // It does nothing if nothing is being recorded.
+  LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopRecording() }
+
+  LaunchedEffect(errorMsgRes) {
+    if (errorMsgRes != null) {
+      Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
       viewModel.clearErrorMsg()
     }
   }
 
-  // FIXME : will be unExtract once the ViewModel is implemented.
-  //  for the moment, I let it to avoid forgetting
+  // Cancel (button or system back): the ViewModel stops the save in progress, if any, and throws
+  // the audio away. Best effort: an audio already saved may still be sent
+  val cancel = {
+    viewModel.cancel()
+    goBack()
+  }
+  // Without it, system back would leave the screen without calling viewModel.cancel()
+  BackHandler(onBack = cancel)
 
-  //      // The upload is over: leave the screen only once it really succeeded
-  //      val currentOnUpload by rememberUpdatedState(onUpload)
-  //      LaunchedEffect(Unit) {
-  //          viewModel.events.collect { event ->
-  //              when (event) {
-  //                  UploadAudioEvent.Uploaded -> currentOnUpload()
-  //              }
-  //          }
-  //      }
+  // The upload is over: leave the screen only once it really succeeded
+  val currentOnUpload by rememberUpdatedState(onUpload)
+  LaunchedEffect(Unit) {
+    viewModel.events.collect { event ->
+      when (event) {
+        MediaEvent.Uploaded -> currentOnUpload()
+      }
+    }
+  }
 
   Scaffold(
       topBar = {
         TopAppBar(
             title = {
               Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
-                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
+                TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, cancel)
                 DisplayCaregiverTitle(
                     Modifier.testTag(UploadAudioScreenTestTags.TITLE),
                     stringResource(R.string.uploadAudioTitle),
@@ -139,7 +190,7 @@ fun UploadAudioScreen(
                     isRecording = true,
                     waveform = uiState.waveform,
                     onDelete = viewModel::deleteRecording,
-                    onStop = viewModel::stopRecording, // must update uiState.audioFile
+                    onStop = viewModel::stopRecording,
                 )
             AudioRecordingState.RECORDED ->
                 DisplayAudioRecorder(
@@ -153,14 +204,14 @@ fun UploadAudioScreen(
                     icon = Icons.Outlined.Mic,
                     contentDescription = stringResource(R.string.uploadAudioRecordIcon),
                     text = stringResource(R.string.uploadAudioRecord),
-                    onClick = viewModel::startRecording,
+                    onClick = onRecordClick,
                 )
           }
 
           // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
-              value = uiState.description,
+              value = uiState.common.description,
               onValueChange = { viewModel.setDescription(it) },
               label = stringResource(R.string.uploadAudioDescriptionLabel),
               placeholder = stringResource(R.string.uploadAudioDescriptionPlaceholder),
@@ -170,29 +221,24 @@ fun UploadAudioScreen(
           )
 
           DisplayWhoIsInvolved(
-              options = options,
-              shownIds = uiState.shownIds,
+              options = options.mapValues { (_, label) -> label.asString(resources) },
+              shownIds = uiState.common.shownIds,
               toggleShownId = viewModel::toggleShownId,
               onAddPerson = viewModel::onAddPerson,
           )
 
-          // FIXME: will be unExtract once the global Location logic is implemented.
-          //  This will come in another PR.
-          //  I don't want to create a new UploadAudioLocation file that duplicate the
-          //  UploadPictureLocation.
-
-          //          DisplayLocation(
-          //              savedPlaceNamesById = placeOptions,
-          //              state = uiState.location,
-          //              onSavedPlaceClick = viewModel::selectPlace,
-          //              onQueryChange = viewModel::setPlaceQuery,
-          //              onSuggestionClick = viewModel::selectPlace,
-          //              onRetrySearch = viewModel::retryPlaceSearch,
-          //          )
+          DisplayLocation(
+              savedPlaceNamesById = placeOptions,
+              state = uiState.common.location,
+              onSavedPlaceClick = viewModel::selectPlace,
+              onQueryChange = viewModel::setPlaceQuery,
+              onSuggestionClick = viewModel::selectPlace,
+              onRetrySearch = viewModel::retryPlaceSearch,
+          )
 
           DisplayScrollableDatePicker(
               modifier = Modifier.testTag(SELECT_DATE),
-              initialDate = uiState.date ?: MemoryDate(LocalDate.now().year),
+              initialDate = uiState.common.date ?: MemoryDate(LocalDate.now().year),
               onDateSelected = viewModel::setDate,
           )
         }
@@ -200,7 +246,7 @@ fun UploadAudioScreen(
       // Pinned below the form so it stays reachable however long the form grows
       bottomBar = {
         DisplayCaregiverButton(
-            onClick = { viewModel.uploadAudio() },
+            onClick = { viewModel.uploadMedia() },
             modifier =
                 Modifier.navigationBarsPadding()
                     .padding(CAREGIVER_PADDING_MEDIUM)
@@ -208,7 +254,7 @@ fun UploadAudioScreen(
             enabled = uiState.canUpload,
             text =
                 stringResource(
-                    if (uiState.isUploading) R.string.uploadAudioUploading
+                    if (uiState.common.isUploading) R.string.uploadAudioUploading
                     else R.string.uploadAudioUpload
                 ),
             widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
@@ -217,11 +263,11 @@ fun UploadAudioScreen(
   )
 
   AddPersonDialog(
-      isOpen = uiState.isAddPersonOpen,
-      isAddingPerson = uiState.isAddingPerson,
-      firstName = uiState.personFirstName,
-      lastName = uiState.personLastName,
-      nickname = uiState.personNickname,
+      isOpen = uiState.common.isAddPersonOpen,
+      isAddingPerson = uiState.common.isAddingPerson,
+      firstName = uiState.common.personFirstName,
+      lastName = uiState.common.personLastName,
+      nickname = uiState.common.personNickname,
       onFirstNameChange = viewModel::setPersonFirstName,
       onLastNameChange = viewModel::setPersonLastName,
       onNicknameChange = viewModel::setPersonNickname,

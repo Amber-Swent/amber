@@ -2,6 +2,7 @@
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.onboarding.createProfile
 
@@ -38,6 +39,7 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.signOut.PreviewActiveCircleRepository
 import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.navigation.TopNavigationAction
@@ -244,7 +246,10 @@ internal fun CreateProfilePreview() {
       }
   val profileViewModel = remember { CreateProfileViewModel(profileRepository) }
   val signOutViewModel = remember {
-    SignOutViewModel(authRepository = PreviewSignOutAuthRepository)
+    SignOutViewModel(
+        authRepository = PreviewSignOutAuthRepository,
+        activeCircleRepository = PreviewActiveCircleRepository,
+    )
   }
   AmberAppTheme {
     CreateProfileScreen(viewModel = profileViewModel, signOutViewModel = signOutViewModel)

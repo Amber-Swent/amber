@@ -1,10 +1,12 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
 package com.github.se.amber.ui.patient
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,47 +88,56 @@ fun DisplayPatientTitle(
 }
 
 /**
- * Displays a button with an icon, label, and click action.
+ * Displays a button with a label, an optional icon, and a click action.
  *
  * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
  * height)
  *
  * @param modifier modifier applied to the button
  * @param buttonHeight height of the button
- * @param buttonWidth fraction of the available width taken by the button
+ * @param buttonWidth fraction of the available width taken by the button. Ignored when [fillWidth]
+ *   is false.
+ * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
+ *   centered. If false, the button only wraps its content.
  * @param text label displayed on the button.
  * @param textStyle typography style of the button label
- * @param icon icon displayed on the button.
- * @param description content description for the icon.
+ * @param icon icon displayed after the label. No icon is displayed when null.
+ * @param description content description for the icon. Only used when [icon] is not null.
  * @param enabled say if the button is clickable or not
  * @param onClick callback invoked when the button is selected.
- * @param testTag test tag of the button
- * @param iconTestTag test tag of the icon
+ * @param testTag test tag of the button. Defaults to [PatientUtilsTestTags.BUTTON_WITH_ICON] when
+ *   an icon is displayed, and to [PatientUtilsTestTags.BUTTON] otherwise.
+ * @param iconTestTag test tag of the icon. Only used when [icon] is not null.
  */
 @NonRestartableComposable
 @Composable
-fun DisplayPatientButtonWithIcon(
+fun DisplayPatientButton(
     modifier: Modifier = Modifier,
     buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = PATIENT_BUTTON_WIDTH,
+    fillWidth: Boolean = true,
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
-    icon: ImageVector = Icons.Default.Add,
-    description: String = "",
+    icon: ImageVector? = null,
+    description: String? = null,
     enabled: Boolean = true,
     onClick: () -> Unit = {},
-    testTag: String = PatientUtilsTestTags.BUTTON_WITH_ICON,
+    testTag: String? = null,
     iconTestTag: String = PatientUtilsTestTags.BUTTON_ICON,
 ) {
+  val sizeModifier =
+      if (fillWidth) {
+        Modifier.fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .fillMaxWidth(buttonWidth)
+      } else Modifier
+  val resolvedTestTag =
+      testTag
+          ?: if (icon != null) PatientUtilsTestTags.BUTTON_WITH_ICON
+          else PatientUtilsTestTags.BUTTON
   Button(
       onClick = onClick,
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .wrapContentWidth(Alignment.CenterHorizontally)
-              .fillMaxWidth(buttonWidth)
-              .height(buttonHeight)
-              .testTag(testTag),
+      modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(resolvedTestTag),
       enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
       colors =
@@ -136,74 +147,25 @@ fun DisplayPatientButtonWithIcon(
           ),
   ) {
     Row(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (fillWidth) Modifier.fillMaxSize() else Modifier,
         verticalAlignment = Alignment.CenterVertically,
     ) {
       Text(
           text,
           style = textStyle,
           textAlign = TextAlign.Center,
-          modifier = Modifier.weight(WEIGHT_ONE),
+          modifier = if (fillWidth) Modifier.weight(WEIGHT_ONE) else Modifier,
       )
-      Icon(
-          icon,
-          contentDescription = description,
-          modifier = Modifier.testTag(iconTestTag),
-      )
+      icon?.let {
+        Icon(
+            imageVector = it,
+            contentDescription = description,
+            modifier =
+                (if (fillWidth) Modifier else Modifier.padding(start = PATIENT_PADDING_SMALL))
+                    .testTag(iconTestTag),
+        )
+      }
     }
-  }
-}
-
-/**
- * Displays a button, label, and click action.
- *
- * This button needs to be displayed in Scrollable Screens only ! (because it contains a fixed
- * height)
- *
- * @param modifier modifier applied to the button
- * @param buttonHeight height of the button
- * @param buttonWidth fraction of the available width taken by the button
- * @param text label displayed on the button.
- * @param textStyle typography style of the button label
- * @param enabled say if the button is clickable or not
- * @param onClick callback invoked when the button is selected.
- * @param testTag test tag of the button
- */
-@NonRestartableComposable
-@Composable
-fun DisplayPatientButton(
-    modifier: Modifier = Modifier,
-    buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
-    buttonWidth: Float = PATIENT_BUTTON_WIDTH,
-    text: String = "",
-    textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
-    enabled: Boolean = true,
-    onClick: () -> Unit = {},
-    testTag: String = PatientUtilsTestTags.BUTTON,
-) {
-  Button(
-      onClick = onClick,
-      modifier =
-          modifier
-              .fillMaxWidth()
-              .wrapContentWidth(Alignment.CenterHorizontally)
-              .fillMaxWidth(buttonWidth)
-              .height(buttonHeight)
-              .testTag(testTag),
-      enabled = enabled,
-      shape = RoundedCornerShape(ROUND_CORNER),
-      colors =
-          ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.tertiary,
-              contentColor = MaterialTheme.colorScheme.onTertiary,
-          ),
-  ) {
-    Text(
-        text,
-        style = textStyle,
-        textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth(),
-    )
   }
 }
 
@@ -224,7 +186,7 @@ fun DisplayPatientButton(
  * @param spinnerTestTag test tag of the spinner. No tag is set when empty.
  */
 @Composable
-fun DisplayPatientIconButton(
+fun DisplayPatientCircularIconButton(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Default.Add,
     description: String = "",
@@ -277,22 +239,24 @@ fun DisplayPatientIconButton(
 @Composable
 internal fun DisplayPatientButtonsPreview() {
   AmberAppTheme(darkTheme = false) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       DisplayPatientButton(
           text = "Button",
           onClick = {},
-          modifier = Modifier.weight(WEIGHT_ONE),
+          modifier = Modifier,
       )
-      DisplayPatientButtonWithIcon(
+      DisplayPatientButton(
           text = "Add",
+          icon = Icons.Default.Add,
           description = "Add patient",
+          fillWidth = false,
           onClick = {},
       )
-      DisplayPatientIconButton(
+      DisplayPatientCircularIconButton(
           description = "Add patient",
           onClick = {},
       )
@@ -308,22 +272,24 @@ internal fun DisplayPatientButtonsPreview() {
 @Composable
 internal fun DisplayPatientButtonsDarkPreview() {
   AmberAppTheme(darkTheme = true) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth().padding(PATIENT_PADDING_SMALL),
-        horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
       DisplayPatientButton(
           text = "Button",
           onClick = {},
-          modifier = Modifier.weight(WEIGHT_ONE),
+          modifier = Modifier,
       )
-      DisplayPatientButtonWithIcon(
+      DisplayPatientButton(
           text = "Add",
+          icon = Icons.Default.Add,
           description = "Add patient",
+          fillWidth = false,
           onClick = {},
       )
-      DisplayPatientIconButton(
+      DisplayPatientCircularIconButton(
           description = "Add patient",
           onClick = {},
       )

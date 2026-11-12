@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber
 
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationRedemptionRepository
 import com.github.se.amber.data.invitation.InvitationRedemptionRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationRedemptionResult
@@ -25,6 +27,7 @@ import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.signOut.PreviewActiveCircleRepository
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -70,6 +73,11 @@ class AmberAppNeedsCareCircleNavigationTest {
     mockkObject(InvitationRedemptionRepositoryProvider.Companion)
     every { InvitationRedemptionRepositoryProvider.default } returns
         InvitationRedemptionRepositoryProvider { UnusedInvitationRepository }
+
+    // SignOutViewModel's default reads the active circle, which opens Firebase.
+    mockkObject(ActiveCircleRepositoryProvider.Companion)
+    every { ActiveCircleRepositoryProvider.default } returns
+        ActiveCircleRepositoryProvider { PreviewActiveCircleRepository }
   }
 
   @After

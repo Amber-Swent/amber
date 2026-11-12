@@ -28,6 +28,7 @@
     <string name="screenTitleCaregiverParameters">Parameters</string>
     <string name="screenTitleCaregiverSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
+    <string name="screenTitleCaregiverDeleteAccount">Delete account</string>
     <string name="screenTitlePatientHome">Home</string>
     <string name="screenTitlePatientSeeMedias">See Medias</string>
     <string name="screenTitlePatientSeePictures">See Pictures</string>
@@ -150,6 +151,25 @@
     <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
     <string name="caregiverParameterSignOut">Sign out</string>
     <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
+    <string name="caregiverParameterDeleteAccount">Delete account</string>
+
+    <!-- DeleteAccount -->
+    <string name="deleteAccountTitle">Delete account</string>
+    <string name="deleteAccountExplanation">Deletion is permanent. Everything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
+    <string name="deleteAccountProgress">Deleting your account. This may take a few minutes.</string>
+    <string name="deleteAccountCleanupLabel">Finish deleting</string>
+    <string name="deleteAccountCheckingLabel">Checking your families…</string>
+    <string name="deleteAccountRetryLabel">Retry</string>
+    <string name="deleteAccountLastMemberWarning">You are the last member of %1$s. This family and all its media will be deleted.</string>
+    <string name="deleteAccountLastCaregiverWarning">You are the last caregiver of %1$s. This family will continue with no one to manage it.</string>
+    <string name="deleteAccountCheckFamiliesError">Could not check your families. Please try again.</string>
+    <string name="deleteAccountCleanupError">Your account was deleted, but this device could not be cleared. Tap Finish deleting to retry.</string>
+    <string name="deleteAccountUnknownError">Could not delete the account. Please try again.</string>
+    <string name="deleteAccountNetworkError">Check your connection and try again.</string>
+    <string name="deleteAccountWrongAccountError">Use the Google account you\'re signed in with.</string>
+    <string name="deleteAccountNoGoogleAccountError">No Google account found. Please add one to your device to confirm account deletion.</string>
+    <string name="deleteAccountReauthenticationError">Could not confirm your Google account. Please try again.</string>
+    <string name="deleteAccountReauthenticationRequiredError">Confirm your Google account again and retry.</string>
 
     <!-- CreateInvitation -->
     <string name="createInvitationTitle">Create Invitation</string>
@@ -239,6 +259,8 @@
     <string name="uploadPictureUpload">Upload Picture</string>
     <string name="uploadPictureErrorSelect">Please select a picture first</string>
     <string name="uploadPictureErrorRead">Could not read your picture</string>
+    <string name="uploadPictureErrorCamera">Could not open the camera</string>
+    <string name="uploadPictureErrorNotAPhoto">Only photos can be uploaded. Tap the camera to take a photo.</string>
 
     <!-- UploadAudio -->
     <string name="uploadAudioTitle">Upload Audio</string>
@@ -249,6 +271,11 @@
     <string name="uploadAudioDescriptionEmpty">Description cannot be empty</string>
     <string name="uploadAudioUploading">Uploading…</string>
     <string name="uploadAudioUpload">Upload Audio</string>
+    <string name="uploadAudioErrorRecord">Please record an audio first</string>
+    <string name="uploadAudioErrorMicrophoneNotAllowed">The use of the microphone isn\'t permitted</string>
+    <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
+    <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
+    <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>
@@ -330,6 +357,12 @@
     <!-- SeeAudios -->
     <string name="seeAudiosTitle">See Audios</string>
     <string name="seeAudiosEmpty">There are no audios yet.</string>
+    <string name="seeAudiosRetry">Retry</string>
+    <string name="seeAudiosErrorNoProfile">No profile found.</string>
+    <string name="seeAudiosErrorLoadProfile">Failed to load the profile.</string>
+    <string name="seeAudiosErrorNoCircle">You\'re not in a care circle yet..</string>
+    <string name="seeAudiosErrorLoadCircle">Failed to load the care circle.</string>
+    <string name="seeAudiosErrorLoadMedia">Failed to load the media.</string>
 
     <!-- MediaCard: the details under a picture or an audio (ui/media/MediaCard.kt) -->
     <string name="mediaCardShowInfos">show infos</string>

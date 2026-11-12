@@ -1,6 +1,6 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
-// Modified by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber
 
@@ -11,6 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.credentials.Credential
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.data.session.SessionRepository
@@ -21,6 +22,7 @@ import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.authentication.signOut.PreviewActiveCircleRepository
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.OnboardingScreen
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -63,6 +65,11 @@ class AmberAppCreateProfileSignOutNavigationTest {
     mockkObject(ProfileRepositoryProvider.Companion)
     every { ProfileRepositoryProvider.default } returns
         ProfileRepositoryProvider { NoProfileRepository }
+
+    // SignOutViewModel's default reads the active circle, which opens Firebase.
+    mockkObject(ActiveCircleRepositoryProvider.Companion)
+    every { ActiveCircleRepositoryProvider.default } returns
+        ActiveCircleRepositoryProvider { PreviewActiveCircleRepository }
   }
 
   @After

@@ -29,7 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.ui.caregiver.DisplayCaregiverIconButton
-import com.github.se.amber.ui.patient.DisplayPatientIconButton
+import com.github.se.amber.ui.patient.DisplayPatientCircularIconButton
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_BAR_FRACTION
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_HEIGHT
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
@@ -183,7 +183,7 @@ private fun MediaAudioIconButton(
     spinnerTestTag: String = "",
 ) {
   if (isPatient) {
-    DisplayPatientIconButton(
+    DisplayPatientCircularIconButton(
         icon = icon,
         description = description,
         enabled = enabled,

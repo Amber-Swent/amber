@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -8,9 +9,12 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.session.SessionRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,11 +45,14 @@ data class SignOutUIState(
  * @param sessionRepositoryProvider Gives the repository that clears this phone and then ends the
  *   session. The repository is created when the user signs out, so opening the screen doesn't build
  *   the media layer.
+ * @param activeCircleRepository Repository whose stored circle is cleared once the session ends.
  */
 class SignOutViewModel(
     private val authRepository: AuthRepository = AuthRepositoryProvider.repository,
     private val sessionRepositoryProvider: SessionRepositoryProvider =
         SessionRepositoryProvider.default,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(SignOutUIState())
   val uiState: StateFlow<SignOutUIState> = _uiState.asStateFlow()
@@ -79,16 +86,22 @@ class SignOutViewModel(
    */
   fun signOut() {
     if (_uiState.value.isSigningOut) return
+    // Captured first: after a successful sign-out the auth repository no longer has this uid.
+    val uid = authRepository.currentUser?.uid
     _uiState.update { it.copy(isSigningOut = true) }
     viewModelScope.launch {
       sessionRepositoryProvider.repository
           .signOut()
           .fold(
-              onSuccess = { _uiState.update { it.copy(signedOut = true, isSigningOut = false) } },
+              onSuccess = {
+                clearActiveCircle(uid)
+                _uiState.update { it.copy(signedOut = true, isSigningOut = false) }
+              },
               onFailure = { error ->
                 Log.e(TAG, "Failed to sign out", error)
                 if (authRepository.currentUser == null) {
                   // Firebase is already signed out: treat it as a successful sign-out.
+                  clearActiveCircle(uid)
                   _uiState.update { it.copy(signedOut = true, isSigningOut = false) }
                 } else {
                   _uiState.update { it.copy(isSigningOut = false) }
@@ -96,6 +109,21 @@ class SignOutViewModel(
                 }
               },
           )
+    }
+  }
+
+  /**
+   * Drops the device's active circle for [uid]. The session is already over, so a storage failure
+   * is logged and sign-out still finishes.
+   */
+  private suspend fun clearActiveCircle(uid: String?) {
+    if (uid.isNullOrBlank()) return
+    try {
+      activeCircleRepository.clear(uid)
+    } catch (exception: CancellationException) {
+      throw exception
+    } catch (exception: Exception) {
+      Log.e(TAG, "Failed to clear the active circle", exception)
     }
   }
 }

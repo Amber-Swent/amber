@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty and Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.firestore
@@ -141,6 +142,55 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(peer, fs.listInvitations(care, circleId))
     fs.assertSucceeds(care, fs.get("users/$peer"))
     fs.assertFails(stranger, fs.get("users/$peer"))
+  }
+
+  @Test
+  fun circleIdsUpdate_acceptsOnlyOneNewlyCreatedOwnCircle_enforcedByEmulator() {
+    val care = "care"
+    val first = "c1"
+    val second = "c2"
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(first), "Ada"))
+    fs.adminSet("careCircles/$first", circle(first, care, listOf(care), patientId = ""))
+
+    fs.assertSucceeds(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(first, second), "Ada")),
+            fs.setWrite(
+                "careCircles/$second",
+                circle(second, care, listOf(care), patientId = ""),
+            ),
+        ),
+    )
+
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(first), "Ada"))
+    fs.adminSet("careCircles/theirs", circle("theirs", "other", listOf("other"), patientId = ""))
+    fs.assertFails(
+        care,
+        fs.set("users/$care", user(care, "CAREGIVER", listOf(first, "theirs"), "Ada")),
+    )
+
+    fs.assertFails(
+        care,
+        fs.commit(
+            fs.setWrite("users/$care", user(care, "CAREGIVER", listOf(first, "c2b", "c3"), "Ada")),
+            fs.setWrite("careCircles/c2b", circle("c2b", care, listOf(care), patientId = "")),
+            fs.setWrite("careCircles/c3", circle("c3", care, listOf(care), patientId = "")),
+        ),
+    )
+
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(first, second), "Ada"))
+    fs.assertFails(care, fs.set("users/$care", user(care, "CAREGIVER", listOf(first), "Ada")))
+
+    val pat = "pat"
+    fs.adminSet("users/$pat", user(pat, "PATIENT", emptyList(), "Pat"))
+    fs.assertFails(
+        pat,
+        fs.commit(
+            fs.setWrite("users/$pat", user(pat, "PATIENT", listOf("c-pat"), "Pat")),
+            fs.setWrite("careCircles/c-pat", circle("c-pat", pat, listOf(pat), patientId = "")),
+        ),
+    )
   }
 
   @Test

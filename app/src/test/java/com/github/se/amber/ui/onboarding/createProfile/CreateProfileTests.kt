@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.createProfile
 
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.credentials.Credential
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.profile.ProfileCreationError
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.session.SessionRepository
@@ -28,6 +30,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.ui.authentication.signOut.PreviewActiveCircleRepository
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfilePreview
@@ -284,6 +287,7 @@ class CreateProfileUITests {
                     signOutResult = Result.success(Unit),
                     onSignOut = { signOutCalls++ },
                 ),
+                PreviewActiveCircleRepository,
             ),
         onSignedOut = { signedOutCount++ },
     )
@@ -327,6 +331,7 @@ class CreateProfileUITests {
                     return Result.success(Unit)
                   }
                 },
+                PreviewActiveCircleRepository,
             ),
     )
 
@@ -374,6 +379,7 @@ class CreateProfileUITests {
                     signOutResult = Result.success(Unit),
                     onSignOut = { signOutCalls++ },
                 ),
+                PreviewActiveCircleRepository,
             ),
         onSignedOut = { signedOutCount++ },
     )
@@ -396,6 +402,7 @@ class CreateProfileUITests {
                     signOutResult = Result.failure(IllegalStateException("offline")),
                     currentUser = AuthUser("uid"),
                 ),
+                PreviewActiveCircleRepository,
             ),
         onSignedOut = { signedOutCount++ },
     )
@@ -439,11 +446,15 @@ class CreateProfileUITests {
   }
 }
 
-private fun viewModelFor(authRepository: AuthRepository) =
+private fun viewModelFor(
+    authRepository: AuthRepository,
+    activeCircleRepository: ActiveCircleRepository = PreviewActiveCircleRepository,
+) =
     SignOutViewModel(
         authRepository = authRepository,
         sessionRepositoryProvider =
             SessionRepositoryProvider { SessionRepository { authRepository.signOut() } },
+        activeCircleRepository = activeCircleRepository,
     )
 
 private fun idleAuthRepository(): AuthRepository = countingAuthRepository(Result.success(Unit))

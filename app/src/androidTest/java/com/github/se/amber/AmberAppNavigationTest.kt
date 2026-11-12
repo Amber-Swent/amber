@@ -3,6 +3,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.espresso.Espresso
+import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
@@ -68,13 +70,18 @@ class AmberAppNavigationTest {
     const val UPLOAD_PICTURE_BUTTON = UploadTestTags.PICTURE_BUTTON
     const val UPLOAD_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val UPLOAD_AUDIO_BUTTON = UploadTestTags.AUDIO_BUTTON
+    const val UPLOAD_AUDIO_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val CREATE_CARE_CIRCLE_BUTTON = CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
     const val CAREGIVER_PARAMETERS_SIGN_OUT = CaregiverParametersTestTags.SIGN_OUT_BUTTON
+    const val CAREGIVER_PARAMETERS_DELETE_ACCOUNT =
+        CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON
     const val CREATE_INVITATION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val SIGN_OUT_CONFIRM = SignOutButtonTestTags.BUTTON
     const val SIGN_OUT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val DELETE_ACCOUNT_CANCEL = TopNavigationMenuTestTags.BACK_BUTTON
 
     // Patient
     val PATIENT_TAB_HOME = tabTag(PatientTab.Home)
@@ -90,7 +97,13 @@ class AmberAppNavigationTest {
 
   @Before
   fun setUp() {
-    // Nothing to do: the controller is created inside setContent (needs a Compose context)
+    // The controller is created inside setContent (needs a Compose context).
+    // The microphone is already allowed, so UploadAudioScreen shows no permission popup.
+    val instrumentation = InstrumentationRegistry.getInstrumentation()
+    instrumentation.uiAutomation.grantRuntimePermission(
+        instrumentation.targetContext.packageName,
+        android.Manifest.permission.RECORD_AUDIO,
+    )
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -265,6 +278,16 @@ class AmberAppNavigationTest {
   }
 
   @Test
+  fun upload_uploadAudioButton_navigatesToUploadAudio() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+
+    click(Tags.UPLOAD_AUDIO_BUTTON)
+
+    assertRoute(CaregiverScreen.UploadAudio.route)
+  }
+
+  @Test
   fun upload_homeTab_navigatesToCaregiverHome() {
     launch(NavGraphs.CAREGIVER)
     goTo(CaregiverScreen.Upload.route)
@@ -300,6 +323,21 @@ class AmberAppNavigationTest {
   }
 
   // ---------------------------------------------------------------------------------------------
+  // Caregiver graph: UploadAudio
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  fun uploadAudio_back_returnsToUpload() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+    goTo(CaregiverScreen.UploadAudio.route)
+
+    click(Tags.UPLOAD_AUDIO_BACK)
+
+    assertRoute(CaregiverScreen.Upload.route)
+  }
+
+  // ---------------------------------------------------------------------------------------------
   // Caregiver graph: Parameters
   // ---------------------------------------------------------------------------------------------
 
@@ -311,6 +349,20 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_PARAMETERS_SIGN_OUT)
 
     assertRoute(CaregiverScreen.SignOut.route)
+  }
+
+  @Test
+  fun parameters_deleteAccount_opensConfirmation_thenCancelReturnsToParameters() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Parameters.route)
+
+    click(Tags.CAREGIVER_PARAMETERS_DELETE_ACCOUNT)
+
+    assertRoute(CaregiverScreen.DeleteAccount.route)
+
+    click(Tags.DELETE_ACCOUNT_CANCEL)
+
+    assertRoute(CaregiverScreen.Parameters.route)
   }
 
   @Test
@@ -500,8 +552,8 @@ class AmberAppNavigationTest {
 
     click(SeeMediasTestTags.AUDIOS_BUTTON)
 
+    composeRule.onNodeWithTag(SeeAudiosTestTags.TITLE).assertExists()
     assertRoute(PatientScreen.SeeAudios.route)
-    composeRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertExists()
   }
 
   @Test

@@ -29,7 +29,7 @@ import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
 import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.PatientTab.Companion.patientTabs
 import com.github.se.amber.ui.navigation.Tab
-import com.github.se.amber.ui.patient.DisplayPatientButtonWithIcon
+import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
@@ -89,21 +89,21 @@ fun SeeMediasScreen(
             verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-          DisplayPatientButtonWithIcon(
+          DisplayPatientButton(
               text = stringResource(R.string.seeMediasPictures),
               icon = Icons.Outlined.PhotoCamera,
               description = stringResource(R.string.seeMediasPicturesIcon),
               onClick = onSeePictureClick,
               testTag = SeeMediasTestTags.PICTURES_BUTTON,
           )
-          DisplayPatientButtonWithIcon(
+          DisplayPatientButton(
               text = stringResource(R.string.seeMediasTexts),
               icon = Icons.Outlined.Description,
               description = stringResource(R.string.seeMediasTextsIcon),
               onClick = onSeeTextClick,
               testTag = SeeMediasTestTags.TEXTS_BUTTON,
           )
-          DisplayPatientButtonWithIcon(
+          DisplayPatientButton(
               text = stringResource(R.string.seeMediasAudios),
               icon = Icons.Outlined.Mic,
               description = stringResource(R.string.seeMediasAudiosIcon),
