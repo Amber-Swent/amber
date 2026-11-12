@@ -322,6 +322,7 @@
     <string name="audioRecorderRecord">Enregistrer</string>
     <string name="audioRecorderDelete">Supprimer l\'audio</string>
     <string name="audioRecorderStop">Arrêter l\'enregistrement</string>
+    <string name="audioRecorderStopListening">Arrêter l\'écoute</string>
 
     <!-- MediaImage -->
     <string name="mediaImageFallbackDescription">Photo</string>
