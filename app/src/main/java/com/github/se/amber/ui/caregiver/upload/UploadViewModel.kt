@@ -21,7 +21,6 @@ data class UploadUIState(
 
 /** Stores and updates the state of the upload screen. */
 class UploadViewModel(
-    // private val repository: MediaRepository = MediaRepositoryProvider.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(UploadUIState())
   val uiState: StateFlow<UploadUIState> = _uiState.asStateFlow()
