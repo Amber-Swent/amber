@@ -111,7 +111,7 @@ fun AmberApp(
       composable(route = AuthScreen.Auth.route) {
         EmailSignInScreen(
             credentialManager = credentialManager,
-            // onContinue will be implemented in M2/M3
+            // onContinue will be implemented in M3
             onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) },
         )
       }
@@ -187,7 +187,6 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.UploadPicture.route) {
         UploadPictureScreen(
-            // For M1 at least, may change for M2
             onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
             goBack = { navigationActions.goBack() },
         )

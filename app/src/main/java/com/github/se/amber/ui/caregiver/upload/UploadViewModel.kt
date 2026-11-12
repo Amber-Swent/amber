@@ -19,11 +19,8 @@ data class UploadUIState(
     @param:StringRes val errorMsgRes: Int? = null,
 )
 
-// TODO: implement repository
 /** Stores and updates the state of the upload screen. */
-class UploadViewModel(
-    // private val repository: MediaRepository = MediaRepositoryProvider.repository,
-) : ViewModel() {
+class UploadViewModel() : ViewModel() {
   private val _uiState = MutableStateFlow(UploadUIState())
   val uiState: StateFlow<UploadUIState> = _uiState.asStateFlow()
 
