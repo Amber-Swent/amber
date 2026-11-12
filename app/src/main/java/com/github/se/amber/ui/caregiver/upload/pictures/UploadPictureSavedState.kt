@@ -27,7 +27,7 @@ private const val CAPTURING = "form_capturing"
  * Keeps what the user filled in, and whether the camera is open, which Android restores if it kills
  * the app while another one is in front: the camera most of all. Only plain values can be saved
  * this way. Place suggestions aren't kept, as a new search finds them again.
- * [UploadPictureViewModel] relies on this to bring the form back, so it is not leftover code.
+ * [UploadPictureViewModel] relies on this to bring the form back.
  */
 internal fun SavedStateHandle.saveForm(state: UploadPictureUIState) {
   val common = state.common
