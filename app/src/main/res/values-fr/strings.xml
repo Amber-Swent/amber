@@ -17,8 +17,7 @@
     <string name="screenTitleCreateCareCircle">Créer un cercle de soins</string>
     <string name="screenTitleEnterInvitation">Saisir une invitation</string>
     <string name="screenTitleCaregiverHome">Accueil</string>
-    <string name="screenTitleCaregiverUpload">Ajouter des textes, des photos ou des audios</string>
-    <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>
+    <string name="screenTitleCaregiverUpload">Ajouter des photos ou des audios</string>
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
     <string name="screenTitleCaregiverParameters">Paramètres</string>
@@ -342,8 +341,6 @@
     <string name="seeMediasTitle">Voir les médias</string>
     <string name="seeMediasPictures">Voir les photos</string>
     <string name="seeMediasPicturesIcon">Photo</string>
-    <string name="seeMediasTexts">Voir les textes</string>
-    <string name="seeMediasTextsIcon">Texte</string>
     <string name="seeMediasAudios">Voir les audios</string>
     <string name="seeMediasAudiosIcon">Audio</string>
 

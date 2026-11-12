@@ -180,15 +180,10 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Upload.route) {
         UploadScreen(
-            // onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onUploadAudioClick = { navigationActions.navigateTo(CaregiverScreen.UploadAudio) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
-      }
-      @Suppress("java:S1135")
-      composable(route = CaregiverScreen.UploadText.route) {
-        // TODO in M3
       }
       composable(route = CaregiverScreen.UploadPicture.route) {
         UploadPictureScreen(

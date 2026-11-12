@@ -21,8 +21,7 @@
     <string name="screenTitleCreateCareCircle">Create a CareCircle</string>
     <string name="screenTitleEnterInvitation">Enter an invitation</string>
     <string name="screenTitleCaregiverHome">Home</string>
-    <string name="screenTitleCaregiverUpload">Upload Texts, Pictures or Audios</string>
-    <string name="screenTitleCaregiverUploadText">Upload Text</string>
+    <string name="screenTitleCaregiverUpload">Upload Pictures or Audios</string>
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
@@ -340,8 +339,6 @@
     <string name="seeMediasTitle">See Medias</string>
     <string name="seeMediasPictures">See Pictures</string>
     <string name="seeMediasPicturesIcon">Picture</string>
-    <string name="seeMediasTexts">See Texts</string>
-    <string name="seeMediasTextsIcon">Text</string>
     <string name="seeMediasAudios">See Audios</string>
     <string name="seeMediasAudiosIcon">Audio</string>
 
