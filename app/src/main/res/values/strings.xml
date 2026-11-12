@@ -276,6 +276,12 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
+    <string name="uploadAudioMicrophoneTitle">Use of the microphone</string>
+    <string name="uploadAudioMicrophoneUnderstood">I\'ve understood</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">We need your consent to use your microphone</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">Your microphone will only be used to record audio when you click the relevant button.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">You have twice refused to allow our app to use the microphone.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">If you would like to allow us to use the microphone, please go to your phone’s settings.</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>

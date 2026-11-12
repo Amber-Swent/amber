@@ -1,5 +1,4 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import android.util.Log
@@ -70,6 +69,10 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
  * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
  *   listened to.
  * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
+ * @param isMicrophoneConsentOpen Whether the popup explaining why the microphone is needed is shown.
+ *   It comes before the Android permission popup.
+ * @param isMicrophoneSettingsOpen Whether the popup telling the user to allow the microphone in the
+ *   phone's settings is shown, because Android no longer asks.
  */
 data class UploadAudioUIState(
     override val common: CommonMediaUIState = CommonMediaUIState(),
@@ -78,6 +81,8 @@ data class UploadAudioUIState(
     val waveform: List<Float> = emptyList(),
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
     val playedFraction: Float = NO_PLAYED_FRACTION,
+    val isMicrophoneConsentOpen: Boolean = false,
+    val isMicrophoneSettingsOpen: Boolean = false,
 ) : MediaUIState<UploadAudioUIState> {
   override val canUpload: Boolean
     get() = audioFile != null && recordingState == AudioRecordingState.RECORDED && common.canUpload
@@ -202,6 +207,46 @@ class UploadAudioViewModel(
           durationMs = state.durationMs,
           waveform = state.waveform,
       )
+
+  /**
+   * Handles a tap on the record button. If the microphone is allowed, recording starts. Otherwise,
+   * if Android will show its popup, the popup explaining why the microphone is needed opens first;
+   * if Android will not (it was refused twice), only the popup pointing to the phone's settings
+   * opens.
+   *
+   * @param granted Whether the microphone is already allowed.
+   * @param androidWillAsk Whether Android would still show its permission popup.
+   */
+  fun onRecordClick(granted: Boolean, androidWillAsk: Boolean) {
+    when {
+      granted -> startRecording()
+      androidWillAsk -> _uiState.update { it.copy(isMicrophoneConsentOpen = true) }
+      else -> _uiState.update { it.copy(isMicrophoneSettingsOpen = true) }
+    }
+  }
+
+  /** Closes the popup that explains why the microphone is needed. */
+  fun dismissMicrophoneConsent() {
+    _uiState.update { it.copy(isMicrophoneConsentOpen = false) }
+  }
+
+  /** Closes the popup telling the user to allow the microphone in the phone's settings. */
+  fun dismissMicrophoneSettings() {
+    _uiState.update { it.copy(isMicrophoneSettingsOpen = false) }
+  }
+
+  /**
+   * Handles the answer of the Android microphone popup. Recording starts if the microphone was
+   * allowed. If it was refused and Android will not ask again (it was refused twice), the popup
+   * telling the user to go to the phone's settings is opened.
+   *
+   * @param granted Whether the user allowed the microphone.
+   * @param canAskAgain Whether Android would still show its popup; only used when not [granted].
+   */
+  fun onMicrophonePermissionResult(granted: Boolean, canAskAgain: Boolean) {
+    if (granted) startRecording()
+    else if (!canAskAgain) _uiState.update { it.copy(isMicrophoneSettingsOpen = true) }
+  }
 
   /** Starts recording; [UploadAudioUIState.waveform] then grows with the microphone level. */
   fun startRecording() {
