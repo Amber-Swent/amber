@@ -1,6 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 
-package com.github.se.amber.data.account
+package com.github.se.amber.data
 
 import kotlinx.coroutines.CancellationException
 

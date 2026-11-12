@@ -3,6 +3,7 @@
 
 package com.github.se.amber.data.account
 
+import com.github.se.amber.data.runEveryStep
 import com.github.se.amber.model.authentication.AuthRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.NonCancellable

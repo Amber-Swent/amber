@@ -4,6 +4,7 @@
 package com.github.se.amber.data.media
 
 import android.util.Log
+import com.github.se.amber.data.runEveryStep
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.circle.hasStorageBucket
@@ -50,7 +51,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  *
  * It is also the [MediaSender]: the background job, scheduled through [scheduler] for each media
  * added, calls [send] to move it from the outbox to Firebase. [scheduleWaitingSends] schedules
- * again those whose job was lost.
+ * again those whose job was lost. [send] reads [authRepository] on each attempt and uploads a media
+ * only when the signed-in user is its [MediaItem.authorId].
  *
  * A media document holds the fields of [toMap] plus an `id` field, equal to the document's name:
  * Firebase's security rules refuse to create a document without it. Once created, only its
@@ -62,10 +64,6 @@ class MediaRepositoryFirebase(
     private val outbox: MediaOutbox,
     private val firestore: FirebaseFirestore,
     private val scheduler: MediaSendScheduler,
-    /**
-     * The signed-in user, read on each attempt. A media is sent only when
-     * [AuthRepository.currentUser]'s uid is its [MediaItem.authorId].
-     */
     private val authRepository: AuthRepository,
 ) : MediaRepository, MediaSender {
 
@@ -323,7 +321,7 @@ class MediaRepositoryFirebase(
       "Invalid circleId: \"$circleId\""
     }
     forgetRecentlySent(circleId)
-    runAll(
+    runEveryStep(
         { scheduler.cancelCircle(circleId) },
         { outbox.clear(circleId) },
         { cache.clearCircle(circleId) },
@@ -332,7 +330,7 @@ class MediaRepositoryFirebase(
 
   override suspend fun clearLocalMedia() {
     recentlySent.value = emptyMap()
-    runAll({ scheduler.cancelAll() }, { outbox.clear() }, { cache.clear() })
+    runEveryStep({ scheduler.cancelAll() }, { outbox.clear() }, { cache.clear() })
   }
 
   /**
@@ -528,25 +526,6 @@ class MediaRepositoryFirebase(
           else -> false
         }
     return if (permanent) SendResult.FAILED else SendResult.RETRY
-  }
-
-  /**
-   * Runs every one of [steps], even after one fails, then throws the first error, with the others
-   * added to it. A cancellation stops at once.
-   */
-  private suspend fun runAll(vararg steps: suspend () -> Unit) {
-    var first: Exception? = null
-    for (step in steps) {
-      try {
-        step()
-      } catch (e: CancellationException) {
-        throw e
-      } catch (e: Exception) {
-        val earlier = first
-        if (earlier == null) first = e else earlier.addSuppressed(e)
-      }
-    }
-    first?.let { throw it }
   }
 
   private fun mediaCollection(circleId: String): CollectionReference =

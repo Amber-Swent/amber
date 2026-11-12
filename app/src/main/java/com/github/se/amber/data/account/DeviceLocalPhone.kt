@@ -3,6 +3,7 @@
 package com.github.se.amber.data.account
 
 import com.github.se.amber.data.media.image.MediaImageMemory
+import com.github.se.amber.data.runEveryStep
 import com.github.se.amber.model.media.MediaRepository
 import java.io.File
 import java.io.IOException
