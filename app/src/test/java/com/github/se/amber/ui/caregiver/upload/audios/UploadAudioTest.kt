@@ -193,22 +193,41 @@ class UploadAudioTest {
         .assertIsDisplayed()
   }
 
-  @Test
-  fun maximumLengthMessageIsShownAsAToastWhenItOccurs() {
+  private fun showMaximumLengthReached(errorRes: Int? = R.string.uploadAudioErrorMaxLength) {
     every { viewModel.uiState } returns
         MutableStateFlow(
             UploadAudioUIState(
-                common =
-                    CommonMediaUIState(
-                        errorMsgRes = UploadAudioViewModelErrorMessage.MAX_LENGTH_REACHED.messageRes
-                    )
+                recordingState = AudioRecordingState.RECORDED,
+                recordingErrorRes = errorRes,
             )
         )
     launchScreen()
-    assertEquals(
-        composeTestRule.activity.getString(R.string.uploadAudioErrorMaxLength),
-        ShadowToast.getTextOfLatestToast(),
-    )
+  }
+
+  @Test
+  fun recordingError_isDisplayedWhenTheMaximumLengthWasReached() {
+    showMaximumLengthReached()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_ERROR).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioErrorMaxLength))
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_INFO).assertDoesNotExist()
+  }
+
+  @Test
+  fun recordedInfo_isDisplayedWhenThereIsNoRecordingError() {
+    showMaximumLengthReached(errorRes = null)
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDED_INFO).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_ERROR).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun recordingErrorIsShownInFrench() {
+    showMaximumLengthReached()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioErrorMaxLength))
+        .assertIsDisplayed()
   }
 
   // ---------- app in the background ----------

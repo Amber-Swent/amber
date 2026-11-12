@@ -276,7 +276,7 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
-    <string name="uploadAudioErrorMaxLength">Maximum recording length reached. Your audio was kept.</string>
+    <string name="uploadAudioErrorMaxLength">Maximum recording length reached. We were forced to cut your audio, but it has been kept.</string>
     <string name="uploadAudioInfoIcon">Information</string>
     <string name="uploadAudioRecordingInfoFirst">Your story is being recorded</string>
     <string name="uploadAudioRecordingInfoSecond">Click on the square to finish the record</string>

@@ -57,7 +57,6 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
   COULD_NOT_START_RECORDING(R.string.uploadAudioErrorStartRecording),
   COULD_NOT_STOP_RECORDING(R.string.uploadAudioErrorStopRecording),
   COULD_NOT_PLAY_RECORDING(R.string.uploadAudioErrorPlayRecording),
-  MAX_LENGTH_REACHED(R.string.uploadAudioErrorMaxLength),
 }
 
 /**
@@ -71,6 +70,8 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
  * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
  *   listened to.
  * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
+ * @param recordingErrorRes The text shown under the recording, as a string resource, e.g. when the
+ *   recorder stopped at its maximum length; null when there is nothing to tell.
  */
 data class UploadAudioUIState(
     override val common: CommonMediaUIState = CommonMediaUIState(),
@@ -79,6 +80,7 @@ data class UploadAudioUIState(
     val waveform: List<Float> = emptyList(),
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
     val playedFraction: Float = NO_PLAYED_FRACTION,
+    @param:StringRes val recordingErrorRes: Int? = null,
 ) : MediaUIState<UploadAudioUIState> {
   override val canUpload: Boolean
     get() = audioFile != null && recordingState == AudioRecordingState.RECORDED && common.canUpload
@@ -224,7 +226,11 @@ class UploadAudioViewModel(
         return@launch
       }
       _uiState.update {
-        it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
+        it.copy(
+            recordingState = AudioRecordingState.RECORDING,
+            waveform = emptyList(),
+            recordingErrorRes = null,
+        )
       }
       // The level is read on a timer, not collected: amplitude is a StateFlow, which doesn't emit
       // twice the same level, so the waveform would freeze during a silence
@@ -268,8 +274,8 @@ class UploadAudioViewModel(
   /**
    * Takes the finished recording from the recorder and puts it in the state.
    *
-   * @param reachedLimit Whether the recorder stopped by itself at a limit; the user is then told
-   *   once the recording is kept.
+   * @param reachedLimit Whether the recorder stopped by itself at a limit; the text under the
+   *   recording then tells the user once the recording is kept.
    */
   private suspend fun saveRecording(reachedLimit: Boolean = false) {
     try {
@@ -280,9 +286,9 @@ class UploadAudioViewModel(
             durationMs = audio.durationMs,
             waveform = audio.waveform,
             recordingState = AudioRecordingState.RECORDED,
+            recordingErrorRes = if (true) R.string.uploadAudioErrorMaxLength else null,
         )
       }
-      if (reachedLimit) setErrorMsg(UploadAudioViewModelErrorMessage.MAX_LENGTH_REACHED.messageRes)
     } catch (e: CancellationException) {
       throw e
     } catch (e: Exception) {
@@ -350,6 +356,7 @@ class UploadAudioViewModel(
           waveform = emptyList(),
           recordingState = AudioRecordingState.IDLE,
           playedFraction = NO_PLAYED_FRACTION,
+          recordingErrorRes = null,
       )
     }
   }

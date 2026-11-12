@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.AudioRecorder
@@ -453,10 +454,15 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     recorder.reachLimit()
-    assertEquals(
-        UploadAudioViewModelErrorMessage.MAX_LENGTH_REACHED.messageRes,
-        vm.uiState.value.common.errorMsgRes,
-    )
+    assertEquals(R.string.uploadAudioErrorMaxLength, vm.uiState.value.recordingErrorRes)
+  }
+
+  @Test
+  fun recorderStoppingByItselfDoesNotShowAToast() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertNull(vm.uiState.value.common.errorMsgRes)
   }
 
   @Test
@@ -464,7 +470,7 @@ class UploadAudioViewModelTest {
     val vm = createViewModel()
     vm.startRecording()
     vm.stopRecording()
-    assertNull(vm.uiState.value.common.errorMsgRes)
+    assertNull(vm.uiState.value.recordingErrorRes)
   }
 
   @Test
@@ -477,6 +483,24 @@ class UploadAudioViewModelTest {
         UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.messageRes,
         vm.uiState.value.common.errorMsgRes,
     )
+  }
+
+  @Test
+  fun aFailedSaveAfterTheLimitDoesNotShowTheMaximumLengthText() {
+    recorder.stopError = IllegalStateException("too short")
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertNull(vm.uiState.value.recordingErrorRes)
+  }
+
+  @Test
+  fun deletingTheRecordingRemovesTheMaximumLengthText() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    vm.deleteRecording()
+    assertNull(vm.uiState.value.recordingErrorRes)
   }
 
   @Test

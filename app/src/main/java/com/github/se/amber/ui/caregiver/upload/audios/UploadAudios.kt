@@ -83,6 +83,7 @@ object UploadAudioScreenTestTags {
   const val UPLOAD_BUTTON = "upload_audio_button"
   const val RECORDING_INFO = "upload_audio_recording_info"
   const val RECORDED_INFO = "upload_audio_recorded_info"
+  const val RECORDING_ERROR = "upload_audio_recording_error"
 }
 
 /**
@@ -235,12 +236,24 @@ fun UploadAudioScreen(
                             stringResource(R.string.uploadAudioRecordingInfoSecond),
                         ),
                 )
-            AudioRecordingState.RECORDED ->
+            // If the recording ended by itself, what happened replaces the "recorded" message
+            AudioRecordingState.RECORDED -> {
+              val errorRes = uiState.recordingErrorRes
+              if (errorRes != null) {
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING_ERROR),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences = listOf(stringResource(errorRes)),
+                    color = MaterialTheme.colorScheme.error,
+                )
+              } else {
                 DisplayInformation(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDED_INFO),
                     contentDescription = stringResource(R.string.uploadAudioInfoIcon),
                     sentences = listOf(stringResource(R.string.uploadAudioRecordedInfo)),
                 )
+              }
+            }
             else -> Unit
           }
 
