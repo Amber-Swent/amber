@@ -145,13 +145,12 @@ fun InvitationRedemptionScreen(
 internal fun InvitationRedemptionPreview() {
   val viewModel = remember {
     InvitationRedemptionViewModel(
-        invitationRedemptionRepository = PreviewInvitationRedemptionRepository,
+        invitationRedemptionRepository = previewInvitationRedemptionRepository,
     )
   }
   AmberAppTheme { InvitationRedemptionScreen(viewModel = viewModel) }
 }
 
-private object PreviewInvitationRedemptionRepository : InvitationRedemptionRepository {
-  override suspend fun redeemInvitation(code: String): Result<InvitationRedemptionResult> =
-      Result.success(InvitationRedemptionResult(careCircleId = "preview", role = Role.PATIENT))
+private val previewInvitationRedemptionRepository = InvitationRedemptionRepository { _ ->
+  Result.success(InvitationRedemptionResult(careCircleId = "preview", role = Role.PATIENT))
 }

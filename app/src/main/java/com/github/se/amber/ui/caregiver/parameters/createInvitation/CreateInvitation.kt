@@ -99,7 +99,7 @@ object CreateInvitationTestTags {
 @Composable
 fun CreateInvitationScreen(
     viewModel: CreateInvitationViewModel = viewModel(),
-    onTabSelected: (Tab) -> Unit = { tab -> },
+    onTabSelected: (Tab) -> Unit = { _ -> },
     checkout: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsState()
@@ -118,7 +118,7 @@ private fun CreateInvitationContent(
     uiState: CreateInvitationUiState,
     onSelectCircle: (String) -> Unit,
     onCreateInvitation: () -> Unit,
-    onTabSelected: (Tab) -> Unit = { tab -> },
+    onTabSelected: (Tab) -> Unit = { _ -> },
     checkout: () -> Unit = {},
 ) {
   Scaffold(

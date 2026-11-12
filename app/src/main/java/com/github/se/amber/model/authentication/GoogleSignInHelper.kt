@@ -12,7 +12,7 @@ import com.google.firebase.auth.GoogleAuthProvider
  *
  * Accepts the credential's [Bundle]. Conversion errors propagate to the caller.
  */
-interface GoogleSignInHelper {
+fun interface GoogleSignInHelper {
   // Extract from credential Bundle the Google ID token
   fun getAuthCredential(data: Bundle): AuthCredential
 }

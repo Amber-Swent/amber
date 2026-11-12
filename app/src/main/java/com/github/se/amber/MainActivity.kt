@@ -188,7 +188,7 @@ fun AmberApp(
       }
       @Suppress("java:S1135")
       composable(route = CaregiverScreen.UploadText.route) {
-        // TODO in M2/M3
+        // TODO in M3
       }
       composable(route = CaregiverScreen.UploadPicture.route) {
         UploadPictureScreen(
