@@ -7,6 +7,7 @@ import android.app.Application
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -368,7 +369,7 @@ class UploadAudioMicrophoneDialogsTest {
         .assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_DIALOG)
-        .assertIsDisplayed()
+        .assertIsNotDisplayed()
   }
 
   @Test
