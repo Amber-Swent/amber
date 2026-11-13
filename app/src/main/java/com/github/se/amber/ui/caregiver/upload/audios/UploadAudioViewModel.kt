@@ -70,6 +70,8 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
  * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
  *   listened to.
  * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
+ * @param recordingErrorRes The text shown under the recording, as a string resource, e.g. when the
+ *   recorder stopped at its maximum length; null when there is nothing to tell.
  */
 data class UploadAudioUIState(
     override val common: CommonMediaUIState = CommonMediaUIState(),
@@ -78,6 +80,7 @@ data class UploadAudioUIState(
     val waveform: List<Float> = emptyList(),
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
     val playedFraction: Float = NO_PLAYED_FRACTION,
+    @param:StringRes val recordingErrorRes: Int? = null,
 ) : MediaUIState<UploadAudioUIState> {
   override val canUpload: Boolean
     get() = audioFile != null && recordingState == AudioRecordingState.RECORDED && common.canUpload
@@ -223,7 +226,11 @@ class UploadAudioViewModel(
         return@launch
       }
       _uiState.update {
-        it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
+        it.copy(
+            recordingState = AudioRecordingState.RECORDING,
+            waveform = emptyList(),
+            recordingErrorRes = null,
+        )
       }
       // The level is read on a timer, not collected: amplitude is a StateFlow, which doesn't emit
       // twice the same level, so the waveform would freeze during a silence
@@ -239,7 +246,7 @@ class UploadAudioViewModel(
       // the recorder stops by itself at its limits: keep what was recorded
       recorder.isRecording.first { !it }
       amplitudeJob?.cancel()
-      saveRecordingOnce()
+      saveRecordingOnce(reachedLimit = true)
     }
   }
 
@@ -255,14 +262,22 @@ class UploadAudioViewModel(
    * Starts saving the recording, unless it is already being saved, whether the recorder stopped at
    * a limit or the user tapped stop meanwhile. It runs in its own task, so stopping the
    * [recordingJob] doesn't cancel it.
+   *
+   * @param reachedLimit Whether the recorder stopped by itself at its time or size limit, so the
+   *   user is told why the recording ended.
    */
-  private fun saveRecordingOnce() {
+  private fun saveRecordingOnce(reachedLimit: Boolean = false) {
     if (stoppingJob?.isActive == true) return
-    stoppingJob = viewModelScope.launch { saveRecording() }
+    stoppingJob = viewModelScope.launch { saveRecording(reachedLimit) }
   }
 
-  /** Takes the finished recording from the recorder and puts it in the state. */
-  private suspend fun saveRecording() {
+  /**
+   * Takes the finished recording from the recorder and puts it in the state.
+   *
+   * @param reachedLimit Whether the recorder stopped by itself at a limit; the text under the
+   *   recording then tells the user once the recording is kept.
+   */
+  private suspend fun saveRecording(reachedLimit: Boolean = false) {
     try {
       val audio = recorder.stop()
       _uiState.update {
@@ -271,6 +286,7 @@ class UploadAudioViewModel(
             durationMs = audio.durationMs,
             waveform = audio.waveform,
             recordingState = AudioRecordingState.RECORDED,
+            recordingErrorRes = if (reachedLimit) R.string.uploadAudioErrorMaxLength else null,
         )
       }
     } catch (e: CancellationException) {
@@ -340,6 +356,7 @@ class UploadAudioViewModel(
           waveform = emptyList(),
           recordingState = AudioRecordingState.IDLE,
           playedFraction = NO_PLAYED_FRACTION,
+          recordingErrorRes = null,
       )
     }
   }

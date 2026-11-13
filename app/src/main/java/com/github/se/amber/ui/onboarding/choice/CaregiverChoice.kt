@@ -3,19 +3,16 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.onboarding.choice
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -47,6 +44,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.PADDING_MINI
+import com.github.se.amber.ui.utils.DisplayInformation
 
 /** Test tags for [CaregiverChoiceScreen]. */
 object CaregiverChoiceTestTags {
@@ -146,28 +144,15 @@ fun CaregiverChoiceScreen(
           )
         }
 
-        Row(
+        DisplayInformation(
             modifier = Modifier.testTag(CaregiverChoiceTestTags.INFORMATION),
-            horizontalArrangement = Arrangement.spacedBy(PADDING_MINI),
-        ) {
-          Icon(
-              imageVector = Icons.Default.Info,
-              contentDescription = stringResource(R.string.caregiverChoiceInfo),
-              tint = MaterialTheme.colorScheme.outline,
-          )
-          Column {
-            Text(
-                text = stringResource(R.string.caregiverChoiceInviteHintCondition),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
-            Text(
-                text = stringResource(R.string.caregiverChoiceInviteHintSolution),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.outline,
-            )
-          }
-        }
+            contentDescription = stringResource(R.string.caregiverChoiceInfo),
+            sentences =
+                listOf(
+                    stringResource(R.string.caregiverChoiceInviteHintCondition),
+                    stringResource(R.string.caregiverChoiceInviteHintSolution),
+                ),
+        )
       }
     }
   }

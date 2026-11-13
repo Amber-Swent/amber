@@ -276,6 +276,11 @@
     <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
     <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
     <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>
+    <string name="uploadAudioErrorMaxLength">Durée maximale d\'enregistrement atteinte. Nous avons été forcé de couper votre audio, mais il est conservé</string>
+    <string name="uploadAudioInfoIcon">Information</string>
+    <string name="uploadAudioRecordingInfoFirst">Votre histoire est en cours d\'enregistrement</string>
+    <string name="uploadAudioRecordingInfoSecond">Appuyez sur le carré pour terminer l\'enregistrement</string>
+    <string name="uploadAudioRecordedInfo">Votre audio est enregistré&#160;!</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Fermer</string>
