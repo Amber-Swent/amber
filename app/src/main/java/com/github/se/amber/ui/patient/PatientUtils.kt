@@ -5,6 +5,7 @@
 package com.github.se.amber.ui.patient
 
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.BORDER_THICKNESS_PATIENT
 import com.github.se.amber.ui.theme.DISABLED_ALPHA
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
@@ -97,6 +99,8 @@ fun DisplayPatientTitle(
  * @param buttonHeight height of the button
  * @param buttonWidth fraction of the available width taken by the button. Ignored when [fillWidth]
  *   is false.
+ * @param outlined if true, the button is transparent with a visible outline instead of the filled
+ *   style. Use it for secondary actions.
  * @param fillWidth if true, the button fills the available width (scaled by [buttonWidth]) and is
  *   centered. If false, the button only wraps its content.
  * @param text label displayed on the button.
@@ -115,6 +119,7 @@ fun DisplayPatientButton(
     modifier: Modifier = Modifier,
     buttonHeight: Dp = PATIENT_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = PATIENT_BUTTON_WIDTH,
+    outlined: Boolean = false,
     fillWidth: Boolean = true,
     text: String = "",
     textStyle: TextStyle = MaterialTheme.typography.headlineMedium,
@@ -140,11 +145,21 @@ fun DisplayPatientButton(
       modifier = modifier.then(sizeModifier).height(buttonHeight).testTag(resolvedTestTag),
       enabled = enabled,
       shape = RoundedCornerShape(ROUND_CORNER),
+      border =
+          if (outlined) BorderStroke(BORDER_THICKNESS_PATIENT, MaterialTheme.colorScheme.tertiary)
+          else null,
       colors =
-          ButtonDefaults.buttonColors(
-              containerColor = MaterialTheme.colorScheme.tertiary,
-              contentColor = MaterialTheme.colorScheme.onTertiary,
-          ),
+          if (outlined) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onTertiary,
+            )
+          } else {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.onTertiary,
+            )
+          },
   ) {
     Row(
         modifier = if (fillWidth) Modifier.fillMaxSize() else Modifier,
