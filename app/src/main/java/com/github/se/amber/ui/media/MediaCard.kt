@@ -75,14 +75,16 @@ object MediaCardTestTags {
  * @param modifier modifier to apply to the card
  * @param media the media item we want to apply the description of. By default a picture.
  * @param testTag test tag of the card
- * @param mediaCardViewModel view model of the card, which loads the nicknames of the author and of
- *   the persons related to the media. One instance per media id.
+ * @param onPersonClick  navigation function called with the id of a related person when its button is clicked.
+ * @param mediaCardViewModel view model of the card, which loads the author and the persons related
+ *   to the media. One instance per media id.
  */
 @Composable
 fun MediaCard(
     modifier: Modifier = Modifier,
     media: MediaItem = MediaItem.Picture(),
     testTag: String = PatientUtilsTestTags.TITLE,
+    onPersonClick: (String) -> Unit = {},
     mediaCardViewModel: MediaCardViewModel = viewModel(key = media.id),
 ) {
   var expanded by rememberSaveable { mutableStateOf(false) }
@@ -174,7 +176,7 @@ fun MediaCard(
               }
             }
             // to display the persons related to this media if there are any
-            if (uiState.relatedNicknames.isNotEmpty()) {
+            if (uiState.relatedPersons.isNotEmpty()) {
               DisplayBox() {
                 Column {
                   Text(
@@ -185,15 +187,12 @@ fun MediaCard(
                       horizontalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
                       modifier = Modifier.testTag(MediaCardTestTags.relatedList(media.id)),
                   ) {
-                    itemsIndexed(uiState.relatedNicknames) { index, nickname ->
-                      Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        val isLast = index == uiState.relatedNicknames.lastIndex
-                        Text(
-                            text = if (isLast) nickname else "$nickname,",
-                            modifier =
-                                Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index)),
-                        )
-                      }
+                    itemsIndexed(uiState.relatedPersons) { index, person ->
+                      DisplayRelatedPersonButton(
+                          person = person,
+                          onClick = onPersonClick,
+                          modifier = Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index))
+                      )
                     }
                   }
                 }
