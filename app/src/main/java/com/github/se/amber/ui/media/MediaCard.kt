@@ -192,8 +192,7 @@ fun MediaCard(
                       DisplayRelatedPersonButton(
                           person = person,
                           onClick = onPersonClick,
-                          modifier =
-                              Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index)),
+                          testTag = MediaCardTestTags.relatedItem(media.id, index),
                       )
                     }
                   }

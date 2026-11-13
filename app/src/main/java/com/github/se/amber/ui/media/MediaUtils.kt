@@ -10,17 +10,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.model.user.Person
+import com.github.se.amber.ui.patient.DisplayPatientButton
+import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.PADDING_MINI
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import java.util.Locale
 
@@ -96,16 +98,29 @@ fun DisplayBox(
  */
 @Composable
 fun DisplayRelatedPersonButton(
-    person: Person,
-    onClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    person: Person = Person(),
+    onClick: (String) -> Unit = {},
+    testTag: String? = null,
 ) {
   val nameToUse = person.nickname?.takeIf { it.isNotBlank() } ?: person.firstName
-  OutlinedButton(
-      onClick = { onClick(person.id) },
-      modifier = modifier,
-  ) {
-    // the column is already placed here in advance for when the profile picture will be implemented
-    Column(horizontalAlignment = Alignment.CenterHorizontally) { Text(text = nameToUse) }
+  // the column is already placed here in advance for when the profile picture will be implemented
+  Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    DisplayPatientButton(
+        modifier = modifier.padding(PADDING_MINI),
+        buttonHeight = PATIENT_BUTTON_HEIGHT_SMALL,
+        outlined = true,
+        fillWidth = false,
+        text = nameToUse,
+        textStyle = MaterialTheme.typography.titleMedium,
+        onClick = { onClick(person.id) },
+        testTag = testTag,
+    )
   }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun DisplayRelatedPersonButtonPreview() {
+  AmberAppTheme { DisplayRelatedPersonButton(person = Person(id = "1", firstName = "Alice")) }
 }
