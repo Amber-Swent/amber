@@ -82,7 +82,7 @@ class MediaCardViewModelTest {
     val state = viewModel.uiState.value
 
     assertEquals("", state.addedByNickname)
-    assertTrue(state.relatedNicknames.isEmpty())
+    assertTrue(state.relatedPersons.isEmpty())
     assertTrue(state.isLoading)
     assertNull(state.errorMsgRes)
   }
@@ -96,7 +96,7 @@ class MediaCardViewModelTest {
     val state = viewModel.uiState.value
     assertEquals("Alice", state.addedByNickname)
     assertFalse(state.isLoading)
-    assertTrue(state.relatedNicknames.isEmpty())
+    assertTrue(state.relatedPersons.isEmpty())
     assertNull(state.errorMsgRes)
     coVerify(exactly = 0) { profileRepository.getCurrentProfile() }
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
@@ -111,7 +111,7 @@ class MediaCardViewModelTest {
 
     val state = viewModel.uiState.value
     assertEquals("Alice", state.addedByNickname)
-    assertEquals(listOf("Bob", "Carol"), state.relatedNicknames)
+    assertEquals(listOf("Bob", "Carol"), state.relatedPersons.map { it.firstName })
     assertFalse(state.isLoading)
     assertNull(state.errorMsgRes)
   }
@@ -125,7 +125,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1", "member")))
 
-    assertEquals(listOf("Bob", "Dave"), viewModel.uiState.value.relatedNicknames)
+    assertEquals(listOf("Bob", "Dave"), viewModel.uiState.value.relatedPersons.map { it.firstName })
   }
 
   @Test
@@ -135,7 +135,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("ghost", "missing")))
 
-    assertTrue(viewModel.uiState.value.relatedNicknames.isEmpty())
+    assertTrue(viewModel.uiState.value.relatedPersons.isEmpty())
     assertNull(viewModel.uiState.value.errorMsgRes)
     assertFalse(viewModel.uiState.value.isLoading)
   }
@@ -149,7 +149,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1")))
 
-    assertEquals(listOf("Bob"), viewModel.uiState.value.relatedNicknames)
+    assertEquals(listOf("Bob"), viewModel.uiState.value.relatedPersons.map { it.firstName })
     coVerify(exactly = 0) { circleRepository.getCircle("circle2") }
   }
 
@@ -219,7 +219,7 @@ class MediaCardViewModelTest {
     val state = viewModel.uiState.value
     assertEquals(R.string.mediaCardErrorLoadCircle, state.errorMsgRes)
     assertEquals("Alice", state.addedByNickname)
-    assertTrue(state.relatedNicknames.isEmpty())
+    assertTrue(state.relatedPersons.isEmpty())
   }
 
   // ---------- clearErrorMsg ----------

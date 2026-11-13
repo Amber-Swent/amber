@@ -75,7 +75,8 @@ object MediaCardTestTags {
  * @param modifier modifier to apply to the card
  * @param media the media item we want to apply the description of. By default a picture.
  * @param testTag test tag of the card
- * @param onPersonClick  navigation function called with the id of a related person when its button is clicked.
+ * @param onPersonClick navigation function called with the id of a related person when its button
+ *   is clicked.
  * @param mediaCardViewModel view model of the card, which loads the author and the persons related
  *   to the media. One instance per media id.
  */
@@ -191,7 +192,8 @@ fun MediaCard(
                       DisplayRelatedPersonButton(
                           person = person,
                           onClick = onPersonClick,
-                          modifier = Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index))
+                          modifier =
+                              Modifier.testTag(MediaCardTestTags.relatedItem(media.id, index)),
                       )
                     }
                   }

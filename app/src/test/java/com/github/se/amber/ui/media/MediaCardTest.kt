@@ -332,8 +332,8 @@ class MediaCardTest {
 
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedTitle("m1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedList("m1")).assertIsDisplayed()
-    // every nickname except the last one is followed by a comma
-    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 0)).assertTextEquals("Bob,")
+    // each related person is a button showing its name, without any comma
+    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 0)).assertTextEquals("Bob")
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 1)).assertTextEquals("Carol")
   }
 
