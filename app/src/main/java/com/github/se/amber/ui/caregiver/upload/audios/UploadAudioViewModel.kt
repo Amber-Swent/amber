@@ -286,7 +286,7 @@ class UploadAudioViewModel(
             durationMs = audio.durationMs,
             waveform = audio.waveform,
             recordingState = AudioRecordingState.RECORDED,
-            recordingErrorRes = if (true) R.string.uploadAudioErrorMaxLength else null,
+            recordingErrorRes = if (reachedLimit) R.string.uploadAudioErrorMaxLength else null,
         )
       }
     } catch (e: CancellationException) {
