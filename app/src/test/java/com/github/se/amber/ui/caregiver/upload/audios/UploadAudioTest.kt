@@ -6,10 +6,10 @@ import android.Manifest
 import android.app.Application
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.core.app.ActivityCompat
@@ -26,10 +26,10 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -40,11 +40,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 /**
- * Tests what [UploadAudioScreen] does around its form: the microphone popups (an explanation
- * before the Android permission popup, and a pointer to the settings once Android stops asking)
- * when the user taps record, and leaving once the upload is over. The ViewModel is mocked and
- * Robolectric records the permission request instead of showing the system popup, so nothing
- * touches the network.
+ * Tests what [UploadAudioScreen] does around its form: the microphone popups (an explanation before
+ * the Android permission popup, and a pointer to the settings once Android stops asking) when the
+ * user taps record, and leaving once the upload is over. The ViewModel is mocked and Robolectric
+ * records the permission request instead of showing the system popup, so nothing touches the
+ * network.
  */
 @RunWith(RobolectricTestRunner::class)
 class UploadAudioTest {

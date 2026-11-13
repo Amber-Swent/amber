@@ -21,10 +21,9 @@ fun Context.hasAskedMicrophone(): Boolean =
 
 /** Remembers that the Android microphone popup was requested; see [hasAskedMicrophone]. */
 fun Context.markMicrophoneAsked() {
-  getSharedPreferences(MICROPHONE_PREFS, Context.MODE_PRIVATE)
-      .edit {
-          putBoolean(MICROPHONE_ASKED_KEY, true)
-      }
+  getSharedPreferences(MICROPHONE_PREFS, Context.MODE_PRIVATE).edit {
+    putBoolean(MICROPHONE_ASKED_KEY, true)
+  }
 }
 
 /**

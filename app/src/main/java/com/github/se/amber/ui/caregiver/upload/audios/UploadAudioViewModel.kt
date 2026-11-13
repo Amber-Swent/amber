@@ -69,8 +69,8 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
  * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
  *   listened to.
  * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
- * @param isMicrophoneConsentOpen Whether the popup explaining why the microphone is needed is shown.
- *   It comes before the Android permission popup.
+ * @param isMicrophoneConsentOpen Whether the popup explaining why the microphone is needed is
+ *   shown. It comes before the Android permission popup.
  * @param isMicrophoneSettingsOpen Whether the popup telling the user to allow the microphone in the
  *   phone's settings is shown, because Android no longer asks.
  */
