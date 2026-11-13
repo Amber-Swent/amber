@@ -154,6 +154,7 @@
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Supprimer son compte</string>
     <string name="deleteAccountExplanation">La suppression est définitive. Vos contenus importés et vos histoires sont supprimés pour toute la famille, y compris des histoires des autres personnes. Les photos de vous importées par d\'autres personnes restent, même si vous y figurez. Vous êtes également retiré des rendez-vous.</string>
+    <string name="deleteAccountPatientExplanation">La suppression est définitive. Vous ne pourrez pas récupérer votre compte.</string>
     <string name="deleteAccountProgress">Suppression de votre compte en cours. Cela peut prendre quelques minutes.</string>
     <string name="deleteAccountCleanupLabel">Terminer la suppression</string>
     <string name="deleteAccountCheckingLabel">Vérification de vos familles…</string>

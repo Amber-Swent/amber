@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.accountDeletion
 
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.credentials.CredentialManager
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.utils.UiText
@@ -50,10 +52,11 @@ class DeleteAccountScreenTest {
     backCount = 0
   }
 
-  private fun setScreen() {
+  private fun setScreen(role: Role = Role.CAREGIVER) {
     composeTestRule.setContent {
       AmberAppTheme {
         DeleteAccountScreen(
+            role = role,
             viewModel = viewModel,
             credentialManager = credentialManager,
             onBack = { backCount++ },
@@ -185,6 +188,56 @@ class DeleteAccountScreenTest {
 
     assertEquals(string(R.string.deleteAccountNetworkError), ShadowToast.getTextOfLatestToast())
     verify(exactly = 1) { viewModel.clearError() }
+  }
+
+  @Test
+  fun patientSeesTitleAndAdaptedExplanation() {
+    setScreen(Role.PATIENT)
+
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(DeleteAccountTestTags.EXPLANATION)
+        .assertTextEquals(string(R.string.deleteAccountPatientExplanation))
+  }
+
+  @Test
+  fun patientConfirmationButtonCallsViewModel() {
+    stateFlow.value = DeleteAccountUIState(warningsLoaded = true, isLoading = false)
+    setScreen(Role.PATIENT)
+
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed().performClick()
+
+    verify(exactly = 1) { viewModel.deleteAccount(any(), credentialManager) }
+  }
+
+  @Test
+  fun patientCanRetryFailedWarningLoad() {
+    stateFlow.value = DeleteAccountUIState(isLoading = false)
+    setScreen(Role.PATIENT)
+
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountRetryLabel)).performClick()
+
+    verify(exactly = 2) { viewModel.loadWarnings() }
+  }
+
+  @Test
+  fun patientCancelCallsBackBeforeDeletion() {
+    setScreen(Role.PATIENT)
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(1, backCount)
+  }
+
+  @Test
+  fun patientDeletionInProgressHidesButtonAndCancel() {
+    stateFlow.value =
+        DeleteAccountUIState(warningsLoaded = true, isLoading = false, isDeleting = true)
+    setScreen(Role.PATIENT)
+
+    composeTestRule.onNodeWithText(string(R.string.deleteAccountProgress)).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).assertDoesNotExist()
   }
 
   @Test

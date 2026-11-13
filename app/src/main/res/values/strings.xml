@@ -155,6 +155,7 @@
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Delete account</string>
     <string name="deleteAccountExplanation">Deletion is permanent. Everything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
+    <string name="deleteAccountPatientExplanation">Deletion is permanent. You won\'t be able to recover your account.</string>
     <string name="deleteAccountProgress">Deleting your account. This may take a few minutes.</string>
     <string name="deleteAccountCleanupLabel">Finish deleting</string>
     <string name="deleteAccountCheckingLabel">Checking your families…</string>
