@@ -122,6 +122,6 @@ fun DisplayRelatedPersonButton(
 
 @Preview(showBackground = true)
 @Composable
-private fun DisplayRelatedPersonButtonPreview() {
+internal fun DisplayRelatedPersonButtonPreview() {
   AmberAppTheme { DisplayRelatedPersonButton(person = Person(id = "1", firstName = "Alice")) }
 }
