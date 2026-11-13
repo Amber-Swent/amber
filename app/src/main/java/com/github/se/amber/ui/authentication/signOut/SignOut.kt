@@ -41,9 +41,9 @@ import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
 import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH
@@ -134,8 +134,7 @@ fun SignOutScreen(
                       .verticalScroll(rememberScrollState())
                       .heightIn(min = maxHeight)
                       .padding(horizontal = padding),
-              verticalArrangement =
-                  Arrangement.spacedBy(padding, Alignment.CenterVertically),
+              verticalArrangement = Arrangement.spacedBy(padding, Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
@@ -149,7 +148,8 @@ fun SignOutScreen(
                 viewModel = viewModel,
                 buttonHeight =
                     if (isPatient) PATIENT_BUTTON_HEIGHT_MEDIUM else CAREGIVER_BUTTON_HEIGHT_MEDIUM,
-                buttonWidth = if (isPatient) PATIENT_BUTTON_WIDTH else CAREGIVER_BUTTON_WIDTH_MEDIUM,
+                buttonWidth =
+                    if (isPatient) PATIENT_BUTTON_WIDTH else CAREGIVER_BUTTON_WIDTH_MEDIUM,
                 textStyle = buttonTextStyle,
             )
           }
