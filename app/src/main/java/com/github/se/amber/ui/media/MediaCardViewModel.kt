@@ -13,6 +13,7 @@ import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.user.Person
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,13 +25,13 @@ import kotlinx.coroutines.launch
  * UI state of one [MediaCard].
  *
  * @property addedByNickname name of the person who added the media.
- * @property relatedNicknames names of the persons shown in the media.
+ * @property relatedPersons the persons shown in the media.
  * @property isLoading whether the names are still loading.
  * @property errorMsgRes the error to show in a toast, as a string resource, or null for none.
  */
 data class MediaCardUIState(
     val addedByNickname: String = "",
-    val relatedNicknames: List<String> = emptyList(),
+    val relatedPersons: List<Person> = emptyList(),
     val isLoading: Boolean = true,
     @param:StringRes val errorMsgRes: Int? = null,
 )
@@ -136,15 +137,13 @@ class MediaCardViewModel(
             return@launch
           }
 
-      // 4. shownIds -> first names: people without an account first, then members' profiles
-      // TODO replace this by the nickname once it is add to the createProfile screen, for M3
-      val relatedNicknames =
+      // 4. shownIds -> persons: people without an account first, then members' profiles
+      val relatedPersons =
           media.shownIds.mapNotNull { id ->
-            circle.people[id]?.firstName
-                ?: profileRepository.getProfile(id).getOrNull()?.person?.firstName
+            circle.people[id] ?: profileRepository.getProfile(id).getOrNull()?.person
           }
 
-      _uiState.value = _uiState.value.copy(relatedNicknames = relatedNicknames)
+      _uiState.value = _uiState.value.copy(relatedPersons = relatedPersons)
     }
   }
 
