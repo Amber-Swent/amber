@@ -23,6 +23,7 @@ import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -291,6 +292,96 @@ class UploadAudioMicrophoneDialogsTest {
         .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_CLOSE)
         .performClick()
     verify(exactly = 1) { viewModel.dismissMicrophoneSettings() }
+  }
+
+  // ---------- the dialogs on their own ----------
+
+  private var actionCount = 0
+  private var dismissCount = 0
+
+  private fun showConsentDialog(isOpen: Boolean = true) {
+    composeTestRule.setContent {
+      MicrophoneConsentDialog(
+          isOpen = isOpen,
+          onDismiss = { dismissCount++ },
+          onAction = { actionCount++ },
+      )
+    }
+  }
+
+  private fun showSettingsDialog(isOpen: Boolean = true) {
+    composeTestRule.setContent {
+      MicrophoneSettingsDialog(isOpen = isOpen, onDismiss = { dismissCount++ })
+    }
+  }
+
+  @Test
+  fun consentDialog_whenClosed_displaysNothing() {
+    showConsentDialog(isOpen = false)
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_CONSENT_DIALOG)
+        .assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_DIALOG)
+        .assertDoesNotExist()
+  }
+
+  @Test
+  fun consentDialog_withDefaultParameters_isClosed() {
+    composeTestRule.setContent { MicrophoneConsentDialog() }
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_CONSENT_DIALOG)
+        .assertDoesNotExist()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_DIALOG)
+        .assertDoesNotExist()
+  }
+
+  @Test
+  fun consentDialog_whenOpen_isDisplayed() {
+    showConsentDialog()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_CONSENT_DIALOG)
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_DIALOG)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun consentDialog_actionCallsOnAction_andDoesNotCallOnDismiss() {
+    showConsentDialog()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_CONSENT_ACTION)
+        .performClick()
+    assertEquals(1, actionCount)
+    assertEquals(0, dismissCount)
+  }
+
+  @Test
+  fun consentDialog_closeButtonCallsOnDismiss_andDoesNotCallOnAction() {
+    showConsentDialog()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_CONSENT_CLOSE).performClick()
+    assertEquals(1, dismissCount)
+    assertEquals(0, actionCount)
+  }
+
+  @Test
+  fun settingsDialog_actionCallsOnDismiss() {
+    showSettingsDialog()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_ACTION)
+        .performClick()
+    assertEquals(1, dismissCount)
+  }
+
+  @Test
+  fun settingsDialog_closeButtonCallsOnDismiss() {
+    showSettingsDialog()
+    composeTestRule
+        .onNodeWithTag(UploadAudioScreenTestTags.MICROPHONE_SETTINGS_CLOSE)
+        .performClick()
+    assertEquals(1, dismissCount)
   }
 
   // ---------- previews ----------
