@@ -1,16 +1,21 @@
 // Written by Yuhan YANG, with assistance from Cursor
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import android.content.Context
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,23 +23,37 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationStatus
 import com.github.se.amber.data.invitation.InvitationSummary
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationDarkPreview
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreenPreview
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationTestTags
-import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationUiState
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationUIState
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
+import com.github.se.amber.ui.caregiver.parameters.createInvitation.formatCreatedAt
+import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
+import com.github.se.amber.ui.navigation.CaregiverTab
+import com.github.se.amber.ui.navigation.Tab
+import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
+import com.github.se.amber.ui.theme.darkOrange
+import com.github.se.amber.ui.theme.lightOrange
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Tests what [CreateInvitationScreen] draws and which actions a click performs.
@@ -46,14 +65,14 @@ class CreateInvitationScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
   /** Text of [id] in the current test language. */
-  private fun string(id: Int): String =
-      ApplicationProvider.getApplicationContext<Context>().getString(id)
+  private fun string(id: Int, vararg args: Any): String =
+      ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
 
   @Test
   fun showsPlaceholderUsageAndListHeaderWithoutACircleSelector() {
     setScreen(
         viewModel(
-            CreateInvitationUiState(
+            CreateInvitationUIState(
                 circles = listOf(CareCircleChoice("circle-1", "Arthur's family"))
             )
         )
@@ -69,6 +88,9 @@ class CreateInvitationScreenTest {
     composeTestRule.onNodeWithTag(CreateInvitationTestTags.ERROR_MESSAGE).assertDoesNotExist()
     composeTestRule.onNodeWithTag(CreateInvitationTestTags.CIRCLE_CHOICES).assertDoesNotExist()
     composeTestRule.onNodeWithTag(CreateInvitationTestTags.CREATE_CARD).assertIsEnabled()
+    composeTestRule
+        .onNodeWithTag(DisplayCaregiverButtonTestTags.ICON, useUnmergedTree = true)
+        .assertIsDisplayed()
   }
 
   @Test
@@ -77,7 +99,7 @@ class CreateInvitationScreenTest {
     val createdAt = 1_700_000_000_000L
     setScreen(
         viewModel(
-            CreateInvitationUiState(
+            CreateInvitationUIState(
                 generatedCode = "AB12CD34",
                 invitations =
                     listOf(
@@ -113,7 +135,7 @@ class CreateInvitationScreenTest {
   fun createClickAndCircleClickNotifyTheScreenCallbacks() {
     val viewModel =
         viewModel(
-            CreateInvitationUiState(
+            CreateInvitationUIState(
                 circles =
                     listOf(
                         CareCircleChoice("circle-1", "Arthur's family"),
@@ -138,7 +160,7 @@ class CreateInvitationScreenTest {
   @Config(qualifiers = "fr")
   fun screenAndErrorAreShownInFrench() {
     setScreen(
-        viewModel(CreateInvitationUiState(errorMsgRes = R.string.createInvitationErrorNetwork))
+        viewModel(CreateInvitationUIState(errorMsgRes = R.string.createInvitationErrorNetwork))
     )
 
     composeTestRule
@@ -164,7 +186,7 @@ class CreateInvitationScreenTest {
     val createdAt = 1_700_000_000_000L
     setScreen(
         viewModel(
-            CreateInvitationUiState(
+            CreateInvitationUIState(
                 invitations =
                     listOf(
                         InvitationSummary(
@@ -184,10 +206,213 @@ class CreateInvitationScreenTest {
     composeTestRule.onNodeWithText("USED1234 | $createdAtText | UTILISÉE").assertExists()
   }
 
-  private fun viewModel(state: CreateInvitationUiState): CreateInvitationViewModel =
+  @Test
+  @Config(qualifiers = "+en-rUS")
+  fun expiredInvitationShowsTheExpiredStatus() {
+    val createdAt = 1_700_000_000_000L
+    setScreen(
+        viewModel(
+            CreateInvitationUIState(
+                invitations =
+                    listOf(
+                        InvitationSummary(
+                            code = "EXP12345",
+                            createdAt = createdAt,
+                            expiresAt = createdAt,
+                            status = InvitationStatus.EXPIRED,
+                        ),
+                    ),
+            ),
+        ),
+    )
+    val createdAtText =
+        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US)
+            .format(Date(createdAt))
+
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.codeRow("EXP12345"))
+        .assertTextEquals(
+            string(
+                R.string.createInvitationListRow,
+                "EXP12345",
+                createdAtText,
+                string(R.string.createInvitationStatusExpired),
+            ),
+        )
+  }
+
+  @Test
+  fun circleChoiceIsDisabledWhileAnInvitationIsBeingCreated() {
+    setScreen(
+        viewModel(
+            CreateInvitationUIState(
+                circles =
+                    listOf(
+                        CareCircleChoice("circle-1", "Arthur's family"),
+                        CareCircleChoice("circle-2", "Bea's family"),
+                    ),
+                selectedCircleId = "circle-1",
+                isCreating = true,
+            ),
+        ),
+    )
+
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.circleChoice("circle-2"))
+        .assertIsNotEnabled()
+  }
+
+  @Test
+  fun defaultNavigationCallbacksLeaveTheScreenOpen() {
+    composeTestRule.setContent {
+      CreateInvitationScreen(viewModel = viewModel(CreateInvitationUIState()))
+    }
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
+        .performClick()
+
+    composeTestRule.onNodeWithTag(CreateInvitationTestTags.TITLE).assertIsDisplayed()
+  }
+
+  @Test
+  fun formatCreatedAtWithoutArgumentsUsesNowAndTheDefaultLocale() {
+    val before = System.currentTimeMillis()
+    val text = formatCreatedAt()
+    val after = System.currentTimeMillis()
+    val format =
+        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.getDefault())
+    val accepted = setOf(format.format(Date(before)), format.format(Date(after)))
+
+    assertTrue("$text was not the current short date", text in accepted)
+  }
+
+  @Test
+  fun cancelCallsCheckout() {
+    var checkedOut = false
+    setScreen(viewModel = viewModel(CreateInvitationUIState()), checkout = { checkedOut = true })
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertTrue(checkedOut)
+  }
+
+  @Test
+  fun selectingAnotherTabReportsThatTab() {
+    var selected: Tab? = null
+    setScreen(viewModel = viewModel(CreateInvitationUIState()), onTabSelected = { selected = it })
+
+    composeTestRule
+        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
+        .performClick()
+
+    assertEquals(CaregiverTab.Home, selected)
+  }
+
+  @Test
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun errorTextIsDarkOrangeInLightMode() {
+    setScreen(
+        viewModel(
+            CreateInvitationUIState(errorMsgRes = R.string.createInvitationErrorProfileNotFound)
+        ),
+    )
+
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.ERROR_MESSAGE)
+        .assertTextEquals(string(R.string.createInvitationErrorProfileNotFound))
+    assertDrawnColor(CreateInvitationTestTags.ERROR_MESSAGE, darkOrange, lightOrange)
+  }
+
+  @Test
+  @Config(qualifiers = "night")
+  @GraphicsMode(GraphicsMode.Mode.NATIVE)
+  fun errorTextIsLightOrangeInDarkMode() {
+    setScreen(
+        viewModel(
+            CreateInvitationUIState(errorMsgRes = R.string.createInvitationErrorProfileNotFound)
+        ),
+    )
+
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.ERROR_MESSAGE)
+        .assertTextEquals(string(R.string.createInvitationErrorProfileNotFound))
+    assertDrawnColor(CreateInvitationTestTags.ERROR_MESSAGE, lightOrange, darkOrange)
+  }
+
+  @Test
+  fun lightPreviewShowsTheMissingProfileError() {
+    composeTestRule.setContent { CreateInvitationScreenPreview() }
+    waitForError()
+
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.ERROR_MESSAGE)
+        .assertTextEquals(string(R.string.createInvitationErrorProfileNotFound))
+  }
+
+  @Test
+  @Config(qualifiers = "night")
+  fun darkPreviewShowsTheMissingProfileError() {
+    composeTestRule.setContent { CreateInvitationDarkPreview() }
+    waitForError()
+
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.ERROR_MESSAGE)
+        .assertTextEquals(string(R.string.createInvitationErrorProfileNotFound))
+  }
+
+  private fun waitForError() {
+    composeTestRule.waitUntil(timeoutMillis = 5_000) {
+      composeTestRule
+          .onAllNodesWithTag(CreateInvitationTestTags.ERROR_MESSAGE)
+          .fetchSemanticsNodes()
+          .isNotEmpty()
+    }
+  }
+
+  /**
+   * Some opaque pixels of [tag] are [expected], and more of them are [expected] than [other].
+   *
+   * The node also contains the screen background, so a majority of pixels is not the text.
+   */
+  private fun assertDrawnColor(tag: String, expected: Color, other: Color) {
+    val pixels = composeTestRule.onNodeWithTag(tag).captureToImage().toPixelMap()
+    var expectedCount = 0
+    var otherCount = 0
+    for (x in 0 until pixels.width) {
+      for (y in 0 until pixels.height) {
+        val pixel = pixels[x, y]
+        if (pixel.alpha < 0.9f) continue
+        if (pixel.isCloseTo(expected)) expectedCount += 1
+        if (pixel.isCloseTo(other)) otherCount += 1
+      }
+    }
+    assertTrue(
+        "$tag had $expectedCount pixels of $expected and $otherCount of $other",
+        expectedCount >= 30 && otherCount * 3 < expectedCount,
+    )
+  }
+
+  private fun Color.isCloseTo(other: Color): Boolean {
+    fun Float.near(value: Float) = abs(this - value) < 0.08f
+    return red.near(other.red) && green.near(other.green) && blue.near(other.blue)
+  }
+
+  private fun viewModel(state: CreateInvitationUIState): CreateInvitationViewModel =
       mockk(relaxed = true) { every { uiState } returns MutableStateFlow(state) }
 
-  private fun setScreen(viewModel: CreateInvitationViewModel) {
-    composeTestRule.setContent { CreateInvitationScreen(viewModel = viewModel) }
+  private fun setScreen(
+      viewModel: CreateInvitationViewModel,
+      onTabSelected: (Tab) -> Unit = {},
+      checkout: () -> Unit = {},
+  ) {
+    composeTestRule.setContent {
+      CreateInvitationScreen(
+          viewModel = viewModel,
+          onTabSelected = onTabSelected,
+          checkout = checkout,
+      )
+    }
   }
 }

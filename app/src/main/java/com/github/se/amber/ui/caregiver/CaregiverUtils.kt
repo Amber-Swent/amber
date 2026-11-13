@@ -111,7 +111,7 @@ object DisplayCaregiverButtonTestTags {
  *
  * An icon and its content description must either both be provided or both be omitted. If there is
  * no icon, the text is centered. If there is an icon, the text is on the left and the icon on the
- * right
+ * right, unless [iconAboveText] places the icon above the text.
  *
  * @param modifier modifier applied to the button.
  * @param onClick callback invoked when the button is clicked.
@@ -124,6 +124,7 @@ object DisplayCaregiverButtonTestTags {
  * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
  * @param buttonTestTag The test tag applied to the button.
+ * @param iconAboveText places [icon] above [text]. Ignored when [icon] is null.
  */
 @Composable
 fun DisplayCaregiverButton(
@@ -138,6 +139,7 @@ fun DisplayCaregiverButton(
     widthPercentage: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
     paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
     buttonTestTag: String = BUTTON,
+    iconAboveText: Boolean = false,
 ) {
   require((icon == null && description.isEmpty()) || (icon != null && description.isNotEmpty())) {
     "An icon requires a description, and a description requires an icon"
@@ -155,25 +157,49 @@ fun DisplayCaregiverButton(
           ),
       shape = RoundedCornerShape(ROUND_CORNER),
   ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
-        horizontalArrangement = if (icon == null) Arrangement.Center else Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(
-          text = text,
-          modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.TEXT),
-          color = MaterialTheme.colorScheme.onTertiary,
-          textAlign = TextAlign.Center,
-          style = style,
-      )
-      if (icon != null) {
+    if (iconAboveText && icon != null) {
+      Column(
+          modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
+          verticalArrangement =
+              Arrangement.spacedBy(CAREGIVER_PADDING_SMALL, Alignment.CenterVertically),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
         Icon(
             imageVector = icon,
             contentDescription = description,
             modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.ICON),
             tint = MaterialTheme.colorScheme.onTertiary,
         )
+        Text(
+            text = text,
+            modifier = Modifier.fillMaxWidth().testTag(DisplayCaregiverButtonTestTags.TEXT),
+            color = MaterialTheme.colorScheme.onTertiary,
+            textAlign = TextAlign.Center,
+            style = style,
+        )
+      }
+    } else {
+      Row(
+          modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
+          horizontalArrangement =
+              if (icon == null) Arrangement.Center else Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically,
+      ) {
+        Text(
+            text = text,
+            modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.TEXT),
+            color = MaterialTheme.colorScheme.onTertiary,
+            textAlign = TextAlign.Center,
+            style = style,
+        )
+        if (icon != null) {
+          Icon(
+              imageVector = icon,
+              contentDescription = description,
+              modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.ICON),
+              tint = MaterialTheme.colorScheme.onTertiary,
+          )
+        }
       }
     }
   }

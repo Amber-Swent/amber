@@ -2,6 +2,7 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
@@ -21,6 +22,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -401,6 +403,69 @@ class CreateInvitationViewModelTest {
         advanceUntilIdle()
 
         assertEquals(R.string.createInvitationErrorCreate, viewModel.uiState.value.errorMsgRes)
+        assertTrue(!viewModel.uiState.value.isCreating)
+      }
+
+  @Test
+  fun selectingTheCurrentCircleDoesNotReload() =
+      runTest(dispatcher) {
+        lookup.results = mapOf("circle-1" to Result.success(listOf(invitation("OLD12345"))))
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.selectCircle("circle-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
+        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
+      }
+
+  @Test
+  fun createWithoutACircleDoesNotCallTheServer() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
+        assertEquals(emptyList<String>(), creation.requestedCircleIds)
+        assertTrue(!viewModel.uiState.value.isCreating)
+      }
+
+  @Test
+  fun createLoadsACircleThatAppearsAfterTheScreenOpened() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        profiles.result = Result.success(profile("circle-1"))
+        lookup.results = mapOf("circle-1" to Result.success(emptyList()))
+        creation.result = InvitationCreationResult.Created("AB12CD34")
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
+        assertEquals("AB12CD34", viewModel.uiState.value.generatedCode)
+        assertEquals(listOf("circle-1"), creation.requestedCircleIds)
+        assertNull(viewModel.uiState.value.errorMsgRes)
+      }
+
+  @Test
+  fun cancellingCreationDoesNotShowTheGenericError() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        creation.thrown = CancellationException("stopped")
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.errorMsgRes)
+        assertNull(viewModel.uiState.value.generatedCode)
         assertTrue(!viewModel.uiState.value.isCreating)
       }
 

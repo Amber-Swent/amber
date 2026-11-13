@@ -1,5 +1,6 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
@@ -43,7 +44,7 @@ data class CareCircleChoice(
  * @property selectedCircleId the circle new invitations are created for.
  * @property isCreating whether an invitation is being created.
  */
-data class CreateInvitationUiState(
+data class CreateInvitationUIState(
     val generatedCode: String? = null,
     val invitations: List<InvitationSummary> = emptyList(),
     @param:StringRes val errorMsgRes: Int? = null,
@@ -61,8 +62,8 @@ class CreateInvitationViewModel(
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(CreateInvitationUiState())
-  val uiState: StateFlow<CreateInvitationUiState> = _uiState.asStateFlow()
+  private val _uiState = MutableStateFlow(CreateInvitationUIState())
+  val uiState: StateFlow<CreateInvitationUIState> = _uiState.asStateFlow()
   private var invitationsJob: Job? = null
 
   init {
