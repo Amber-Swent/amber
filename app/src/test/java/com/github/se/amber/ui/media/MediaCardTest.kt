@@ -90,6 +90,7 @@ class MediaCardTest {
       testTag: String = "media_card",
       modifier: Modifier = Modifier,
       fontScale: Float = 1f,
+      onPersonClick: (String) -> Unit = {},
   ) {
     val viewModel = MediaCardViewModel(profileRepository, circleRepository)
     composeTestRule.setContent {
@@ -100,6 +101,7 @@ class MediaCardTest {
               modifier = modifier,
               media = media,
               testTag = testTag,
+              onPersonClick = onPersonClick,
               mediaCardViewModel = viewModel,
           )
         }
@@ -345,6 +347,26 @@ class MediaCardTest {
 
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedTitle("m1")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(MediaCardTestTags.relatedList("m1")).assertDoesNotExist()
+  }
+
+  @Test
+  fun expanded_clickOnRelatedPerson_callsOnPersonClickWithItsId() {
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(userProfile("me", "Patient", listOf("circle1")))
+    coEvery { circleRepository.getCircle("circle1") } returns
+        Result.success(
+            CareCircle(
+                id = "circle1",
+                people = mapOf("p1" to Person(id = "p1", firstName = "Bob")),
+            )
+        )
+    var clickedId: String? = null
+    setCard(picture(shownIds = listOf("p1")), onPersonClick = { clickedId = it })
+    toggle()
+
+    composeTestRule.onNodeWithTag(MediaCardTestTags.relatedItem("m1", 0)).performClick()
+
+    assertEquals("p1", clickedId)
   }
 
   // ---------- location ----------
