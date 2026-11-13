@@ -94,7 +94,7 @@ fun MicrophoneSettingsDialog(
  * @param actionTestTag test tag of the button.
  */
 @Composable
-private fun MicrophoneDialog(
+internal fun MicrophoneDialog(
     isOpen: Boolean = false,
     @StringRes firstTextRes: Int = R.string.uploadAudioMicrophoneConsentTextFirst,
     @StringRes secondTextRes: Int = R.string.uploadAudioMicrophoneConsentTextSecond,

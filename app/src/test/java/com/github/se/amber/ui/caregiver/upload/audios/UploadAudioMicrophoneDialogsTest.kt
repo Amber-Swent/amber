@@ -11,10 +11,12 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.core.app.ActivityCompat
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -299,20 +301,41 @@ class UploadAudioMicrophoneDialogsTest {
   private var actionCount = 0
   private var dismissCount = 0
 
+  private val consentFirstSentence: String
+    get() = composeTestRule.activity.getString(R.string.uploadAudioMicrophoneConsentTextFirst)
+
   private fun showConsentDialog(isOpen: Boolean = true) {
     composeTestRule.setContent {
-      MicrophoneConsentDialog(
-          isOpen = isOpen,
-          onDismiss = { dismissCount++ },
-          onAction = { actionCount++ },
-      )
+      AmberAppTheme(dynamicColor = false) {
+        MicrophoneConsentDialog(
+            isOpen = isOpen,
+            onDismiss = { dismissCount++ },
+            onAction = { actionCount++ },
+        )
+      }
     }
   }
 
   private fun showSettingsDialog(isOpen: Boolean = true) {
     composeTestRule.setContent {
-      MicrophoneSettingsDialog(isOpen = isOpen, onDismiss = { dismissCount++ })
+      AmberAppTheme(dynamicColor = false) {
+        MicrophoneSettingsDialog(isOpen = isOpen, onDismiss = { dismissCount++ })
+      }
     }
+  }
+
+  @Test
+  fun microphoneDialog_withDefaultParameters_isClosed() {
+    composeTestRule.setContent { AmberAppTheme(dynamicColor = false) { MicrophoneDialog() } }
+    composeTestRule.onNodeWithText(consentFirstSentence).assertDoesNotExist()
+  }
+
+  @Test
+  fun microphoneDialog_openWithDefaultParameters_displaysTheConsentSentence() {
+    composeTestRule.setContent {
+      AmberAppTheme(dynamicColor = false) { MicrophoneDialog(isOpen = true) }
+    }
+    composeTestRule.onNodeWithText(consentFirstSentence).assertIsDisplayed()
   }
 
   @Test
