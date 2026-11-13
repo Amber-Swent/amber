@@ -4,6 +4,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -221,6 +222,7 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.DeleteAccount.route) {
         DeleteAccountScreen(
+            isPatient = false,
             credentialManager = credentialManager,
             onBack = { navigationActions.goBack() },
         )
@@ -266,11 +268,19 @@ fun AmberApp(
         PatientParameterScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             onSignOutClick = { navigationActions.navigateTo(PatientScreen.SignOut) },
+            onDeleteClick = { navigationActions.navigateTo(PatientScreen.DeleteAccount) },
         )
       }
       composable(route = PatientScreen.SignOut.route) {
         SignOutScreen(
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onBack = { navigationActions.goBack() },
+        )
+      }
+      composable(route = PatientScreen.DeleteAccount.route) {
+        DeleteAccountScreen(
+            isPatient = true,
+            credentialManager = credentialManager,
             onBack = { navigationActions.goBack() },
         )
       }

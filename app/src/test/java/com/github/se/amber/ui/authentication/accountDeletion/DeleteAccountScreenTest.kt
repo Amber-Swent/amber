@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.credentials.CredentialManager
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
-import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.utils.UiText
@@ -52,11 +51,11 @@ class DeleteAccountScreenTest {
     backCount = 0
   }
 
-  private fun setScreen(role: Role = Role.CAREGIVER) {
+  private fun setScreen(isPatient: Boolean = false) {
     composeTestRule.setContent {
       AmberAppTheme {
         DeleteAccountScreen(
-            role = role,
+            isPatient = isPatient,
             viewModel = viewModel,
             credentialManager = credentialManager,
             onBack = { backCount++ },
@@ -192,7 +191,7 @@ class DeleteAccountScreenTest {
 
   @Test
   fun patientSeesTitleAndAdaptedExplanation() {
-    setScreen(Role.PATIENT)
+    setScreen(isPatient = true)
 
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
     composeTestRule
@@ -203,7 +202,7 @@ class DeleteAccountScreenTest {
   @Test
   fun patientConfirmationButtonCallsViewModel() {
     stateFlow.value = DeleteAccountUIState(warningsLoaded = true, isLoading = false)
-    setScreen(Role.PATIENT)
+    setScreen(isPatient = true)
 
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertIsDisplayed().performClick()
 
@@ -213,7 +212,7 @@ class DeleteAccountScreenTest {
   @Test
   fun patientCanRetryFailedWarningLoad() {
     stateFlow.value = DeleteAccountUIState(isLoading = false)
-    setScreen(Role.PATIENT)
+    setScreen(isPatient = true)
 
     composeTestRule.onNodeWithText(string(R.string.deleteAccountRetryLabel)).performClick()
 
@@ -222,7 +221,7 @@ class DeleteAccountScreenTest {
 
   @Test
   fun patientCancelCallsBackBeforeDeletion() {
-    setScreen(Role.PATIENT)
+    setScreen(isPatient = true)
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
@@ -233,7 +232,7 @@ class DeleteAccountScreenTest {
   fun patientDeletionInProgressHidesButtonAndCancel() {
     stateFlow.value =
         DeleteAccountUIState(warningsLoaded = true, isLoading = false, isDeleting = true)
-    setScreen(Role.PATIENT)
+    setScreen(isPatient = true)
 
     composeTestRule.onNodeWithText(string(R.string.deleteAccountProgress)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
