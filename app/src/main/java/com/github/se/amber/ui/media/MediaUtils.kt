@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
 package com.github.se.amber.ui.media
 
