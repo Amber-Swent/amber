@@ -216,6 +216,7 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.SignOut.route) {
         SignOutScreen(
+            isPatient = false,
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
             onBack = { navigationActions.goBack() },
         )
@@ -273,6 +274,7 @@ fun AmberApp(
       }
       composable(route = PatientScreen.SignOut.route) {
         SignOutScreen(
+            isPatient = true,
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
             onBack = { navigationActions.goBack() },
         )

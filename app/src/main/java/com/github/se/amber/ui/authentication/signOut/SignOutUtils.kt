@@ -2,6 +2,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -73,6 +75,7 @@ object SignOutButtonTestTags {
  * @param text Label displayed on the button. Defaults to the translated "Sign out".
  * @param buttonHeight Fixed height of the button (caller screens that scroll may override).
  * @param buttonWidth Fraction of the available width taken by the button.
+ * @param textStyle Typography style of the button label.
  * @param testTag Test tag of the button.
  */
 @Composable
@@ -82,6 +85,7 @@ fun SignOutButton(
     text: String = stringResource(R.string.signOutButton),
     buttonHeight: Dp = CAREGIVER_BUTTON_HEIGHT_MEDIUM,
     buttonWidth: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
+    textStyle: TextStyle = MaterialTheme.typography.labelLarge,
     testTag: String = SignOutButtonTestTags.BUTTON,
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -105,7 +109,7 @@ fun SignOutButton(
   ) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
+        style = textStyle,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
     )
