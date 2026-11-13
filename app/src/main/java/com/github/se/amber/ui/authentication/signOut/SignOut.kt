@@ -2,6 +2,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -29,17 +30,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_HEIGHT_MEDIUM
+import com.github.se.amber.ui.theme.PATIENT_BUTTON_WIDTH
+import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
 /** Test tags of [SignOutScreen]. */
 object SignOutTestTags {
@@ -53,6 +61,10 @@ object SignOutTestTags {
  * Shows a short explanation and the shared [SignOutButton] helper. Navigation after a successful
  * sign-out is handled by [onSignedOut].
  *
+ * The screen is shared by both roles: [isPatient] selects the patient or caregiver title, padding,
+ * text size and button size. Patient screens use larger elements.
+ *
+ * @param isPatient Boolean indicating if the user viewing the screen is a Patient.
  * @param viewModel ViewModel shared with [SignOutButton].
  * @param onSignedOut Called once sign-out succeeds.
  * @param onBack Called when the user cancels from the top bar.
@@ -60,12 +72,18 @@ object SignOutTestTags {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignOutScreen(
+    isPatient: Boolean = true,
     viewModel: SignOutViewModel = viewModel(),
     onSignedOut: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val textStyle = signOutTextStyle(isPatient)
+  val buttonTextStyle =
+      if (isPatient) MaterialTheme.typography.headlineMedium
+      else MaterialTheme.typography.labelLarge
+  val padding = if (isPatient) PATIENT_PADDING_MEDIUM else CAREGIVER_PADDING_BIG
   // Configuration-aware resources, so the toast follows the app language
   val resources = LocalResources.current
 
@@ -93,10 +111,17 @@ fun SignOutScreen(
                     action = TopNavigationAction.CANCEL,
                     onBackClick = onBack,
                 )
-                DisplayPatientTitle(
-                    title = stringResource(R.string.signOutTitle),
-                    testTag = SignOutTestTags.TITLE,
-                )
+                if (isPatient) {
+                  DisplayPatientTitle(
+                      title = stringResource(R.string.signOutTitle),
+                      testTag = SignOutTestTags.TITLE,
+                  )
+                } else {
+                  DisplayCaregiverTitle(
+                      modifier = Modifier.testTag(SignOutTestTags.TITLE),
+                      title = stringResource(R.string.signOutTitle),
+                  )
+                }
               }
             }
         )
@@ -108,24 +133,35 @@ fun SignOutScreen(
                   Modifier.fillMaxWidth()
                       .verticalScroll(rememberScrollState())
                       .heightIn(min = maxHeight)
-                      .padding(horizontal = CAREGIVER_PADDING_BIG),
-              verticalArrangement =
-                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
+                      .padding(horizontal = padding),
+              verticalArrangement = Arrangement.spacedBy(padding, Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
                 text = stringResource(R.string.signOutExplanation),
                 color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.bodyLarge,
+                style = textStyle,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().testTag(SignOutTestTags.EXPLANATION),
             )
-            SignOutButton(viewModel = viewModel)
+            SignOutButton(
+                viewModel = viewModel,
+                buttonHeight =
+                    if (isPatient) PATIENT_BUTTON_HEIGHT_MEDIUM else CAREGIVER_BUTTON_HEIGHT_MEDIUM,
+                buttonWidth =
+                    if (isPatient) PATIENT_BUTTON_WIDTH else CAREGIVER_BUTTON_WIDTH_MEDIUM,
+                textStyle = buttonTextStyle,
+            )
           }
         }
       },
   )
 }
+
+/** Text style of the screen body: patient screens need larger text than caregiver ones. */
+@Composable
+private fun signOutTextStyle(isPatient: Boolean): TextStyle =
+    if (isPatient) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge
 
 /** Preview of [SignOutScreen] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)

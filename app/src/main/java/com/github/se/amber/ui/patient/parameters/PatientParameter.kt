@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.parameters
 
@@ -38,8 +39,9 @@ import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
 /** Test tags of [PatientParameterScreen]. */
 object PatientParameterTestTags {
-  const val TITLE = "PatientParameter_test_tag_title"
-  const val SIGN_OUT_BUTTON = "PatientParameter_test_tag_sign_out_button"
+  const val TITLE = "patient_parameter_title"
+  const val SIGN_OUT_BUTTON = "patient_parameter_sign_out_button"
+  const val DELETE_BUTTON = "patient_parameter_delete_button"
 }
 
 /**
@@ -50,6 +52,7 @@ object PatientParameterTestTags {
  * @param viewModel ViewModel providing the UI state of the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
  * @param onSignOutClick Callback invoked when the user chooses to open the sign-out screen.
+ * @param onDeleteClick Callback invoked when the user chooses to open the delete screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +60,7 @@ fun PatientParameterScreen(
     viewModel: PatientParameterViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = {},
     onSignOutClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -104,6 +108,11 @@ fun PatientParameterScreen(
               text = stringResource(R.string.patientParameterSignOut),
               onClick = onSignOutClick,
               testTag = PatientParameterTestTags.SIGN_OUT_BUTTON,
+          )
+          DisplayPatientButton(
+              text = stringResource(R.string.patientParameterDeleteAccount),
+              onClick = onDeleteClick,
+              testTag = PatientParameterTestTags.DELETE_BUTTON,
           )
         }
       },

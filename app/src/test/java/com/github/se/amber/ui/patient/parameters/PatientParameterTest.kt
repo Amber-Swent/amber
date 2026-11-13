@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.parameters
 
@@ -35,6 +36,7 @@ class PatientParameterScreenTest {
       viewModel: PatientParameterViewModel = PatientParameterViewModel(),
       onTabSelected: (Tab) -> Unit = {},
       onSignOutClick: () -> Unit = {},
+      onDeleteClick: () -> Unit = {},
   ) {
     composeTestRule.setContent {
       AmberAppTheme {
@@ -42,6 +44,7 @@ class PatientParameterScreenTest {
             viewModel = viewModel,
             onTabSelected = onTabSelected,
             onSignOutClick = onSignOutClick,
+            onDeleteClick = onDeleteClick,
         )
       }
     }
@@ -57,6 +60,24 @@ class PatientParameterScreenTest {
   fun signOutButtonIsDisplayed() {
     setScreen()
     composeTestRule.onNodeWithTag(PatientParameterTestTags.SIGN_OUT_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun deleteButtonIsDisplayed() {
+    setScreen()
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.DELETE_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun deleteClickInvokesTheCallback_andDoesNotInvokeTheSignOutCallback() {
+    var clicks = 0
+    var signOutClicks = 0
+    setScreen(onDeleteClick = { clicks++ }, onSignOutClick = { signOutClicks++ })
+
+    composeTestRule.onNodeWithTag(PatientParameterTestTags.DELETE_BUTTON).performClick()
+
+    assertEquals(1, clicks)
+    assertEquals(0, signOutClicks)
   }
 
   @Test

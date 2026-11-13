@@ -1,7 +1,8 @@
-// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.navigation
 
@@ -189,6 +190,12 @@ sealed class PatientScreen(
       PatientScreen(
           route = "patient_sign_out",
           title = R.string.screenTitlePatientSignOut,
+      )
+
+  data object DeleteAccount :
+      PatientScreen(
+          route = "patient_delete_account",
+          title = R.string.screenTitleCaregiverDeleteAccount,
       )
 }
 
