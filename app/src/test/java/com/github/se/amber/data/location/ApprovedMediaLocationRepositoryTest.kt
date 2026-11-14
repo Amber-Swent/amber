@@ -2,8 +2,9 @@
 
 package com.github.se.amber.data.location
 
-import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.MediaMarker
+import com.github.se.amber.model.location.TestPlaces.GENEVA
+import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.location.toMediaMarkers
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
@@ -27,10 +28,8 @@ class ApprovedMediaLocationRepositoryTest {
   private val mediaRepository = mockk<MediaRepository>()
   private val repository = ApprovedMediaLocationRepository(mediaRepository)
 
-  private val lausanne = GeoLocation(lat = 46.5197, lng = 6.6323, placeName = "Lausanne")
-  private val geneva = GeoLocation(lat = 46.2044, lng = 6.1432, placeName = "Geneva")
-  private val picture = MediaItem.Picture(id = "p1", location = lausanne)
-  private val audio = MediaItem.Audio(id = "a1", location = geneva)
+  private val picture = MediaItem.Picture(id = "p1", location = LAUSANNE)
+  private val audio = MediaItem.Audio(id = "a1", location = GENEVA)
   private val textWithoutPlace = MediaItem.Text(id = "t1")
 
   @Test

@@ -14,6 +14,8 @@ import com.github.se.amber.model.location.DevicePosition
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.MediaMarker
 import com.github.se.amber.model.location.NEARBY_RADIUS_METERS
+import com.github.se.amber.model.location.TestPlaces.GENEVA
+import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.location.TestPositions.APPROXIMATE_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.GPS_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.movedNorth
@@ -83,8 +85,8 @@ class MediaMapViewModelTest {
           circleIds = listOf("circle1", "circle2"),
       )
 
-  private val lausanne = GeoLocation(lat = 46.5197, lng = 6.6323, placeName = "Lausanne")
-  private val geneva = GeoLocation(lat = 46.2044, lng = 6.1432, placeName = "Geneva")
+  private val lausanne = LAUSANNE
+  private val geneva = GENEVA
   private val lausanneMedia = listOf(MediaItem.Picture(id = "p1", location = lausanne))
   private val genevaMedia = listOf(MediaItem.Audio(id = "a1", location = geneva))
   private val twoPins = (lausanneMedia + genevaMedia).toMediaMarkers()
@@ -176,24 +178,18 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `switching the active circle shows the new circle's pins and closes the open pin`() {
+  fun `the same active circle again changes nothing, another one shows its pins and closes the open pin`() {
     mediaLocationRepository.markers.value = mapOf("circle1" to twoPins, "circle2" to genevaOnly)
     val viewModel = createViewModel()
     viewModel.selectMarker(twoPins[1].id) // Geneva, also a pin of circle2
 
-    activeCircleRepository.activeId.tryEmit("circle2")
+    activeCircleRepository.activeId.tryEmit("circle1")
+    assertEquals(listOf("circle1"), mediaLocationRepository.observedCircleIds)
+    assertEquals(twoPins[1], viewModel.content().selectedMarker)
 
+    activeCircleRepository.activeId.tryEmit("circle2")
     assertEquals(MediaMapUIState.Content(markers = genevaOnly), viewModel.uiState.value)
     assertEquals(listOf("circle1", "circle2"), mediaLocationRepository.observedCircleIds)
-  }
-
-  @Test
-  fun `the same active circle again doesn't load its pins again`() {
-    createViewModel()
-
-    activeCircleRepository.activeId.tryEmit("circle1")
-
-    assertEquals(listOf("circle1"), mediaLocationRepository.observedCircleIds)
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -227,21 +223,14 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `the open pin shows its new media`() {
+  fun `the open pin follows its media, closes when they are gone and stays closed when they come back`() {
     val viewModel = createViewModel()
     viewModel.selectMarker(twoPins[0].id)
 
     val newPicture = MediaItem.Picture(id = "p2", location = lausanne)
     val updated = (listOf(newPicture) + lausanneMedia + genevaMedia).toMediaMarkers()
     mediaLocationRepository.markers.value = mapOf("circle1" to updated)
-
     assertEquals(listOf(newPicture) + lausanneMedia, viewModel.content().selectedMarker?.media)
-  }
-
-  @Test
-  fun `the open pin closes when its media are gone, and stays closed when they come back`() {
-    val viewModel = createViewModel()
-    viewModel.selectMarker(twoPins[0].id)
 
     mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
     assertNull(viewModel.content().selectedMarker)

@@ -16,11 +16,15 @@ data class GeoLocation(
     val placeName: String? = null, // human-readable, e.g. typed by the user for an old photo
 )
 
-/** Valid latitudes, in degrees. */
-private val LATITUDE_RANGE = -90.0..90.0
+/** The largest latitude, at the poles, in degrees; the smallest is its opposite. */
+internal const val MAX_LATITUDE = 90.0
 
-/** Valid longitudes, in degrees. */
-private val LONGITUDE_RANGE = -180.0..180.0
+/** The largest longitude, in degrees; the smallest is its opposite. */
+internal const val MAX_LONGITUDE = 180.0
+
+private val LATITUDE_RANGE = -MAX_LATITUDE..MAX_LATITUDE
+
+private val LONGITUDE_RANGE = -MAX_LONGITUDE..MAX_LONGITUDE
 
 /**
  * This place's point on the map as (lat, lng), or null when it isn't a real point: a coordinate is
