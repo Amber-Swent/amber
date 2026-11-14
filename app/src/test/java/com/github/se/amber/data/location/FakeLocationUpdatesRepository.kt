@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.merge
  *   each new one;
  * - setting [failure] stops the running collections with it, and the next ones at once, until it is
  *   set back to null;
- * - [activeCollectors] tells whether the GPS would be running.
+ * - [isRunning] tells whether the GPS would be running.
  */
 class FakeLocationUpdatesRepository(var permission: Boolean = true) : LocationUpdatesRepository {
 
@@ -24,9 +24,11 @@ class FakeLocationUpdatesRepository(var permission: Boolean = true) : LocationUp
 
   val failure = MutableStateFlow<Throwable?>(null)
 
-  /** How many collections are running now. */
-  var activeCollectors = 0
-    private set
+  private var activeCollectors = 0
+
+  /** Whether a collection is running, so the real repository's GPS would be on. */
+  val isRunning: Boolean
+    get() = activeCollectors > 0
 
   override fun hasPermission(): Boolean = permission
 

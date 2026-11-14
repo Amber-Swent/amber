@@ -90,16 +90,22 @@ class FusedLocationUpdatesRepositoryTest {
   }
 
   @Test
-  fun `without the permission the flow stops with a SecurityException, asking nothing`() = runTest {
+  fun `without the permission or a location service the flow stops, asking nothing`() = runTest {
     shadowOf(app).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
-    var caught: Throwable? = null
+    var withoutPermission: Throwable? = null
+    repository.observeLocation().catch { withoutPermission = it }.collect()
 
-    repository.observeLocation().catch { caught = it }.collect()
+    shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    val noLocationService = FusedLocationUpdatesRepository(app, client, locationManager = null)
+    var withoutService: Throwable? = null
+    noLocationService.observeLocation().catch { withoutService = it }.collect()
 
-    assertTrue(caught is SecurityException)
+    assertTrue(withoutPermission is SecurityException)
+    assertTrue(withoutService is IllegalStateException)
     verify(exactly = 0) {
       client.requestLocationUpdates(any(), any<LocationCallback>(), any<Looper>())
     }
+    assertTrue(settingsReceivers().isEmpty())
   }
 
   @Test
@@ -152,27 +158,13 @@ class FusedLocationUpdatesRepositoryTest {
   fun `stopping the collection stops the GPS and the settings receiver`() =
       runTest(UnconfinedTestDispatcher()) {
         val job = launch { repository.observeLocation().collect() }
-        assertEquals(1, settingsReceivers().size)
+        settingsReceivers().single() // exactly one, or this throws
 
         job.cancel()
 
         verify(exactly = 1) { client.removeLocationUpdates(callback.captured) }
         assertTrue(settingsReceivers().isEmpty())
       }
-
-  @Test
-  fun `a phone without a location service stops the flow, asking nothing`() = runTest {
-    val noLocationService = FusedLocationUpdatesRepository(app, client, locationManager = null)
-    var caught: Throwable? = null
-
-    noLocationService.observeLocation().catch { caught = it }.collect()
-
-    assertTrue(caught is IllegalStateException)
-    verify(exactly = 0) {
-      client.requestLocationUpdates(any(), any<LocationCallback>(), any<Looper>())
-    }
-    assertTrue(settingsReceivers().isEmpty())
-  }
 
   @Test
   fun `a phone that can't give its position stops the flow with the error, cleaning up`() =

@@ -19,7 +19,7 @@ class FakeLocationUpdatesRepositoryTest {
   private val here = LocationUpdate.Position(LAUSANNE_FLON)
 
   @Test
-  fun `gives the permission, then Searching and each update, counting the running collections`() =
+  fun `gives the permission, then Searching and each update, telling while it runs`() =
       runTest(UnconfinedTestDispatcher()) {
         val repository = FakeLocationUpdatesRepository(permission = false)
         assertFalse(repository.hasPermission())
@@ -28,14 +28,14 @@ class FakeLocationUpdatesRepositoryTest {
 
         val received = mutableListOf<LocationUpdate>()
         val job = launch { repository.observeLocation().collect { received.add(it) } }
-        assertEquals(1, repository.activeCollectors)
+        assertTrue(repository.isRunning)
 
         repository.updates.value = here
         repository.updates.value = LocationUpdate.LocationOff
         job.cancel()
 
         assertEquals(listOf(LocationUpdate.Searching, here, LocationUpdate.LocationOff), received)
-        assertEquals(0, repository.activeCollectors)
+        assertFalse(repository.isRunning)
       }
 
   @Test
@@ -53,7 +53,7 @@ class FakeLocationUpdatesRepositoryTest {
         assertEquals(listOf(LocationUpdate.Searching, here), received)
         // merge rethrows a copy of the error (coroutines' stack trace recovery)
         assertSameError(denied, caught)
-        assertEquals(0, repository.activeCollectors)
+        assertFalse(repository.isRunning)
 
         var caughtAgain: Throwable? = null
         repository.observeLocation().catch { caughtAgain = it }.collect()

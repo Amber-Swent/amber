@@ -11,11 +11,12 @@ import com.github.se.amber.data.location.LocationUpdate
 import com.github.se.amber.data.location.MediaLocationRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.location.DevicePosition
-import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.MediaMarker
 import com.github.se.amber.model.location.NEARBY_RADIUS_METERS
 import com.github.se.amber.model.location.TestPlaces.GENEVA
 import com.github.se.amber.model.location.TestPlaces.LAUSANNE
+import com.github.se.amber.model.location.TestPlaces.latitude
+import com.github.se.amber.model.location.TestPlaces.longitude
 import com.github.se.amber.model.location.TestPositions.APPROXIMATE_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.GPS_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.movedNorth
@@ -348,16 +349,14 @@ class MediaMapViewModelTest {
   // Live location
   // ---------------------------------------------------------------------------------------------
 
-  // A good GPS fix at the Lausanne pin, then half the radius north of it, and five times the
-  // radius north of it
+  // A good GPS fix at the Lausanne pin, then half the radius north of it (near you), and five
+  // times the radius north of it (well out of it)
   private val atLausannePin =
-      DevicePosition(
-          checkNotNull(lausanne.lat),
-          checkNotNull(lausanne.lng),
-          accuracyMeters = GPS_ACCURACY_METERS,
-      )
-  private val nearLausanne = atLausannePin.movedNorth(NEARBY_RADIUS_METERS / 2)
-  private val farFromLausanne = atLausannePin.movedNorth(NEARBY_RADIUS_METERS * 5)
+      DevicePosition(LAUSANNE.latitude, LAUSANNE.longitude, accuracyMeters = GPS_ACCURACY_METERS)
+  private val halfRadius = NEARBY_RADIUS_METERS / 2
+  private val wellOutsideRadius = NEARBY_RADIUS_METERS * 5
+  private val nearLausanne = atLausannePin.movedNorth(halfRadius)
+  private val farFromLausanne = atLausannePin.movedNorth(wellOutsideRadius)
 
   private fun MediaMapViewModel.location() = locationState.value
 
@@ -368,22 +367,22 @@ class MediaMapViewModelTest {
     viewModel.showMap()
 
     assertEquals(MediaMapLocationState.NoPermission, viewModel.location())
-    assertEquals(0, locationUpdates.activeCollectors)
+    assertFalse(locationUpdates.isRunning)
     assertEquals(twoPins, viewModel.content().markers)
 
     locationUpdates.permission = true
     viewModel.refreshPermission()
     assertEquals(MediaMapLocationState.Searching, viewModel.location())
-    assertEquals(1, locationUpdates.activeCollectors)
+    assertTrue(locationUpdates.isRunning)
 
     locationUpdates.permission = false
     viewModel.refreshPermission()
     assertEquals(MediaMapLocationState.NoPermission, viewModel.location())
-    assertEquals(0, locationUpdates.activeCollectors)
+    assertFalse(locationUpdates.isRunning)
   }
 
   @Test
-  fun `a precise position shows the pin within the radius as near you, and none once further`() {
+  fun `the pin near you needs a precise position within the radius`() {
     val viewModel = createViewModel()
     viewModel.showMap()
 
@@ -394,18 +393,12 @@ class MediaMapViewModelTest {
 
     locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
     assertEquals(MediaMapLocationState.Located(farFromLausanne), viewModel.location())
-  }
-
-  @Test
-  fun `an approximate or unknown accuracy shows the position but no pin near you`() {
-    val viewModel = createViewModel()
-    viewModel.showMap()
 
     val approximate = nearLausanne.copy(accuracyMeters = APPROXIMATE_ACCURACY_METERS)
     locationUpdates.updates.value = LocationUpdate.Position(approximate)
-    val located = viewModel.location() as MediaMapLocationState.Located
-    assertEquals(MediaMapLocationState.Located(approximate, nearbyMarker = null), located)
-    assertFalse(located.isPrecise)
+    val approximated = viewModel.location() as MediaMapLocationState.Located
+    assertEquals(MediaMapLocationState.Located(approximate, nearbyMarker = null), approximated)
+    assertFalse(approximated.isPrecise)
 
     val unknownAccuracy = nearLausanne.copy(accuracyMeters = null)
     locationUpdates.updates.value = LocationUpdate.Position(unknownAccuracy)
@@ -477,20 +470,20 @@ class MediaMapViewModelTest {
     val scheduler = useStandardDispatcher().scheduler
     val viewModel = createViewModel()
     advanceMain()
-    assertEquals(0, locationUpdates.activeCollectors)
+    assertFalse(locationUpdates.isRunning)
 
     val map = viewModel.showMap()
     advanceMain()
-    assertEquals(1, locationUpdates.activeCollectors)
+    assertTrue(locationUpdates.isRunning)
 
     map.cancel()
     scheduler.advanceTimeBy(MAP_LOCATION_STOP_DELAY_MILLIS - 1)
     scheduler.runCurrent()
-    assertEquals(1, locationUpdates.activeCollectors) // a screen rotation doesn't restart it
+    assertTrue(locationUpdates.isRunning) // a screen rotation doesn't restart it
 
-    scheduler.advanceTimeBy(2) // now just past the delay
+    scheduler.advanceTimeBy(1) // now exactly the delay
     scheduler.runCurrent()
-    assertEquals(0, locationUpdates.activeCollectors)
+    assertFalse(locationUpdates.isRunning)
   }
 
   private fun useStandardDispatcher(): TestDispatcher =

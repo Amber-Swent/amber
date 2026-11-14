@@ -2,6 +2,8 @@
 
 package com.github.se.amber.model.location
 
+import com.github.se.amber.model.location.TestPlaces.latitude
+import com.github.se.amber.model.location.TestPlaces.longitude
 import com.github.se.amber.model.media.MediaItem
 import kotlin.math.PI
 
@@ -11,11 +13,11 @@ import kotlin.math.PI
  */
 object TestPositions {
 
-  /** Lausanne Flon station. */
-  val LAUSANNE_FLON = DevicePosition(lat = 46.520856, lng = 6.630127)
+  /** Lausanne Flon station, as [TestPlaces.LAUSANNE]. */
+  val LAUSANNE_FLON = DevicePosition(TestPlaces.LAUSANNE.latitude, TestPlaces.LAUSANNE.longitude)
 
-  /** Geneva Cornavin station. */
-  val GENEVA_CORNAVIN = DevicePosition(lat = 46.210208, lng = 6.142438)
+  /** Geneva Cornavin station, as [TestPlaces.GENEVA]. */
+  val GENEVA_CORNAVIN = DevicePosition(TestPlaces.GENEVA.latitude, TestPlaces.GENEVA.longitude)
 
   /** The straight-line distance between [LAUSANNE_FLON] and [GENEVA_CORNAVIN], from a map. */
   const val FLON_TO_CORNAVIN_METERS = 50_900.0
