@@ -28,11 +28,13 @@ private val LONGITUDE_RANGE = -MAX_LONGITUDE..MAX_LONGITUDE
 
 /**
  * This place's point on the map as (lat, lng), or null when it isn't a real point: a coordinate is
- * missing (a place known only by its name), out of range, or not a number. A function, not a
- * property, so Firestore doesn't store it.
+ * missing (a place known only by its name), out of range, or not a number, or the place is exactly
+ * (0, 0). That point is in the ocean, and a place there is almost surely a default value that was
+ * saved by mistake, so it gets no pin. A function, not a property, so Firestore doesn't store it.
  */
 fun GeoLocation.pointOrNull(): Pair<Double, Double>? {
   val lat = lat?.takeIf { it in LATITUDE_RANGE } ?: return null
   val lng = lng?.takeIf { it in LONGITUDE_RANGE } ?: return null
+  if (lat == 0.0 && lng == 0.0) return null
   return lat to lng
 }
