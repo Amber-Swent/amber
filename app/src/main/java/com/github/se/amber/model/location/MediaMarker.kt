@@ -3,23 +3,22 @@
 package com.github.se.amber.model.location
 
 import com.github.se.amber.model.media.MediaItem
-import kotlin.math.pow
-import kotlin.math.roundToLong
 
 /**
- * A pin on the memories map: one spot, and the media that happened there.
+ * A pin on the memories map: one place, and the media that happened there.
  *
- * Built from the media by [toMediaMarkers], never stored. Media share a spot when their coordinates
- * round to the same [SAME_SPOT_DECIMALS] decimals: a grid of cells about 1 m wide. Media picked
- * from the same saved place or search result have the same coordinates, so they always share one.
- * Two points a few cm apart on both sides of a cell edge still get two pins.
+ * Built from the media by [toMediaMarkers], never stored. Media within [SAME_PLACE_RADIUS_METERS]
+ * of a pin's first media share it, so the same café picked once from the saved places and once from
+ * a search gives one pin, not two drawn on top of each other.
  *
- * @param id identifies the spot: two lists of media give the same id for the same spot, so a
- *   selected pin can be found again after the media change.
- * @param lat latitude of the pin, from its newest media.
- * @param lng longitude of the pin, from its newest media.
- * @param placeName the first place name of its media, newest first; null if none has one.
- * @param media the media at this spot, newest first; never empty.
+ * @param id identifies the pin by its oldest media, which new media don't change, so an open pin
+ *   can be found again after the media change.
+ * @param lat latitude of the pin, from its oldest media, so the pin doesn't move when media are
+ *   added.
+ * @param lng longitude of the pin, from its oldest media.
+ * @param placeName the place name most of its media have; between names as common, the newest
+ *   one's; null if none has one.
+ * @param media the media at this place, newest first; never empty.
  */
 data class MediaMarker(
     val id: String,
@@ -29,47 +28,60 @@ data class MediaMarker(
     val media: List<MediaItem>,
 )
 
-/** Decimals the coordinates are rounded to, to tell whether two media share a pin. */
-private const val SAME_SPOT_DECIMALS = 5
-
-private val SAME_SPOT_SCALE = 10.0.pow(SAME_SPOT_DECIMALS)
-
-/** The size of a cell of the grid media share pins in, in degrees (about 1 m). */
-internal val SAME_SPOT_CELL_DEGREES = 1 / SAME_SPOT_SCALE
+/**
+ * How far from a pin's first media other media can be and still share the pin, in meters: about a
+ * building, more than two searches for the same place usually differ by.
+ */
+const val SAME_PLACE_RADIUS_METERS = 25.0
 
 /**
- * The pins for these media, in the order of their newest media. Media without a real point (no
- * location, a place known only by its name, or coordinates out of range) are left out, so they get
- * no pin.
+ * The pins for these media, given newest first, in the order of their newest media. Media without a
+ * real point (see [GeoLocation.pointOrNull]) are left out, so they get no pin.
  *
- * Keeps the order of the media in each pin, so media given newest first stay newest first.
+ * Media are grouped oldest first: each media joins the first pin whose oldest media is within
+ * [SAME_PLACE_RADIUS_METERS], or starts its own. So a new media never moves a pin nor changes its
+ * id.
  */
-fun List<MediaItem>.toMediaMarkers(): List<MediaMarker> = mapNotNull { media ->
-  media.spot()?.let { spot -> spot to media }
+fun List<MediaItem>.toMediaMarkers(): List<MediaMarker> {
+  val pins = mutableListOf<PinBuilder>()
+  for (index in indices.reversed()) { // oldest first
+    val media = this[index]
+    val location = media.location ?: continue
+    val (lat, lng) = location.pointOrNull() ?: continue
+    val pin =
+        pins.firstOrNull { distanceMeters(it.lat, it.lng, lat, lng) <= SAME_PLACE_RADIUS_METERS }
+            ?: PinBuilder(id = media.id, lat = lat, lng = lng).also { pins += it }
+    pin.media.add(0, media) // newest first
+    location.placeName?.takeIf { it.isNotBlank() }?.let { pin.placeNames.add(0, it) }
+    pin.newestIndex = index
+  }
+  return pins
+      .sortedBy { it.newestIndex }
+      .map { pin ->
+        MediaMarker(
+            id = pin.id,
+            lat = pin.lat,
+            lng = pin.lng,
+            placeName = pin.placeNames.mostCommon(),
+            media = pin.media.toList(),
+        )
+      }
 }
-    .groupBy { (spot, _) -> spot.id }
-    .map { (id, located) ->
-      val newest = located.first().first
-      MediaMarker(
-          id = id,
-          lat = newest.lat,
-          lng = newest.lng,
-          placeName =
-              located.firstNotNullOfOrNull { (_, media) ->
-                media.location?.placeName?.takeIf { it.isNotBlank() }
-              },
-          media = located.map { it.second },
-      )
-    }
 
-/** A media's point on the map, and the id of its spot. */
-private data class Spot(val id: String, val lat: Double, val lng: Double)
-
-private fun MediaItem.spot(): Spot? {
-  val (lat, lng) = location?.pointOrNull() ?: return null
-  return Spot(id = "${lat.toSpotKey()}_${lng.toSpotKey()}", lat = lat, lng = lng)
+/**
+ * A pin being built: the point of its oldest media, its media and their non-blank place names so
+ * far (both newest first), and its newest media's index.
+ */
+private class PinBuilder(val id: String, val lat: Double, val lng: Double) {
+  val media = mutableListOf<MediaItem>()
+  val placeNames = mutableListOf<String>()
+  var newestIndex = 0
 }
 
-// The coordinate as a whole number of 1/10^SAME_SPOT_DECIMALS degrees: no locale, no floating-point
-// rounding issues
-private fun Double.toSpotKey(): Long = (this * SAME_SPOT_SCALE).roundToLong()
+/** The name these names have most often; between names as common, the first one. */
+private fun List<String>.mostCommon(): String? = groupingBy {
+  it
+}
+    .eachCount()
+    .maxByOrNull { (_, count) -> count }
+    ?.key
