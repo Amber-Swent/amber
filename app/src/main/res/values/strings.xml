@@ -382,4 +382,9 @@
     <string name="audioPlaybackLoading">Loading</string>
     <string name="audioPlaybackRetry">Retry</string>
     <string name="audioPlaybackError">This memo could not be played.</string>
+    <!-- MediaMap -->
+    <string name="mediaMapErrorNoProfile">No profile found.</string>
+    <string name="mediaMapErrorLoadProfile">Failed to load the profile.</string>
+    <string name="mediaMapErrorNoCircle">No care circle found.</string>
+    <string name="mediaMapErrorLoadMedia">Failed to load the memories of the map.</string>
 </resources>
