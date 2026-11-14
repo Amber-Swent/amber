@@ -234,6 +234,8 @@ dependencies {
   // ----------      Google Maps      ------------
   // The memories map; the key comes from manifestPlaceholders["mapsApiKey"]
   implementation(libs.maps.compose)
+  // The user's live position on the memories map (FusedLocationUpdatesRepository)
+  implementation(libs.play.services.location)
 
   // ----------       DataStore       ------------
   // Remembers which care circle is active on this device, per signed-in user.
