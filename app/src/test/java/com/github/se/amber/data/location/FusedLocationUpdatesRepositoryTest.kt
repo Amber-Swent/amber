@@ -8,6 +8,7 @@ import android.content.Intent
 import android.location.Location
 import android.location.LocationManager
 import android.os.Looper
+import android.os.SystemClock
 import com.github.se.amber.model.location.DevicePosition
 import com.github.se.amber.model.location.TestPositions.GENEVA_CORNAVIN
 import com.github.se.amber.model.location.TestPositions.GPS_ACCURACY_METERS
@@ -17,14 +18,17 @@ import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.android.gms.tasks.Tasks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -57,15 +61,30 @@ class FusedLocationUpdatesRepositoryTest {
       client.requestLocationUpdates(capture(request), capture(callback), any<Looper>())
     } returns Tasks.forResult(null)
     every { client.removeLocationUpdates(any<LocationCallback>()) } returns Tasks.forResult(null)
+    every { client.lastLocation } returns Tasks.forResult(null)
   }
 
-  /** The Android location of this position, with no accuracy when it has none. */
-  private fun DevicePosition.toLocation() =
+  /**
+   * The Android location of this position, with no accuracy when it has none, found [ageMillis]
+   * ago.
+   */
+  private fun DevicePosition.toLocation(ageMillis: Long = 0) =
       Location(LocationManager.GPS_PROVIDER).also { location ->
         location.latitude = lat
         location.longitude = lng
         accuracyMeters?.let { location.accuracy = it }
+        location.elapsedRealtimeNanos =
+            SystemClock.elapsedRealtimeNanos() - TimeUnit.MILLISECONDS.toNanos(ageMillis)
       }
+
+  /** Collects the updates of one collection until [during] is done. */
+  private fun TestScope.updatesWhile(during: () -> Unit): List<LocationUpdate> {
+    val received = mutableListOf<LocationUpdate>()
+    val job = backgroundScope.launch { repository.observeLocation().collect { received.add(it) } }
+    during()
+    job.cancel()
+    return received
+  }
 
   private fun locationSettingChanged(enabled: Boolean) {
     shadowOf(locationManager).setLocationEnabled(enabled)
@@ -182,4 +201,61 @@ class FusedLocationUpdatesRepositoryTest {
         verify(exactly = 1) { client.removeLocationUpdates(callback.captured) }
         assertTrue(settingsReceivers().isEmpty())
       }
+
+  @Test
+  fun `while searching, a recent last known position is given first, marked, but not an old one`() =
+      runTest(UnconfinedTestDispatcher()) {
+        val recent = LAUSANNE_FLON.copy(accuracyMeters = GPS_ACCURACY_METERS)
+        every { client.lastLocation } returns
+            Tasks.forResult(recent.toLocation(ageMillis = RECENT_MILLIS))
+        val fresh = GENEVA_CORNAVIN.copy(accuracyMeters = GPS_ACCURACY_METERS)
+
+        val withRecent = updatesWhile {
+          callback.captured.onLocationResult(LocationResult.create(listOf(fresh.toLocation())))
+        }
+
+        assertEquals(
+            listOf(
+                LocationUpdate.Searching,
+                LocationUpdate.Position(recent.copy(isLastKnown = true)),
+                LocationUpdate.Position(fresh),
+            ),
+            withRecent,
+        )
+
+        every { client.lastLocation } returns
+            Tasks.forResult(recent.toLocation(ageMillis = TOO_OLD_MILLIS))
+        assertEquals(listOf(LocationUpdate.Searching), updatesWhile {})
+      }
+
+  @Test
+  fun `no last known position when the location is off, after a new one, or if it can't be read`() =
+      runTest(UnconfinedTestDispatcher()) {
+        val recent = LAUSANNE_FLON.copy(accuracyMeters = GPS_ACCURACY_METERS)
+        every { client.lastLocation } returns
+            Tasks.forResult(recent.toLocation(ageMillis = RECENT_MILLIS))
+        shadowOf(locationManager).setLocationEnabled(false)
+        assertEquals(listOf(LocationUpdate.LocationOff), updatesWhile {})
+
+        // A new position arrives while the last known one is still being read
+        shadowOf(locationManager).setLocationEnabled(true)
+        val lastKnownRead = TaskCompletionSource<Location?>()
+        every { client.lastLocation } returns lastKnownRead.task
+        val fresh = GENEVA_CORNAVIN.copy(accuracyMeters = GPS_ACCURACY_METERS)
+        val afterNew = updatesWhile {
+          callback.captured.onLocationResult(LocationResult.create(listOf(fresh.toLocation())))
+          lastKnownRead.setResult(recent.toLocation(ageMillis = RECENT_MILLIS))
+        }
+        assertEquals(listOf(LocationUpdate.Searching, LocationUpdate.Position(fresh)), afterNew)
+
+        every { client.lastLocation } returns
+            Tasks.forException(IllegalStateException("Google Play services busy"))
+        assertEquals(listOf(LocationUpdate.Searching), updatesWhile {})
+      }
+
+  private companion object {
+    // Ages of a last known position, either side of the repository's 10-minute limit
+    val RECENT_MILLIS = TimeUnit.MINUTES.toMillis(1)
+    val TOO_OLD_MILLIS = TimeUnit.HOURS.toMillis(1)
+  }
 }

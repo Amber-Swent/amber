@@ -20,10 +20,10 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.location.DevicePosition
 import com.github.se.amber.model.location.MediaMarker
+import com.github.se.amber.model.location.NEARBY_EXIT_MARGIN_METERS
 import com.github.se.amber.model.location.NEARBY_MAX_ACCURACY_METERS
-import com.github.se.amber.model.location.NEARBY_RADIUS_METERS
 import com.github.se.amber.model.location.isPreciseWithin
-import com.github.se.amber.model.location.nearestWithin
+import com.github.se.amber.model.location.nearby
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -92,18 +93,22 @@ sealed interface MediaMapLocationState {
   data object Unavailable : MediaMapLocationState
 
   /**
-   * The user is at [position]. [nearbyMarker] is the pin within [NEARBY_RADIUS_METERS] of it, the
-   * nearest if several are; null if none is that close, or if the position isn't [isPrecise].
+   * The user is at [position]. [nearbyMarkers] are the pins near it, nearest first (see [nearby]):
+   * empty if none is, or if the position isn't [isPrecise]. A pin that became near stays near up to
+   * [NEARBY_EXIT_MARGIN_METERS] further, so it doesn't blink.
    */
-  data class Located(val position: DevicePosition, val nearbyMarker: MediaMarker? = null) :
-      MediaMapLocationState {
+  data class Located(
+      val position: DevicePosition,
+      val nearbyMarkers: List<MediaMarker> = emptyList(),
+  ) : MediaMapLocationState {
 
     /**
-     * Whether the position is known well enough to say which pin is near: false with the
-     * approximate location (the screen can ask for the precise one) or a poor GPS fix.
+     * Whether the position is known well enough to say which pins are near: false with the
+     * approximate location (the screen can ask for the precise one), and for the last known
+     * position shown while waiting for a new one.
      */
     val isPrecise: Boolean
-      get() = position.isPreciseWithin(NEARBY_MAX_ACCURACY_METERS)
+      get() = !position.isLastKnown && position.isPreciseWithin(NEARBY_MAX_ACCURACY_METERS)
   }
 }
 
@@ -175,6 +180,10 @@ class MediaMapViewModel(
 
   private val hasLocationPermission = MutableStateFlow(locationUpdatesRepository.hasPermission())
 
+  private val initialLocationState =
+      if (hasLocationPermission.value) MediaMapLocationState.Searching
+      else MediaMapLocationState.NoPermission
+
   /**
    * The user's position and the pin near them. The GPS runs only while this is collected, and stops
    * [MAP_LOCATION_STOP_DELAY_MILLIS] after the last collector leaves: collect it with
@@ -186,18 +195,23 @@ class MediaMapViewModel(
             if (granted) positions() else flowOf(MediaMapLocationState.NoPermission)
           }
           .combine(loaded) { location, loaded ->
+            location to (loaded as? Loaded.Markers)?.markers.orEmpty()
+          }
+          // The pins near before are kept up to the exit margin, so they don't blink
+          .scan(initialLocationState) { previous, (location, markers) ->
             if (location !is MediaMapLocationState.Located || !location.isPrecise) {
-              return@combine location
+              return@scan location
             }
-            val markers = (loaded as? Loaded.Markers)?.markers.orEmpty()
-            location.copy(nearbyMarker = markers.nearestWithin(location.position))
+            val nearBefore = (previous as? MediaMapLocationState.Located)?.nearbyMarkers.orEmpty()
+            location.copy(
+                nearbyMarkers = markers.nearby(location.position, nearBefore.map { it.id }.toSet())
+            )
           }
           .distinctUntilChanged()
           .stateIn(
               viewModelScope,
               SharingStarted.WhileSubscribed(MAP_LOCATION_STOP_DELAY_MILLIS),
-              if (hasLocationPermission.value) MediaMapLocationState.Searching
-              else MediaMapLocationState.NoPermission,
+              initialLocationState,
           )
 
   private var loadJob: Job? = null

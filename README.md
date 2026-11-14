@@ -99,7 +99,7 @@ Caregivers can use the phone's camera and microphone to add memories to a care c
 
 Amber asks for microphone permission the first time a caregiver records a voice memo. Taking a picture opens the phone’s own camera app. Searching for place suggestions requires a network connection.
 
-Amber reads the position only while the memories map is on screen, and stops a few seconds after the map is closed or the app goes to the background. Without location permission, the map still works, without the user's position. The position stays on the phone: it is never stored, uploaded nor shared with the care circle.
+Amber reads the position only while the memories map is on screen, and stops a few seconds after the map is closed or the app goes to the background. Without location permission, the map still works, without the user's position. The position stays on the phone: it is never stored, uploaded nor shared with the care circle. So caregivers can't see where the patient is: Amber has no such feature.
 
 ## Offline Mode
 
