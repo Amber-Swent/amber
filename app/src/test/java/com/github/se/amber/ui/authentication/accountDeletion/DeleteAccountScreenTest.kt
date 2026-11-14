@@ -8,7 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -71,7 +71,7 @@ class DeleteAccountScreenTest {
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.TITLE).assertIsDisplayed()
     composeTestRule
         .onNodeWithTag(DeleteAccountTestTags.EXPLANATION)
-        .assertTextEquals(string(R.string.deleteAccountExplanation))
+        .assertTextEquals(string(R.string.deleteAccountCaregiverExplanation))
     composeTestRule.onNodeWithText(string(R.string.deleteAccountCheckingLabel)).assertIsDisplayed()
     composeTestRule.onNodeWithTag(DeleteAccountTestTags.BUTTON).assertDoesNotExist()
     verify(exactly = 1) { viewModel.loadWarnings() }

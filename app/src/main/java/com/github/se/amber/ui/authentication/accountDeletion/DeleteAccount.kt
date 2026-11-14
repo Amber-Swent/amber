@@ -137,7 +137,7 @@ fun DeleteAccountScreen(
                 text =
                     stringResource(
                         if (isPatient) R.string.deleteAccountPatientExplanation
-                        else R.string.deleteAccountExplanation
+                        else R.string.deleteAccountCaregiverExplanation
                     ),
                 color = MaterialTheme.colorScheme.onBackground,
                 style = textStyle,
