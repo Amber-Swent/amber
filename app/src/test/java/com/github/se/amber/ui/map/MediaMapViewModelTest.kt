@@ -5,11 +5,18 @@ package com.github.se.amber.ui.map
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.connectivity.FakeConnectivityMonitor
+import com.github.se.amber.data.location.FakeLocationUpdatesRepository
 import com.github.se.amber.data.location.FakeMediaLocationRepository
+import com.github.se.amber.data.location.LocationUpdate
 import com.github.se.amber.data.location.MediaLocationRepository
 import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.model.location.DevicePosition
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.MediaMarker
+import com.github.se.amber.model.location.NEARBY_RADIUS_METERS
+import com.github.se.amber.model.location.TestPositions.APPROXIMATE_ACCURACY_METERS
+import com.github.se.amber.model.location.TestPositions.GPS_ACCURACY_METERS
+import com.github.se.amber.model.location.TestPositions.movedNorth
 import com.github.se.amber.model.location.toMediaMarkers
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.user.Person
@@ -17,11 +24,14 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -29,7 +39,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -61,6 +73,7 @@ class MediaMapViewModelTest {
   private val profileRepository = mockk<ProfileRepository>()
   private val activeCircleRepository = FakeActiveCircleRepository("circle1")
   private val connectivity = FakeConnectivityMonitor(online = true)
+  private val locationUpdates = FakeLocationUpdatesRepository(permission = true)
 
   private val caregiver =
       UserProfile(
@@ -77,11 +90,14 @@ class MediaMapViewModelTest {
   private val twoPins = (lausanneMedia + genevaMedia).toMediaMarkers()
   private val genevaOnly = genevaMedia.toMediaMarkers()
 
-  private val locationRepository = FakeMediaLocationRepository(mapOf("circle1" to twoPins))
+  private val mediaLocationRepository = FakeMediaLocationRepository(mapOf("circle1" to twoPins))
   private val denied = IllegalStateException("permission denied")
 
   /** Set by [useStandardDispatcher], for tests that must run the coroutines step by step. */
   private var standardDispatcher: TestDispatcher? = null
+
+  /** The collections started by [showMap], cancelled after each test even if it fails. */
+  private val shownMaps = mutableListOf<Job>()
 
   @Before
   fun setUp() {
@@ -92,11 +108,22 @@ class MediaMapViewModelTest {
 
   @After
   fun tearDown() {
+    shownMaps.forEach { it.cancel() }
     Dispatchers.resetMain()
   }
 
-  private fun createViewModel(repository: MediaLocationRepository = locationRepository) =
-      MediaMapViewModel(repository, profileRepository, activeCircleRepository, connectivity)
+  private fun createViewModel(repository: MediaLocationRepository = mediaLocationRepository) =
+      MediaMapViewModel(
+          repository,
+          profileRepository,
+          activeCircleRepository,
+          connectivity,
+          locationUpdates,
+      )
+
+  /** Collects [MediaMapViewModel.locationState], as the screen does, until cancelled. */
+  private fun MediaMapViewModel.showMap(): Job =
+      CoroutineScope(Dispatchers.Main).launch { locationState.collect {} }.also { shownMaps += it }
 
   private fun MediaMapViewModel.content() = uiState.value as MediaMapUIState.Content
 
@@ -116,12 +143,12 @@ class MediaMapViewModelTest {
         listOf("caregiver" to listOf("circle1", "circle2")),
         activeCircleRepository.requests,
     )
-    assertEquals(listOf("circle1"), locationRepository.observedCircleIds)
+    assertEquals(listOf("circle1"), mediaLocationRepository.observedCircleIds)
   }
 
   @Test
   fun `shows Empty when no media has a place, saying when the phone is offline`() {
-    locationRepository.markers.value = emptyMap()
+    mediaLocationRepository.markers.value = emptyMap()
     val viewModel = createViewModel()
     assertEquals(MediaMapUIState.Empty(isOffline = false), viewModel.uiState.value)
 
@@ -131,7 +158,7 @@ class MediaMapViewModelTest {
 
   @Test
   fun `Content follows the connection and new pins live`() {
-    locationRepository.markers.value = mapOf("circle1" to genevaOnly)
+    mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
     val viewModel = createViewModel()
 
     connectivity.isOnline.value = false
@@ -140,7 +167,7 @@ class MediaMapViewModelTest {
         viewModel.uiState.value,
     )
 
-    locationRepository.markers.value = mapOf("circle1" to twoPins)
+    mediaLocationRepository.markers.value = mapOf("circle1" to twoPins)
     connectivity.isOnline.value = true
     assertEquals(
         MediaMapUIState.Content(markers = twoPins, isOffline = false),
@@ -150,14 +177,14 @@ class MediaMapViewModelTest {
 
   @Test
   fun `switching the active circle shows the new circle's pins and closes the open pin`() {
-    locationRepository.markers.value = mapOf("circle1" to twoPins, "circle2" to genevaOnly)
+    mediaLocationRepository.markers.value = mapOf("circle1" to twoPins, "circle2" to genevaOnly)
     val viewModel = createViewModel()
     viewModel.selectMarker(twoPins[1].id) // Geneva, also a pin of circle2
 
     activeCircleRepository.activeId.tryEmit("circle2")
 
     assertEquals(MediaMapUIState.Content(markers = genevaOnly), viewModel.uiState.value)
-    assertEquals(listOf("circle1", "circle2"), locationRepository.observedCircleIds)
+    assertEquals(listOf("circle1", "circle2"), mediaLocationRepository.observedCircleIds)
   }
 
   @Test
@@ -166,7 +193,7 @@ class MediaMapViewModelTest {
 
     activeCircleRepository.activeId.tryEmit("circle1")
 
-    assertEquals(listOf("circle1"), locationRepository.observedCircleIds)
+    assertEquals(listOf("circle1"), mediaLocationRepository.observedCircleIds)
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -206,7 +233,7 @@ class MediaMapViewModelTest {
 
     val newPicture = MediaItem.Picture(id = "p2", location = lausanne)
     val updated = (listOf(newPicture) + lausanneMedia + genevaMedia).toMediaMarkers()
-    locationRepository.markers.value = mapOf("circle1" to updated)
+    mediaLocationRepository.markers.value = mapOf("circle1" to updated)
 
     assertEquals(listOf(newPicture) + lausanneMedia, viewModel.content().selectedMarker?.media)
   }
@@ -216,10 +243,10 @@ class MediaMapViewModelTest {
     val viewModel = createViewModel()
     viewModel.selectMarker(twoPins[0].id)
 
-    locationRepository.markers.value = mapOf("circle1" to genevaOnly)
+    mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
     assertNull(viewModel.content().selectedMarker)
 
-    locationRepository.markers.value = mapOf("circle1" to twoPins)
+    mediaLocationRepository.markers.value = mapOf("circle1" to twoPins)
     assertNull(viewModel.content().selectedMarker)
   }
 
@@ -265,7 +292,7 @@ class MediaMapViewModelTest {
 
   @Test
   fun `pins failing before any is shown is a blocking error`() {
-    locationRepository.failures["circle1"] = denied
+    mediaLocationRepository.failures["circle1"] = denied
 
     val viewModel = createViewModel()
 
@@ -279,7 +306,7 @@ class MediaMapViewModelTest {
   fun `the new circle's pins failing at once is a blocking error, not an endless loading`() {
     // The switch and the failure both happen before the state catches up, as on the main thread
     useStandardDispatcher()
-    locationRepository.failures["circle2"] = denied
+    mediaLocationRepository.failures["circle2"] = denied
     val viewModel = createViewModel()
     advanceMain()
     assertEquals(twoPins, viewModel.content().markers)
@@ -315,25 +342,177 @@ class MediaMapViewModelTest {
 
   @Test
   fun `retry loads again after an error, and from the pins closes the open pin`() {
-    locationRepository.failures["circle1"] = denied
+    mediaLocationRepository.failures["circle1"] = denied
     val viewModel = createViewModel()
 
-    locationRepository.failures.clear()
+    mediaLocationRepository.failures.clear()
     viewModel.retry()
     assertEquals(MediaMapUIState.Content(markers = twoPins), viewModel.uiState.value)
 
     viewModel.selectMarker(twoPins[0].id)
     viewModel.retry()
     assertEquals(MediaMapUIState.Content(markers = twoPins), viewModel.uiState.value)
-    assertEquals(listOf("circle1", "circle1", "circle1"), locationRepository.observedCircleIds)
+    assertEquals(listOf("circle1", "circle1", "circle1"), mediaLocationRepository.observedCircleIds)
   }
 
-  private fun useStandardDispatcher() {
-    standardDispatcher = StandardTestDispatcher().also { Dispatchers.setMain(it) }
+  // ---------------------------------------------------------------------------------------------
+  // Live location
+  // ---------------------------------------------------------------------------------------------
+
+  // A good GPS fix at the Lausanne pin, then half the radius north of it, and five times the
+  // radius north of it
+  private val atLausannePin =
+      DevicePosition(
+          checkNotNull(lausanne.lat),
+          checkNotNull(lausanne.lng),
+          accuracyMeters = GPS_ACCURACY_METERS,
+      )
+  private val nearLausanne = atLausannePin.movedNorth(NEARBY_RADIUS_METERS / 2)
+  private val farFromLausanne = atLausannePin.movedNorth(NEARBY_RADIUS_METERS * 5)
+
+  private fun MediaMapViewModel.location() = locationState.value
+
+  @Test
+  fun `without the permission the map works without the GPS, until the user allows it`() {
+    locationUpdates.permission = false
+    val viewModel = createViewModel()
+    viewModel.showMap()
+
+    assertEquals(MediaMapLocationState.NoPermission, viewModel.location())
+    assertEquals(0, locationUpdates.activeCollectors)
+    assertEquals(twoPins, viewModel.content().markers)
+
+    locationUpdates.permission = true
+    viewModel.refreshPermission()
+    assertEquals(MediaMapLocationState.Searching, viewModel.location())
+    assertEquals(1, locationUpdates.activeCollectors)
+
+    locationUpdates.permission = false
+    viewModel.refreshPermission()
+    assertEquals(MediaMapLocationState.NoPermission, viewModel.location())
+    assertEquals(0, locationUpdates.activeCollectors)
   }
+
+  @Test
+  fun `a precise position shows the pin within the radius as near you, and none once further`() {
+    val viewModel = createViewModel()
+    viewModel.showMap()
+
+    locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
+    val located = viewModel.location() as MediaMapLocationState.Located
+    assertEquals(MediaMapLocationState.Located(nearLausanne, nearbyMarker = twoPins[0]), located)
+    assertTrue(located.isPrecise)
+
+    locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
+    assertEquals(MediaMapLocationState.Located(farFromLausanne), viewModel.location())
+  }
+
+  @Test
+  fun `an approximate or unknown accuracy shows the position but no pin near you`() {
+    val viewModel = createViewModel()
+    viewModel.showMap()
+
+    val approximate = nearLausanne.copy(accuracyMeters = APPROXIMATE_ACCURACY_METERS)
+    locationUpdates.updates.value = LocationUpdate.Position(approximate)
+    val located = viewModel.location() as MediaMapLocationState.Located
+    assertEquals(MediaMapLocationState.Located(approximate, nearbyMarker = null), located)
+    assertFalse(located.isPrecise)
+
+    val unknownAccuracy = nearLausanne.copy(accuracyMeters = null)
+    locationUpdates.updates.value = LocationUpdate.Position(unknownAccuracy)
+    assertEquals(MediaMapLocationState.Located(unknownAccuracy), viewModel.location())
+  }
+
+  @Test
+  fun `the pin near you follows the pins as they change`() {
+    mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
+    val viewModel = createViewModel()
+    viewModel.showMap()
+    locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
+    assertEquals(MediaMapLocationState.Located(nearLausanne), viewModel.location())
+
+    mediaLocationRepository.markers.value = mapOf("circle1" to twoPins)
+
+    assertEquals(
+        MediaMapLocationState.Located(nearLausanne, nearbyMarker = twoPins[0]),
+        viewModel.location(),
+    )
+  }
+
+  @Test
+  fun `follows the location turned off and on again, searching before the position`() {
+    locationUpdates.updates.value = LocationUpdate.LocationOff
+    val viewModel = createViewModel()
+    viewModel.showMap()
+    assertEquals(MediaMapLocationState.LocationOff, viewModel.location())
+
+    locationUpdates.updates.value = LocationUpdate.Searching
+    assertEquals(MediaMapLocationState.Searching, viewModel.location())
+
+    locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
+    assertEquals(MediaMapLocationState.Located(farFromLausanne), viewModel.location())
+  }
+
+  @Test
+  fun `a permission taken back while the map shows the position is NoPermission`() {
+    val viewModel = createViewModel()
+    viewModel.showMap()
+    locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
+    assertTrue(viewModel.location() is MediaMapLocationState.Located)
+
+    locationUpdates.permission = false
+    locationUpdates.failure.value = SecurityException("permission taken back")
+    assertEquals(MediaMapLocationState.NoPermission, viewModel.location())
+
+    locationUpdates.failure.value = null
+    locationUpdates.permission = true
+    viewModel.refreshPermission()
+    assertEquals(
+        MediaMapLocationState.Located(nearLausanne, nearbyMarker = twoPins[0]),
+        viewModel.location(),
+    )
+  }
+
+  @Test
+  fun `a phone that can't give its position is Unavailable, and the map still works`() {
+    locationUpdates.failure.value = IllegalStateException("Google Play services missing")
+    val viewModel = createViewModel()
+    viewModel.showMap()
+
+    assertEquals(MediaMapLocationState.Unavailable, viewModel.location())
+    assertEquals(twoPins, viewModel.content().markers)
+  }
+
+  @Test
+  fun `the GPS runs only while the map is shown, and stops a while after it is closed`() {
+    val scheduler = useStandardDispatcher().scheduler
+    val viewModel = createViewModel()
+    advanceMain()
+    assertEquals(0, locationUpdates.activeCollectors)
+
+    val map = viewModel.showMap()
+    advanceMain()
+    assertEquals(1, locationUpdates.activeCollectors)
+
+    map.cancel()
+    scheduler.advanceTimeBy(MAP_LOCATION_STOP_DELAY_MILLIS - 1)
+    scheduler.runCurrent()
+    assertEquals(1, locationUpdates.activeCollectors) // a screen rotation doesn't restart it
+
+    scheduler.advanceTimeBy(2) // now just past the delay
+    scheduler.runCurrent()
+    assertEquals(0, locationUpdates.activeCollectors)
+  }
+
+  private fun useStandardDispatcher(): TestDispatcher =
+      StandardTestDispatcher().also {
+        standardDispatcher = it
+        Dispatchers.setMain(it)
+      }
 
   /** Runs everything waiting on the dispatcher of [useStandardDispatcher]. */
   private fun advanceMain() {
-    standardDispatcher!!.scheduler.advanceUntilIdle()
+    val dispatcher = checkNotNull(standardDispatcher) { "Call useStandardDispatcher() first" }
+    dispatcher.scheduler.advanceUntilIdle()
   }
 }

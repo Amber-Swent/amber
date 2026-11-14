@@ -11,11 +11,19 @@ import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.connectivity.ConnectivityMonitor
 import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
+import com.github.se.amber.data.location.LocationUpdate
+import com.github.se.amber.data.location.LocationUpdatesRepository
+import com.github.se.amber.data.location.LocationUpdatesRepositoryProvider
 import com.github.se.amber.data.location.MediaLocationRepository
 import com.github.se.amber.data.location.MediaLocationRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.model.location.DevicePosition
 import com.github.se.amber.model.location.MediaMarker
+import com.github.se.amber.model.location.NEARBY_MAX_ACCURACY_METERS
+import com.github.se.amber.model.location.NEARBY_RADIUS_METERS
+import com.github.se.amber.model.location.isPreciseWithin
+import com.github.se.amber.model.location.nearestWithin
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -62,22 +70,70 @@ sealed interface MediaMapUIState {
 }
 
 /**
+ * Where the user is on the memories map, kept apart from [MediaMapUIState] so the GPS runs only
+ * while the screen shows the map. The map works the same in every state, only without the dot.
+ */
+sealed interface MediaMapLocationState {
+
+  /** The user didn't let the app read the location: the screen can explain why and ask. */
+  data object NoPermission : MediaMapLocationState
+
+  /** The location is turned off in the phone's settings: the screen can ask to turn it on. */
+  data object LocationOff : MediaMapLocationState
+
+  /** Looking for the position. Not an error: without internet, the first one can take a while. */
+  data object Searching : MediaMapLocationState
+
+  /**
+   * The phone can't give its position (e.g. no Google Play services). It is tried again the next
+   * time the map is shown, after being closed for [MAP_LOCATION_STOP_DELAY_MILLIS], or when the
+   * permission changes.
+   */
+  data object Unavailable : MediaMapLocationState
+
+  /**
+   * The user is at [position]. [nearbyMarker] is the pin within [NEARBY_RADIUS_METERS] of it, the
+   * nearest if several are; null if none is that close, or if the position isn't [isPrecise].
+   */
+  data class Located(val position: DevicePosition, val nearbyMarker: MediaMarker? = null) :
+      MediaMapLocationState {
+
+    /**
+     * Whether the position is known well enough to say which pin is near: false with the
+     * approximate location (the screen can ask for the precise one) or a poor GPS fix.
+     */
+    val isPrecise: Boolean
+      get() = position.isPreciseWithin(NEARBY_MAX_ACCURACY_METERS)
+  }
+}
+
+/**
+ * How long the GPS keeps running after the map stops being shown: long enough for a screen
+ * rotation, short enough not to run in the background.
+ */
+internal const val MAP_LOCATION_STOP_DELAY_MILLIS = 5_000L
+
+/**
  * Loads the pins of the signed-in user's active care circle, patient or caregiver, and keeps them
- * live. Switching the active circle reloads the pins of the new one.
+ * live. Switching the active circle reloads the pins of the new one. While the map is shown, it
+ * also follows the user's live position and finds the pin near them ([locationState]).
  *
- * @param locationRepository gives the pins of a circle.
+ * @param mediaLocationRepository gives the pins of a circle.
  * @param profileRepository gives the signed-in user's profile and circles.
  * @param activeCircleRepository picks which of their circles to show.
  * @param connectivityMonitor tells whether the phone is offline, so the screen can say so.
+ * @param locationUpdatesRepository gives the user's live position, and whether they allowed it.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MediaMapViewModel(
-    private val locationRepository: MediaLocationRepository =
+    private val mediaLocationRepository: MediaLocationRepository =
         MediaLocationRepositoryProvider.default.repository,
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val activeCircleRepository: ActiveCircleRepository =
         ActiveCircleRepositoryProvider.default.repository,
     connectivityMonitor: ConnectivityMonitor = ConnectivityMonitorProvider.monitor,
+    private val locationUpdatesRepository: LocationUpdatesRepository =
+        LocationUpdatesRepositoryProvider.default.repository,
 ) : ViewModel() {
 
   /** The pins, or why there are none yet; the open pin and the offline flag are kept apart. */
@@ -117,6 +173,33 @@ class MediaMapViewModel(
           }
           .stateIn(viewModelScope, SharingStarted.Eagerly, MediaMapUIState.Loading)
 
+  private val hasLocationPermission = MutableStateFlow(locationUpdatesRepository.hasPermission())
+
+  /**
+   * The user's position and the pin near them. The GPS runs only while this is collected, and stops
+   * [MAP_LOCATION_STOP_DELAY_MILLIS] after the last collector leaves: collect it with
+   * `collectAsStateWithLifecycle()`, so it stops when the app goes to the background.
+   */
+  val locationState: StateFlow<MediaMapLocationState> =
+      hasLocationPermission
+          .flatMapLatest { granted ->
+            if (granted) positions() else flowOf(MediaMapLocationState.NoPermission)
+          }
+          .combine(loaded) { location, loaded ->
+            if (location !is MediaMapLocationState.Located || !location.isPrecise) {
+              return@combine location
+            }
+            val markers = (loaded as? Loaded.Markers)?.markers.orEmpty()
+            location.copy(nearbyMarker = markers.nearestWithin(location.position))
+          }
+          .distinctUntilChanged()
+          .stateIn(
+              viewModelScope,
+              SharingStarted.WhileSubscribed(MAP_LOCATION_STOP_DELAY_MILLIS),
+              if (hasLocationPermission.value) MediaMapLocationState.Searching
+              else MediaMapLocationState.NoPermission,
+          )
+
   private var loadJob: Job? = null
 
   init {
@@ -135,6 +218,14 @@ class MediaMapViewModel(
   /** Closes the media of the selected pin. */
   fun dismissMarker() {
     selectedMarkerId.value = null
+  }
+
+  /**
+   * Reads again whether the user allows the location. The screen calls it once the permission
+   * dialog closes, and when it comes back to the foreground, in case it changed in the settings.
+   */
+  fun refreshPermission() {
+    hasLocationPermission.value = locationUpdatesRepository.hasPermission()
   }
 
   /** Clears the non-blocking error message. */
@@ -187,7 +278,7 @@ class MediaMapViewModel(
   private fun markersOf(circleId: String): Flow<Loaded> {
     // Whether this circle's pins were shown; loaded may still hold the previous circle's
     var shown = false
-    return locationRepository
+    return mediaLocationRepository
         .observeMarkers(circleId)
         .map<List<MediaMarker>, Loaded> { Loaded.Markers(it) }
         .onEach { shown = true }
@@ -201,6 +292,27 @@ class MediaMapViewModel(
           }
         }
   }
+
+  /** The live position; the repository first says whether the location is on. */
+  private fun positions(): Flow<MediaMapLocationState> =
+      locationUpdatesRepository
+          .observeLocation()
+          .map { update ->
+            when (update) {
+              LocationUpdate.LocationOff -> MediaMapLocationState.LocationOff
+              LocationUpdate.Searching -> MediaMapLocationState.Searching
+              is LocationUpdate.Position -> MediaMapLocationState.Located(update.position)
+            }
+          }
+          .catch { e ->
+            if (e is SecurityException) {
+              // Taken back in the settings: the flow above switches to NoPermission
+              hasLocationPermission.value = false
+            } else {
+              Log.e(TAG, "Error reading the location", e)
+              emit(MediaMapLocationState.Unavailable)
+            }
+          }
 
   private companion object {
     const val TAG = "MediaMapViewModel"
