@@ -171,7 +171,7 @@ fun MediaCard(
                     modifier = Modifier.testTag(MediaCardTestTags.description(media.id)),
                 )
                 Text(
-                    text = stringResource(R.string.mediaCardAddedBy, uiState.addedByNickname),
+                    text = stringResource(R.string.mediaCardAddedBy, uiState.addedByName),
                     modifier =
                         Modifier.align(Alignment.End).testTag(MediaCardTestTags.addedBy(media.id)),
                 )

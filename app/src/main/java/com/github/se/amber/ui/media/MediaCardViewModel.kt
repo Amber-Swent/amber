@@ -24,13 +24,14 @@ import kotlinx.coroutines.launch
 /**
  * UI state of one [MediaCard].
  *
- * @property addedByNickname name of the person who added the media.
+ * @property addedByName name of the person who added the media: its nickname if it has one,
+ *   otherwise its first name.
  * @property relatedPersons the persons shown in the media.
  * @property isLoading whether the names are still loading.
  * @property errorMsgRes the error to show in a toast, as a string resource, or null for none.
  */
 data class MediaCardUIState(
-    val addedByNickname: String = "",
+    val addedByName: String = "",
     val relatedPersons: List<Person> = emptyList(),
     val isLoading: Boolean = true,
     @param:StringRes val errorMsgRes: Int? = null,
@@ -78,8 +79,9 @@ class MediaCardViewModel(
   }
 
   /**
-   * Loads the data needed to display the card of [media]: the nickname of the person who added it
-   * and the nickames of all the related persons Cancels any previous load still running.
+   * Loads the data needed to display the card of [media]: the name of the person who added it (its
+   * nickname if it has one, otherwise its first name) and the persons related to it. Cancels any
+   * previous load still running.
    *
    * @param media the media we want the card of
    */
@@ -105,9 +107,9 @@ class MediaCardViewModel(
       }
       _uiState.value =
           MediaCardUIState(
-              // TODO replace this by the nickname once it is add to the createProfile screen, for
-              // M3
-              addedByNickname = authorProfile.person.firstName,
+              addedByName =
+                  authorProfile.person.nickname?.takeIf { it.isNotBlank() }
+                      ?: authorProfile.person.firstName,
               isLoading = false,
           )
       // Nothing to look up if nobody is credited on this media
