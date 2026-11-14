@@ -34,6 +34,9 @@ private const val SAME_SPOT_DECIMALS = 5
 
 private val SAME_SPOT_SCALE = 10.0.pow(SAME_SPOT_DECIMALS)
 
+/** The size of a cell of the grid media share pins in, in degrees (about 1 m). */
+internal val SAME_SPOT_CELL_DEGREES = 1 / SAME_SPOT_SCALE
+
 /**
  * The pins for these media, in the order of their newest media. Media without a real point (no
  * location, a place known only by its name, or coordinates out of range) are left out, so they get

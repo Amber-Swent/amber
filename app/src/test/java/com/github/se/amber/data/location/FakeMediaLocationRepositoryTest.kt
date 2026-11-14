@@ -2,8 +2,8 @@
 
 package com.github.se.amber.data.location
 
-import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.MediaMarker
+import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.location.toMediaMarkers
 import com.github.se.amber.model.media.MediaItem
 import kotlinx.coroutines.flow.catch
@@ -18,9 +18,7 @@ import org.junit.Test
 
 class FakeMediaLocationRepositoryTest {
 
-  private val pins =
-      listOf(MediaItem.Picture(id = "p1", location = GeoLocation(lat = 46.5, lng = 6.6)))
-          .toMediaMarkers()
+  private val pins = listOf(MediaItem.Picture(id = "p1", location = LAUSANNE)).toMediaMarkers()
 
   @Test
   fun `gives each circle its own pins, live, and records the circles asked for`() = runTest {
