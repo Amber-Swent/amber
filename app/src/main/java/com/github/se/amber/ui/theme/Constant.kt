@@ -129,8 +129,11 @@ const val WEIGHT_TWO = 2f
 
 const val DIALOG_WIDTH = 0.8f
 
-/** Minimum height of the text of the microphone popups, as a fraction of the screen height. */
-const val MICROPHONE_DIALOG_TEXT_HEIGHT_FRACTION = 0.3f
+/**
+ * Shortest a popup gets, as a fraction of the screen height. A popup whose content needs more is
+ * taller.
+ */
+const val POPUP_DIALOG_MIN_HEIGHT_FRACTION = 0.5f
 const val CAREGIVER_TITLE_WIDTH = 1f
 
 // ------- AUDIO PLAYBACK -------

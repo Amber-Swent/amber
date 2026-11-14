@@ -5,20 +5,16 @@ package com.github.se.amber.ui.caregiver.upload.audios
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
-import com.github.se.amber.ui.theme.MICROPHONE_DIALOG_TEXT_HEIGHT_FRACTION
 import com.github.se.amber.ui.utils.PopupDialog
 
 /**
@@ -119,11 +115,7 @@ internal fun MicrophoneDialog(
       dismissTestTag = dismissTestTag,
       actionTestTag = actionTestTag,
   ) {
-    // As tall as the date picker popup, so the popups of the app look alike
-    val screenHeight =
-        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
     Column(
-        modifier = Modifier.heightIn(min = screenHeight * MICROPHONE_DIALOG_TEXT_HEIGHT_FRACTION),
         verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
     ) {
       Text(

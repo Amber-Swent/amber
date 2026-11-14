@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.utils
 
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +23,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
@@ -30,13 +34,15 @@ import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.DIALOG_WIDTH
+import com.github.se.amber.ui.theme.POPUP_DIALOG_MIN_HEIGHT_FRACTION
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /**
  * Shared popup frame with a title, close button, caller content, and one bottom action.
  *
  * The surface uses the theme colors and applies IME padding so form content remains accessible
- * while the keyboard is open. Dismissal and action callbacks are owned by the caller.
+ * while the keyboard is open. It is at least [POPUP_DIALOG_MIN_HEIGHT_FRACTION] of the screen high,
+ * and taller if its content needs more. Dismissal and action callbacks are owned by the caller.
  *
  * @param modifier modifier applied to the popup surface.
  * @param title text shown in the popup header.
@@ -67,38 +73,48 @@ fun PopupDialog(
     content: @Composable () -> Unit = {},
 ) {
   Dialog(onDismissRequest = onDismiss, properties = properties) {
+    val minHeight =
+        with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } *
+            POPUP_DIALOG_MIN_HEIGHT_FRACTION
     Surface(
-        modifier = modifier.fillMaxWidth(DIALOG_WIDTH).testTag(dialogTestTag),
+        modifier =
+            modifier.fillMaxWidth(DIALOG_WIDTH).heightIn(min = minHeight).testTag(dialogTestTag),
         shape = RoundedCornerShape(ROUND_CORNER),
         color = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
+      // The title and the content stay on top, the action button goes to the bottom: when the popup
+      // is taller than its content (see the minimum height), the free space is left between them
       Column(
           modifier =
               Modifier.imePadding()
                   .verticalScroll(rememberScrollState())
                   .padding(CAREGIVER_PADDING_MEDIUM),
-          verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM),
+          verticalArrangement = Arrangement.SpaceBetween,
       ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-          DisplayCaregiverTitle(
-              modifier = Modifier.weight(1f).testTag(titleTestTag),
-              title = title,
-          )
-          IconButton(
-              onClick = onDismiss,
-              modifier = Modifier.testTag(dismissTestTag),
-          ) {
-            Icon(
-                Icons.Default.Close,
-                contentDescription = stringResource(R.string.popupDialogClose),
-                tint = MaterialTheme.colorScheme.onSurface,
+        Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_MEDIUM)) {
+          Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            DisplayCaregiverTitle(
+                modifier = Modifier.weight(1f).testTag(titleTestTag),
+                title = title,
             )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.testTag(dismissTestTag),
+            ) {
+              Icon(
+                  Icons.Default.Close,
+                  contentDescription = stringResource(R.string.popupDialogClose),
+                  tint = MaterialTheme.colorScheme.onSurface,
+              )
+            }
           }
+          content()
         }
-        content()
         DisplayCaregiverButton(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
+            modifier =
+                Modifier.align(Alignment.CenterHorizontally)
+                    .padding(top = CAREGIVER_PADDING_MEDIUM),
             onClick = onAction,
             enabled = actionEnabled,
             text = actionText,
