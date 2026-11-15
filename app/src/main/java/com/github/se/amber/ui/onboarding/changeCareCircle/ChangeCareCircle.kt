@@ -94,7 +94,8 @@ fun ChangeCareCircleScreen(
       },
   ) { paddingValues ->
     when (uiState.status) {
-      ChangeCareCircleStatus.LOADING, ChangeCareCircleStatus.EMPTY -> {
+      ChangeCareCircleStatus.LOADING,
+      ChangeCareCircleStatus.EMPTY -> {
         Box(
             modifier =
                 Modifier.fillMaxSize()
@@ -124,7 +125,10 @@ fun ChangeCareCircleScreen(
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = CAREGIVER_PADDING_MEDIUM, vertical = CAREGIVER_PADDING_BIG),
+                    .padding(
+                        horizontal = CAREGIVER_PADDING_MEDIUM,
+                        vertical = CAREGIVER_PADDING_BIG,
+                    ),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
         ) {
           Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
@@ -179,44 +183,36 @@ fun ChangeCareCircleScreen(
 @Preview(name = "Loading care circles", showBackground = true, showSystemUi = true)
 @Composable
 internal fun ChangeCareCircleLoadingScreenPreview() {
-    val previewViewModel =
-        remember {
-            ChangeCareCircleViewModel(
-                ChangeCareCircleUIState(status = ChangeCareCircleStatus.LOADING)
-            )
-        }
-    AmberAppTheme(dynamicColor = false) {
-        ChangeCareCircleScreen(viewModel = previewViewModel)
-    }
+  val previewViewModel = remember {
+    ChangeCareCircleViewModel(ChangeCareCircleUIState(status = ChangeCareCircleStatus.LOADING))
+  }
+  AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
 }
 
 @Preview(name = "No care circles", showBackground = true, showSystemUi = true)
 @Composable
 internal fun ChangeCareCircleEmptyScreenPreview() {
   val previewViewModel = remember { ChangeCareCircleViewModel() }
-  AmberAppTheme(dynamicColor = false) {
-    ChangeCareCircleScreen(viewModel = previewViewModel)
-  }
+  AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
 }
 
 @Preview(name = "care circles", showBackground = true, showSystemUi = true)
 @Composable
 internal fun ChangeCareCircleScreenPreview() {
-  val previewViewModel =
-      remember {
-        ChangeCareCircleViewModel(
-            ChangeCareCircleUIState(
-                status = ChangeCareCircleStatus.READY,
-                circles =
-                    listOf(
-                        ChangeCareCircleChoice("one", "Cira's circle"),
-                        ChangeCareCircleChoice("two", "Eloise's circle"),
-                        ChangeCareCircleChoice("three", "Flora's circle"),
-                        ChangeCareCircleChoice("four", "Natsu's circle"),
-                    ),
-                activeCircleId = "two",
-            )
+  val previewViewModel = remember {
+    ChangeCareCircleViewModel(
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.READY,
+            circles =
+                listOf(
+                    ChangeCareCircleChoice("one", "Cira's circle"),
+                    ChangeCareCircleChoice("two", "Eloise's circle"),
+                    ChangeCareCircleChoice("three", "Flora's circle"),
+                    ChangeCareCircleChoice("four", "Natsu's circle"),
+                ),
+            activeCircleId = "two",
         )
-      }
+    )
+  }
   AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
 }
