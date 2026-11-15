@@ -5,8 +5,8 @@
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
@@ -61,9 +61,10 @@ class SeePicturesViewModelTest {
     // Unconfined: the coroutines launched in init run immediately, no need to advance time
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
   }
@@ -74,7 +75,29 @@ class SeePicturesViewModelTest {
   }
 
   private fun createViewModel() =
-      SeePicturesViewModel(mediaRepository, circleRepository, profileRepository, activeCircleRepository)
+      SeePicturesViewModel(
+          mediaRepository,
+          circleRepository,
+          profileRepository,
+          activeCircleRepository,
+      )
+
+  @Test
+  fun `loads pictures from the active circle when it is second`() {
+    val activeCircle = CareCircle(id = "circle2")
+    coEvery { profileRepository.getCurrentProfile() } returns
+        Result.success(profile.copy(circleIds = listOf("circle1", "circle2")))
+    every { activeCircleRepository.activeCircleId("patient", listOf("circle1", "circle2")) } returns
+        flowOf("circle2")
+    coEvery { circleRepository.getCircle("circle2") } returns Result.success(activeCircle)
+    coEvery { mediaRepository.observeApprovedMedia("circle2") } returns flowOf(listOf(picture1))
+
+    val state = createViewModel().uiState.value as SeePicturesUIState.Content
+
+    assertEquals(activeCircle, state.careCircle)
+    assertEquals(listOf(picture1), state.allPictures)
+    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia("circle1") }
+  }
 
   // ---------------------------------------------------------------------------------------------
   // Content / Empty

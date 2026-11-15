@@ -7,8 +7,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.AudioRecorder
 import com.github.se.amber.data.media.audio.AudioState
@@ -87,9 +87,10 @@ class UploadAudioViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
-    every { activeCircleRepo.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepo.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     placeRepo = mockk()
     recorder = FakeAudioRecorder(tempFolder.newFolder())
     player = FakeAudioPlayer()

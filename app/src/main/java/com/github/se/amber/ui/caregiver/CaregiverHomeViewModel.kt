@@ -11,10 +11,10 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
@@ -113,7 +113,8 @@ class CaregiverHomeViewModel(
       _uiState.update { it.copy(caregiver = caregiver) }
 
       // 2. Active care circle id of the caregiver
-      val circleId = activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).first()
+      val circleId =
+          activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).first()
       if (circleId == null) {
         setErrorMsg(R.string.caregiverHomeErrorNoCircle)
         return@launch

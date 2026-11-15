@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
@@ -31,12 +31,12 @@ import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
 import io.mockk.every
-import kotlinx.coroutines.flow.flowOf
 import io.mockk.mockk
 import java.time.Month
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -82,9 +82,10 @@ class MediaCardTest {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     ShadowToast.reset()
     coEvery { profileRepository.getProfile("author") } returns Result.success(authorProfile)
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
   }
 
   @After

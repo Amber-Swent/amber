@@ -15,10 +15,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
 import com.github.se.amber.data.media.picture.CapturedPictureSource

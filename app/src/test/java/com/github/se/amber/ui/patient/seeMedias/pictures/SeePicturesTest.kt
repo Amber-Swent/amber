@@ -19,8 +19,8 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
@@ -36,6 +36,7 @@ import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -90,7 +91,8 @@ class SeePicturesScreenTest {
             object : ViewModelProvider.Factory {
               @Suppress("UNCHECKED_CAST")
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                  MediaCardViewModel(profileRepository, circleRepository, activeCircleRepository) as T
+                  MediaCardViewModel(profileRepository, circleRepository, activeCircleRepository)
+                      as T
             }
       }
 
@@ -98,9 +100,10 @@ class SeePicturesScreenTest {
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.success(CareCircle(id = "circle1"))
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
@@ -117,7 +120,13 @@ class SeePicturesScreenTest {
       onBackClick: () -> Unit = {},
       onTabSelected: (Tab) -> Unit = {},
   ): SeePicturesViewModel {
-    val viewModel = SeePicturesViewModel(mediaRepository, circleRepository, profileRepository, activeCircleRepository)
+    val viewModel =
+        SeePicturesViewModel(
+            mediaRepository,
+            circleRepository,
+            profileRepository,
+            activeCircleRepository,
+        )
     composeTestRule.setContent {
       CompositionLocalProvider(LocalViewModelStoreOwner provides mediaCardOwner) {
         AmberAppTheme(dynamicColor = false) {

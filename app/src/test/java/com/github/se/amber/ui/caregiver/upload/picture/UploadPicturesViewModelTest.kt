@@ -12,8 +12,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.picture.CapturedPictureSource
 import com.github.se.amber.data.media.picture.PickedImage
@@ -99,9 +99,10 @@ class UploadPictureViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
-    every { activeCircleRepo.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepo.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     pictureReader = mockk()
     capturedPictureSource = mockk(relaxUnitFun = true)
     placeRepo = mockk()

@@ -8,8 +8,8 @@ package com.github.se.amber.ui.caregiver
 
 import android.util.Log
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Role
@@ -59,9 +59,10 @@ class CaregiverHomeViewModelTest {
   fun setup() {
     profileRepo = mockk()
     circleRepo = mockk()
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -84,6 +85,23 @@ class CaregiverHomeViewModelTest {
     assertEquals(patient, state.patient)
     assertEquals(Role.PATIENT, state.patient.role)
     assertNull(state.errorMsgRes)
+  }
+
+  @Test
+  fun load_usesActiveCircleWhenItIsNotFirst() {
+    val activeCircle = CareCircle(id = "circle2", patientId = "p2")
+    val activePatient = UserProfile(uid = "p2", role = Role.PATIENT)
+    coEvery { profileRepo.getCurrentProfile() } returns
+        Result.success(caregiver.copy(circleIds = listOf("circle1", "circle2")))
+    every { activeCircleRepository.activeCircleId("cg1", listOf("circle1", "circle2")) } returns
+        flowOf("circle2")
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(activeCircle)
+    coEvery { profileRepo.getProfile("p2") } returns Result.success(activePatient)
+
+    val state = createVm().uiState.value
+
+    assertEquals(activeCircle, state.careCircle)
+    assertEquals(activePatient, state.patient)
   }
 
   @Test

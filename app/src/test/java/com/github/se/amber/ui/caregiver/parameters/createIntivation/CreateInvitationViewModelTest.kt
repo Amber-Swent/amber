@@ -7,9 +7,9 @@
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepository
 import com.github.se.amber.data.invitation.InvitationCreationResult
 import com.github.se.amber.data.invitation.InvitationLookupRepository
@@ -23,12 +23,12 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
-import io.mockk.every
-import io.mockk.mockk
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -65,9 +65,10 @@ class CreateInvitationViewModelTest {
     circles = FakeCircleRepository(mapOf("circle-1" to circle("circle-1", "Arthur's family")))
     lookup = FakeLookupRepository()
     creation = FakeCreationRepository()
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
   }
 
   @After
@@ -153,6 +154,28 @@ class CreateInvitationViewModelTest {
         assertEquals(listOf(stored), viewModel.uiState.value.invitations)
         assertNull(viewModel.uiState.value.errorMsgRes)
         assertNull(viewModel.uiState.value.generatedCode)
+      }
+
+  @Test
+  fun startsWithTheActiveCircleWhenItIsSecond() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile("circle-1", "circle-2"))
+        circles =
+            FakeCircleRepository(
+                mapOf(
+                    "circle-1" to circle("circle-1", "Arthur's family"),
+                    "circle-2" to circle("circle-2", "Bea's family"),
+                )
+            )
+        every {
+          activeCircleRepository.activeCircleId("caregiver-1", listOf("circle-1", "circle-2"))
+        } returns flowOf("circle-2")
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
+        assertEquals(listOf("circle-2"), lookup.requestedCircleIds)
       }
 
   @Test

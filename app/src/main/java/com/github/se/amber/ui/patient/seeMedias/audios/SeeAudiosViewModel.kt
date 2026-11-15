@@ -8,10 +8,10 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.media.audio.AudioState

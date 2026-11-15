@@ -5,8 +5,8 @@
 package com.github.se.amber.ui.media
 
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
@@ -71,9 +71,10 @@ class MediaCardViewModelTest {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getProfile("author") } returns Result.success(authorProfile)
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(currentProfile)
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
-      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circleWith())
     viewModel = MediaCardViewModel(profileRepository, circleRepository, activeCircleRepository)
   }
