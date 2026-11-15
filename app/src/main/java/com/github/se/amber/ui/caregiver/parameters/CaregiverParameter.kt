@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Mail
 import androidx.compose.material.icons.outlined.PersonAdd
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -54,6 +55,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 object CaregiverParametersTestTags {
   const val TITLE = "CaregiverParameter_test_tag_title"
   const val CREATE_CARE_CIRCLE_BUTTON = "CaregiverParameter_test_tag_create_care_circle_button"
+  const val SWITCH_CARE_CIRCLE_BUTTON = "CaregiverParameter_test_tag_switch_care_circle_button"
   const val CREATE_INVITATION_BUTTON = "CaregiverParameter_test_tag_create_invitation_button"
   const val ENTER_INVITATION_BUTTON = "CaregiverParameter_test_tag_enter_invitation_button"
   const val SIGN_OUT_BUTTON = "CaregiverParameter_test_tag_sign_out_button"
@@ -70,6 +72,7 @@ object CaregiverParametersTestTags {
  * @param viewModel ViewModel providing the UI state of the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
  * @param onCreateCareCircleClick Callback invoked when the user creates a new care circle.
+ * @param onSwitchCareCircleClick Callback invoked when the user opens care circle selection.
  * @param onCreateInvitationClick Callback invoked when the user creates an invitation.
  * @param onEnterInvitationClick Callback invoked when the user enters an invitation.
  * @param onSignOutClick Callback invoked when the user opens the sign-out confirmation screen.
@@ -81,6 +84,7 @@ fun CaregiverParameterScreen(
     viewModel: CaregiverParameterViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = {},
     onCreateCareCircleClick: () -> Unit = {},
+    onSwitchCareCircleClick: () -> Unit = {},
     onCreateInvitationClick: () -> Unit = {},
     onEnterInvitationClick: () -> Unit = {},
     onSignOutClick: () -> Unit = {},
@@ -91,6 +95,7 @@ fun CaregiverParameterScreen(
   // Configuration-aware resources, so the toast follows the app language
   val resources = LocalResources.current
   val createCareCircleLabel = stringResource(R.string.caregiverParameterCreateCareCircle)
+  val switchCareCircleLabel = stringResource(R.string.caregiverParameterSwitchCareCircle)
   val createInvitationLabel = stringResource(R.string.caregiverParameterCreateInvitation)
   val enterInvitationLabel = stringResource(R.string.caregiverParameterEnterInvitation)
   val signOutLabel = stringResource(R.string.caregiverParameterSignOut)
@@ -139,6 +144,13 @@ fun CaregiverParameterScreen(
               text = createCareCircleLabel,
               description = createCareCircleLabel,
               onClick = onCreateCareCircleClick,
+          )
+          DisplayButton(
+              modifier = Modifier.testTag(CaregiverParametersTestTags.SWITCH_CARE_CIRCLE_BUTTON),
+              icon = Icons.Outlined.SwapHoriz,
+              text = switchCareCircleLabel,
+              description = switchCareCircleLabel,
+              onClick = onSwitchCareCircleClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
