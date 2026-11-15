@@ -324,6 +324,17 @@ class SeeAudiosScreenTest {
   }
 
   @Test
+  fun empty_preview_uses_the_valid_circle_after_a_blank_id() {
+    composeTestRule.setContent { SeeAudiosScreenPreview() }
+
+    composeTestRule
+        .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
+        .assertIsDisplayed()
+        .assertTextEquals(string(R.string.seeAudiosEmpty))
+    composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
+  }
+
+  @Test
   fun loading_error_and_content_previews_show_their_states() {
     var preview by mutableIntStateOf(0)
     composeTestRule.setContent {

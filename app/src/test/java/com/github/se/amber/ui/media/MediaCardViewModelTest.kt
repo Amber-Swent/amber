@@ -6,6 +6,7 @@ package com.github.se.amber.ui.media
 
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -16,6 +17,9 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,6 +98,24 @@ class MediaCardViewModelTest {
     assertTrue(state.relatedNicknames.isEmpty())
     assertTrue(state.isLoading)
     assertNull(state.errorMsgRes)
+  }
+
+  @Test
+  fun defaultActiveCircleProviderIsUsedWhenRepositoryIsNotInjected() {
+    val provider = ActiveCircleRepositoryProvider.default
+    mockkObject(provider)
+    try {
+      every { provider.repository } returns activeCircleRepository
+      coEvery { circleRepository.getCircle("circle1") } returns
+          Result.success(circleWith("p1" to "Bob"))
+
+      MediaCardViewModel(profileRepository, circleRepository).load(media(shownIds = listOf("p1")))
+
+      verify(exactly = 1) { activeCircleRepository.activeCircleId("me", listOf("circle1")) }
+      coVerify(exactly = 1) { circleRepository.getCircle("circle1") }
+    } finally {
+      unmockkObject(provider)
+    }
   }
 
   // ---------- happy paths ----------

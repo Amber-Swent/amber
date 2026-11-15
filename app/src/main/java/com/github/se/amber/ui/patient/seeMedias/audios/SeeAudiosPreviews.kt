@@ -119,7 +119,7 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
           uid = "preview",
           role = Role.PATIENT,
           person = Person(firstName = "Circee"),
-          circleIds = listOf("preview"),
+          circleIds = listOf("", "preview"),
       )
   private val circle =
       CareCircle(id = "preview", people = mapOf("relative" to Person(firstName = "Evangeline")))

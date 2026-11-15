@@ -94,6 +94,20 @@ class CreateInvitationViewModelTest {
       }
 
   @Test
+  fun blankCircleIdsDoNotSelectOrLoadACircle() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile("", "  "))
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
+        assertNull(viewModel.uiState.value.selectedCircleId)
+        assertEquals(emptyList<String>(), lookup.requestedCircleIds)
+        assertEquals(emptyList<String>(), creation.requestedCircleIds)
+      }
+
+  @Test
   fun missingProfileSetsNotFound() =
       runTest(dispatcher) {
         profiles.result = Result.success(null)
