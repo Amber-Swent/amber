@@ -299,6 +299,38 @@ class UploadAudioViewModelTest {
     assertEquals(0, recorder.startCalls)
   }
 
+  @Test
+  fun twoConsecutiveMicrophoneRefusalsOpenSettingsOnlyAfterSecondRefusal() {
+    val vm = createViewModel()
+
+    // First request: the consent popup should open
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+
+    // User confirms, then refuses Android's permission request once
+    vm.dismissMicrophoneConsent()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+
+    // Amber should not show the settings popup yet
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+
+    // Second request: the consent popup should still open
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+
+    // User confirms, then refuses Android's permission request again
+    vm.dismissMicrophoneConsent()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+
+    // Now Amber should display the settings popup instead
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+
+    // Recording must never have started
+    assertEquals(0, recorder.startCalls)
+  }
+
   // ---------- startRecording ----------
 
   @Test
