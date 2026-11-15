@@ -54,10 +54,28 @@ object ChangeCareCircleTestTags {
   const val EMPTY_MESSAGE = "change_care_circle_empty_message"
   const val LOADING_INDICATOR = "change_care_circle_loading_indicator"
 
+  /**
+   * Builds the test tag for a care circle chip.
+   *
+   * @param circleId ID of the circle represented by the chip.
+   * @return The chip's stable test tag.
+   */
   fun circleChoice(circleId: String = "") = "change_care_circle_choice_$circleId"
 }
 
-/** Displays the active care circle and the caregiver's available circles. */
+/**
+ * Displays the care circles available to the caregiver.
+ *
+ * The screen collects [ChangeCareCircleViewModel.uiState] with lifecycle awareness. Loading shows a
+ * centered indicator; empty shows a centered message without circle details; ready shows the active
+ * circle name and one chip per available circle. If the active ID matches no circle, the
+ * current-circle value uses a localized fallback and no chip is selected. Chip clicks call
+ * [ChangeCareCircleViewModel.changeActiveCareCircle], whose persistence is still pending.
+ *
+ * @param viewModel Provides the screen state and receives chip selections.
+ * @param onBackClick Called when the top-bar back button is pressed.
+ * @param onTabSelected Called when a bottom-navigation tab is selected.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChangeCareCircleScreen(
