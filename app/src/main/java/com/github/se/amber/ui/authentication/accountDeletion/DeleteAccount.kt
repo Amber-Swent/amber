@@ -28,17 +28,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
-import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.authentication.DisplayAuthenticationButton
+import com.github.se.amber.ui.authentication.authenticationTextStyle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
-import com.github.se.amber.ui.patient.DisplayPatientButton
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
@@ -79,7 +78,7 @@ fun DeleteAccountScreen(
   val context = LocalContext.current
   val resources = LocalResources.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-  val textStyle = deleteAccountTextStyle(isPatient)
+  val textStyle = authenticationTextStyle(isPatient)
   val padding = if (isPatient) PATIENT_PADDING_MEDIUM else CAREGIVER_PADDING_BIG
 
   // Consume system Back while the deletion request is in progress.
@@ -162,7 +161,7 @@ fun DeleteAccountScreen(
                 )
               }
               uiState.warningsLoaded -> {
-                DeleteAccountButton(
+                DisplayAuthenticationButton(
                     isPatient = isPatient,
                     text =
                         if (uiState.localCleanupNeeded)
@@ -180,7 +179,7 @@ fun DeleteAccountScreen(
                 )
               }
               else -> {
-                DeleteAccountButton(
+                DisplayAuthenticationButton(
                     isPatient = isPatient,
                     text = stringResource(R.string.deleteAccountRetryLabel),
                     onClick = viewModel::loadWarnings,
@@ -191,33 +190,4 @@ fun DeleteAccountScreen(
         }
       },
   )
-}
-
-/** Text style of the screen body: patient screens need larger text than caregiver ones. */
-@Composable
-private fun deleteAccountTextStyle(isPatient: Boolean): TextStyle =
-    if (isPatient) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge
-
-/**
- * Button of the screen, built with the shared helper matching role - caregiver or patient.
- *
- * @param isPatient Boolean indicating if the user viewing the screen is a Patient.
- * @param text Label of the button.
- * @param onClick Callback invoked when the button is clicked.
- * @param testTag Optional test tag. The helper's default tag is kept when null.
- */
-@Composable
-private fun DeleteAccountButton(
-    isPatient: Boolean = true,
-    text: String = "",
-    onClick: () -> Unit = {},
-    testTag: String? = null,
-) {
-  if (isPatient) {
-    DisplayPatientButton(text = text, onClick = onClick, testTag = testTag)
-  } else if (testTag != null) {
-    DisplayCaregiverButton(text = text, onClick = onClick, buttonTestTag = testTag)
-  } else {
-    DisplayCaregiverButton(text = text, onClick = onClick)
-  }
 }

@@ -18,7 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
-import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
+import com.github.se.amber.ui.authentication.signOut.SignOutTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
 import com.github.se.amber.ui.navigation.AuthScreen
@@ -80,7 +80,7 @@ class AmberAppNavigationTest {
     const val CAREGIVER_PARAMETERS_DELETE_ACCOUNT =
         CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON
     const val CREATE_INVITATION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
-    const val SIGN_OUT_CONFIRM = SignOutButtonTestTags.BUTTON
+    const val SIGN_OUT_CONFIRM = SignOutTestTags.BUTTON
     const val SIGN_OUT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val DELETE_ACCOUNT_CANCEL = TopNavigationMenuTestTags.BACK_BUTTON
 

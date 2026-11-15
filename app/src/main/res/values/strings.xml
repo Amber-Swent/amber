@@ -25,15 +25,14 @@
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
-    <string name="screenTitleCaregiverSignOut">Sign out</string>
+    <string name="screenTitleSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
-    <string name="screenTitleCaregiverDeleteAccount">Delete account</string>
+    <string name="screenTitleDeleteAccount">Delete account</string>
     <string name="screenTitlePatientHome">Home</string>
     <string name="screenTitlePatientSeeMedias">See Medias</string>
     <string name="screenTitlePatientSeePictures">See Pictures</string>
     <string name="screenTitlePatientSeeAudios">See Audios</string>
     <string name="screenTitlePatientParameters">Parameters</string>
-    <string name="screenTitlePatientSignOut">Sign out</string>
 
     <!-- EmailSignIn -->
     <string name="signInWelcome">Welcome to Amber</string>
