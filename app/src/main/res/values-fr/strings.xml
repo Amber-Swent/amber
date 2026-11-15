@@ -20,6 +20,7 @@
     <string name="screenTitleCaregiverUpload">Ajouter des photos ou des audios</string>
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
+    <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>
     <string name="screenTitleCaregiverParameters">Paramètres</string>
     <string name="screenTitleCaregiverSignOut">Déconnexion</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
@@ -245,6 +246,8 @@
     <string name="uploadChoosePictureIcon">Photo</string>
     <string name="uploadChooseAudio">Ajouter un audio</string>
     <string name="uploadChooseAudioIcon">Audio</string>
+    <string name="uploadChooseText">Ajouter un texte</string>
+    <string name="uploadChooseTextIcon">Texte</string>
 
     <!-- UploadPicture -->
     <string name="uploadPictureTitle">Ajouter une photo</string>
@@ -276,6 +279,16 @@
     <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
     <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
     <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>
+
+    <!-- UploadText -->
+    <string name="uploadTextTitle">Ajouter un texte</string>
+    <string name="uploadTextTitleLabel">Titre</string>
+    <string name="uploadTextTitlePlaceholder">Saisissez un titre pour l\'histoire.</string>
+    <string name="uploadTextTitleEmpty">Le titre ne peut pas être vide</string>
+    <string name="uploadTextDescriptionLabel">Description</string>
+    <string name="uploadTextDescriptionPlaceholder">Saisissez une description de l\'histoire.</string>
+    <string name="uploadTextDescriptionEmpty">La description ne peut pas être vide</string>
+    <string name="uploadTextUpload">Ajouter le texte</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Fermer</string>

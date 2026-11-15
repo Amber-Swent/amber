@@ -40,6 +40,7 @@ import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvita
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreen
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreen
+import com.github.se.amber.ui.caregiver.upload.text.UploadTextScreen
 import com.github.se.amber.ui.media.LocalMediaRetrySignal
 import com.github.se.amber.ui.navigation.AuthScreen
 import com.github.se.amber.ui.navigation.CaregiverScreen
@@ -182,6 +183,7 @@ fun AmberApp(
         UploadScreen(
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onUploadAudioClick = { navigationActions.navigateTo(CaregiverScreen.UploadAudio) },
+            onUploadTextClick = { navigationActions.navigateTo(CaregiverScreen.UploadText) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
@@ -193,6 +195,12 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.UploadAudio.route) {
         UploadAudioScreen(
+            onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
+            goBack = { navigationActions.goBack() },
+        )
+      }
+      composable(route = CaregiverScreen.UploadText.route) {
+        UploadTextScreen(
             onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
             goBack = { navigationActions.goBack() },
         )

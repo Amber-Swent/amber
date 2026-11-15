@@ -5,6 +5,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
@@ -73,6 +74,8 @@ class AmberAppNavigationTest {
     const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val UPLOAD_AUDIO_BUTTON = UploadTestTags.AUDIO_BUTTON
     const val UPLOAD_AUDIO_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val UPLOAD_TEXT_BUTTON = UploadTestTags.TEXT_BUTTON
+    const val UPLOAD_TEXT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val CREATE_CARE_CIRCLE_BUTTON = CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
@@ -289,6 +292,16 @@ class AmberAppNavigationTest {
   }
 
   @Test
+  fun upload_uploadTextButton_navigatesToUploadText() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+
+    click(Tags.UPLOAD_TEXT_BUTTON)
+
+    assertRoute(CaregiverScreen.UploadText.route)
+  }
+
+  @Test
   fun upload_homeTab_navigatesToCaregiverHome() {
     launch(NavGraphs.CAREGIVER)
     goTo(CaregiverScreen.Upload.route)
@@ -334,6 +347,17 @@ class AmberAppNavigationTest {
     goTo(CaregiverScreen.UploadAudio.route)
 
     click(Tags.UPLOAD_AUDIO_BACK)
+
+    assertRoute(CaregiverScreen.Upload.route)
+  }
+
+  @Test
+  fun uploadText_back_returnsToUpload() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+    goTo(CaregiverScreen.UploadText.route)
+
+    click(Tags.UPLOAD_TEXT_BACK)
 
     assertRoute(CaregiverScreen.Upload.route)
   }

@@ -24,6 +24,7 @@
     <string name="screenTitleCaregiverUpload">Upload Pictures or Audios</string>
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
+    <string name="screenTitleCaregiverUploadText">Upload Text</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
     <string name="screenTitleCaregiverSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
@@ -244,6 +245,8 @@
     <string name="uploadChoosePictureIcon">Picture</string>
     <string name="uploadChooseAudio">Upload Audio</string>
     <string name="uploadChooseAudioIcon">Audio</string>
+    <string name="uploadChooseText">Upload Text</string>
+    <string name="uploadChooseTextIcon">Text</string>
 
     <!-- UploadPicture -->
     <string name="uploadPictureTitle">Upload Picture</string>
@@ -275,6 +278,16 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
+
+    <!-- UploadText -->
+    <string name="uploadTextTitle">Upload Text</string>
+    <string name="uploadTextTitleLabel">Title</string>
+    <string name="uploadTextTitlePlaceholder">Enter a title for the story.</string>
+    <string name="uploadTextTitleEmpty">Title cannot be empty</string>
+    <string name="uploadTextDescriptionLabel">Description</string>
+    <string name="uploadTextDescriptionPlaceholder">Enter a description of the story.</string>
+    <string name="uploadTextDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadTextUpload">Upload Text</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>

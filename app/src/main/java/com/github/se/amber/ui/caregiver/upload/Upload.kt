@@ -2,6 +2,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload
 
@@ -50,14 +51,17 @@ object UploadTestTags {
   const val TITLE = "upload_title"
   const val PICTURE_BUTTON = "upload_picture_button"
   const val AUDIO_BUTTON = "upload_audio_button"
+  const val TEXT_BUTTON = "upload_text_button"
 }
 
 /**
- * Displays the caregiver upload menu for picture and audio stories along with bottom navigation.
+ * Displays the caregiver upload menu for picture, audio and text stories along with bottom
+ * navigation.
  *
  * @param viewModel view model that stores the upload screen state.
  * @param onUploadPictureClick callback invoked when picture upload is selected.
  * @param onUploadAudioClick callback invoked when audio upload is selected.
+ * @param onUploadTextClick callback invoked when text upload is selected.
  * @param onTabSelected callback invoked when a bottom navigation tab is selected.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +70,7 @@ fun UploadScreen(
     viewModel: UploadViewModel = viewModel(),
     onUploadPictureClick: () -> Unit = {},
     onUploadAudioClick: () -> Unit = {},
+    onUploadTextClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -126,6 +131,15 @@ fun UploadScreen(
               description = stringResource(R.string.uploadChooseAudioIcon),
               onClick = { onUploadAudioClick() },
           )
+
+          DisplayCaregiverButton(
+              modifier = Modifier.testTag(UploadTestTags.TEXT_BUTTON),
+              widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
+              icon = Icons.Outlined.Description,
+              text = stringResource(R.string.uploadChooseText),
+              description = stringResource(R.string.uploadChooseTextIcon),
+              onClick = { onUploadTextClick() },
+          )
         }
       },
   )
@@ -161,7 +175,7 @@ fun DisplayButton(
 }
 
 /** Preview of [UploadScreen] using the Amber application theme. */
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true)
 @Composable
 private fun UploadScreenPreview() {
   AmberAppTheme(dynamicColor = false) { UploadScreen() }
