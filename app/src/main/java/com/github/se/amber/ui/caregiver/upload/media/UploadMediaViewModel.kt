@@ -3,6 +3,7 @@
  * Modified by MeiliV, with assistance from OpenAI Codex.
  * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
  * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+ * Modified by MeiliV, with assistance from OpenAI Codex.
  */
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -13,6 +14,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -58,6 +61,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -302,6 +306,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     protected val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     protected val circleRepo: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
+    protected val activeCircleRepo: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
     protected val placeRepo: PlaceSearchRepository =
         PlaceSearchRepositoryProvider.default.repository,
     private val cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
@@ -432,7 +438,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.messageRes)
             return@launch
           }
-      val circleId = profile?.circleIds?.firstOrNull()
+      val circleId = profile?.let { activeCircleRepo.activeCircleId(uid, it.circleIds).first() }
       if (circleId == null) {
         failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
         return@launch

@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.media
 
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
@@ -28,6 +30,8 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
+import io.mockk.every
+import kotlinx.coroutines.flow.flowOf
 import io.mockk.mockk
 import java.time.Month
 import kotlinx.coroutines.CompletableDeferred
@@ -62,6 +66,7 @@ class MediaCardTest {
 
   private val profileRepository = mockk<ProfileRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
 
   private val authorProfile = userProfile("author", "Alice")
 
@@ -77,6 +82,9 @@ class MediaCardTest {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     ShadowToast.reset()
     coEvery { profileRepository.getProfile("author") } returns Result.success(authorProfile)
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
+      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+    }
   }
 
   @After
@@ -91,7 +99,7 @@ class MediaCardTest {
       modifier: Modifier = Modifier,
       fontScale: Float = 1f,
   ) {
-    val viewModel = MediaCardViewModel(profileRepository, circleRepository)
+    val viewModel = MediaCardViewModel(profileRepository, circleRepository, activeCircleRepository)
     composeTestRule.setContent {
       val density = LocalDensity.current
       AmberAppTheme(dynamicColor = false) {

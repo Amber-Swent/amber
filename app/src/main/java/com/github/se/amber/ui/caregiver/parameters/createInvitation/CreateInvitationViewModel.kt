@@ -1,5 +1,6 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
@@ -10,6 +11,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationCreationRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationCreationResult
@@ -18,11 +21,13 @@ import com.github.se.amber.data.invitation.InvitationLookupRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationSummary
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.model.user.UserProfile
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -60,6 +65,8 @@ class CreateInvitationViewModel(
         InvitationLookupRepositoryProvider.default.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(CreateInvitationUiState())
   val uiState: StateFlow<CreateInvitationUiState> = _uiState.asStateFlow()
@@ -122,14 +129,15 @@ class CreateInvitationViewModel(
   }
 
   private suspend fun prepareCircles() {
-    val circleIds = readCircleIds() ?: return
+    val profile = readProfile() ?: return
+    val circleIds = profile.circleIds
     val choices = circleIds.map { id ->
       val loadedName = circleRepository.getCircle(id).getOrNull()?.name
       CareCircleChoice(id = id, name = loadedName?.takeIf { it.isNotBlank() } ?: id)
     }
     val selected =
         _uiState.value.selectedCircleId?.takeIf { current -> choices.any { it.id == current } }
-            ?: choices.first().id
+            ?: activeCircleRepository.activeCircleId(profile.uid, circleIds).first()
     _uiState.update { it.copy(circles = choices, selectedCircleId = selected) }
   }
 
@@ -150,7 +158,7 @@ class CreateInvitationViewModel(
         }
   }
 
-  private suspend fun readCircleIds(): List<String>? {
+  private suspend fun readProfile(): UserProfile? {
     val profile =
         profileRepository.getCurrentProfile().getOrElse { error ->
           Log.e(TAG, "Failed to load profile", error)
@@ -161,11 +169,11 @@ class CreateInvitationViewModel(
       _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorProfileNotFound) }
       return null
     }
-    if (profile.circleIds.isEmpty()) {
+    if (profile.circleIds.none { it.isNotBlank() }) {
       _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorNoCircle) }
       return null
     }
-    return profile.circleIds
+    return profile
   }
 
   @StringRes

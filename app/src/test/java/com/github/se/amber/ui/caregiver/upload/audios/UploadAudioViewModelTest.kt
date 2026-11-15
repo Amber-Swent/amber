@@ -1,4 +1,5 @@
 // Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -7,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.AudioRecorder
 import com.github.se.amber.data.media.audio.AudioState
@@ -41,6 +43,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -72,6 +75,7 @@ class UploadAudioViewModelTest {
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private val activeCircleRepo = mockk<ActiveCircleRepository>()
   private lateinit var placeRepo: PlaceSearchRepository
   private lateinit var recorder: FakeAudioRecorder
   private lateinit var player: FakeAudioPlayer
@@ -83,6 +87,9 @@ class UploadAudioViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
+    every { activeCircleRepo.activeCircleId(any(), any()) } answers {
+      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+    }
     placeRepo = mockk()
     recorder = FakeAudioRecorder(tempFolder.newFolder())
     player = FakeAudioPlayer()
@@ -109,6 +116,7 @@ class UploadAudioViewModelTest {
           authRepo = authRepo,
           profileRepo = profileRepo,
           circleRepo = circleRepo,
+          activeCircleRepo = activeCircleRepo,
           placeRepo = placeRepo,
           cleanupScope = CoroutineScope(testDispatcher),
           recorder = recorder,

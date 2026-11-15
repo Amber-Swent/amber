@@ -2,12 +2,14 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Role
@@ -19,6 +21,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -45,6 +48,7 @@ class CaregiverHomeViewModelTest {
 
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
 
   private val caregiver =
       UserProfile(uid = "cg1", role = Role.CAREGIVER, circleIds = listOf("circle1"))
@@ -55,6 +59,9 @@ class CaregiverHomeViewModelTest {
   fun setup() {
     profileRepo = mockk()
     circleRepo = mockk()
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
+      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+    }
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -62,7 +69,7 @@ class CaregiverHomeViewModelTest {
   @After fun tearDown() = unmockkAll()
 
   // The ViewModel loads in init, so stubs must be set before creating it.
-  private fun createVm() = CaregiverHomeViewModel(profileRepo, circleRepo)
+  private fun createVm() = CaregiverHomeViewModel(profileRepo, circleRepo, activeCircleRepository)
 
   @Test
   fun load_success_fillsCaregiverCircleAndPatient() {

@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -9,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.media.audio.AudioState
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 
@@ -56,7 +60,7 @@ sealed interface SeeAudiosUIState {
 }
 
 /**
- * Loads the patient's approved audio memories from their first care circle. Uses the shared
+ * Loads the patient's approved audio memories from their active care circle. Uses the shared
  * [AudioPlayer] and exposes the state of each audio card without changing the list state.
  *
  * @param mediaRepository observes approved media and downloads audio files.
@@ -70,6 +74,8 @@ class SeeAudiosViewModel(
         CareCircleRepositoryProvider.default.repository,
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val audioPlayer: AudioPlayer = AudioPlayerProvider.player,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow<SeeAudiosUIState>(SeeAudiosUIState.Loading)
   val uiState: StateFlow<SeeAudiosUIState> = _uiState.asStateFlow()
@@ -247,7 +253,7 @@ class SeeAudiosViewModel(
               }
 
       // Get patient's circle id
-      val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
+      val circleId = activeCircleRepository.activeCircleId(profile.uid, profile.circleIds).first()
       if (circleId == null) {
         setBlockingErrorMsg(R.string.seeAudiosErrorNoCircle)
         return@launch

@@ -1,10 +1,12 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
@@ -14,6 +16,7 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +39,7 @@ class SeePicturesViewModelTest {
 
   private val mediaRepository = mockk<MediaRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
   private val profileRepository = mockk<ProfileRepository>()
 
   private val profile =
@@ -57,6 +61,9 @@ class SeePicturesViewModelTest {
     // Unconfined: the coroutines launched in init run immediately, no need to advance time
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
+      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+    }
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
   }
@@ -67,7 +74,7 @@ class SeePicturesViewModelTest {
   }
 
   private fun createViewModel() =
-      SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
+      SeePicturesViewModel(mediaRepository, circleRepository, profileRepository, activeCircleRepository)
 
   // ---------------------------------------------------------------------------------------------
   // Content / Empty

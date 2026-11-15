@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
@@ -10,6 +11,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.circle.CareCircle
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -56,6 +60,8 @@ class SeePicturesViewModel(
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
 
   // See Pictures UI state, start on loading by default.
@@ -122,7 +128,7 @@ class SeePicturesViewModel(
               }
 
       // 2. Circle id (explicit error if missing)
-      val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
+      val circleId = activeCircleRepository.activeCircleId(profile.uid, profile.circleIds).first()
       if (circleId == null) {
         setBlockingErrorMsg(R.string.seePicturesErrorNoCircle)
         return@launch

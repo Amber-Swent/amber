@@ -2,12 +2,14 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepository
 import com.github.se.amber.data.invitation.InvitationCreationResult
 import com.github.se.amber.data.invitation.InvitationLookupRepository
@@ -24,6 +26,9 @@ import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvita
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -51,6 +56,7 @@ class CreateInvitationViewModelTest {
   private lateinit var circles: FakeCircleRepository
   private lateinit var lookup: FakeLookupRepository
   private lateinit var creation: FakeCreationRepository
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
 
   @Before
   fun setUp() {
@@ -59,6 +65,9 @@ class CreateInvitationViewModelTest {
     circles = FakeCircleRepository(mapOf("circle-1" to circle("circle-1", "Arthur's family")))
     lookup = FakeLookupRepository()
     creation = FakeCreationRepository()
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers {
+      flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+    }
   }
 
   @After
@@ -410,6 +419,7 @@ class CreateInvitationViewModelTest {
           creationRepository = creation,
           lookupRepository = lookup,
           circleRepository = circles,
+          activeCircleRepository = activeCircleRepository,
       )
 
   private fun profile(vararg circleIds: String) =
