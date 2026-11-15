@@ -2,11 +2,16 @@
 
 package com.github.se.amber.ui.media.audio
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.test.platform.app.InstrumentationRegistry
+import com.github.se.amber.R
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
+import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.ui.theme.AUDIO_WAVEFORM_MIN_LEVEL
 import org.junit.Assert
 import org.junit.Assert.assertEquals
@@ -25,16 +30,24 @@ class AudioRecorderTest {
 
   private val waveform = List(WAVEFORM_BARS) { it / WAVEFORM_BARS.toFloat() }
 
+  private fun string(@StringRes id: Int): String =
+      InstrumentationRegistry.getInstrumentation().targetContext.getString(id)
+
   private var deleteCount = 0
   private var stopCount = 0
+  private var playCount = 0
 
-  private fun launch(isRecording: Boolean, waveform: List<Float> = this.waveform) {
+  private fun launch(
+      recordingState: AudioRecordingState,
+      waveform: List<Float> = this.waveform,
+  ) {
     composeTestRule.setContent {
       DisplayAudioRecorder(
-          isRecording = isRecording,
+          recordingState = recordingState,
           waveform = waveform,
           onDelete = { deleteCount++ },
           onStop = { stopCount++ },
+          onPlay = { playCount++ },
       )
     }
   }
@@ -43,7 +56,7 @@ class AudioRecorderTest {
 
   @Test
   fun whileRecordingTheDeleteButton_theStopButton_andTheWaveformCanvasAreDisplayed() {
-    launch(isRecording = true)
+    launch(recordingState = AudioRecordingState.RECORDING)
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
@@ -51,13 +64,13 @@ class AudioRecorderTest {
 
   @Test
   fun whileRecordingAWaveformCanvasWithoutLevelsYetIsDisplayed() {
-    launch(isRecording = true, waveform = emptyList())
+    launch(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
   }
 
   @Test
   fun clickingStopNotifiesOnce() {
-    launch(isRecording = true)
+    launch(recordingState = AudioRecordingState.RECORDING)
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).performClick()
     Assert.assertEquals(1, stopCount)
     Assert.assertEquals(0, deleteCount)
@@ -65,7 +78,7 @@ class AudioRecorderTest {
 
   @Test
   fun clickingDeleteWhileRecordingNotifiesOnce() {
-    launch(isRecording = true)
+    launch(recordingState = AudioRecordingState.RECORDING)
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).performClick()
     Assert.assertEquals(1, deleteCount)
     Assert.assertEquals(0, stopCount)
@@ -75,7 +88,7 @@ class AudioRecorderTest {
 
   @Test
   fun onceRecordedTheStopButtonIsHidden_theDeleteButtonAndTheWaveformCanvasAreDisplayed() {
-    launch(isRecording = false)
+    launch(recordingState = AudioRecordingState.RECORDED)
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertDoesNotExist()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
@@ -83,9 +96,71 @@ class AudioRecorderTest {
 
   @Test
   fun clickingDeleteOnceRecordedNotifiesOnce() {
-    launch(isRecording = false)
+    launch(recordingState = AudioRecordingState.RECORDED)
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).performClick()
     Assert.assertEquals(1, deleteCount)
+  }
+
+  @Test
+  fun onceRecordedThePlayButtonIsDisplayed() {
+    launch(recordingState = AudioRecordingState.RECORDED)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun whileRecordingThePlayButtonIsHidden() {
+    launch(recordingState = AudioRecordingState.RECORDING)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
+  fun clickingPlayNotifiesOnce() {
+    launch(recordingState = AudioRecordingState.RECORDED)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).performClick()
+    Assert.assertEquals(1, playCount)
+  }
+
+  // ---------- while listening ----------
+
+  @Test
+  fun whileListeningTheStopButtonIsDisplayed() {
+    launch(recordingState = AudioRecordingState.LISTENING)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun whileListeningThePlayButtonIsHidden() {
+    launch(recordingState = AudioRecordingState.LISTENING)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
+  fun whileListeningTheDeleteButtonIsDisplayed() {
+    launch(recordingState = AudioRecordingState.LISTENING)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  fun clickingStopWhileListeningNotifiesOnce() {
+    launch(recordingState = AudioRecordingState.LISTENING)
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).performClick()
+    Assert.assertEquals(1, stopCount)
+  }
+
+  @Test
+  fun whileRecordingTheStopButtonIsDescribedAsStoppingTheRecording() {
+    launch(recordingState = AudioRecordingState.RECORDING)
+    composeTestRule
+        .onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON)
+        .assertContentDescriptionEquals(string(R.string.audioRecorderStop))
+  }
+
+  @Test
+  fun whileListeningTheStopButtonIsDescribedAsStoppingTheListening() {
+    launch(recordingState = AudioRecordingState.LISTENING)
+    composeTestRule
+        .onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON)
+        .assertContentDescriptionEquals(string(R.string.audioRecorderStopListening))
   }
 
   // ---------- Waveform Levels ----------
@@ -138,6 +213,16 @@ class AudioRecorderTest {
     composeTestRule.setContent { DisplayAudioRecorderRecordedPreview() }
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertDoesNotExist()
+  }
+
+  @Test
+  fun listeningPreview_showsButtons_andWaveformCanvas() {
+    composeTestRule.setContent { DisplayAudioRecorderListeningPreview() }
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.DELETE_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.WAVEFORM).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.STOP_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(AudioRecorderTestTags.PLAY_BUTTON).assertDoesNotExist()
   }
 }

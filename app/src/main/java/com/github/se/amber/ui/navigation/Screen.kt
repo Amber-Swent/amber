@@ -104,12 +104,6 @@ sealed class CaregiverScreen(
           isTopLevelDestination = true,
       )
 
-  data object UploadText :
-      CaregiverScreen(
-          route = "caregiver_upload_text",
-          title = R.string.screenTitleCaregiverUploadText,
-      )
-
   data object UploadPicture :
       CaregiverScreen(
           route = "caregiver_upload_picture",

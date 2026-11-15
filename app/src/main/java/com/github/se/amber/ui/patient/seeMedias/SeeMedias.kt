@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,16 +36,14 @@ import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 object SeeMediasTestTags {
   const val TITLE = "see_medias_title"
   const val PICTURES_BUTTON = "see_medias_pictures_button"
-  const val TEXTS_BUTTON = "see_medias_texts_button"
   const val AUDIOS_BUTTON = "see_medias_audios_button"
 }
 
 /**
- * Displays the See Medias menu for text, picture, and audio stories.
+ * Displays the See Medias menu for picture and audio stories.
  *
  * @param viewModel view model that stores the see medias screen state.
  * @param onSeePictureClick callback invoked when see pictures is selected.
- * @param onSeeTextClick callback invoked when see text is selected.
  * @param onSeeAudioClick callback invoked when see audio is selected.
  * @param onTabSelected callback invoked when one of the tab in the bottomBarMenu is selected
  */
@@ -55,7 +52,6 @@ object SeeMediasTestTags {
 fun SeeMediasScreen(
     viewModel: SeeMediasViewModel = viewModel(),
     onSeePictureClick: () -> Unit = {},
-    onSeeTextClick: () -> Unit = {},
     onSeeAudioClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = {},
 ) {
@@ -95,13 +91,6 @@ fun SeeMediasScreen(
               description = stringResource(R.string.seeMediasPicturesIcon),
               onClick = onSeePictureClick,
               testTag = SeeMediasTestTags.PICTURES_BUTTON,
-          )
-          DisplayPatientButton(
-              text = stringResource(R.string.seeMediasTexts),
-              icon = Icons.Outlined.Description,
-              description = stringResource(R.string.seeMediasTextsIcon),
-              onClick = onSeeTextClick,
-              testTag = SeeMediasTestTags.TEXTS_BUTTON,
           )
           DisplayPatientButton(
               text = stringResource(R.string.seeMediasAudios),

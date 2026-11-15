@@ -61,7 +61,7 @@ import com.github.se.amber.ui.media.audio.DisplayAudioRecorder
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_MEDIUM
+import com.github.se.amber.ui.theme.CAREGIVER_BUTTON_WIDTH_ENORMOUS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
@@ -76,6 +76,7 @@ object UploadAudioScreenTestTags {
   const val RECORD_AUDIO = "upload_audio_record"
   const val RECORDING = "upload_audio_recording"
   const val AUDIO_RECORDED = "upload_audio_recorded"
+  const val LISTENING = "upload_audio_listening"
   const val SELECT_DATE = "upload_audio_selected_date"
   const val UPLOAD_BUTTON = "upload_audio_button"
 }
@@ -182,12 +183,20 @@ fun UploadAudioScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
-          // Record button, then the recording in progress, then the recorded audio
+          // One state at a time: idle, recording, recorded, or listening to the recording
           when (uiState.recordingState) {
+            AudioRecordingState.IDLE ->
+                DisplayBoxWithIconText(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
+                    icon = Icons.Outlined.Mic,
+                    contentDescription = stringResource(R.string.uploadAudioRecordIcon),
+                    text = stringResource(R.string.uploadAudioRecord),
+                    onClick = onRecordClick,
+                )
             AudioRecordingState.RECORDING ->
                 DisplayAudioRecorder(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING),
-                    isRecording = true,
+                    recordingState = AudioRecordingState.RECORDING,
                     waveform = uiState.waveform,
                     onDelete = viewModel::deleteRecording,
                     onStop = viewModel::stopRecording,
@@ -197,14 +206,16 @@ fun UploadAudioScreen(
                     modifier = Modifier.testTag(UploadAudioScreenTestTags.AUDIO_RECORDED),
                     waveform = uiState.waveform,
                     onDelete = viewModel::deleteRecording,
+                    onPlay = viewModel::playRecording,
                 )
-            AudioRecordingState.IDLE ->
-                DisplayBoxWithIconText(
-                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORD_AUDIO),
-                    icon = Icons.Outlined.Mic,
-                    contentDescription = stringResource(R.string.uploadAudioRecordIcon),
-                    text = stringResource(R.string.uploadAudioRecord),
-                    onClick = onRecordClick,
+            AudioRecordingState.LISTENING ->
+                DisplayAudioRecorder(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.LISTENING),
+                    recordingState = AudioRecordingState.LISTENING,
+                    waveform = uiState.waveform,
+                    playedFraction = uiState.playedFraction,
+                    onDelete = viewModel::deleteRecording,
+                    onStop = viewModel::stopListening,
                 )
           }
 
@@ -257,7 +268,7 @@ fun UploadAudioScreen(
                     if (uiState.common.isUploading) R.string.uploadAudioUploading
                     else R.string.uploadAudioUpload
                 ),
-            widthPercentage = CAREGIVER_BUTTON_WIDTH_MEDIUM,
+            widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
         )
       },
   )

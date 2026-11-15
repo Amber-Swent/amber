@@ -215,7 +215,8 @@ class SeePicturesScreenTest {
     assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("1")).assertExists()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("2")).assertExists()
-    // TODO check that the MediaCard exist once they are fully implemented
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.pictureCard("1")).assertExists()
+    composeTestRule.onNodeWithTag(SeePicturesTestTags.pictureCard("2")).assertExists()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }

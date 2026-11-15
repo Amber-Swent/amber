@@ -1,5 +1,6 @@
 // Written by Yuhan YANG, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.media.audio
 
@@ -37,11 +38,9 @@ import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.HALF
+import com.github.se.amber.ui.theme.NO_PLAYED_FRACTION
 import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 import com.github.se.amber.ui.theme.WEIGHT_ONE
-
-/** None of the waveform has been played yet. */
-private const val NO_PLAYED_FRACTION = 0f
 
 /** Test tags owned by [MediaAudio]. Callers can pass their own. */
 object MediaAudioTestTags {
@@ -120,6 +119,7 @@ sealed interface AudioWaveformState {
  *   button and spacing.
  * @param waveformTestTag test tag of the waveform.
  * @param waveformModifier extra modifier applied to the waveform, after it takes the free width.
+ * @param playedColor color of the played portion of a [AudioWaveformState.Listening] waveform.
  */
 @Composable
 fun MediaAudio(
@@ -136,6 +136,7 @@ fun MediaAudio(
     isPatient: Boolean = true,
     waveformTestTag: String = MediaAudioTestTags.WAVEFORM,
     waveformModifier: Modifier = Modifier,
+    playedColor: Color = MaterialTheme.colorScheme.secondary,
 ) {
   val buttonSpacing = if (isPatient) PATIENT_PADDING_SMALL else CAREGIVER_PADDING_SMALL
   Row(
@@ -156,6 +157,7 @@ fun MediaAudio(
     DisplayAudioWaveform(
         modifier = Modifier.weight(WEIGHT_ONE).then(waveformModifier).testTag(waveformTestTag),
         waveform = waveform,
+        playedColor = playedColor,
     )
     if (rightButton != null) {
       MediaAudioIconButton(
@@ -207,22 +209,23 @@ private fun MediaAudioIconButton(
 
 /**
  * Draws [waveform]. There is room for [WAVEFORM_BARS] bars, so a waveform that is still growing
- * fills the left part only. [AudioWaveformState.Listening] paints the played portion in secondary.
- * Every other state leaves the bars outline. This composable only draws. It does not resample:
- * levels beyond [WAVEFORM_BARS] are not drawn. Keeping the levels within [WAVEFORM_BARS], including
- * while a recording grows, is the responsibility of the ViewModel (or the data layer for a finished
- * audio).
+ * fills the left part only. [AudioWaveformState.Listening] paints the played portion in
+ * [playedColor]. Every other state leaves the bars outline. This composable only draws. It does not
+ * resample: levels beyond [WAVEFORM_BARS] are not drawn. Keeping the levels within [WAVEFORM_BARS],
+ * including while a recording grows, is the responsibility of the ViewModel (or the data layer for
+ * a finished audio).
  *
  * @param modifier The modifier applied to the drawing.
  * @param waveform Which waveform to draw.
+ * @param playedColor Color of the played portion of a [AudioWaveformState.Listening] waveform.
  */
 @Composable
 fun DisplayAudioWaveform(
     modifier: Modifier = Modifier,
     waveform: AudioWaveformState = AudioWaveformState.None,
+    playedColor: Color = MaterialTheme.colorScheme.secondary,
 ) {
   val unplayedColor = MaterialTheme.colorScheme.outline
-  val playedColor = MaterialTheme.colorScheme.secondary
   val bars = displayedWaveformLevels(waveformLevels(waveform))
   val fraction = playedFraction(waveform)
 

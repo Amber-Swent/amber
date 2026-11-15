@@ -1,18 +1,23 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.OutboxEntry
 import com.github.se.amber.model.media.SendState
 import com.google.firebase.firestore.FirebaseFirestore
+import io.mockk.every
 import io.mockk.mockk
 import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -59,14 +64,29 @@ class MediaRepositoryFirebaseTest {
   private fun TestScope.newOutbox() =
       MediaOutbox(outboxDir, ioDispatcher = StandardTestDispatcher(testScheduler))
 
-  private fun TestScope.newRepository(outbox: MediaOutbox = newOutbox()) =
-      MediaRepositoryFirebase(
-          fileStorage,
-          MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler)),
-          outbox,
-          mockk<FirebaseFirestore>(),
-          scheduler,
-      )
+  private fun TestScope.newRepository(
+      outbox: MediaOutbox = newOutbox(),
+      authRepository: AuthRepository = signedInAs("u1"),
+  ): MediaRepositoryFirebase {
+    val cache = MediaFileCache(cacheDir, ioDispatcher = StandardTestDispatcher(testScheduler))
+    val firestore = mockk<FirebaseFirestore>()
+    return MediaRepositoryFirebase(
+        fileStorage,
+        cache,
+        outbox,
+        firestore,
+        scheduler,
+        authRepository,
+    )
+  }
+
+  /** A signed-in user with [uid], or nobody when [uid] is null. */
+  private fun signedInAs(uid: String?): AuthRepository = mockk {
+    every { currentUser } returns uid?.let { AuthUser(it) }
+  }
+
+  private fun failedAttempts(circleId: String, mediaId: String): Int =
+      JSONObject(File(outboxDir, "$circleId/$mediaId.json").readText()).getInt("failedAttempts")
 
   private fun cachedFileNames() = cacheDir.listFiles().orEmpty().map { it.name }.sorted()
 
@@ -267,5 +287,32 @@ class MediaRepositoryFirebaseTest {
     assertEquals(listOf("careCircles_c1_media_m1.jpg"), cachedFileNames())
     assertEquals(listOf("m2"), repository.unsentIds("c1"))
     assertEquals(emptyList<String>(), scheduler.calls)
+  }
+
+  @Test
+  fun aSendUnderAnotherAccountStaysWaitingAndNeverCountsAFailure() = runTest {
+    val outbox = newOutbox()
+    newRepository(outbox).addMedia(c1, picture("c1", "m1"), source("photo bytes"))
+    fileStorage.calls.clear()
+    val notTheAuthor =
+        mapOf(
+            "nobody signed in" to signedInAs(null),
+            "another account" to signedInAs("arthur"),
+            "a blank uid" to signedInAs(""),
+        )
+
+    for ((case, authRepository) in notTheAuthor) {
+      val repository = newRepository(outbox, authRepository)
+      val results = List(MediaSender.MAX_FAILED_ATTEMPTS) { repository.send("c1", "m1") }
+
+      assertEquals(case, List(MediaSender.MAX_FAILED_ATTEMPTS) { SendResult.DONE }, results)
+      assertEquals(
+          case,
+          OutboxEntry(picture("c1", "m1"), SendState.WAITING),
+          outbox.get("c1", "m1"),
+      )
+      assertEquals(case, 0, failedAttempts("c1", "m1"))
+      assertEquals(case, emptyList<String>(), fileStorage.calls)
+    }
   }
 }

@@ -165,11 +165,9 @@ fun CreateCareCircleScreen(
 @Preview(showBackground = true)
 @Composable
 fun CreateCareCirclePreview() {
-  val fakeRepository =
-      object : OnboardingRepository {
-        override suspend fun createInitialCareCircle(name: String): Result<CareCircle> =
-            Result.success(CareCircle(id = "preview-1", name = name))
-      }
+  val fakeRepository = OnboardingRepository { name ->
+    Result.success(CareCircle(id = "preview-1", name = name))
+  }
   val viewModel = remember { CreateCareCircleViewModel(repository = fakeRepository) }
   AmberAppTheme { CreateCareCircleScreen(viewModel = viewModel) }
 }

@@ -5,8 +5,8 @@ package com.github.se.amber.data.media.picture
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.Firebase
 import com.google.firebase.app
@@ -16,7 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** Reads a user-selected picture and exposes its local file and dimensions. */
-interface SelectedPictureReader {
+fun interface SelectedPictureReader {
   /**
    * Reads the picture identified by the supplied URI.
    *
@@ -59,7 +59,7 @@ class SelectedPictureReaderAndroid(
    */
   override suspend fun read(uri: String): PickedImage =
       withContext(ioDispatcher) {
-        val parsedUri = Uri.parse(uri)
+        val parsedUri = uri.toUri()
 
         val file =
             File.createTempFile(

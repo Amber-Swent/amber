@@ -118,13 +118,6 @@ const val DATE_PICKER_WIDTH_FRACTION = 1f
 
 const val YEAR_RANGE = 100
 
-// ------- AUDIO PLAYBACK -------
-/** Opacity Material uses for a disabled control. */
-const val DISABLED_ALPHA = 0.38f
-
-/** Number of digits used to display the seconds of a playback clock (`m:ss`). */
-const val SECOND_FIELD_WIDTH = 2
-
 // ------- WEIGHT -------
 const val WEIGHT_ONE = 1f
 const val HALF = 0.5f
@@ -137,8 +130,18 @@ const val WEIGHT_TWO = 2f
 const val DIALOG_WIDTH = 0.8f
 const val CAREGIVER_TITLE_WIDTH = 1f
 
+// ------- AUDIO PLAYBACK -------
+/** Opacity Material uses for a disabled control. */
+const val DISABLED_ALPHA = 0.38f
+
+/** Number of digits used to display the seconds of a playback clock (`m:ss`). */
+const val SECOND_FIELD_WIDTH = 2
+
 // ------- AUDIO WAVEFORM -------
 val AUDIO_WAVEFORM_HEIGHT = 48.dp
+
+/** None of the waveform has been played yet. */
+const val NO_PLAYED_FRACTION = 0f
 
 /** Share of a bar's slot that is filled; the rest is the gap between two bars. */
 const val AUDIO_WAVEFORM_BAR_FRACTION = 0.6f

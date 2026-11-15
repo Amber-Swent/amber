@@ -29,6 +29,8 @@ import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
+import com.github.se.amber.ui.media.audio.playbackFraction
+import com.github.se.amber.ui.theme.NO_PLAYED_FRACTION
 import java.io.File
 import java.time.LocalDate
 import kotlin.coroutines.cancellation.CancellationException
@@ -39,6 +41,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -64,7 +67,9 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
  * @param audioFile The recorded audio, once the recording is over.
  * @param durationMs How long the recorded audio lasts, 0 until the recording is over.
  * @param waveform The levels of the audio so far (while recording) or in full (once recorded).
- * @param recordingState Whether the audio is not yet recorded, being recorded, or recorded.
+ * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
+ *   listened to.
+ * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
  */
 data class UploadAudioUIState(
     override val common: CommonMediaUIState = CommonMediaUIState(),
@@ -72,6 +77,7 @@ data class UploadAudioUIState(
     val durationMs: Long = 0L,
     val waveform: List<Float> = emptyList(),
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
+    val playedFraction: Float = NO_PLAYED_FRACTION,
 ) : MediaUIState<UploadAudioUIState> {
   override val canUpload: Boolean
     get() = audioFile != null && recordingState == AudioRecordingState.RECORDED && common.canUpload
@@ -276,6 +282,31 @@ class UploadAudioViewModel(
     }
   }
 
+  /**
+   * Stops listening to the recorded audio: the state goes from LISTENING back to RECORDED, and the
+   * next play starts again from the beginning. It does nothing if the audio is not being listened
+   * to.
+   */
+  fun stopListening() {
+    val state = _uiState.value
+    if (state.recordingState != AudioRecordingState.LISTENING) return
+    playingJob?.cancel()
+    state.audioFile?.let { player.stop(it) }
+    endListening()
+  }
+
+  /** Goes back from LISTENING to RECORDED, with nothing heard yet. */
+  private fun endListening() {
+    _uiState.update {
+      if (it.recordingState != AudioRecordingState.LISTENING) it
+      else
+          it.copy(
+              recordingState = AudioRecordingState.RECORDED,
+              playedFraction = NO_PLAYED_FRACTION,
+          )
+    }
+  }
+
   /** Throws away the recording in progress, or the one that was recorded. */
   fun deleteRecording() {
     discardRecording()?.let(::deleteOrWarn)
@@ -308,11 +339,17 @@ class UploadAudioViewModel(
           durationMs = 0L,
           waveform = emptyList(),
           recordingState = AudioRecordingState.IDLE,
+          playedFraction = NO_PLAYED_FRACTION,
       )
     }
   }
 
-  /** Plays the recorded audio from the start. It does nothing until the audio is recorded. */
+  /**
+   * Plays the recorded audio from the start: the state goes from RECORDED to LISTENING, and
+   * [UploadAudioUIState.playedFraction] follows the player. When the audio ends, or is stopped or
+   * replaced in the app's single player, the state goes back to RECORDED. It does nothing until the
+   * audio is recorded.
+   */
   fun playRecording() {
     val state = _uiState.value
     val file = state.audioFile ?: return
@@ -326,7 +363,20 @@ class UploadAudioViewModel(
       } catch (e: Exception) {
         Log.e(TAG, "Could not play the recording", e)
         setErrorMsg(UploadAudioViewModelErrorMessage.COULD_NOT_PLAY_RECORDING.messageRes)
+        return@launch
       }
+      _uiState.update {
+        it.copy(recordingState = AudioRecordingState.LISTENING, playedFraction = NO_PLAYED_FRACTION)
+      }
+      // follow the player until the audio ends, or is stopped or replaced by another one
+      player.state
+          .takeWhile { it.file == file && it.isPlaying }
+          .collect { heard ->
+            _uiState.update {
+              it.copy(playedFraction = playbackFraction(heard.positionMs, heard.durationMs))
+            }
+          }
+      endListening()
     }
   }
 

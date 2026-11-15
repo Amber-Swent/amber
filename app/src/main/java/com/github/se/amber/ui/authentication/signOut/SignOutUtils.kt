@@ -2,7 +2,6 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -114,7 +113,10 @@ fun SignOutButton(
 }
 
 internal val previewSignOutViewModel =
-    SignOutViewModel(PreviewSignOutAuthRepository, PreviewActiveCircleRepository)
+    SignOutViewModel(
+        authRepository = PreviewSignOutAuthRepository,
+        activeCircleRepository = PreviewActiveCircleRepository,
+    )
 
 /** Preview of [SignOutButton] using the Amber application theme. */
 @Preview(showBackground = true)

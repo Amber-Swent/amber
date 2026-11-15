@@ -47,11 +47,6 @@ class SeeMediasScreenTest {
         .assertIsDisplayed()
 
     composeTestRule
-        .onNodeWithTag(SeeMediasTestTags.TEXTS_BUTTON)
-        .performScrollTo()
-        .assertIsDisplayed()
-
-    composeTestRule
         .onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON)
         .performScrollTo()
         .assertIsDisplayed()
@@ -64,14 +59,12 @@ class SeeMediasScreenTest {
   @Test
   fun clickingButtons_triggersTheMatchingCallbackOnly() {
     var pictureClicks = 0
-    var textClicks = 0
     var audioClicks = 0
 
     composeTestRule.setContent {
       SeeMediasScreen(
           viewModel = viewModel,
           onSeePictureClick = { pictureClicks++ },
-          onSeeTextClick = { textClicks++ },
           onSeeAudioClick = { audioClicks++ },
       )
     }
@@ -80,13 +73,10 @@ class SeeMediasScreenTest {
         .onNodeWithTag(SeeMediasTestTags.PICTURES_BUTTON)
         .performScrollTo()
         .performClick()
-    assertEquals(listOf(1, 0, 0), listOf(pictureClicks, textClicks, audioClicks))
-
-    composeTestRule.onNodeWithTag(SeeMediasTestTags.TEXTS_BUTTON).performScrollTo().performClick()
-    assertEquals(listOf(1, 1, 0), listOf(pictureClicks, textClicks, audioClicks))
+    assertEquals(listOf(1, 0), listOf(pictureClicks, audioClicks))
 
     composeTestRule.onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON).performScrollTo().performClick()
-    assertEquals(listOf(1, 1, 1), listOf(pictureClicks, textClicks, audioClicks))
+    assertEquals(listOf(1, 1), listOf(pictureClicks, audioClicks))
   }
 
   @Test
@@ -116,7 +106,6 @@ class SeeMediasScreenTest {
         .onNodeWithTag(SeeMediasTestTags.PICTURES_BUTTON)
         .performScrollTo()
         .performClick()
-    composeTestRule.onNodeWithTag(SeeMediasTestTags.TEXTS_BUTTON).performScrollTo().performClick()
     composeTestRule.onNodeWithTag(SeeMediasTestTags.AUDIOS_BUTTON).performScrollTo().performClick()
 
     composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE).assertIsDisplayed()
@@ -129,7 +118,7 @@ class SeeMediasScreenTest {
 
     composeTestRule.onNodeWithTag(SeeMediasTestTags.TITLE).assertTextEquals("Voir les médias")
     composeTestRule.onNodeWithText("Voir les photos").assertExists()
-    composeTestRule.onNodeWithText("Voir les textes").assertExists()
+    composeTestRule.onNodeWithText("Voir les textes").assertDoesNotExist()
     composeTestRule.onNodeWithText("Voir les audios").assertExists()
   }
 }

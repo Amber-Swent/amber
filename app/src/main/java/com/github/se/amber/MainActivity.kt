@@ -111,7 +111,7 @@ fun AmberApp(
       composable(route = AuthScreen.Auth.route) {
         EmailSignInScreen(
             credentialManager = credentialManager,
-            // onContinue will be implemented in M2/M3
+            // onContinue will be implemented in M3
             onGoogleSignIn = { navigationActions.navigateTo(TransitionScreen.RoleLoading) },
         )
       }
@@ -180,19 +180,13 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.Upload.route) {
         UploadScreen(
-            // onUploadTextClick will be implemented in M2/M3
             onUploadPictureClick = { navigationActions.navigateTo(CaregiverScreen.UploadPicture) },
             onUploadAudioClick = { navigationActions.navigateTo(CaregiverScreen.UploadAudio) },
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
-      @Suppress("java:S1135")
-      composable(route = CaregiverScreen.UploadText.route) {
-        // TODO in M2/M3
-      }
       composable(route = CaregiverScreen.UploadPicture.route) {
         UploadPictureScreen(
-            // For M1 at least, may change for M2
             onUpload = { navigationActions.navigateToGraph(NavGraphs.CAREGIVER) },
             goBack = { navigationActions.goBack() },
         )

@@ -66,10 +66,10 @@ fun onboardingOutlinedTextFieldColors(): TextFieldColors =
 /**
  * Single-line outlined field used by onboarding forms.
  *
+ * @param modifier modifier applied to the text field.
  * @param value current text.
  * @param onValueChange called when the text changes.
  * @param label border label shown above the field.
- * @param modifier modifier applied to the text field.
  * @param placeholder hint shown inside an empty focused field, or null when the label is enough.
  * @param placeholderTestTag optional test tag on the placeholder text.
  * @param error supporting error text, or null when the field is valid.
@@ -79,10 +79,10 @@ fun onboardingOutlinedTextFieldColors(): TextFieldColors =
  */
 @Composable
 fun OnboardingOutlinedTextField(
+    modifier: Modifier = Modifier,
     value: String = "",
     onValueChange: (String) -> Unit = {},
     label: String = "",
-    modifier: Modifier = Modifier,
     placeholder: String? = null,
     placeholderTestTag: String? = null,
     error: String? = null,

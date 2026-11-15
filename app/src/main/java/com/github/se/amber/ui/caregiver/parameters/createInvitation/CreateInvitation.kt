@@ -97,7 +97,7 @@ object CreateInvitationTestTags {
 @Composable
 fun CreateInvitationScreen(
     viewModel: CreateInvitationViewModel = viewModel(),
-    onTabSelected: (Tab) -> Unit = { tab -> },
+    onTabSelected: (Tab) -> Unit = { _ -> },
     checkout: () -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
