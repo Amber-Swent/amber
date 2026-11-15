@@ -138,6 +138,7 @@ fun UploadAudioScreen(
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
     // Microphone already allowed (e.g. via the phone's settings): reset the "already asked" flag
+    if (granted) context.clearMicrophoneAsked()
     viewModel.onRecordClick(granted, context.androidWillAskMicrophone(activity))
   }
 
