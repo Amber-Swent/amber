@@ -15,6 +15,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
@@ -357,9 +358,10 @@ class AmberAppNavigationTest {
     launch(NavGraphs.CAREGIVER)
     goTo(CaregiverScreen.Parameters.route)
 
+    composeRule.onNodeWithTag(Tags.CAREGIVER_PARAMETERS_DELETE_ACCOUNT).performScrollTo()
     click(Tags.CAREGIVER_PARAMETERS_DELETE_ACCOUNT)
 
-    assertRoute(CaregiverScreen.DeleteAccount.route)
+    waitForRoute(CaregiverScreen.DeleteAccount.route)
 
     click(Tags.DELETE_ACCOUNT_CANCEL)
 
