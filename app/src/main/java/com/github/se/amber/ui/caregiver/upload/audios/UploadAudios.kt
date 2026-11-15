@@ -128,6 +128,8 @@ fun UploadAudioScreen(
   // twice: the ViewModel then only opens a popup pointing to the phone's settings.
   val micLauncher =
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        // The microphone is allowed: if it is taken back, Android starts again from "never asked"
+        if (granted) context.clearMicrophoneAsked()
         // Once asked, "no rationale" means Android will not show its popup anymore
         viewModel.onMicrophonePermissionResult(granted, context.androidWillAskMicrophone(activity))
       }
@@ -135,6 +137,7 @@ fun UploadAudioScreen(
     val granted =
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
+    // Microphone already allowed (e.g. via the phone's settings): reset the "already asked" flag
     viewModel.onRecordClick(granted, context.androidWillAskMicrophone(activity))
   }
 
@@ -290,8 +293,8 @@ fun UploadAudioScreen(
       onDismiss = viewModel::dismissMicrophoneConsent,
       onAction = {
         viewModel.dismissMicrophoneConsent()
-        context.markMicrophoneAsked()
         micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        context.markMicrophoneAsked()
       },
   )
 

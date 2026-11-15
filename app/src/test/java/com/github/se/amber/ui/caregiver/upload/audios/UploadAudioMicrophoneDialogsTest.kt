@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -217,6 +218,31 @@ class UploadAudioMicrophoneDialogsTest {
   }
 
   // ---------- Android popup answer ----------
+
+  @Test
+  fun clickingRecord_whenTheMicrophoneIsGranted_forgetsThatAndroidWasAsked() {
+    composeTestRule.activity.markMicrophoneAsked()
+    grantMicrophone()
+    launchScreen()
+    clickRecord()
+    assertFalse(composeTestRule.activity.hasAskedMicrophone())
+  }
+
+  @Test
+  fun allowingTheMicrophoneInAndroidPopup_forgetsThatAndroidWasAsked() {
+    launchScreen()
+    understandConsent()
+    answerPopup(PackageManager.PERMISSION_GRANTED)
+    assertFalse(composeTestRule.activity.hasAskedMicrophone())
+  }
+
+  @Test
+  fun refusingTheMicrophoneInAndroidPopup_remembersThatAndroidWasAsked() {
+    launchScreen()
+    understandConsent()
+    answerPopup(PackageManager.PERMISSION_DENIED)
+    assertTrue(composeTestRule.activity.hasAskedMicrophone())
+  }
 
   @Test
   fun allowingTheMicrophoneInAndroidPopup_tellsTheViewModelItWasGranted() {

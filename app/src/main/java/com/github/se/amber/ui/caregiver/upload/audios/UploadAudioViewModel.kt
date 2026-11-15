@@ -217,7 +217,7 @@ class UploadAudioViewModel(
    * @param granted Whether the microphone is already allowed.
    * @param androidWillAsk Whether Android would still show its permission popup.
    */
-  fun onRecordClick(granted: Boolean, androidWillAsk: Boolean) {
+  fun onRecordClick(granted: Boolean = false, androidWillAsk: Boolean = true) {
     when {
       granted -> startRecording()
       androidWillAsk -> _uiState.update { it.copy(isMicrophoneConsentOpen = true) }
@@ -243,7 +243,7 @@ class UploadAudioViewModel(
    * @param granted Whether the user allowed the microphone.
    * @param canAskAgain Whether Android would still show its popup; only used when not [granted].
    */
-  fun onMicrophonePermissionResult(granted: Boolean, canAskAgain: Boolean) {
+  fun onMicrophonePermissionResult(granted: Boolean = false, canAskAgain: Boolean = true) {
     if (granted) startRecording()
     else if (!canAskAgain) _uiState.update { it.copy(isMicrophoneSettingsOpen = true) }
   }

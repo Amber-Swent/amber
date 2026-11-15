@@ -27,10 +27,25 @@ fun Context.markMicrophoneAsked() {
 }
 
 /**
+ * Forgets that the Android microphone popup was requested, see [hasAskedMicrophone]. It is called
+ * when the microphone is allowed: if the permission is taken back later (e.g. in the phone's
+ * settings, or by Android for an unused app), Android starts again from "never asked", and so must
+ * the app. Otherwise, it would take that new "never asked" for "refused twice".
+ */
+fun Context.clearMicrophoneAsked() {
+  getSharedPreferences(MICROPHONE_PREFS, Context.MODE_PRIVATE).edit {
+    putBoolean(MICROPHONE_ASKED_KEY, false)
+  }
+}
+
+/**
  * Whether Android would still show its microphone popup: it was never requested, or it was refused
  * once (Android then offers a rationale). After two refusals Android shows nothing anymore.
  *
- * @param activity the activity asking for the permission, or null if there is none.
+ * @param activity the activity asking for the permission, or null if there is none. It has no
+ *   default value on purpose: a default of null would answer "Android will ask" after two refusals,
+ *   because without an activity the rationale cannot be read. Callers must pass the activity they
+ *   have.
  */
 fun Context.androidWillAskMicrophone(activity: Activity?): Boolean =
     !hasAskedMicrophone() ||
