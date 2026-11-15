@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -12,6 +13,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioState
@@ -167,7 +169,17 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
 
         override fun stop(file: File) = Unit
       }
-  private val audiosViewModel = SeeAudiosViewModel(media, circles, profiles, previewPlayer)
+  private val activeCircles =
+      object : ActiveCircleRepository {
+        override fun activeCircleId(uid: String, circleIds: List<String>): Flow<String?> =
+            flowOf(circleIds.firstOrNull { it.isNotBlank() })
+
+        override suspend fun setActiveCircle(uid: String, id: String) = Unit
+
+        override suspend fun clear(uid: String) = Unit
+      }
+  private val audiosViewModel =
+      SeeAudiosViewModel(media, circles, profiles, previewPlayer, activeCircles)
 
   override val defaultViewModelProviderFactory =
       object : ViewModelProvider.Factory {
@@ -175,7 +187,8 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             when (modelClass) {
               SeeAudiosViewModel::class.java -> audiosViewModel as T
-              MediaCardViewModel::class.java -> MediaCardViewModel(profiles, circles) as T
+              MediaCardViewModel::class.java ->
+                  MediaCardViewModel(profiles, circles, activeCircles) as T
               else -> error("Unexpected ViewModel: $modelClass")
             }
       }
