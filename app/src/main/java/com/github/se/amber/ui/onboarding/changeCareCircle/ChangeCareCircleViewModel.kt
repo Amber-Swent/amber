@@ -10,8 +10,16 @@ import kotlinx.coroutines.flow.asStateFlow
 /** A care circle available to the caregiver. */
 data class ChangeCareCircleChoice(val id: String, val name: String)
 
+/** Which part of the care circle screen is shown. */
+enum class ChangeCareCircleStatus {
+  LOADING,
+  EMPTY,
+  READY,
+}
+
 /** State displayed by [ChangeCareCircleScreen]. */
 data class ChangeCareCircleUIState(
+    val status: ChangeCareCircleStatus = ChangeCareCircleStatus.EMPTY,
     val circles: List<ChangeCareCircleChoice> = emptyList(),
     val activeCircleId: String? = null,
 )

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +52,7 @@ object ChangeCareCircleTestTags {
   const val CURRENT_CIRCLE = "change_care_circle_current"
   const val CIRCLE_LIST = "change_care_circle_list"
   const val EMPTY_MESSAGE = "change_care_circle_empty_message"
+  const val LOADING_INDICATOR = "change_care_circle_loading_indicator"
 
   fun circleChoice(circleId: String = "") = "change_care_circle_choice_$circleId"
 }
@@ -91,70 +93,80 @@ fun ChangeCareCircleScreen(
         )
       },
   ) { paddingValues ->
-    if (uiState.circles.isEmpty()) {
-      Box(
-          modifier =
-              Modifier.fillMaxSize()
-                  .padding(paddingValues)
-                  .padding(horizontal = CAREGIVER_PADDING_MEDIUM),
-          contentAlignment = Alignment.Center,
-      ) {
-        Text(
-            text = stringResource(R.string.changeCareCircleEmpty),
-            modifier = Modifier.testTag(ChangeCareCircleTestTags.EMPTY_MESSAGE),
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-        )
-      }
-    } else {
-      Column(
-          modifier =
-              Modifier.fillMaxSize()
-                  .padding(paddingValues)
-                  .verticalScroll(rememberScrollState())
-                  .padding(horizontal = CAREGIVER_PADDING_MEDIUM, vertical = CAREGIVER_PADDING_BIG),
-          verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
-      ) {
-        Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
-          Text(
-              text = stringResource(R.string.changeCareCircleCurrent),
-              color = MaterialTheme.colorScheme.onBackground,
-              style = MaterialTheme.typography.titleMedium,
-          )
-          Text(
-              text = activeCircleName ?: stringResource(R.string.changeCareCircleNone),
-              modifier = Modifier.testTag(ChangeCareCircleTestTags.CURRENT_CIRCLE),
-              color = MaterialTheme.colorScheme.onBackground,
-              style = MaterialTheme.typography.bodyLarge,
-          )
+    when (uiState.status) {
+      ChangeCareCircleStatus.LOADING, ChangeCareCircleStatus.EMPTY -> {
+        Box(
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = CAREGIVER_PADDING_MEDIUM),
+            contentAlignment = Alignment.Center,
+        ) {
+          if (uiState.status == ChangeCareCircleStatus.LOADING) {
+            CircularProgressIndicator(
+                modifier = Modifier.testTag(ChangeCareCircleTestTags.LOADING_INDICATOR),
+                color = MaterialTheme.colorScheme.primary,
+            )
+          } else {
+            Text(
+                text = stringResource(R.string.changeCareCircleEmpty),
+                modifier = Modifier.testTag(ChangeCareCircleTestTags.EMPTY_MESSAGE),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+            )
+          }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
-          Text(
-              text = stringResource(R.string.changeCareCircleAll),
-              color = MaterialTheme.colorScheme.onBackground,
-              style = MaterialTheme.typography.titleMedium,
-          )
-          FlowRow(
-              modifier =
-                  Modifier.fillMaxWidth()
-                      .border(
-                          DIVIDER_THICKNESS,
-                          MaterialTheme.colorScheme.outline,
-                          RoundedCornerShape(ROUND_CORNER),
-                      )
-                      .padding(CAREGIVER_PADDING_MEDIUM)
-                      .testTag(ChangeCareCircleTestTags.CIRCLE_LIST),
-              horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
-              verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
-          ) {
-            uiState.circles.forEach { circle ->
-              FilterChip(
-                  selected = circle.id == uiState.activeCircleId,
-                  onClick = { viewModel.changeActiveCareCircle(circle.id) },
-                  label = { Text(circle.name, style = MaterialTheme.typography.labelLarge) },
-                  modifier = Modifier.testTag(ChangeCareCircleTestTags.circleChoice(circle.id)),
-              )
+      }
+      ChangeCareCircleStatus.READY -> {
+        Column(
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = CAREGIVER_PADDING_MEDIUM, vertical = CAREGIVER_PADDING_BIG),
+            verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_BIG),
+        ) {
+          Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
+            Text(
+                text = stringResource(R.string.changeCareCircleCurrent),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = activeCircleName ?: stringResource(R.string.changeCareCircleNone),
+                modifier = Modifier.testTag(ChangeCareCircleTestTags.CURRENT_CIRCLE),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+          }
+          Column(verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL)) {
+            Text(
+                text = stringResource(R.string.changeCareCircleAll),
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FlowRow(
+                modifier =
+                    Modifier.fillMaxWidth()
+                        .border(
+                            DIVIDER_THICKNESS,
+                            MaterialTheme.colorScheme.outline,
+                            RoundedCornerShape(ROUND_CORNER),
+                        )
+                        .padding(CAREGIVER_PADDING_MEDIUM)
+                        .testTag(ChangeCareCircleTestTags.CIRCLE_LIST),
+                horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
+                verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
+            ) {
+              uiState.circles.forEach { circle ->
+                FilterChip(
+                    selected = circle.id == uiState.activeCircleId,
+                    onClick = { viewModel.changeActiveCareCircle(circle.id) },
+                    label = { Text(circle.name, style = MaterialTheme.typography.labelLarge) },
+                    modifier = Modifier.testTag(ChangeCareCircleTestTags.circleChoice(circle.id)),
+                )
+              }
             }
           }
         }
@@ -162,6 +174,20 @@ fun ChangeCareCircleScreen(
     }
     // TODO display message info
   }
+}
+
+@Preview(name = "Loading care circles", showBackground = true, showSystemUi = true)
+@Composable
+internal fun ChangeCareCircleLoadingScreenPreview() {
+    val previewViewModel =
+        remember {
+            ChangeCareCircleViewModel(
+                ChangeCareCircleUIState(status = ChangeCareCircleStatus.LOADING)
+            )
+        }
+    AmberAppTheme(dynamicColor = false) {
+        ChangeCareCircleScreen(viewModel = previewViewModel)
+    }
 }
 
 @Preview(name = "No care circles", showBackground = true, showSystemUi = true)
@@ -180,6 +206,7 @@ internal fun ChangeCareCircleScreenPreview() {
       remember {
         ChangeCareCircleViewModel(
             ChangeCareCircleUIState(
+                status = ChangeCareCircleStatus.READY,
                 circles =
                     listOf(
                         ChangeCareCircleChoice("one", "Cira's circle"),
