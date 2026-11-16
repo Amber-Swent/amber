@@ -204,8 +204,9 @@ class MediaMapViewModel(
   }
 
   /** The pin that has one of [mediaIds], the media of the open pin; null if none has. */
-  private fun List<MediaMarker>.openPin(mediaIds: Set<String>): MediaMarker? =
-      find { pin -> pin.media.any { it.id in mediaIds } }
+  private fun List<MediaMarker>.openPin(mediaIds: Set<String>): MediaMarker? = find { pin ->
+    pin.media.any { it.id in mediaIds }
+  }
 
   private fun MediaMarker.mediaIds(): Set<String> = media.mapTo(mutableSetOf()) { it.id }
 
