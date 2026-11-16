@@ -186,7 +186,8 @@ private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             when (modelClass) {
               SeeAudiosViewModel::class.java -> audiosViewModel as T
-              MediaCardViewModel::class.java -> MediaCardViewModel(profiles, circles, activeCircles) as T
+              MediaCardViewModel::class.java ->
+                  MediaCardViewModel(profiles, circles, activeCircles) as T
               else -> error("Unexpected ViewModel: $modelClass")
             }
       }

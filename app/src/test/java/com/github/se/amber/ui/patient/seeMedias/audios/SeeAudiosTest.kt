@@ -59,9 +59,10 @@ import org.robolectric.shadows.ShadowToast
 class SeeAudiosScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
-  private val activeCircleRepository = mockk<ActiveCircleRepository> {
-    every { activeCircleId(any(), any()) } returns flowOf("circle1")
-  }
+  private val activeCircleRepository =
+      mockk<ActiveCircleRepository> {
+        every { activeCircleId(any(), any()) } returns flowOf("circle1")
+      }
 
   /** Text of [id] in the current test language, with [args] for its placeholders. */
   private fun string(id: Int, vararg args: Any): String =

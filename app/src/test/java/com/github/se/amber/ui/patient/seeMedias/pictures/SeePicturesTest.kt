@@ -93,8 +93,11 @@ class SeePicturesScreenTest {
               @Suppress("UNCHECKED_CAST")
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
                   MediaCardViewModel(
-                      profileRepository, circleRepository, activeCircleRepository
-                  ) as T
+                      profileRepository,
+                      circleRepository,
+                      activeCircleRepository,
+                  )
+                      as T
             }
       }
 
