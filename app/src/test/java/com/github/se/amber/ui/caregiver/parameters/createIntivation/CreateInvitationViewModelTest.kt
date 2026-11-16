@@ -6,6 +6,7 @@
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleError
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepository
@@ -21,17 +22,24 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
+import io.mockk.every
+import io.mockk.mockk
+import java.util.concurrent.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -51,6 +59,7 @@ class CreateInvitationViewModelTest {
   private lateinit var circles: FakeCircleRepository
   private lateinit var lookup: FakeLookupRepository
   private lateinit var creation: FakeCreationRepository
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
 
   @Before
   fun setUp() {
@@ -59,6 +68,10 @@ class CreateInvitationViewModelTest {
     circles = FakeCircleRepository(mapOf("circle-1" to circle("circle-1", "Arthur's family")))
     lookup = FakeLookupRepository()
     creation = FakeCreationRepository()
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
   }
 
   @After
@@ -81,6 +94,71 @@ class CreateInvitationViewModelTest {
         assertEquals(emptyList<CareCircleChoice>(), viewModel.uiState.value.circles)
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
         assertEquals(emptyList<String>(), creation.requestedCircleIds)
+      }
+
+  @Test
+  fun blankCircleIdsDoNotSelectOrLoadACircle() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile("", "  "))
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
+        assertNull(viewModel.uiState.value.selectedCircleId)
+        assertEquals(emptyList<String>(), lookup.requestedCircleIds)
+        assertEquals(emptyList<String>(), creation.requestedCircleIds)
+      }
+
+  @Test
+  fun blankCircleIdsAreFilteredWhenAUsableCircleExists() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile(" ", "circle-1", ""))
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(CareCircleChoice("circle-1", "Arthur's family")),
+            viewModel.uiState.value.circles,
+        )
+        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
+        assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
+      }
+
+  @Test
+  fun nullActiveCircleShowsErrorDespiteUsableCircleIds() =
+      runTest(dispatcher) {
+        every { activeCircleRepository.activeCircleId(any(), any()) } returns flowOf(null)
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(CareCircleChoice("circle-1", "Arthur's family")),
+            viewModel.uiState.value.circles,
+        )
+        assertNull(viewModel.uiState.value.selectedCircleId)
+        assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
+        assertTrue(lookup.requestedCircleIds.isEmpty())
+      }
+
+  @Test
+  fun createAfterProfileRecoversButActiveCircleIsNullShowsError() =
+      runTest(dispatcher) {
+        profiles.result = Result.failure(ProfileReadError.Network)
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        profiles.result = Result.success(profile("circle-1"))
+        every { activeCircleRepository.activeCircleId(any(), any()) } returns flowOf(null)
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
+        assertNull(viewModel.uiState.value.selectedCircleId)
+        assertFalse(viewModel.uiState.value.isCreating)
+        assertTrue(creation.requestedCircleIds.isEmpty())
       }
 
   @Test
@@ -144,6 +222,28 @@ class CreateInvitationViewModelTest {
         assertEquals(listOf(stored), viewModel.uiState.value.invitations)
         assertNull(viewModel.uiState.value.errorMsgRes)
         assertNull(viewModel.uiState.value.generatedCode)
+      }
+
+  @Test
+  fun startsWithTheActiveCircleWhenItIsSecond() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile("circle-1", "circle-2"))
+        circles =
+            FakeCircleRepository(
+                mapOf(
+                    "circle-1" to circle("circle-1", "Arthur's family"),
+                    "circle-2" to circle("circle-2", "Bea's family"),
+                )
+            )
+        every {
+          activeCircleRepository.activeCircleId("caregiver-1", listOf("circle-1", "circle-2"))
+        } returns flowOf("circle-2")
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
+        assertEquals(listOf("circle-2"), lookup.requestedCircleIds)
       }
 
   @Test
@@ -214,6 +314,19 @@ class CreateInvitationViewModelTest {
         advanceUntilIdle()
 
         viewModel.selectCircle("missing")
+        advanceUntilIdle()
+
+        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
+        assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
+      }
+
+  @Test
+  fun selectingTheCurrentCircleDoesNotReloadInvitations() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.selectCircle("circle-1")
         advanceUntilIdle()
 
         assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
@@ -375,6 +488,7 @@ class CreateInvitationViewModelTest {
             )
         val circleA = CompletableDeferred<Unit>()
         lookup.gates["circle-1"] = circleA
+        lookup.ignoreCancellationFor += "circle-1"
 
         val viewModel = viewModel()
         advanceUntilIdle()
@@ -388,6 +502,54 @@ class CreateInvitationViewModelTest {
 
         assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
         assertEquals(listOf(second), viewModel.uiState.value.invitations)
+      }
+
+  @Test
+  fun staleCircleLookupFailureDoesNotShowAnErrorForTheNewCircle() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile("circle-1", "circle-2"))
+        circles =
+            FakeCircleRepository(
+                mapOf(
+                    "circle-1" to circle("circle-1", "Arthur's family"),
+                    "circle-2" to circle("circle-2", "Bea's family"),
+                )
+            )
+        val second = invitation("SECOND22")
+        lookup.results =
+            mapOf(
+                "circle-1" to Result.failure(IllegalStateException("stale failure")),
+                "circle-2" to Result.success(listOf(second)),
+            )
+        val circleA = CompletableDeferred<Unit>()
+        lookup.gates["circle-1"] = circleA
+        lookup.ignoreCancellationFor += "circle-1"
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        viewModel.selectCircle("circle-2")
+        advanceUntilIdle()
+        circleA.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
+        assertEquals(listOf(second), viewModel.uiState.value.invitations)
+        assertNull(viewModel.uiState.value.errorMsgRes)
+      }
+
+  @Test
+  fun cancelledCreationClearsCreatingWithoutShowingAnError() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        creation.thrown = CancellationException("cancelled")
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertEquals(listOf("circle-1"), creation.requestedCircleIds)
+        assertTrue(!viewModel.uiState.value.isCreating)
+        assertNull(viewModel.uiState.value.errorMsgRes)
       }
 
   @Test
@@ -410,6 +572,7 @@ class CreateInvitationViewModelTest {
           creationRepository = creation,
           lookupRepository = lookup,
           circleRepository = circles,
+          activeCircleRepository = activeCircleRepository,
       )
 
   private fun profile(vararg circleIds: String) =
@@ -462,10 +625,15 @@ private class FakeLookupRepository : InvitationLookupRepository {
   val requestedCircleIds = mutableListOf<String>()
   var results: Map<String, Result<List<InvitationSummary>>> = emptyMap()
   val gates = mutableMapOf<String, CompletableDeferred<Unit>>()
+  val ignoreCancellationFor = mutableSetOf<String>()
 
   override suspend fun getInvitations(selectedCircleId: String): Result<List<InvitationSummary>> {
     requestedCircleIds += selectedCircleId
-    gates[selectedCircleId]?.await()
+    if (selectedCircleId in ignoreCancellationFor) {
+      withContext(NonCancellable) { gates[selectedCircleId]?.await() }
+    } else {
+      gates[selectedCircleId]?.await()
+    }
     return results[selectedCircleId] ?: Result.success(emptyList())
   }
 }

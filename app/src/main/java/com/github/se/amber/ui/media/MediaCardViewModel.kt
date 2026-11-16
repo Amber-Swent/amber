@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.media
 
@@ -8,6 +9,8 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -18,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -39,6 +43,8 @@ class MediaCardViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
 
   private val _uiState = MutableStateFlow(MediaCardUIState())
@@ -112,7 +118,7 @@ class MediaCardViewModel(
       // Nothing to look up if nobody is credited on this media
       if (media.shownIds.isEmpty()) return@launch
 
-      // 2. Patient profile (the current profile) -> first care circle id
+      // 2. Patient profile (the current profile) -> active care circle id
       val patientProfile =
           profileRepository.getCurrentProfile().getOrSetError(
               "Error fetching patient profile",
@@ -121,7 +127,9 @@ class MediaCardViewModel(
             return@launch
           }
 
-      val circleId = patientProfile?.circleIds?.firstOrNull()
+      val circleId = patientProfile?.let {
+        activeCircleRepository.activeCircleId(it.uid, it.circleIds).first()
+      }
       if (circleId == null) {
         setErrorMsg(R.string.mediaCardErrorNoCircle)
         return@launch
