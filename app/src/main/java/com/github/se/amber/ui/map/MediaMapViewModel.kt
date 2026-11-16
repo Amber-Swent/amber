@@ -90,13 +90,15 @@ class MediaMapViewModel(
   }
 
   private val loaded = MutableStateFlow<Loaded>(Loaded.Loading)
-  private val selectedMarkerId = MutableStateFlow<String?>(null)
+  // The media of the open pin, not its id: the id changes when the pin's oldest media is removed
+  // or an older one is added, and the pin must stay open then
+  private val selectedMediaIds = MutableStateFlow<Set<String>>(emptySet())
   private val errorMsgRes = MutableStateFlow<Int?>(null)
 
   val uiState: StateFlow<MediaMapUIState> =
-      combine(loaded, selectedMarkerId, errorMsgRes, connectivityMonitor.isOnline) {
+      combine(loaded, selectedMediaIds, errorMsgRes, connectivityMonitor.isOnline) {
               loaded,
-              selectedId,
+              selectedIds,
               errorMsgRes,
               isOnline ->
             when (loaded) {
@@ -108,7 +110,7 @@ class MediaMapViewModel(
                   } else {
                     MediaMapUIState.Content(
                         markers = loaded.markers,
-                        selectedMarker = loaded.markers.find { it.id == selectedId },
+                        selectedMarker = loaded.markers.openPin(selectedIds),
                         isOffline = !isOnline,
                         errorMsgRes = errorMsgRes,
                     )
@@ -129,12 +131,12 @@ class MediaMapViewModel(
   /** Opens the media of the pin [markerId]. Does nothing if no pin has this id. */
   fun selectMarker(markerId: String) {
     val markers = (loaded.value as? Loaded.Markers)?.markers ?: return
-    if (markers.any { it.id == markerId }) selectedMarkerId.value = markerId
+    markers.find { it.id == markerId }?.let { selectedMediaIds.value = it.mediaIds() }
   }
 
   /** Closes the media of the selected pin. */
   fun dismissMarker() {
-    selectedMarkerId.value = null
+    selectedMediaIds.value = emptySet()
   }
 
   /** Clears the non-blocking error message. */
@@ -146,7 +148,7 @@ class MediaMapViewModel(
   private fun load() {
     loadJob?.cancel()
     loaded.value = Loaded.Loading
-    selectedMarkerId.value = null
+    selectedMediaIds.value = emptySet()
     errorMsgRes.value = null
 
     loadJob = viewModelScope.launch {
@@ -169,13 +171,12 @@ class MediaMapViewModel(
             else markersOf(circleId)
           }
           .collect { next ->
-            // Forget the open pin once it is gone (another circle, or its media removed), so it
-            // doesn't open again by itself if its media come back
-            val selectedId = selectedMarkerId.value
-            if (next !is Loaded.Markers || next.markers.none { it.id == selectedId }) {
-              selectedMarkerId.value = null
-            }
+            val open = (next as? Loaded.Markers)?.markers?.openPin(selectedMediaIds.value)
             loaded.value = next
+            // Keep the open pin's current media, so it stays open while they change one at a time.
+            // Forget it once it is gone (another circle, or all its media removed), so it doesn't
+            // open again by itself if its media come back
+            selectedMediaIds.value = open?.mediaIds().orEmpty()
           }
     }
   }
@@ -201,6 +202,12 @@ class MediaMapViewModel(
           }
         }
   }
+
+  /** The pin that has one of [mediaIds], the media of the open pin; null if none has. */
+  private fun List<MediaMarker>.openPin(mediaIds: Set<String>): MediaMarker? =
+      find { pin -> pin.media.any { it.id in mediaIds } }
+
+  private fun MediaMarker.mediaIds(): Set<String> = media.mapTo(mutableSetOf()) { it.id }
 
   private companion object {
     const val TAG = "MediaMapViewModel"
