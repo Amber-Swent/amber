@@ -15,9 +15,11 @@ import com.github.se.amber.model.location.MediaMarker
 import com.github.se.amber.model.location.NEARBY_EXIT_MARGIN_METERS
 import com.github.se.amber.model.location.NEARBY_RADIUS_METERS
 import com.github.se.amber.model.location.TestPlaces.GENEVA
+import com.github.se.amber.model.location.TestPlaces.JUST_INSIDE_SAME_PLACE_RADIUS
 import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.location.TestPlaces.latitude
 import com.github.se.amber.model.location.TestPlaces.longitude
+import com.github.se.amber.model.location.TestPlaces.movedNorth
 import com.github.se.amber.model.location.TestPositions.APPROXIMATE_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.GPS_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.INDOOR_GPS_ACCURACY_METERS
@@ -97,6 +99,7 @@ class MediaMapViewModelTest {
 
   private val mediaLocationRepository = FakeMediaLocationRepository(mapOf("circle1" to twoPins))
   private val denied = IllegalStateException("permission denied")
+  private val nearby = JUST_INSIDE_SAME_PLACE_RADIUS
 
   /** Set by [useStandardDispatcher], for tests that must run the coroutines step by step. */
   private var standardDispatcher: TestDispatcher? = null
@@ -137,7 +140,7 @@ class MediaMapViewModelTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun `shows the pins of the active circle picked among the user's circles`() {
+  fun showsThePinsOfTheActiveCirclePickedAmongTheUsersCircles() {
     val viewModel = createViewModel()
 
     assertEquals(
@@ -152,7 +155,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `shows Empty when no media has a place, saying when the phone is offline`() {
+  fun showsEmptyWhenNoMediaHasAPlaceSayingWhenThePhoneIsOffline() {
     mediaLocationRepository.markers.value = emptyMap()
     val viewModel = createViewModel()
     assertEquals(MediaMapUIState.Empty(isOffline = false), viewModel.uiState.value)
@@ -162,7 +165,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `Content follows the connection and new pins live`() {
+  fun contentFollowsTheConnectionAndNewPinsLive() {
     mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
     val viewModel = createViewModel()
 
@@ -181,7 +184,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `the same active circle again changes nothing, another one shows its pins and closes the open pin`() {
+  fun theSameActiveCircleAgainChangesNothingAnotherOneShowsItsPinsAndClosesTheOpenPin() {
     mediaLocationRepository.markers.value = mapOf("circle1" to twoPins, "circle2" to genevaOnly)
     val viewModel = createViewModel()
     viewModel.selectMarker(twoPins[1].id) // Geneva, also a pin of circle2
@@ -200,7 +203,7 @@ class MediaMapViewModelTest {
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun `selecting a pin opens it, an unknown one does nothing, dismissing closes it`() {
+  fun selectingAPinOpensItAnUnknownOneDoesNothingDismissingClosesIt() {
     val viewModel = createViewModel()
 
     viewModel.selectMarker(twoPins[1].id)
@@ -214,19 +217,20 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `selecting a pin while loading does nothing`() {
-    useStandardDispatcher()
-    val viewModel = createViewModel()
+  fun selectingAPinWhileLoadingDoesNothing() {
+    // The screen is already loading when the pin is selected, and its pins arrive after
+    val updates = MutableSharedFlow<List<MediaMarker>>(extraBufferCapacity = 1)
+    val viewModel = createViewModel { updates }
     assertEquals(MediaMapUIState.Loading, viewModel.uiState.value)
 
     viewModel.selectMarker(twoPins[0].id)
-    advanceMain()
+    updates.tryEmit(twoPins)
 
     assertNull(viewModel.content().selectedMarker)
   }
 
   @Test
-  fun `the open pin follows its media, closes when they are gone and stays closed when they come back`() {
+  fun theOpenPinFollowsItsMediaClosesWhenTheyAreGoneAndStaysClosedWhenTheyComeBack() {
     val viewModel = createViewModel()
     viewModel.selectMarker(twoPins[0].id)
 
@@ -242,12 +246,54 @@ class MediaMapViewModelTest {
     assertNull(viewModel.content().selectedMarker)
   }
 
+  @Test
+  fun theOpenPinStaysOpenWhenItsOldestMediaIsRemovedOrAnOlderOneIsAddedAsItsMediaChangeOneAtATime() {
+    // A pin's id is its oldest media's, so both change the id of the open pin
+    val oldest = MediaItem.Picture(id = "p1", location = lausanne)
+    val newerPoint = lausanne.movedNorth(nearby)
+    val newer = MediaItem.Picture(id = "p2", location = newerPoint)
+    mediaLocationRepository.markers.value =
+        mapOf("circle1" to listOf(newer, oldest).toMediaMarkers())
+    val viewModel = createViewModel()
+    viewModel.selectMarker(oldest.id)
+
+    mediaLocationRepository.markers.value = mapOf("circle1" to listOf(newer).toMediaMarkers())
+    assertEquals(listOf(newer), viewModel.content().selectedMarker?.media)
+
+    val olderStill = MediaItem.Picture(id = "p0", location = newerPoint.movedNorth(nearby))
+    mediaLocationRepository.markers.value =
+        mapOf("circle1" to listOf(newer, olderStill).toMediaMarkers())
+    assertEquals(listOf(newer, olderStill), viewModel.content().selectedMarker?.media)
+
+    // None of the media it was opened with is left, but it never lost all its media at once
+    mediaLocationRepository.markers.value = mapOf("circle1" to listOf(olderStill).toMediaMarkers())
+    assertEquals(listOf(olderStill), viewModel.content().selectedMarker?.media)
+  }
+
+  @Test
+  fun anOpenPinSplitInTwoByTheRemovalOfItsOldestMediaStaysOpenOnItsNewestMedia() {
+    // north and south share the pin of the media between them, but are too far apart without it
+    val between = MediaItem.Picture(id = "p1", location = lausanne)
+    val south = MediaItem.Picture(id = "p2", location = lausanne.movedNorth(-nearby))
+    val north = MediaItem.Picture(id = "p3", location = lausanne.movedNorth(nearby))
+    mediaLocationRepository.markers.value =
+        mapOf("circle1" to listOf(north, south, between).toMediaMarkers())
+    val viewModel = createViewModel()
+    viewModel.selectMarker(between.id)
+
+    mediaLocationRepository.markers.value =
+        mapOf("circle1" to listOf(north, south).toMediaMarkers())
+
+    assertEquals(listOf(listOf(north), listOf(south)), viewModel.content().markers.map { it.media })
+    assertEquals(listOf(north), viewModel.content().selectedMarker?.media)
+  }
+
   // ---------------------------------------------------------------------------------------------
   // Errors
   // ---------------------------------------------------------------------------------------------
 
   @Test
-  fun `a profile that fails to load is a blocking error`() {
+  fun aProfileThatFailsToLoadIsABlockingError() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(denied)
 
     val viewModel = createViewModel()
@@ -259,7 +305,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `a missing profile is a blocking error`() {
+  fun aMissingProfileIsABlockingError() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(null)
 
     val viewModel = createViewModel()
@@ -271,7 +317,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `no active circle is a blocking error`() {
+  fun noActiveCircleIsABlockingError() {
     activeCircleRepository.activeId.tryEmit(null)
 
     val viewModel = createViewModel()
@@ -283,7 +329,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `pins failing before any is shown is a blocking error`() {
+  fun pinsFailingBeforeAnyIsShownIsABlockingError() {
     mediaLocationRepository.failures["circle1"] = denied
 
     val viewModel = createViewModel()
@@ -295,7 +341,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `the new circle's pins failing at once is a blocking error, not an endless loading`() {
+  fun theNewCirclesPinsFailingAtOnceIsABlockingErrorNotAnEndlessLoading() {
     // The switch and the failure both happen before the state catches up, as on the main thread
     useStandardDispatcher()
     mediaLocationRepository.failures["circle2"] = denied
@@ -313,7 +359,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `pins failing after they are shown keep them, with a message to clear`() {
+  fun pinsFailingAfterTheyAreShownKeepThemWithAMessageThatRetryOrClearingRemoves() {
     val updates = MutableSharedFlow<List<MediaMarker>?>(replay = 1)
     val failingLater = MediaLocationRepository {
       flow { updates.collect { emit(it ?: throw denied) } }
@@ -328,12 +374,18 @@ class MediaMapViewModelTest {
         viewModel.uiState.value,
     )
 
+    updates.tryEmit(twoPins)
+    viewModel.retry()
+    assertEquals(MediaMapUIState.Content(markers = twoPins), viewModel.uiState.value)
+
+    updates.tryEmit(null)
+    assertEquals(R.string.mediaMapErrorLoadMedia, viewModel.content().errorMsgRes)
     viewModel.clearErrorMsg()
     assertNull(viewModel.content().errorMsgRes)
   }
 
   @Test
-  fun `retry loads again after an error, and from the pins closes the open pin`() {
+  fun retryLoadsAgainAfterAnErrorAndFromThePinsClosesTheOpenPinAndStopsThePreviousLoad() {
     mediaLocationRepository.failures["circle1"] = denied
     val viewModel = createViewModel()
 
@@ -345,6 +397,7 @@ class MediaMapViewModelTest {
     viewModel.retry()
     assertEquals(MediaMapUIState.Content(markers = twoPins), viewModel.uiState.value)
     assertEquals(listOf("circle1", "circle1", "circle1"), mediaLocationRepository.observedCircleIds)
+    assertEquals(1, mediaLocationRepository.markers.subscriptionCount.value)
   }
 
   // ---------------------------------------------------------------------------------------------

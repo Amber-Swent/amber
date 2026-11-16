@@ -16,7 +16,7 @@ import org.junit.Test
 class GeoLocationTest {
 
   @Test
-  fun `a place with both coordinates in range is a point, up to the limits and on the axes`() {
+  fun aPlaceWithBothCoordinatesInRangeIsAPointUpToTheLimitsAndOnTheAxes() {
     assertEquals(LAUSANNE.latitude to LAUSANNE.longitude, LAUSANNE.pointOrNull())
     // Only exactly (0, 0) is left out: the equator and the prime meridian are real places
     assertEquals(0.0 to LAUSANNE.longitude, LAUSANNE.copy(lat = 0.0).pointOrNull())
@@ -32,7 +32,7 @@ class GeoLocationTest {
   }
 
   @Test
-  fun `a missing, out of range or non-number coordinate, or exactly (0, 0), is no point`() {
+  fun aMissingOutOfRangeOrNonNumberCoordinateOrExactlyZeroZeroIsNoPoint() {
     val invalid =
         listOf(
             GeoLocation(placeName = "Grandma's house"),

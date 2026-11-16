@@ -8,11 +8,12 @@ import com.github.se.amber.model.media.MediaItem
  * A pin on the memories map: one place, and the media that happened there.
  *
  * Built from the media by [toMediaMarkers], never stored. Media within [SAME_PLACE_RADIUS_METERS]
- * of a pin's first media share it, so the same café picked once from the saved places and once from
- * a search gives one pin, not two drawn on top of each other.
+ * of a pin's oldest media share it, so the same café picked once from the saved places and once
+ * from a search gives one pin, not two drawn on top of each other.
  *
- * @param id identifies the pin by its oldest media, which new media don't change, so an open pin
- *   can be found again after the media change.
+ * @param id identifies the pin by its oldest media. Newer media don't change it, but it changes
+ *   when that media is removed or an older one is added, so an open pin is followed by its media
+ *   instead.
  * @param lat latitude of the pin, from its oldest media, so the pin doesn't move when media are
  *   added.
  * @param lng longitude of the pin, from its oldest media.
@@ -27,12 +28,6 @@ data class MediaMarker(
     val placeName: String?,
     val media: List<MediaItem>,
 )
-
-/**
- * How far from a pin's first media other media can be and still share the pin, in meters: about a
- * building, more than two searches for the same place usually differ by.
- */
-const val SAME_PLACE_RADIUS_METERS = 25.0
 
 /**
  * The pins for these media, given newest first, in the order of their newest media. Media without a
@@ -51,8 +46,8 @@ fun List<MediaItem>.toMediaMarkers(): List<MediaMarker> {
     val pin =
         pins.firstOrNull { distanceMeters(it.lat, it.lng, lat, lng) <= SAME_PLACE_RADIUS_METERS }
             ?: PinBuilder(id = media.id, lat = lat, lng = lng).also { pins += it }
-    pin.media.add(0, media) // newest first
-    location.placeName?.takeIf { it.isNotBlank() }?.let { pin.placeNames.add(0, it) }
+    pin.media.addFirst(media) // newest first
+    location.placeName?.takeIf { it.isNotBlank() }?.let { pin.placeNames.addFirst(it) }
     pin.newestIndex = index
   }
   return pins
@@ -73,15 +68,25 @@ fun List<MediaItem>.toMediaMarkers(): List<MediaMarker> {
  * far (both newest first), and its newest media's index.
  */
 private class PinBuilder(val id: String, val lat: Double, val lng: Double) {
-  val media = mutableListOf<MediaItem>()
-  val placeNames = mutableListOf<String>()
+  val media = ArrayDeque<MediaItem>()
+  val placeNames = ArrayDeque<String>()
   var newestIndex = 0
 }
 
-/** The name these names have most often; between names as common, the first one. */
+/**
+ * The name these names have most often; between names as common, the newest one, as the names are
+ * given newest first. It relies on that order: eachCount keeps the names in the order they first
+ * appear, and maxByOrNull keeps the first of the names as common.
+ */
 private fun List<String>.mostCommon(): String? = groupingBy {
   it
 }
     .eachCount()
     .maxByOrNull { (_, count) -> count }
     ?.key
+
+/**
+ * How far from a pin's oldest media other media can be and still share the pin, in meters: about a
+ * building, more than two searches for the same place usually differ by.
+ */
+const val SAME_PLACE_RADIUS_METERS = 25.0

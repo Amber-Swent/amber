@@ -21,7 +21,7 @@ class FakeMediaLocationRepositoryTest {
   private val pins = listOf(MediaItem.Picture(id = "p1", location = LAUSANNE)).toMediaMarkers()
 
   @Test
-  fun `gives each circle its own pins, live, and records the circles asked for`() = runTest {
+  fun givesEachCircleItsOwnPinsLiveAndRecordsTheCirclesAskedFor() = runTest {
     val repository = FakeMediaLocationRepository(mapOf("circle1" to pins))
 
     assertEquals(pins, repository.observeMarkers("circle1").first())
@@ -33,7 +33,7 @@ class FakeMediaLocationRepositoryTest {
   }
 
   @Test
-  fun `a failing circle stops with its error before any pin, others still work`() = runTest {
+  fun aFailingCircleStopsWithItsErrorBeforeAnyPinOthersStillWork() = runTest {
     val denied = IllegalStateException("permission denied")
     val repository = FakeMediaLocationRepository(mapOf("circle1" to pins, "circle2" to pins))
     repository.failures["circle1"] = denied

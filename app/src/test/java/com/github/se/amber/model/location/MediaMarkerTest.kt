@@ -4,6 +4,7 @@ package com.github.se.amber.model.location
 
 import com.github.se.amber.model.location.TestPlaces.GENEVA
 import com.github.se.amber.model.location.TestPlaces.JUST_ABOVE_MAX_LATITUDE
+import com.github.se.amber.model.location.TestPlaces.JUST_INSIDE_SAME_PLACE_RADIUS
 import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.location.TestPlaces.latitude
 import com.github.se.amber.model.location.TestPlaces.longitude
@@ -16,8 +17,7 @@ import org.junit.Test
 
 class MediaMarkerTest {
 
-  private val radius = SAME_PLACE_RADIUS_METERS
-  private val justInsideRadius = radius * 0.9
+  private val justInsideRadius = JUST_INSIDE_SAME_PLACE_RADIUS
 
   private fun picture(id: String, location: GeoLocation?) =
       MediaItem.Picture(id = id, location = location)
@@ -25,7 +25,7 @@ class MediaMarkerTest {
   private fun List<MediaItem>.pinMedia() = toMediaMarkers().map { it.media }
 
   @Test
-  fun `only media with a real point get a pin`() {
+  fun onlyMediaWithARealPointGetAPin() {
     // Which points are real is tested in GeoLocationTest; here, one of each kind is left out
     val atPoint = picture("p1", LAUSANNE)
     val media =
@@ -42,7 +42,7 @@ class MediaMarkerTest {
   }
 
   @Test
-  fun `media near a pin's oldest media share it, newest first, and pins don't chain`() {
+  fun mediaNearAPinsOldestMediaShareItNewestFirstAndPinsDontChain() {
     // Given newest first, as the repository gives them
     val oldest = picture("p1", LAUSANNE)
     val insidePoint = LAUSANNE.movedNorth(justInsideRadius)
@@ -58,7 +58,7 @@ class MediaMarkerTest {
   }
 
   @Test
-  fun `a pin keeps the point and id of its oldest media, and pins follow their newest media`() {
+  fun aPinKeepsThePointAndIdOfItsOldestMediaAndPinsFollowTheirNewestMedia() {
     val oldest = picture("p1", LAUSANNE)
     val before = listOf(picture("p2", GENEVA), oldest).toMediaMarkers()
     assertEquals(listOf("p2", "p1"), before.map { it.id })
@@ -74,7 +74,7 @@ class MediaMarkerTest {
   }
 
   @Test
-  fun `a pin takes the place name most of its media have, the newest one between equals, or none`() {
+  fun aPinTakesThePlaceNameMostOfItsMediaHaveTheNewestOneBetweenEqualsOrNone() {
     fun named(id: String, name: String?) = picture(id, LAUSANNE.copy(placeName = name))
 
     val home = named("p1", "Home")

@@ -33,7 +33,7 @@ class ApprovedMediaLocationRepositoryTest {
   private val textWithoutPlace = MediaItem.Text(id = "t1")
 
   @Test
-  fun `gives the live pins of the approved media, only when the pins change`() =
+  fun givesTheLivePinsOfTheApprovedMediaOnlyWhenThePinsChange() =
       runTest(UnconfinedTestDispatcher()) {
         val media = MutableStateFlow<List<MediaItem>>(listOf(picture, textWithoutPlace))
         every { mediaRepository.observeApprovedMedia("circle1") } returns media
@@ -52,7 +52,7 @@ class ApprovedMediaLocationRepositoryTest {
       }
 
   @Test
-  fun `stops with the media's own error`() = runTest {
+  fun stopsWithTheMediasOwnError() = runTest {
     val denied = IllegalStateException("permission denied")
     every { mediaRepository.observeApprovedMedia("circle1") } returns flow { throw denied }
     var caught: Throwable? = null

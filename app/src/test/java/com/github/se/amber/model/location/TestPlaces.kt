@@ -35,6 +35,9 @@ object TestPlaces {
   /** Meters in one degree of latitude, the same everywhere on a sphere. */
   const val METERS_PER_DEGREE_OF_LATITUDE = HALF_EARTH_CIRCUMFERENCE_METERS / MAX_LONGITUDE
 
+  /** A distance at which two media still share a pin, just inside [SAME_PLACE_RADIUS_METERS]. */
+  const val JUST_INSIDE_SAME_PLACE_RADIUS = SAME_PLACE_RADIUS_METERS * 0.9
+
   /** This place moved [meters] north (south if negative). */
   fun GeoLocation.movedNorth(meters: Double): GeoLocation =
       copy(lat = latitude + meters / METERS_PER_DEGREE_OF_LATITUDE)
