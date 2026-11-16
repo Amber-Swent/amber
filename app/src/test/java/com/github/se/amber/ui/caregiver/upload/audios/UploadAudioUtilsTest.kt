@@ -99,7 +99,7 @@ class UploadAudioUtilsTest {
   }
 
   @Test
-  fun androidWillAskAgainOnceTheMicrophoneWasAllowedThenTakenBack() {
+  fun androidWillAskAgainAfterClearingStoredRequestHistory() {
     context.markMicrophoneAsked()
     context.clearMicrophoneAsked()
     rationale(shown = false)
