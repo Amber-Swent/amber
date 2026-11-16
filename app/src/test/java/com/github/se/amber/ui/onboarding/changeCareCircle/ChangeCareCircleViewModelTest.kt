@@ -7,10 +7,10 @@ import org.junit.Test
 
 class ChangeCareCircleViewModelTest {
   @Test
-  fun startsEmpty() {
+  fun startsLoading() {
     val state = ChangeCareCircleViewModel().uiState.value
 
-    assertEquals(ChangeCareCircleStatus.EMPTY, state.status)
+    assertEquals(ChangeCareCircleStatus.LOADING, state.status)
     assertEquals(emptyList<ChangeCareCircleChoice>(), state.circles)
   }
 
