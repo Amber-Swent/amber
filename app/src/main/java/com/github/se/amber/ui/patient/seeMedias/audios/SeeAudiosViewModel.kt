@@ -1,10 +1,9 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
 import android.util.Log
-import androidx.annotation.StringRes
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.CareCircleRepository
@@ -14,50 +13,34 @@ import com.github.se.amber.data.media.audio.AudioPlayerProvider
 import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.data.profile.ProfileRepositoryProvider
-import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.media.MediaRepositoryProvider
-import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.media.audio.AudioPlaybackState
+import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasErrors
+import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasUIState
+import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasViewModel
 import java.io.File
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 
-/**
- * Patient audio list state. Errors block the screen until data is loaded; later errors keep the
- * current list visible. Playback state is exposed separately for each audio ID.
- */
-sealed interface SeeAudiosUIState {
-  data object Loading : SeeAudiosUIState
-
-  data class BlockingError(@param:StringRes val errorMsgRes: Int) : SeeAudiosUIState
-
-  data class Empty(
-      val patientProfile: UserProfile,
-      val careCircle: CareCircle,
-      @param:StringRes val errorMsgRes: Int? = null,
-  ) : SeeAudiosUIState
-
-  data class Content(
-      val patientProfile: UserProfile,
-      val careCircle: CareCircle,
-      val allAudios: List<MediaItem.Audio>,
-      @param:StringRes val errorMsgRes: Int? = null,
-  ) : SeeAudiosUIState
-}
+private val AUDIOS_ERRORS =
+    SeeGeneralMediasErrors(
+        loadProfile = R.string.seeAudiosErrorLoadProfile,
+        noProfile = R.string.seeAudiosErrorNoProfile,
+        noCircle = R.string.seeAudiosErrorNoCircle,
+        loadCircle = R.string.seeAudiosErrorLoadCircle,
+        loadMedia = R.string.seeAudiosErrorLoadMedia,
+    )
 
 /**
- * Loads the patient's approved audio memories from their first care circle. Uses the shared
- * [AudioPlayer] and exposes the state of each audio card without changing the list state.
+ * Loads the patient's approved audio memories (loading logic in [SeeGeneralMediasViewModel]). Uses
+ * the shared [AudioPlayer] and exposes the state of each audio card without changing the list
+ * state.
  *
  * @param mediaRepository observes approved media and downloads audio files.
  * @param circleRepository loads the patient's care circle.
@@ -65,18 +48,20 @@ sealed interface SeeAudiosUIState {
  * @param audioPlayer plays audio and reports playback progress.
  */
 class SeeAudiosViewModel(
-    private val mediaRepository: MediaRepository = MediaRepositoryProvider.repository,
-    private val circleRepository: CareCircleRepository =
-        CareCircleRepositoryProvider.default.repository,
-    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    mediaRepository: MediaRepository = MediaRepositoryProvider.repository,
+    circleRepository: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val audioPlayer: AudioPlayer = AudioPlayerProvider.player,
-) : ViewModel() {
-  private val _uiState = MutableStateFlow<SeeAudiosUIState>(SeeAudiosUIState.Loading)
-  val uiState: StateFlow<SeeAudiosUIState> = _uiState.asStateFlow()
+) :
+    SeeGeneralMediasViewModel<MediaItem.Audio>(
+        mediaRepository = mediaRepository,
+        circleRepository = circleRepository,
+        profileRepository = profileRepository,
+        errors = AUDIOS_ERRORS,
+    ) {
   private val _playbackStates = MutableStateFlow<Map<String, AudioPlaybackState>>(emptyMap())
   val playbackStates: StateFlow<Map<String, AudioPlaybackState>> = _playbackStates.asStateFlow()
 
-  private var loadJob: Job? = null
   private var playbackJob: Job? = null
   private var activeAudioId: String? = null
   private var activeFile: File? = null
@@ -87,8 +72,16 @@ class SeeAudiosViewModel(
     load()
   }
 
-  /** Reloads the screen after a blocking error. */
-  fun retry() = load(showLoading = true)
+  override fun filterMedia(media: List<MediaItem>): List<MediaItem.Audio> =
+      media.filterIsInstance<MediaItem.Audio>()
+
+  /** Stops the playback if the active audio is no longer in the list. */
+  override fun onItemsChanged(items: List<MediaItem.Audio>) {
+    if (activeAudioId != null && items.none { it.id == activeAudioId }) {
+      playbackJob?.cancel()
+      activeFile?.let(audioPlayer::stop)
+    }
+  }
 
   /**
    * Downloads [audio] on first play, then pauses or resumes its loaded file. Download and play
@@ -97,7 +90,7 @@ class SeeAudiosViewModel(
    * @param audio the memory whose playback button was pressed.
    */
   fun onPlayPause(audio: MediaItem.Audio) {
-    val circle = (_uiState.value as? SeeAudiosUIState.Content)?.careCircle ?: return
+    val circle = (uiState.value as? SeeGeneralMediasUIState.Content<*>)?.careCircle ?: return
     val playerState = audioPlayer.state.value
 
     // Audio already loaded
@@ -188,12 +181,10 @@ class SeeAudiosViewModel(
         ) {
           AudioPlaybackState.Error(durationMs = durationMs)
         } else {
-          // Idle if the current file is not the file for the active audio
+          // Idle if the current file is not the file for the active audio.
           // Only setting the state to Idle without the above "else if" was hiding player failures
-          // that
-          // would clear the current file to null, therefore entering this else condition and
-          // setting the
-          // state to Idle instead showing an error.
+          // that would clear the current file to null, therefore entering this else condition and
+          // setting the state to Idle instead of showing an error.
           AudioPlaybackState.Idle(durationMs = durationMs)
         }
     setPlaybackState(id, state)
@@ -203,91 +194,6 @@ class SeeAudiosViewModel(
   fun onRestart(audio: MediaItem.Audio) {
     if (activeAudioId == audio.id && audioPlayer.state.value.file == activeFile) {
       audioPlayer.seekTo(0L)
-    }
-  }
-
-  /** Clears the transient media-loading error after the screen displays it. */
-  fun clearErrorMsg() {
-    when (val state = _uiState.value) {
-      is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsgRes = null)
-      is SeeAudiosUIState.Content -> _uiState.value = state.copy(errorMsgRes = null)
-      else -> Unit
-    }
-  }
-
-  /** Keeps an existing state on error and falls back to a blocking error while loading. */
-  private fun setNonBlockingErrorMsg(@StringRes errorMsgRes: Int) {
-    when (val state = _uiState.value) {
-      is SeeAudiosUIState.Empty -> _uiState.value = state.copy(errorMsgRes = errorMsgRes)
-      is SeeAudiosUIState.Content -> _uiState.value = state.copy(errorMsgRes = errorMsgRes)
-      is SeeAudiosUIState.Loading,
-      is SeeAudiosUIState.BlockingError -> setBlockingErrorMsg(errorMsgRes)
-    }
-  }
-
-  private fun setBlockingErrorMsg(@StringRes errorMsgRes: Int) {
-    _uiState.value = SeeAudiosUIState.BlockingError(errorMsgRes)
-  }
-
-  private fun load(showLoading: Boolean = true) {
-    loadJob?.cancel()
-    if (showLoading) _uiState.value = SeeAudiosUIState.Loading
-
-    loadJob = viewModelScope.launch {
-      // Get patient's profile
-      val profile =
-          profileRepository.getCurrentProfile().getOrElse { error ->
-            Log.e(TAG, "Error fetching profile", error)
-            setBlockingErrorMsg(R.string.seeAudiosErrorLoadProfile)
-            return@launch
-          }
-              ?: run {
-                setBlockingErrorMsg(R.string.seeAudiosErrorNoProfile)
-                return@launch
-              }
-
-      // Get patient's circle id
-      val circleId = profile.circleIds.firstOrNull { it.isNotBlank() }
-      if (circleId == null) {
-        setBlockingErrorMsg(R.string.seeAudiosErrorNoCircle)
-        return@launch
-      }
-
-      // Get patient's care circle
-      val circle =
-          circleRepository.getCircle(circleId).getOrElse { error ->
-            Log.e(TAG, "Error fetching care circle", error)
-            setBlockingErrorMsg(R.string.seeAudiosErrorLoadCircle)
-            return@launch
-          }
-
-      // The approved media flow is already ordered newest first.
-      val mediaFlow: Flow<List<MediaItem>> = mediaRepository.observeApprovedMedia(circleId)
-      mediaFlow
-          .retryWhen { error, attempt ->
-            Log.e(TAG, "Error observing media", error)
-            if (attempt == 0L) setNonBlockingErrorMsg(R.string.seeAudiosErrorLoadMedia)
-            // Retry the media subscription; the current list stays visible while we wait.
-            delay(3_000L.milliseconds)
-            true
-          }
-          .collect { media ->
-            val audios = media.filterIsInstance<MediaItem.Audio>()
-            if (activeAudioId != null && audios.none { it.id == activeAudioId }) {
-              playbackJob?.cancel()
-              activeFile?.let(audioPlayer::stop)
-            }
-            _uiState.value =
-                if (audios.isEmpty()) {
-                  SeeAudiosUIState.Empty(patientProfile = profile, careCircle = circle)
-                } else {
-                  SeeAudiosUIState.Content(
-                      patientProfile = profile,
-                      careCircle = circle,
-                      allAudios = audios,
-                  )
-                }
-          }
     }
   }
 
