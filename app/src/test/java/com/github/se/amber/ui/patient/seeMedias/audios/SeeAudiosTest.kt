@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -21,6 +22,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.user.Person
@@ -40,6 +42,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,6 +59,10 @@ import org.robolectric.shadows.ShadowToast
 class SeeAudiosScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
+  private val activeCircleRepository = mockk<ActiveCircleRepository> {
+    every { activeCircleId(any(), any()) } returns flowOf("circle1")
+  }
+
   /** Text of [id] in the current test language, with [args] for its placeholders. */
   private fun string(id: Int, vararg args: Any): String =
       ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
@@ -70,7 +77,8 @@ class SeeAudiosScreenTest {
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
                   when (modelClass) {
                     SeeAudiosViewModel::class.java -> audioViewModel as T
-                    MediaCardViewModel::class.java -> MediaCardViewModel(mockk(), mockk()) as T
+                    MediaCardViewModel::class.java ->
+                        MediaCardViewModel(mockk(), mockk(), activeCircleRepository) as T
                     else -> error("Unexpected ViewModel: $modelClass")
                   }
             }
