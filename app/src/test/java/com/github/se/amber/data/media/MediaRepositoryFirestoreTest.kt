@@ -496,6 +496,22 @@ class MediaRepositoryFirestoreTest {
   }
 
   @Test
+  fun sendPassesTheContentTypeOfTheFileExtension() = runTest {
+    stubStoredDocument(noDocument())
+    val audio =
+        MediaItem.Audio(
+            id = "m1",
+            authorId = picture.authorId,
+            storagePath = "careCircles/c1/media/m1.m4a",
+        )
+    val repository = newRepository(outbox = newOutbox())
+    repository.addMedia(circle, audio, source())
+
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+    assertEquals("audio/mp4", fileStorage.lastUploadedContentType)
+  }
+
+  @Test
   fun sendKeepsADocumentAnEarlierAttemptCreated() = runTest {
     // e.g. the app was killed after creating it, and the media was edited since
     stubStoredDocument(documentOf(picture.copy(description = "Edited since")))
@@ -555,29 +571,24 @@ class MediaRepositoryFirestoreTest {
     val outbox = newOutbox()
     val repository = newRepository(outbox = outbox)
     repository.addMedia(circle, picture, source())
-    val permanent =
-        mapOf(
-            "Firestore refusing the user" to
-                {
-                  stubFirestoreError(FirebaseFirestoreException.Code.PERMISSION_DENIED)
-                },
-            // Empty file already in the outbox: requireUploadable refuses it before upload.
-            "the file refused before sending" to
-                {
-                  File(outboxDir, "c1/m1.bin").writeBytes(ByteArray(0))
-                },
-        )
+    stubFirestoreError(FirebaseFirestoreException.Code.PERMISSION_DENIED)
 
-    for ((case, stub) in permanent) {
-      val uploadsBefore = events.count { it.startsWith("upload ") }
-      stub()
-      assertEquals(case, SendResult.FAILED, repository.send("c1", "m1"))
-      assertEquals(case, SendState.FAILED, outbox.stateOf("m1"))
-      if (case == "the file refused before sending") {
-        assertEquals(case, uploadsBefore, events.count { it.startsWith("upload ") })
-      }
-      repository.retrySend("c1", "m1") // back to WAITING for the next case
-    }
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+    assertEquals(SendState.FAILED, outbox.stateOf("m1"))
+  }
+
+  @Test
+  fun aRefusedFileFailsAgainOnEveryRetryWithoutUploading() = runTest {
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+    File(outboxDir, "c1/m1.bin").writeBytes(ByteArray(0))
+
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+    repository.retrySend("c1", "m1")
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+    assertEquals(SendState.FAILED, outbox.stateOf("m1"))
+    assertEquals(emptyList<String>(), events.filter { it.startsWith("upload ") })
   }
 
   @Test

@@ -55,56 +55,7 @@ class MediaFileStorageTest {
         "image/jpeg",
         requireUploadable(circle, picture, fileOfLength(tmp.root, MAX_FILE_BYTES)),
     )
-  }
-
-  @Test
-  fun requireUploadableRefusesAMediaTheRulesWouldRefuse() {
-    val file = fileOfLength(tmp.root, 1)
-    val refused =
-        mapOf<String, () -> Unit>(
-            "text" to { requireUploadable(circle, MediaItem.Text(id = "t1"), file) },
-            "wrong extension" to
-                {
-                  requireUploadable(
-                      circle,
-                      picture.copy(storagePath = "careCircles/c1/media/m1.gif"),
-                      file,
-                  )
-                },
-            "another circle" to
-                {
-                  requireUploadable(
-                      circle,
-                      picture.copy(storagePath = "careCircles/c2/media/m1.jpg"),
-                      file,
-                  )
-                },
-            "empty file" to { requireUploadable(circle, picture, fileOfLength(tmp.root, 0)) },
-            "file over 25 MiB" to
-                {
-                  requireUploadable(circle, picture, fileOfLength(tmp.root, MAX_FILE_BYTES + 1))
-                },
-        )
-
-    for ((case, call) in refused) {
-      assertThrows(case, IllegalArgumentException::class.java) { call() }
-    }
-    // reported as the item or the file, before MediaFileStorage.upload is called
-    assertEquals(
-        "Media t1 is a text: it has no file to upload",
-        assertThrows(IllegalArgumentException::class.java) {
-              requireUploadable(circle, MediaItem.Text(id = "t1"), file)
-            }
-            .message,
-    )
-    assertEquals(
-        "Media m1's file is empty or over 25 MiB",
-        assertThrows(IllegalArgumentException::class.java) {
-              requireUploadable(circle, picture, fileOfLength(tmp.root, 0))
-            }
-            .message,
-    )
-    // a person photo is capped at 2 MiB; a media file of that size is still accepted
+    // a person photo is capped at 2 MiB; a media file just over that is still accepted
     assertEquals(
         "image/jpeg",
         requireUploadable(circle, picture, fileOfLength(tmp.root, MAX_PHOTO_BYTES + 1)),
@@ -112,12 +63,67 @@ class MediaFileStorageTest {
   }
 
   @Test
-  fun requirePhotoUploadableAcceptsAJpegOfOneByteAndOf2MiB() {
-    val path = personPhotoPath("c1", "tom", "p1")
+  fun requireUploadableRefusesAMediaTheRulesWouldRefuse() {
+    val file = fileOfLength(tmp.root, 1)
+    val refused =
+        mapOf(
+            "text" to
+                ("Media t1 is a text: it has no file to upload" to
+                    {
+                      requireUploadable(circle, MediaItem.Text(id = "t1"), file)
+                    }),
+            "wrong extension" to
+                ("Media m1 (careCircles/c1/media/m1.gif) has no .jpg, .png or .m4a extension" to
+                    {
+                      requireUploadable(
+                          circle,
+                          picture.copy(storagePath = "careCircles/c1/media/m1.gif"),
+                          file,
+                      )
+                    }),
+            "another circle" to
+                ("Media m1 (careCircles/c2/media/m1.jpg) isn't a media of care circle c1" to
+                    {
+                      requireUploadable(
+                          circle,
+                          picture.copy(storagePath = "careCircles/c2/media/m1.jpg"),
+                          file,
+                      )
+                    }),
+            "empty file" to
+                ("Media m1's file is empty or over 25 MiB" to
+                    {
+                      requireUploadable(circle, picture, fileOfLength(tmp.root, 0))
+                    }),
+            "file over 25 MiB" to
+                ("Media m1's file is empty or over 25 MiB" to
+                    {
+                      requireUploadable(
+                          circle,
+                          picture,
+                          fileOfLength(tmp.root, MAX_FILE_BYTES + 1),
+                      )
+                    }),
+        )
 
-    assertEquals(path, requirePhotoUploadable(circle, "tom", "p1", fileOfLength(tmp.root, 1)))
+    for ((case, expected) in refused) {
+      val (message, call) = expected
+      assertEquals(
+          case,
+          message,
+          assertThrows(case, IllegalArgumentException::class.java) { call() }.message,
+      )
+    }
+  }
+
+  @Test
+  fun requirePhotoUploadableAcceptsAJpegOfOneByteAndOf2MiB() {
     assertEquals(
-        path,
+        "careCircles/c1/people/tom/p1.jpg",
+        requirePhotoUploadable(circle, "tom", "p1", fileOfLength(tmp.root, 1)),
+    )
+    assertEquals(
+        "careCircles/c1/people/tom/p1.jpg",
         requirePhotoUploadable(circle, "tom", "p1", fileOfLength(tmp.root, MAX_PHOTO_BYTES)),
     )
   }

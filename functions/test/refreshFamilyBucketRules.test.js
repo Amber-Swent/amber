@@ -1,6 +1,9 @@
 // Written by Alaabrine, with assistance from Cursor Agent.
 const assert = require("node:assert/strict");
+const {spawnSync} = require("node:child_process");
+const fs = require("node:fs");
 const Module = require("node:module");
+const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 
@@ -84,4 +87,72 @@ test("a rules release failure is reported and the other buckets are still update
 
   assert.deepEqual(released, ["family-a", "family-b"]);
   assert.deepEqual(result, {updated: ["family-b"], failed: ["family-a"]});
+});
+
+/**
+ * Runs `refreshFamilyBucketRules.js` as the main module, so its `process.exitCode` lines run.
+ * [mode] is `ok`, `failed-bucket` (the release throws), or `list-throws` (listing buckets throws).
+ * @param {"ok" | "failed-bucket" | "list-throws"} mode
+ */
+function runAsMain(mode) {
+  const preload = path.join(os.tmpdir(), `amber-refresh-preload-${process.pid}-${Date.now()}.js`);
+  fs.writeFileSync(
+    preload,
+    `
+const Module = require("node:module");
+const original = Module._load;
+const mode = process.env.AMBER_REFRESH_TEST;
+Module._load = function (request, parent, isMain) {
+  if (request === "firebase-admin/storage") {
+    return {
+      getStorage: () => ({
+        getBuckets: async () => {
+          if (mode === "list-throws") throw new Error("list failed");
+          return [[{name: "family-a", metadata: {labels: {amber_managed: "true"}}}]];
+        },
+      }),
+    };
+  }
+  if (request === "../src/familyBucket") {
+    return {
+      ensureFamilyBucketRules: async () => {
+        if (mode === "failed-bucket") throw new Error("rules unavailable");
+      },
+    };
+  }
+  if (request === "../src/firebase") return {};
+  return original.apply(this, arguments);
+};
+`,
+  );
+  try {
+    return spawnSync(
+      process.execPath,
+      ["--require", preload, path.join(__dirname, "..", "scripts", "refreshFamilyBucketRules.js")],
+      {encoding: "utf8", timeout: 15_000, env: {...process.env, AMBER_REFRESH_TEST: mode}},
+    );
+  } finally {
+    fs.unlinkSync(preload);
+  }
+}
+
+test("a successful rules release exits with code 0", () => {
+  const result = runAsMain("ok");
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Updated 1 bucket/);
+});
+
+test("a failed rules release exits with code 1", () => {
+  const result = runAsMain("failed-bucket");
+
+  assert.match(result.stderr, /failed 1: family-a/);
+  assert.equal(result.status, 1);
+});
+
+test("a failure listing buckets exits with code 1", () => {
+  const result = runAsMain("list-throws");
+
+  assert.match(result.stderr, /list failed/);
+  assert.equal(result.status, 1);
 });

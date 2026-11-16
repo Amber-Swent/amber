@@ -116,7 +116,7 @@ internal fun requireUploadable(circle: CareCircle, item: MediaItem, file: File):
  * least one character before the extension), so it is refused here too.
  *
  * @throws IllegalArgumentException if [circleId], [personId] or [photoId] is blank or contains `/`
- * or `_`.
+ *   or `_`.
  */
 internal fun personPhotoPath(circleId: String, personId: String, photoId: String): String {
   require(isStorageId(circleId)) {

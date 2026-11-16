@@ -315,14 +315,14 @@ class MediaFileStorageFirebaseTest {
   }
 
   @Test
-  fun uploadAcceptsAFileOfExactly25MiB() = runTest {
+  fun uploadLeavesTheSizeCheckToTheCaller() = runTest {
     val firebase = fakeFirebase()
-    val file = fileOfLength(tmp.root, MAX_FILE_BYTES)
+    // over 25 MiB: requireUploadable would refuse this, and upload must not
+    val file = fileOfLength(tmp.root, MAX_FILE_BYTES + 1)
 
     MediaFileStorageFirebase { firebase.storage }
         .upload(circle, picture.storagePath, file, "image/jpeg", picture.authorId)
 
-    // the rules' limit is inclusive
     verify(firebase.file).putFile(any(), any())
   }
 

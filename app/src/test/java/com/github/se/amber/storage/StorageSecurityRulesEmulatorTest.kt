@@ -3,6 +3,8 @@
 package com.github.se.amber.storage
 
 import com.github.se.amber.data.media.MAX_PHOTO_BYTES
+import com.github.se.amber.emulator.EMULATOR_PROJECT_ID
+import com.github.se.amber.emulator.EMULATOR_STORAGE_BUCKET
 import com.github.se.amber.emulator.FirestoreEmulatorClient
 import com.github.se.amber.emulator.emulatorAcceptsHttp
 import com.github.se.amber.emulator.firestoreEmulatorBaseUrl
@@ -55,8 +57,7 @@ class StorageSecurityRulesEmulatorTest {
 
   @Test
   fun refusesAnotherMembersFolderNonMembersNonJpegOversizeAndBadMetadata() {
-    adminSet("careCircles/$CIRCLE", circle(people = listOf("tom", "to_m")))
-    adminSet("careCircles/c_1", circle(id = "c_1"))
+    adminSet("careCircles/$CIRCLE", circle())
     val own = photoPath("ada")
     val bobs = photoPath("bob")
     val eves = photoPath("eve")
@@ -67,38 +68,66 @@ class StorageSecurityRulesEmulatorTest {
             eves,
             photoPath("ada", "photo.png"),
             photoPath("ada", "big.jpg"),
-            photoPath("ada", "p_1.jpg"),
-            photoPath("ada", ".jpg"),
-            photoPath("to_m"),
-            photoPath("ada", circleId = "c_1"),
-            "careCircles/$CIRCLE/media/m1.jpg",
         )
     storage.deleteAsAdmin(*paths.toTypedArray())
 
     // bob is a member, but the folder is neither ada's uid nor a person in CareCircle.people
     storage.assertFails(objectPath = bobs)
-    storage.assertFails("eve", eves)
+    // eve's own folder and author id, so only membership can refuse her
+    storage.assertFails("eve", eves, authorId = "eve")
     storage.assertFails(null, own)
     storage.assertFails(objectPath = photoPath("ada", "photo.png"), contentType = "image/png")
+    // a .jpg name, so the content type is what refuses this, not the file name
+    storage.assertFails(objectPath = own, contentType = "image/png")
+    storage.assertFails(objectPath = own, bytes = ByteArray(0))
     storage.assertFails(
         objectPath = photoPath("ada", "big.jpg"),
         bytes = ByteArray((MAX_PHOTO_BYTES + 1).toInt()),
     )
+    storage.assertFails(objectPath = own, authorId = "bob")
+    storage.assertFails(objectPath = own, extraMetadata = mapOf("extra" to "no"))
+  }
+
+  @Test
+  fun refusesAPhotoNameOrIdTheRulesRefuse() {
+    adminSet("careCircles/$CIRCLE", circle(people = listOf("tom", "to_m")))
+    adminSet("careCircles/c_1", circle(id = "c_1"))
+    val paths =
+        listOf(
+            photoPath("ada", "p_1.jpg"),
+            photoPath("ada", ".jpg"),
+            photoPath("to_m"),
+            photoPath("ada", circleId = "c_1"),
+        )
+    storage.deleteAsAdmin(*paths.toTypedArray())
+
     storage.assertFails(objectPath = photoPath("ada", "p_1.jpg"))
     storage.assertFails(objectPath = photoPath("ada", ".jpg"))
     storage.assertFails(objectPath = photoPath("to_m"))
+    // the circle exists, so membership would pass; the '_' in the id is what refuses it
     storage.assertFails(objectPath = photoPath("ada", circleId = "c_1"))
-    storage.assertFails(objectPath = own, authorId = "bob")
-    storage.assertFails(objectPath = own, extraMetadata = mapOf("extra" to "no"))
+  }
+
+  @Test
+  fun updatingAPhotoIsRefused() {
+    adminSet("careCircles/$CIRCLE", circle())
+    val own = photoPath("ada")
+    storage.deleteAsAdmin(own)
 
     storage.assertSucceeds(objectPath = own)
     storage.assertUpdateDenied(
         storage.patch(own, """{"contentType":"image/jpeg","metadata":{"authorId":"ada"}}"""),
     )
+  }
 
-    // The media limit stays 25 MiB: a file just over the photo cap is still a valid media upload.
+  @Test
+  fun aMediaJpegJustOverThePhotoCapIsStillAccepted() {
+    adminSet("careCircles/$CIRCLE", circle())
+    val media = "careCircles/$CIRCLE/media/m1.jpg"
+    storage.deleteAsAdmin(media)
+
     storage.assertSucceeds(
-        objectPath = "careCircles/$CIRCLE/media/m1.jpg",
+        objectPath = media,
         bytes = ByteArray((MAX_PHOTO_BYTES + 1).toInt()),
     )
   }
@@ -132,6 +161,8 @@ class StorageSecurityRulesEmulatorTest {
 
     storage.assertSucceeds("bob", second, authorId = "bob")
     storage.assertDeleteSucceeds("bob", second)
+    // already gone: "not found", not "permission denied"
+    storage.assertDeleteMissing("cam", second)
   }
 
   @Test
@@ -157,7 +188,6 @@ class StorageSecurityRulesEmulatorTest {
 
   companion object {
     private const val CIRCLE = "c1"
-    private const val BUCKET = "family-bucket"
 
     @BeforeClass
     @JvmStatic
@@ -188,7 +218,7 @@ class StorageSecurityRulesEmulatorTest {
                 },
             "createdBy" to "ada",
             "createdAt" to 1L,
-            "storageBucket" to BUCKET,
+            "storageBucket" to EMULATOR_STORAGE_BUCKET,
         )
   }
 }
@@ -198,7 +228,8 @@ class StorageSecurityRulesEmulatorTest {
  * content type and the `authorId` custom metadata the rules require.
  */
 private class StorageEmulatorClient(
-    private val projectId: String = "amber-34abf",
+    private val projectId: String = EMULATOR_PROJECT_ID,
+    private val bucket: String = EMULATOR_STORAGE_BUCKET,
     private val host: String = storageEmulatorBaseUrl(),
 ) {
   fun deleteAsAdmin(vararg objectPaths: String) {
@@ -252,6 +283,11 @@ private class StorageEmulatorClient(
     assertEquals("Expected delete of $objectPath to be denied: $body", 403, code)
   }
 
+  fun assertDeleteMissing(uid: String?, objectPath: String) {
+    val (code, body) = request("DELETE", objectUrl(objectPath), token = bearer(uid))
+    assertEquals("Expected delete of missing $objectPath to be allowed: $body", 404, code)
+  }
+
   fun assertUpdateDenied(result: Pair<Int, String>) {
     assertEquals("Expected the update to be denied: ${result.second}", 403, result.first)
   }
@@ -298,7 +334,7 @@ private class StorageEmulatorClient(
     val name = URLEncoder.encode(objectPath, Charsets.UTF_8)
     return request(
         "POST",
-        "$host/v0/b/family-bucket/o?name=$name",
+        "$host/v0/b/$bucket/o?name=$name",
         token = bearer(uid),
         contentType = "multipart/related; boundary=$boundary",
         extraHeaders = mapOf("x-goog-upload-protocol" to "multipart"),
@@ -308,7 +344,7 @@ private class StorageEmulatorClient(
 
   private fun objectUrl(objectPath: String): String {
     val name = URLEncoder.encode(objectPath, Charsets.UTF_8)
-    return "$host/v0/b/family-bucket/o/$name"
+    return "$host/v0/b/$bucket/o/$name"
   }
 
   private fun bearer(uid: String?): String? {
@@ -321,7 +357,8 @@ private class StorageEmulatorClient(
         Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(
-                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}""".toByteArray(),
+                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}"""
+                    .toByteArray(),
             )
     return "$header.$payload."
   }

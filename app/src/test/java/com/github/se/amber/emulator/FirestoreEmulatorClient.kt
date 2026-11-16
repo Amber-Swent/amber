@@ -16,6 +16,12 @@ internal fun firestoreEmulatorBaseUrl(): String =
 internal fun storageEmulatorBaseUrl(): String =
     System.getenv("FIREBASE_STORAGE_EMULATOR_HOST")?.let { "http://$it" } ?: "http://127.0.0.1:9199"
 
+/** Project id the security-rules tests and the local emulators share. */
+internal const val EMULATOR_PROJECT_ID = "amber-34abf"
+
+/** Bucket the Storage rules tests upload to, and the circle document names. */
+internal const val EMULATOR_STORAGE_BUCKET = "family-bucket"
+
 /** True when [baseUrl] accepts an HTTP connection, so a rules test can decide to run. */
 internal fun emulatorAcceptsHttp(baseUrl: String): Boolean =
     try {
@@ -34,7 +40,7 @@ internal fun emulatorAcceptsHttp(baseUrl: String): Boolean =
 
 /** Minimal Firestore emulator REST client with per-request auth uid. */
 internal class FirestoreEmulatorClient(
-    private val projectId: String = "amber-34abf",
+    private val projectId: String = EMULATOR_PROJECT_ID,
     private val host: String = firestoreEmulatorBaseUrl(),
 ) {
   fun clear() {
@@ -173,7 +179,8 @@ internal class FirestoreEmulatorClient(
         Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(
-                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}""".toByteArray(),
+                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}"""
+                    .toByteArray(),
             )
     return "$header.$payload."
   }
@@ -213,7 +220,9 @@ internal class FirestoreEmulatorClient(
 
   @Suppress("UNCHECKED_CAST")
   private fun encodeFields(fields: Map<String, Any?>): Map<String, Any?> =
-      fields.mapValues { (_, value) -> encodeValue(value) }
+      fields.mapValues { (_, value) ->
+        encodeValue(value)
+      }
 
   @Suppress("UNCHECKED_CAST")
   private fun encodeValue(value: Any?): Map<String, Any?> =
@@ -234,7 +243,8 @@ internal class FirestoreEmulatorClient(
       when (value) {
         null -> "null"
         is String -> "\"${value.replace("\"", "\\\"")}\""
-        is Number, is Boolean -> value.toString()
+        is Number,
+        is Boolean -> value.toString()
         is Map<*, *> ->
             value.entries.joinToString(",", "{", "}") { (k, v) -> "\"$k\":${jsonEncode(v)}" }
         is List<*> -> value.joinToString(",", "[", "]") { jsonEncode(it) }
