@@ -39,6 +39,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -156,7 +157,7 @@ class CreateInvitationViewModelTest {
 
         assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
         assertNull(viewModel.uiState.value.selectedCircleId)
-        assertTrue(!viewModel.uiState.value.isCreating)
+        assertFalse(viewModel.uiState.value.isCreating)
         assertTrue(creation.requestedCircleIds.isEmpty())
       }
 

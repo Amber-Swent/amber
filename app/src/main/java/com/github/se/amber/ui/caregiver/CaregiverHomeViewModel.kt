@@ -116,12 +116,10 @@ class CaregiverHomeViewModel(
       activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).collectLatest {
           circleId ->
         // Clear the previously displayed circle and patient when collectLatest() receives a new
-        // circleId
+        // circleId.
         // Caregiver profile is unchanged. This is because collectLatest() cancels the old work, but
-        // it does
-        // not clear the old UI state: switching circle would leave the previous circle visible
-        // while the new one
-        // loads.
+        // it does not clear the old UI state: switching circle would leave the previous circle
+        // visible while the new one loads.
         _uiState.value = CaregiverHomeUIState(caregiver = caregiver)
         if (circleId == null) {
           setErrorMsg(R.string.caregiverHomeErrorNoCircle)

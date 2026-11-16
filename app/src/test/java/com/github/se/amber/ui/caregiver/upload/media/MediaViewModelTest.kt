@@ -227,7 +227,7 @@ class MediaViewModelTest {
   }
 
   @Test
-  fun activeCircleChange_loadsTheNewUploadDestination() {
+  fun activeCircleChange_uploadsToTheNewCircle() {
     stubProfile(listOf("circle1", "circle2"))
     val activeCircleId = MutableStateFlow<String?>("circle1")
     every { activeCircleRepo.activeCircleId("user1", listOf("circle1", "circle2")) } returns
