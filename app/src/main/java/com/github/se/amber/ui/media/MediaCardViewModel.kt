@@ -104,7 +104,8 @@ class MediaCardViewModel(
       }
       _uiState.value =
           MediaCardUIState(
-              // TODO replace this by the nickname once it is add to the createProfile screen
+              // TODO replace this by the nickname once it is add to the createProfile screen, for
+              // M3
               addedByNickname = authorProfile.person.firstName,
               isLoading = false,
           )
@@ -136,7 +137,7 @@ class MediaCardViewModel(
           }
 
       // 4. shownIds -> first names: people without an account first, then members' profiles
-      // TODO replace this by the nickname once it is add to the createProfile screen
+      // TODO replace this by the nickname once it is add to the createProfile screen, for M3
       val relatedNicknames =
           media.shownIds.mapNotNull { id ->
             circle.people[id]?.firstName

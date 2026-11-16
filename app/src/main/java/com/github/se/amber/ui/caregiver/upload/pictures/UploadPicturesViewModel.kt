@@ -113,7 +113,7 @@ class UploadPictureViewModel(
 ) :
     MediaViewModel<UploadPictureUIState>(
         initialState =
-            savedState.restoreDraft(
+            savedState.restoreForm(
                 UploadPictureUIState(
                     common = CommonMediaUIState(date = MemoryDate(LocalDate.now().year))
                 )
@@ -135,7 +135,7 @@ class UploadPictureViewModel(
     }
 
   init {
-    viewModelScope.launch { _uiState.collect(savedState::saveDraft) }
+    viewModelScope.launch { _uiState.collect(savedState::saveForm) }
   }
 
   /**

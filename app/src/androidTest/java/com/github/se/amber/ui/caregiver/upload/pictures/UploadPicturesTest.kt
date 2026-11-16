@@ -210,9 +210,9 @@ class UploadPicturesTest {
 
   @Test
   fun theDefaultViewModelRestoresItsSavedForm() {
-    val draft =
+    val savedForm =
         SavedStateHandle().apply {
-          saveDraft(UploadPictureUIState(common = CommonMediaUIState(description = "At the lake")))
+          saveForm(UploadPictureUIState(common = CommonMediaUIState(description = "At the lake")))
         }
     lateinit var restored: UploadPictureViewModel
     composeTestRule.setContent {
@@ -225,7 +225,7 @@ class UploadPicturesTest {
               .apply {
                 set(
                     DEFAULT_ARGS_KEY,
-                    bundleOf(*draft.keys().map { it to draft.get<Any>(it) }.toTypedArray()),
+                    bundleOf(*savedForm.keys().map { it to savedForm.get<Any>(it) }.toTypedArray()),
                 )
               }
       restored = defaultViewModel(factory = UploadPictureViewModel.Factory, extras = extras)

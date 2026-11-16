@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.account
 
@@ -40,12 +41,16 @@ class AccountDeletionRepositoryProvider(
       val context = Firebase.app.applicationContext
       val marker = SharedPreferencesDeletionMarker(context)
       val appProcess = AndroidAppProcess(context)
-      return FirebaseAccountDeletionRepository(
-          DeviceLocalAccountData(
+      val phone =
+          DeviceLocalPhone(
               mediaRepository = mediaRepository,
-              authRepository = authRepository,
               imageMemory = MediaImageMemory(SingletonImageLoader.get(context)),
               cacheDir = context.cacheDir,
+          )
+      return FirebaseAccountDeletionRepository(
+          DeviceLocalAccountData(
+              phone = phone,
+              authRepository = authRepository,
               firestore = Firebase.firestore,
               marker = marker,
               restartApp = appProcess::restart,

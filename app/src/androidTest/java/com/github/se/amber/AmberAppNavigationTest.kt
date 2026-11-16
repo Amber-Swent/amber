@@ -4,18 +4,19 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
-import androidx.test.espresso.Espresso
 import androidx.test.platform.app.InstrumentationRegistry
 import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
@@ -91,7 +92,7 @@ class AmberAppNavigationTest {
     const val SEE_PICTURES_BACK = TopNavigationMenuTestTags.BACK_BUTTON
   }
 
-  @get:Rule val composeRule = createComposeRule()
+  @get:Rule val composeRule = createAndroidComposeRule<ComponentActivity>()
 
   private lateinit var navController: TestNavHostController
 
@@ -573,7 +574,10 @@ class AmberAppNavigationTest {
     click(Tags.CAREGIVER_TAB_UPLOAD)
     click(Tags.CAREGIVER_TAB_PARAMETERS)
 
-    Espresso.pressBack()
+    // Send the back press to the activity's dispatcher, where the NavHost listens for system back.
+    // Espresso.pressBack() first waits for the window to have focus. On a busy CI emulator the
+    // window can stay unfocused for more than 10 seconds, so that call made this test flaky (#387).
+    composeRule.runOnIdle { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
 
     // Home -> Upload -> Parameters -> back: we expect to land on Upload. System back is handled
     // in a coroutine, so the pop can land after waitForIdle().

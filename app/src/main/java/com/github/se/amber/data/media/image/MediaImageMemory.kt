@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.media.image
 
@@ -10,10 +11,9 @@ import coil3.ImageLoader
  * stay there after sign-out or after leaving a circle. Build it with the app's image loader
  * (`SingletonImageLoader.get(context)`).
  *
- * Used only by the session cleanup, after it has cleared the local media through
+ * Used by `DeviceLocalPhone`, after it has cleared the local media through
  * `MediaRepository.clearLocalMedia`; not by screens or ViewModels. Run it once the circle's screens
- * are gone: a picture still loading may otherwise be put back in memory. Only account deletion
- * (`DeviceLocalAccountData`) uses it for now.
+ * are gone: a picture still loading may otherwise be put back in memory.
  */
 class MediaImageMemory(private val imageLoader: ImageLoader) {
 

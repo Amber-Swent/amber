@@ -34,10 +34,6 @@ class UploadTest {
   private class FakeUploadActions {
     val calls = mutableListOf<String>()
 
-    fun onUploadTextClick() {
-      calls.add("text")
-    }
-
     fun onUploadPictureClick() {
       calls.add("picture")
     }
@@ -55,7 +51,6 @@ class UploadTest {
     composeTestRule.setContent {
       UploadScreen(
           viewModel = viewModel,
-          onUploadTextClick = actions::onUploadTextClick,
           onUploadPictureClick = actions::onUploadPictureClick,
           onUploadAudioClick = actions::onUploadAudioClick,
       )
@@ -94,14 +89,6 @@ class UploadTest {
     composeTestRule.onNodeWithTag(UploadTestTags.TITLE).assertIsDisplayed()
   }
 
-  /* Text upload is planned for a later sprint.
-  @Test
-  fun textButtonIsDisplayed() {
-    setUpload()
-    checkIsDisplayed(UploadTestTags.TEXT_BUTTON)
-  }
-  */
-
   @Test
   fun pictureButtonIsDisplayed() {
     setUpload()
@@ -118,22 +105,11 @@ class UploadTest {
   @Test
   fun buttonHaveClickAction() {
     setUpload()
-    // node(UploadTestTags.TEXT_BUTTON).assertHasClickAction() // Later sprint.
     node(UploadTestTags.PICTURE_BUTTON).assertHasClickAction()
     node(UploadTestTags.AUDIO_BUTTON).assertHasClickAction()
   }
 
   // ---------- Upload: callbacks ----------
-  /* Text upload is planned for a later sprint.
-  @Test
-  fun clickingTextButtonInvokesOnlyTextCallback() {
-    val actions = FakeUploadActions()
-    setUpload(actions = actions)
-    node(UploadTestTags.TEXT_BUTTON).performClick()
-    assertEquals(listOf("text"), actions.calls)
-  }
-  */
-
   @Test
   fun clickingPictureButtonInvokesOnlyPictureCallback() {
     val actions = FakeUploadActions()

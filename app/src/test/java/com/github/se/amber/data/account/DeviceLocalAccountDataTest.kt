@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor.
 
 package com.github.se.amber.data.account
 
@@ -103,17 +104,22 @@ class DeviceLocalAccountDataTest {
           writeText("memo")
         }
 
+    val imageMemory = MediaImageMemory(imageLoader)
+    val phone =
+        DeviceLocalPhone(
+            mediaRepository,
+            imageMemory,
+            cacheDir,
+            Dispatchers.Unconfined,
+        )
     localData =
         DeviceLocalAccountData(
-            mediaRepository,
+            phone,
             authRepository,
-            MediaImageMemory(imageLoader),
-            cacheDir,
             firestore,
             marker,
             { calls += "restart" },
             { calls += "stop" },
-            Dispatchers.Unconfined,
         )
   }
 
@@ -222,5 +228,19 @@ class DeviceLocalAccountDataTest {
     job.join()
 
     assertEquals(everyStep, calls)
+  }
+
+  @Test
+  fun aFailedSharedClearStillSignsOutButDoesNotClearFirestoreOrRestart() {
+    every { memoryCache.clear() } throws IllegalStateException("Memory left")
+
+    val error =
+        assertThrows(IllegalStateException::class.java) { runBlocking { localData.clear() } }
+
+    assertEquals("Memory left", error.message)
+    assertFalse(picked.exists())
+    assertFalse(recorded.exists())
+    assertTrue(otherFile.exists())
+    assertEquals(listOf("clearMedia", "temporaryFilesDeleted", "signOut"), calls)
   }
 }

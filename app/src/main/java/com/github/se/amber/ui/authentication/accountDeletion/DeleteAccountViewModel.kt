@@ -148,19 +148,7 @@ class DeleteAccountViewModel(
     _uiState.update { it.copy(isDeleting = true, errorMessageRes = null) }
     viewModelScope.launch {
       try {
-        if (_uiState.value.localCleanupNeeded) {
-          handleResult(deletionRepository.clearLocalData())
-          return@launch
-        }
-        val option = GetSignInWithGoogleOption.Builder(clientId).build()
-        val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
-        val credential = credentialManager.getCredential(context, request).credential
-        authRepository
-            .reauthenticateWithGoogle(credential)
-            .fold(
-                onSuccess = { handleResult(deletionRepository.deleteAccount()) },
-                onFailure = { handleReauthenticationFailure(it) },
-            )
+        performAccountDeletion(context, credentialManager, clientId)
       } catch (_: GetCredentialCancellationException) {
         _uiState.update { it.copy(isDeleting = false) }
       } catch (_: NoCredentialException) {
@@ -180,6 +168,37 @@ class DeleteAccountViewModel(
         }
       }
     }
+  }
+
+  /**
+   * Performs the suspending deletion steps while [deleteAccount] owns coroutine exception handling.
+   *
+   * Keeping the cleanup and Google reauthentication paths here reduces the nested decisions in
+   * [deleteAccount]. After remote deletion, a retry only clears local data; otherwise this obtains
+   * a fresh Google credential, reauthenticates, and deletes the account.
+   *
+   * @param context Activity context used to request the Google credential.
+   * @param credentialManager Supplies the Google credential for reauthentication.
+   * @param clientId Google client ID used to build the credential request.
+   */
+  private suspend fun performAccountDeletion(
+      context: Context,
+      credentialManager: CredentialManager,
+      clientId: String,
+  ) {
+    if (_uiState.value.localCleanupNeeded) {
+      handleResult(deletionRepository.clearLocalData())
+      return
+    }
+    val option = GetSignInWithGoogleOption.Builder(clientId).build()
+    val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+    val credential = credentialManager.getCredential(context, request).credential
+    authRepository
+        .reauthenticateWithGoogle(credential)
+        .fold(
+            onSuccess = { handleResult(deletionRepository.deleteAccount()) },
+            onFailure = { handleReauthenticationFailure(it) },
+        )
   }
 
   /**

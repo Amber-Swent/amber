@@ -17,8 +17,7 @@
     <string name="screenTitleCreateCareCircle">Créer un cercle de soins</string>
     <string name="screenTitleEnterInvitation">Saisir une invitation</string>
     <string name="screenTitleCaregiverHome">Accueil</string>
-    <string name="screenTitleCaregiverUpload">Ajouter des textes, des photos ou des audios</string>
-    <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>
+    <string name="screenTitleCaregiverUpload">Ajouter des photos ou des audios</string>
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
     <string name="screenTitleCaregiverParameters">Paramètres</string>
@@ -277,6 +276,12 @@
     <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
     <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
     <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>
+    <string name="uploadAudioMicrophoneTitle">Utilisation du micro</string>
+    <string name="uploadAudioMicrophoneUnderstood">J\'ai compris</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">Pour enregistrer un audio, Amber a besoin d\'accéder à votre micro.</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">Il n\'est utilisé que pendant l\'enregistrement, après votre appui sur le bouton d\'enregistrement.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">Vous avez refusé l\'accès au micro deux fois&#160;: Amber ne peut plus vous le demander.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">Pour enregistrer un audio, activez le micro pour Amber dans les paramètres de votre téléphone.</string>
     <string name="uploadAudioErrorMaxLength">Durée maximale d\'enregistrement atteinte. Nous avons été forcé de couper votre audio, mais il est conservé</string>
     <string name="uploadAudioInfoIcon">Information</string>
     <string name="uploadAudioRecordingInfoFirst">Votre histoire est en cours d\'enregistrement</string>
@@ -347,8 +352,6 @@
     <string name="seeMediasTitle">Voir les médias</string>
     <string name="seeMediasPictures">Voir les photos</string>
     <string name="seeMediasPicturesIcon">Photo</string>
-    <string name="seeMediasTexts">Voir les textes</string>
-    <string name="seeMediasTextsIcon">Texte</string>
     <string name="seeMediasAudios">Voir les audios</string>
     <string name="seeMediasAudiosIcon">Audio</string>
 

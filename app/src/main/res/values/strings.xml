@@ -21,8 +21,7 @@
     <string name="screenTitleCreateCareCircle">Create a CareCircle</string>
     <string name="screenTitleEnterInvitation">Enter an invitation</string>
     <string name="screenTitleCaregiverHome">Home</string>
-    <string name="screenTitleCaregiverUpload">Upload Texts, Pictures or Audios</string>
-    <string name="screenTitleCaregiverUploadText">Upload Text</string>
+    <string name="screenTitleCaregiverUpload">Upload Pictures or Audios</string>
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
@@ -276,6 +275,12 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
+    <string name="uploadAudioMicrophoneTitle">Use of the microphone</string>
+    <string name="uploadAudioMicrophoneUnderstood">Got it</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">To record an audio, Amber needs access to your microphone.</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">It is only used while you are recording, after you tap the record button.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">You have declined microphone access twice, so Amber can no longer ask for it.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">To record an audio, turn on the microphone for Amber in your phone\'s settings.</string>
     <string name="uploadAudioErrorMaxLength">Maximum recording length reached. We were forced to cut your audio, but it has been kept.</string>
     <string name="uploadAudioInfoIcon">Information</string>
     <string name="uploadAudioRecordingInfoFirst">Your story is being recorded</string>
@@ -345,8 +350,6 @@
     <string name="seeMediasTitle">See Medias</string>
     <string name="seeMediasPictures">See Pictures</string>
     <string name="seeMediasPicturesIcon">Picture</string>
-    <string name="seeMediasTexts">See Texts</string>
-    <string name="seeMediasTextsIcon">Text</string>
     <string name="seeMediasAudios">See Audios</string>
     <string name="seeMediasAudiosIcon">Audio</string>
 

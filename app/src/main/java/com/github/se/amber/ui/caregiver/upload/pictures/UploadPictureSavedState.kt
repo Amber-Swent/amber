@@ -8,27 +8,28 @@ import com.github.se.amber.model.media.MemoryDate
 import java.io.File
 import java.time.Month
 
-private const val DESCRIPTION = "draft_description"
-private const val DATE_YEAR = "draft_date_year"
-private const val DATE_MONTH = "draft_date_month"
-private const val DATE_DAY = "draft_date_day"
-private const val SHOWN_IDS = "draft_shown_ids"
-private const val PICTURE_PATH = "draft_picture_path"
-private const val PICTURE_WIDTH = "draft_picture_width"
-private const val PICTURE_HEIGHT = "draft_picture_height"
-private const val PLACE_QUERY = "draft_place_query"
-private const val PLACE_LAT = "draft_place_lat"
-private const val PLACE_LNG = "draft_place_lng"
-private const val PLACE_NAME = "draft_place_name"
-private const val PLACE_ID = "draft_place_id"
-private const val CAPTURING = "draft_capturing"
+private const val DESCRIPTION = "form_description"
+private const val DATE_YEAR = "form_date_year"
+private const val DATE_MONTH = "form_date_month"
+private const val DATE_DAY = "form_date_day"
+private const val SHOWN_IDS = "form_shown_ids"
+private const val PICTURE_PATH = "form_picture_path"
+private const val PICTURE_WIDTH = "form_picture_width"
+private const val PICTURE_HEIGHT = "form_picture_height"
+private const val PLACE_QUERY = "form_place_query"
+private const val PLACE_LAT = "form_place_lat"
+private const val PLACE_LNG = "form_place_lng"
+private const val PLACE_NAME = "form_place_name"
+private const val PLACE_ID = "form_place_id"
+private const val CAPTURING = "form_capturing"
 
 /**
  * Keeps what the user filled in, and whether the camera is open, which Android restores if it kills
  * the app while another one is in front: the camera most of all. Only plain values can be saved
  * this way. Place suggestions aren't kept, as a new search finds them again.
+ * [UploadPictureViewModel] relies on this to bring the form back.
  */
-internal fun SavedStateHandle.saveDraft(state: UploadPictureUIState) {
+internal fun SavedStateHandle.saveForm(state: UploadPictureUIState) {
   val common = state.common
   val picked = common.location.pickedPlace
   set(DESCRIPTION, common.description)
@@ -48,10 +49,10 @@ internal fun SavedStateHandle.saveDraft(state: UploadPictureUIState) {
 }
 
 /**
- * Applies a saved draft to [initial], or returns it unchanged if none was saved. A picture whose
+ * Applies a saved form to [initial], or returns it unchanged if none was saved. A picture whose
  * file is gone is left out, as it could not be uploaded.
  */
-internal fun SavedStateHandle.restoreDraft(initial: UploadPictureUIState): UploadPictureUIState {
+internal fun SavedStateHandle.restoreForm(initial: UploadPictureUIState): UploadPictureUIState {
   if (!contains(DESCRIPTION)) return initial
   val picture = get<String>(PICTURE_PATH)?.let(::File)?.takeIf { it.exists() }
   val hasPickedPlace = listOf(PLACE_LAT, PLACE_LNG, PLACE_NAME).any { get<Any>(it) != null }

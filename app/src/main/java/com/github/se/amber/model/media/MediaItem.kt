@@ -41,7 +41,7 @@ sealed interface MediaItem {
   // who is credited: member uids or CareCircle.people keys (personIds); no duplicates. Saved as a
   // whole list by MediaRepository.updateMedia (only the author edits a media)
   val shownIds: List<String>
-  // TODO: subject to change. Uids allowed to see it; empty = whole circle
+  // TODO: subject to change. Uids allowed to see it; empty = whole circle, for M3
   val authorizedIds: List<String>
   val status: MediaStatus
 
