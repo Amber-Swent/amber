@@ -57,15 +57,17 @@ async function refreshAllFamilyBucketRules() {
   return {updated, failed};
 }
 
-if (require.main === module) {
-  refreshAllFamilyBucketRules()
-    .then((result) => {
-      if (result.failed.length > 0) process.exitCode = 1;
-    })
-    .catch((error) => {
-      console.error(error);
-      process.exitCode = 1;
-    });
+/** Runs the refresh and sets a failing exit code if any bucket failed or the refresh threw. */
+async function main() {
+  try {
+    const result = await refreshAllFamilyBucketRules();
+    if (result.failed.length > 0) process.exitCode = 1;
+  } catch (error) {
+    console.error(error);
+    process.exitCode = 1;
+  }
 }
 
-module.exports = { refreshAllFamilyBucketRules };
+if (require.main === module) main();
+
+module.exports = {refreshAllFamilyBucketRules, main};
