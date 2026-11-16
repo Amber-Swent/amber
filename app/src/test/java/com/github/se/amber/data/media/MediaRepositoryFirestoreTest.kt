@@ -1,5 +1,4 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Alaabrine, with assistance from Cursor.
 // Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
@@ -562,16 +561,21 @@ class MediaRepositoryFirestoreTest {
                 {
                   stubFirestoreError(FirebaseFirestoreException.Code.PERMISSION_DENIED)
                 },
+            // Empty file already in the outbox: requireUploadable refuses it before upload.
             "the file refused before sending" to
                 {
-                  fileStorage.onUpload = { throw IllegalArgumentException("file over 25 MiB") }
+                  File(outboxDir, "c1/m1.bin").writeBytes(ByteArray(0))
                 },
         )
 
     for ((case, stub) in permanent) {
+      val uploadsBefore = events.count { it.startsWith("upload ") }
       stub()
       assertEquals(case, SendResult.FAILED, repository.send("c1", "m1"))
       assertEquals(case, SendState.FAILED, outbox.stateOf("m1"))
+      if (case == "the file refused before sending") {
+        assertEquals(case, uploadsBefore, events.count { it.startsWith("upload ") })
+      }
       repository.retrySend("c1", "m1") // back to WAITING for the next case
     }
   }

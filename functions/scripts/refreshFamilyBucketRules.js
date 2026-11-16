@@ -20,35 +20,52 @@ require("../src/firebase");
 
 /**
  * Finds every Cloud Storage bucket labelled `amber_managed=true` and releases the current
- * `storage.rules` on it via [ensureFamilyBucketRules].
+ * `storage.rules` on it via [ensureFamilyBucketRules]. A bucket whose release fails is recorded and
+ * the rest are still updated, so one failure does not leave every later circle on the old rules.
  *
- * @returns {Promise<string[]>} the bucket names that were updated
+ * `getBuckets()` already includes each bucket's metadata, labels included.
+ *
+ * @returns {Promise<{updated: string[], failed: string[]}>} the bucket names that were updated, and
+ *   those whose release failed
  */
 async function refreshAllFamilyBucketRules() {
   const [buckets] = await getStorage().getBuckets();
-  const familyBucketNames = [];
+  const familyBuckets = buckets.filter(
+    (bucket) => bucket.metadata?.labels?.amber_managed === "true",
+  );
+  const updated = [];
+  const failed = [];
 
-  for (const bucket of buckets) {
-    const [metadata] = await bucket.getMetadata();
-    if (metadata.labels?.amber_managed === "true") {
-      familyBucketNames.push(bucket.name);
+  for (const bucket of familyBuckets) {
+    console.log(`Releasing storage.rules on ${bucket.name}`);
+    try {
+      await ensureFamilyBucketRules(bucket.name);
+      updated.push(bucket.name);
+    } catch (error) {
+      console.error(`Failed to release storage.rules on ${bucket.name}:`, error);
+      failed.push(bucket.name);
     }
   }
 
-  for (const bucketName of familyBucketNames) {
-    console.log(`Releasing storage.rules on ${bucketName}`);
-    await ensureFamilyBucketRules(bucketName);
+  if (failed.length === 0) {
+    console.log(`Updated ${updated.length} bucket(s)`);
+  } else {
+    console.error(
+      `Updated ${updated.length} bucket(s); failed ${failed.length}: ${failed.join(", ")}`,
+    );
   }
-
-  console.log(`Updated ${familyBucketNames.length} bucket(s)`);
-  return familyBucketNames;
+  return {updated, failed};
 }
 
 if (require.main === module) {
-  refreshAllFamilyBucketRules().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  });
+  refreshAllFamilyBucketRules()
+    .then((result) => {
+      if (result.failed.length > 0) process.exitCode = 1;
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    });
 }
 
 module.exports = { refreshAllFamilyBucketRules };

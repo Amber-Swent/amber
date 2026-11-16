@@ -2,6 +2,11 @@
 
 package com.github.se.amber.storage
 
+import com.github.se.amber.data.media.MAX_PHOTO_BYTES
+import com.github.se.amber.emulator.FirestoreEmulatorClient
+import com.github.se.amber.emulator.emulatorAcceptsHttp
+import com.github.se.amber.emulator.firestoreEmulatorBaseUrl
+import com.github.se.amber.emulator.storageEmulatorBaseUrl
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
@@ -27,159 +32,164 @@ import org.junit.Test
  */
 class StorageSecurityRulesEmulatorTest {
 
-  private val firestore = FirestoreAdminClient()
+  private val firestore = FirestoreEmulatorClient()
   private val storage = StorageEmulatorClient()
 
   @Before
   fun clearData() {
-    assumeTrue("Firestore and Storage emulators are not both running", emulatorsReachable())
     firestore.clear()
   }
 
   @Test
   fun memberCanUploadAJpegUpTo2MiBToTheirOwnFolderOrAPersonInTheCircle() {
-    firestore.adminSet("careCircles/$CIRCLE", circle(people = listOf("tom")))
-    val own = "careCircles/$CIRCLE/people/ada/photo.jpg"
-    val person = "careCircles/$CIRCLE/people/tom/photo.jpg"
-    val exact = "careCircles/$CIRCLE/people/ada/exact.jpg"
+    adminSet("careCircles/$CIRCLE", circle())
+    val own = photoPath("ada")
+    val person = photoPath("tom")
+    val exact = photoPath("ada", "exact.jpg")
     storage.deleteAsAdmin(own, person, exact)
 
-    storage.assertSucceeds("ada", own, "image/jpeg", JPEG, authorId = "ada")
-    storage.assertSucceeds("ada", person, "image/jpeg", JPEG, authorId = "ada")
-    storage.assertSucceeds("ada", exact, "image/jpeg", ByteArray(MAX_PHOTO_BYTES), authorId = "ada")
+    storage.assertSucceeds(objectPath = own)
+    storage.assertSucceeds(objectPath = person)
+    storage.assertSucceeds(objectPath = exact, bytes = ByteArray(MAX_PHOTO_BYTES.toInt()))
   }
 
   @Test
-  fun refusesAnotherMembersFolderNonMembersNonJpegOversizeAndUpdates() {
-    firestore.adminSet("careCircles/$CIRCLE", circle(people = listOf("tom")))
-    val own = "careCircles/$CIRCLE/people/ada/photo.jpg"
-    val bobs = "careCircles/$CIRCLE/people/bob/photo.jpg"
-    val eves = "careCircles/$CIRCLE/people/eve/photo.jpg"
-    val png = "careCircles/$CIRCLE/people/ada/photo.png"
-    val tooBig = "careCircles/$CIRCLE/people/ada/big.jpg"
-    val media = "careCircles/$CIRCLE/media/m1.jpg"
-    storage.deleteAsAdmin(own, bobs, eves, png, tooBig, media)
+  fun refusesAnotherMembersFolderNonMembersNonJpegOversizeAndBadMetadata() {
+    adminSet("careCircles/$CIRCLE", circle(people = listOf("tom", "to_m")))
+    adminSet("careCircles/c_1", circle(id = "c_1"))
+    val own = photoPath("ada")
+    val bobs = photoPath("bob")
+    val eves = photoPath("eve")
+    val paths =
+        listOf(
+            own,
+            bobs,
+            eves,
+            photoPath("ada", "photo.png"),
+            photoPath("ada", "big.jpg"),
+            photoPath("ada", "p_1.jpg"),
+            photoPath("ada", ".jpg"),
+            photoPath("to_m"),
+            photoPath("ada", circleId = "c_1"),
+            "careCircles/$CIRCLE/media/m1.jpg",
+        )
+    storage.deleteAsAdmin(*paths.toTypedArray())
 
     // bob is a member, but the folder is neither ada's uid nor a person in CareCircle.people
-    storage.assertFails("ada", bobs, "image/jpeg", JPEG, authorId = "ada")
-    storage.assertFails("eve", eves, "image/jpeg", JPEG, authorId = "eve")
-    storage.assertFails(null, own, "image/jpeg", JPEG, authorId = "ada")
-    storage.assertFails("ada", png, "image/png", JPEG, authorId = "ada")
+    storage.assertFails(objectPath = bobs)
+    storage.assertFails("eve", eves)
+    storage.assertFails(null, own)
+    storage.assertFails(objectPath = photoPath("ada", "photo.png"), contentType = "image/png")
     storage.assertFails(
-        "ada",
-        tooBig,
-        "image/jpeg",
-        ByteArray(MAX_PHOTO_BYTES + 1),
-        authorId = "ada",
+        objectPath = photoPath("ada", "big.jpg"),
+        bytes = ByteArray((MAX_PHOTO_BYTES + 1).toInt()),
     )
+    storage.assertFails(objectPath = photoPath("ada", "p_1.jpg"))
+    storage.assertFails(objectPath = photoPath("ada", ".jpg"))
+    storage.assertFails(objectPath = photoPath("to_m"))
+    storage.assertFails(objectPath = photoPath("ada", circleId = "c_1"))
+    storage.assertFails(objectPath = own, authorId = "bob")
+    storage.assertFails(objectPath = own, extraMetadata = mapOf("extra" to "no"))
 
-    storage.assertSucceeds("ada", own, "image/jpeg", JPEG, authorId = "ada")
+    storage.assertSucceeds(objectPath = own)
     storage.assertUpdateDenied(
         storage.patch(own, """{"contentType":"image/jpeg","metadata":{"authorId":"ada"}}"""),
     )
 
     // The media limit stays 25 MiB: a file just over the photo cap is still a valid media upload.
     storage.assertSucceeds(
-        "ada",
-        media,
-        "image/jpeg",
-        ByteArray(MAX_PHOTO_BYTES + 1),
-        authorId = "ada",
+        objectPath = "careCircles/$CIRCLE/media/m1.jpg",
+        bytes = ByteArray((MAX_PHOTO_BYTES + 1).toInt()),
     )
+  }
+
+  @Test
+  fun aMemberCanReadAPhotoAndANonMemberCannot() {
+    adminSet("careCircles/$CIRCLE", circle())
+    val own = photoPath("ada")
+    storage.deleteAsAdmin(own)
+    storage.assertSucceeds(objectPath = own)
+
+    storage.assertReadSucceeds("ada", own)
+    storage.assertReadSucceeds("bob", own)
+    storage.assertReadFails("eve", own)
+    storage.assertReadFails(null, own)
+  }
+
+  @Test
+  fun theAuthorOrACaregiverCanDeleteAndAnotherMemberCannot() {
+    adminSet("careCircles/$CIRCLE", circle(memberIds = listOf("ada", "bob", "cam")))
+    adminSet("users/ada", mapOf<String, Any?>("role" to "CAREGIVER"))
+    adminSet("users/bob", mapOf<String, Any?>("role" to "PATIENT"))
+    adminSet("users/cam", mapOf<String, Any?>("role" to "PATIENT"))
+    val first = photoPath("bob", "one.jpg")
+    val second = photoPath("bob", "two.jpg")
+    storage.deleteAsAdmin(first, second)
+
+    storage.assertSucceeds("bob", first, authorId = "bob")
+    storage.assertDeleteFails("cam", first)
+    storage.assertDeleteSucceeds("ada", first)
+
+    storage.assertSucceeds("bob", second, authorId = "bob")
+    storage.assertDeleteSucceeds("bob", second)
+  }
+
+  @Test
+  fun aUserBeingDeletedCannotUploadOrDeleteAPhoto() {
+    adminSet("careCircles/$CIRCLE", circle())
+    adminSet(
+        "users/ada",
+        mapOf<String, Any?>("role" to "CAREGIVER", "deletionRequested" to true),
+    )
+    val own = photoPath("ada")
+    val bobs = photoPath("bob")
+    storage.deleteAsAdmin(own, bobs)
+
+    storage.assertFails(objectPath = own)
+    storage.assertSucceeds("bob", bobs, authorId = "bob")
+    storage.assertDeleteFails("ada", bobs)
+  }
+
+  private fun adminSet(path: String, fields: Map<String, Any?>) {
+    val code = firestore.adminSet(path, fields)
+    assertTrue("Admin set of $path failed with HTTP $code", code in 200..299)
   }
 
   companion object {
     private const val CIRCLE = "c1"
     private const val BUCKET = "family-bucket"
-    private const val MAX_PHOTO_BYTES = 2 * 1024 * 1024
-    private val JPEG = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
 
     @BeforeClass
     @JvmStatic
     fun requireEmulators() {
-      assumeTrue("Firestore and Storage emulators are not both running", emulatorsReachable())
+      assumeTrue(
+          "Firestore and Storage emulators are not both running",
+          emulatorAcceptsHttp(firestoreEmulatorBaseUrl()) &&
+              emulatorAcceptsHttp(storageEmulatorBaseUrl()),
+      )
     }
 
-    private fun emulatorsReachable(): Boolean =
-        portAcceptsHttp("http://127.0.0.1:8080/") && portAcceptsHttp("http://127.0.0.1:9199/")
+    private fun photoPath(personId: String, name: String = "photo.jpg", circleId: String = CIRCLE) =
+        "careCircles/$circleId/people/$personId/$name"
 
-    private fun portAcceptsHttp(url: String): Boolean =
-        try {
-          val connection =
-              (URL(url).openConnection() as HttpURLConnection).apply {
-                connectTimeout = 500
-                readTimeout = 500
-                requestMethod = "GET"
-              }
-          connection.responseCode
-          connection.disconnect()
-          true
-        } catch (_: Exception) {
-          false
-        }
-
-    private fun circle(people: List<String>): Map<String, Any?> =
+    private fun circle(
+        people: List<String> = listOf("tom"),
+        memberIds: List<String> = listOf("ada", "bob"),
+        id: String = CIRCLE,
+    ): Map<String, Any?> =
         mapOf(
-            "id" to CIRCLE,
+            "id" to id,
             "name" to "Family",
             "patientId" to "",
-            "memberIds" to listOf("ada", "bob"),
-            "people" to people.associateWith { id -> mapOf("id" to id, "firstName" to id) },
+            "memberIds" to memberIds,
+            "people" to
+                people.associateWith { personId ->
+                  mapOf("id" to personId, "firstName" to personId)
+                },
             "createdBy" to "ada",
             "createdAt" to 1L,
             "storageBucket" to BUCKET,
         )
-  }
-}
-
-/** Writes care-circle documents with the emulator's admin bypass, the way the rules read them. */
-private class FirestoreAdminClient(
-    private val projectId: String = "amber-34abf",
-    private val host: String =
-        System.getenv("FIRESTORE_EMULATOR_HOST")?.let { "http://$it" } ?: "http://127.0.0.1:8080",
-) {
-  fun clear() {
-    val code =
-        request(
-            "DELETE",
-            "$host/emulator/v1/projects/$projectId/databases/(default)/documents",
-        )
-    assertTrue("Emulator clear failed with HTTP $code", code in 200..299)
-  }
-
-  fun adminSet(path: String, fields: Map<String, Any?>) {
-    val code =
-        request(
-            "POST",
-            "$host/v1/projects/$projectId/databases/(default)/documents:commit",
-            token = "owner",
-            json =
-                """{"writes":[{"update":{"name":"projects/$projectId/databases/(default)/documents/$path","fields":${encodeFields(fields)}}}]}""",
-        )
-    assertTrue("Admin set of $path failed with HTTP $code", code in 200..299)
-  }
-
-  private fun request(
-      method: String,
-      url: String,
-      token: String? = null,
-      json: String? = null,
-  ): Int {
-    val connection = URL(url).openConnection() as HttpURLConnection
-    connection.requestMethod = method
-    connection.connectTimeout = 5_000
-    connection.readTimeout = 5_000
-    if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
-    if (json != null) {
-      connection.doOutput = true
-      connection.setRequestProperty("Content-Type", "application/json")
-      connection.outputStream.use { it.write(json.toByteArray()) }
-    }
-    return try {
-      connection.responseCode
-    } finally {
-      connection.disconnect()
-    }
   }
 }
 
@@ -189,9 +199,7 @@ private class FirestoreAdminClient(
  */
 private class StorageEmulatorClient(
     private val projectId: String = "amber-34abf",
-    private val host: String =
-        System.getenv("FIREBASE_STORAGE_EMULATOR_HOST")?.let { "http://$it" }
-            ?: "http://127.0.0.1:9199",
+    private val host: String = storageEmulatorBaseUrl(),
 ) {
   fun deleteAsAdmin(vararg objectPaths: String) {
     for (path in objectPaths) {
@@ -201,25 +209,47 @@ private class StorageEmulatorClient(
   }
 
   fun assertSucceeds(
-      uid: String?,
+      uid: String? = "ada",
       objectPath: String,
-      contentType: String,
-      bytes: ByteArray,
-      authorId: String,
+      contentType: String = "image/jpeg",
+      bytes: ByteArray = JPEG,
+      authorId: String = "ada",
+      extraMetadata: Map<String, String> = emptyMap(),
   ) {
-    val (code, body) = upload(uid, objectPath, contentType, bytes, authorId)
+    val (code, body) = upload(uid, objectPath, contentType, bytes, authorId, extraMetadata)
     assertTrue("Expected upload of $objectPath to succeed, HTTP $code: $body", code in 200..299)
   }
 
   fun assertFails(
-      uid: String?,
+      uid: String? = "ada",
       objectPath: String,
-      contentType: String,
-      bytes: ByteArray,
-      authorId: String,
+      contentType: String = "image/jpeg",
+      bytes: ByteArray = JPEG,
+      authorId: String = "ada",
+      extraMetadata: Map<String, String> = emptyMap(),
   ) {
-    val (code, body) = upload(uid, objectPath, contentType, bytes, authorId)
+    val (code, body) = upload(uid, objectPath, contentType, bytes, authorId, extraMetadata)
     assertEquals("Expected upload of $objectPath to be denied: $body", 403, code)
+  }
+
+  fun assertReadSucceeds(uid: String?, objectPath: String) {
+    val (code, body) = request("GET", objectUrl(objectPath), token = bearer(uid))
+    assertTrue("Expected read of $objectPath to succeed, HTTP $code: $body", code in 200..299)
+  }
+
+  fun assertReadFails(uid: String?, objectPath: String) {
+    val (code, body) = request("GET", objectUrl(objectPath), token = bearer(uid))
+    assertEquals("Expected read of $objectPath to be denied: $body", 403, code)
+  }
+
+  fun assertDeleteSucceeds(uid: String?, objectPath: String) {
+    val (code, body) = request("DELETE", objectUrl(objectPath), token = bearer(uid))
+    assertTrue("Expected delete of $objectPath to succeed, HTTP $code: $body", code in 200..299)
+  }
+
+  fun assertDeleteFails(uid: String?, objectPath: String) {
+    val (code, body) = request("DELETE", objectUrl(objectPath), token = bearer(uid))
+    assertEquals("Expected delete of $objectPath to be denied: $body", 403, code)
   }
 
   fun assertUpdateDenied(result: Pair<Int, String>) {
@@ -243,14 +273,18 @@ private class StorageEmulatorClient(
       contentType: String,
       bytes: ByteArray,
       authorId: String,
+      extraMetadata: Map<String, String>,
   ): Pair<Int, String> {
     val boundary = "amberboundary"
-    val metadata = """{"contentType":"$contentType","metadata":{"authorId":"$authorId"}}"""
+    val metadata =
+        (mapOf("authorId" to authorId) + extraMetadata).entries.joinToString(",") { (key, value) ->
+          "\"$key\":\"$value\""
+        }
     val head =
         ("--$boundary\r\n" +
                 "Content-Type: application/json; charset=UTF-8\r\n" +
                 "\r\n" +
-                metadata +
+                """{"contentType":"$contentType","metadata":{$metadata}}""" +
                 "\r\n" +
                 "--$boundary\r\n" +
                 "Content-Type: $contentType\r\n" +
@@ -287,8 +321,7 @@ private class StorageEmulatorClient(
         Base64.getUrlEncoder()
             .withoutPadding()
             .encodeToString(
-                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}"""
-                    .toByteArray(),
+                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}""".toByteArray(),
             )
     return "$header.$payload."
   }
@@ -321,21 +354,8 @@ private class StorageEmulatorClient(
       connection.disconnect()
     }
   }
+
+  private companion object {
+    val JPEG = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
+  }
 }
-
-@Suppress("UNCHECKED_CAST")
-private fun encodeFields(fields: Map<String, Any?>): String =
-    fields.entries.joinToString(",", "{", "}") { (key, value) -> "\"$key\":${encodeValue(value)}" }
-
-@Suppress("UNCHECKED_CAST")
-private fun encodeValue(value: Any?): String =
-    when (value) {
-      null -> """{"nullValue":null}"""
-      is String -> """{"stringValue":"$value"}"""
-      is Boolean -> """{"booleanValue":$value}"""
-      is Int -> """{"integerValue":"$value"}"""
-      is Long -> """{"integerValue":"$value"}"""
-      is List<*> -> """{"arrayValue":{"values":[${value.joinToString(",") { encodeValue(it) }}]}}"""
-      is Map<*, *> -> """{"mapValue":{"fields":${encodeFields(value as Map<String, Any?>)}}}"""
-      else -> error("Unsupported Firestore value: ${value::class}")
-    }

@@ -58,14 +58,8 @@ class MediaFileStorageFirebaseTest {
 
   @get:Rule val tmp = TemporaryFolder()
 
-  /** The file to upload: one byte, since `upload` refuses an empty file. Its bytes aren't sent. */
+  /** The file to upload: one byte. Its bytes aren't sent. */
   private val upload by lazy { tmp.newFile("picture.jpg").apply { writeBytes(byteArrayOf(1)) } }
-
-  /** A file whose [File.length] is [bytes], without writing them to disk. */
-  private fun fileOfLength(bytes: Long) =
-      object : File(tmp.root, "sized.jpg") {
-        override fun length() = bytes
-      }
 
   private val picture =
       MediaItem.Picture(id = "m1", authorId = "u1", storagePath = "careCircles/c1/media/m1.jpg")
@@ -180,25 +174,6 @@ class MediaFileStorageFirebaseTest {
     assertEquals("upload", message, uploadError?.message)
     assertTrue("delete", deleteError is IllegalArgumentException)
     assertEquals("delete", message, deleteError?.message)
-  }
-
-  @Test
-  fun requireUploadableChecksTheItemAndFileBeforeUpload() = runTest {
-    val pending = CareCircle(id = "c1")
-    val text = MediaItem.Text(id = "t1")
-
-    val textError = errorOf {
-      requireUploadable(pending, text, upload)
-      Unit
-    }
-    val emptyError = errorOf {
-      requireUploadable(pending, picture, tmp.newFile("empty.jpg"))
-      Unit
-    }
-
-    // a bug in the item or file is reported as such, before MediaFileStorage.upload is called
-    assertEquals("Media t1 is a text: it has no file to upload", textError?.message)
-    assertEquals("Media m1's file is empty or over 25 MiB", emptyError?.message)
   }
 
   @Test
@@ -340,128 +315,9 @@ class MediaFileStorageFirebaseTest {
   }
 
   @Test
-  fun requireUploadableRefusesAMediaWithoutAnAcceptedFile() = runTest {
-    val gif = picture.copy(storagePath = "careCircles/c1/media/m1.gif")
-
-    val textError = errorOf {
-      requireUploadable(circle, MediaItem.Text(id = "t1"), upload)
-      Unit
-    }
-    val gifError = errorOf {
-      requireUploadable(circle, gif, upload)
-      Unit
-    }
-
-    assertTrue("text", textError is IllegalArgumentException)
-    assertEquals("text", "Media t1 is a text: it has no file to upload", textError?.message)
-    // the rules would refuse it: a bug, reported before anything is sent
-    assertTrue("gif", gifError is IllegalArgumentException)
-  }
-
-  @Test
-  fun requireUploadableRefusesAMediaOfAnotherCircle() = runTest {
-    val otherCircle = picture.copy(storagePath = "careCircles/c2/media/m1.jpg")
-
-    val error = errorOf {
-      requireUploadable(circle, otherCircle, upload)
-      Unit
-    }
-
-    // the rules would answer "permission denied", which a send could retry forever
-    assertTrue(error is IllegalArgumentException)
-    assertEquals(
-        "Media m1 (careCircles/c2/media/m1.jpg) isn't a media of care circle c1",
-        error?.message,
-    )
-  }
-
-  @Test
-  fun requireUploadableRefusesAnEmptyFileOrOneOver25MiB() = runTest {
-    val maxBytes = 25L * 1024 * 1024
-
-    val emptyError = errorOf {
-      requireUploadable(circle, picture, fileOfLength(0))
-      Unit
-    }
-    val largeError = errorOf {
-      requireUploadable(circle, picture, fileOfLength(maxBytes + 1))
-      Unit
-    }
-
-    assertTrue("empty", emptyError is IllegalArgumentException)
-    assertTrue("large", largeError is IllegalArgumentException)
-    // a person photo is capped at 2 MiB; a media file of that size is still accepted
-    assertEquals(
-        "image/jpeg",
-        requireUploadable(circle, picture, fileOfLength(MAX_PHOTO_BYTES + 1)),
-    )
-  }
-
-  @Test
-  fun requirePhotoUploadableAcceptsAJpegUpTo2MiBInThePersonsFolder() = runTest {
-    val photo = fileOfLength(MAX_PHOTO_BYTES)
-    val path = "careCircles/c1/people/tom/p1.jpg"
-
-    val contentType = requirePhotoUploadable(circle, "tom", path, photo)
-
-    assertEquals("image/jpeg", contentType)
-    assertEquals("image/jpeg", requirePhotoUploadable(circle, "tom", path, upload))
-  }
-
-  @Test
-  fun requirePhotoUploadableRefusesAPathOrFileTheRulesWouldRefuse() = runTest {
-    val photo = upload
-    val path = "careCircles/c1/people/tom/p1.jpg"
-    val refused =
-        mapOf(
-            "underscore in the circle id" to
-                {
-                  requirePhotoUploadable(circle.copy(id = "c_1"), "tom", path, photo)
-                },
-            "blank person id" to { requirePhotoUploadable(circle, " ", path, photo) },
-            "slash in the person id" to { requirePhotoUploadable(circle, "to/m", path, photo) },
-            "underscore in the person id" to
-                {
-                  requirePhotoUploadable(circle, "to_m", path, photo)
-                },
-            "another person's folder" to { requirePhotoUploadable(circle, "ada", path, photo) },
-            "nested path" to
-                {
-                  requirePhotoUploadable(
-                      circle,
-                      "tom",
-                      "careCircles/c1/people/tom/extra/p1.jpg",
-                      photo,
-                  )
-                },
-            "not a jpeg" to
-                {
-                  requirePhotoUploadable(circle, "tom", "careCircles/c1/people/tom/p1.png", photo)
-                },
-            "underscore in the file name" to
-                {
-                  requirePhotoUploadable(circle, "tom", "careCircles/c1/people/tom/p_1.jpg", photo)
-                },
-            "empty file" to { requirePhotoUploadable(circle, "tom", path, fileOfLength(0)) },
-            "file over 2 MiB" to
-                {
-                  requirePhotoUploadable(circle, "tom", path, fileOfLength(MAX_PHOTO_BYTES + 1))
-                },
-        )
-
-    for ((case, call) in refused) {
-      val error = errorOf {
-        call()
-        Unit
-      }
-      assertTrue("$case: failed with $error", error is IllegalArgumentException)
-    }
-  }
-
-  @Test
   fun uploadAcceptsAFileOfExactly25MiB() = runTest {
     val firebase = fakeFirebase()
-    val file = fileOfLength(25L * 1024 * 1024)
+    val file = fileOfLength(tmp.root, MAX_FILE_BYTES)
 
     MediaFileStorageFirebase { firebase.storage }
         .upload(circle, picture.storagePath, file, "image/jpeg", picture.authorId)

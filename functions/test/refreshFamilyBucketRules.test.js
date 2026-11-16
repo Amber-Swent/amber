@@ -33,11 +33,11 @@ function loadScript(buckets, release = async () => {}) {
   }
 }
 
-/** A bucket whose getMetadata returns [labels], or no labels when [labels] is undefined. */
+/** A bucket listed with [labels], or with no labels when [labels] is undefined. */
 function bucket(name, labels) {
   return {
     name,
-    getMetadata: async () => [labels === undefined ? {} : {labels}],
+    metadata: labels === undefined ? {} : {labels},
   };
 }
 
@@ -55,22 +55,33 @@ test("releases the current rules only on buckets labelled amber_managed", async 
     },
   );
 
-  const names = await script.refreshAllFamilyBucketRules();
+  const result = await script.refreshAllFamilyBucketRules();
 
-  assert.deepEqual(names, ["family-a", "family-b"]);
+  assert.deepEqual(result, {updated: ["family-a", "family-b"], failed: []});
   assert.deepEqual(released, ["family-a", "family-b"]);
 });
 
 test("updates nothing when no bucket is Amber-managed", async () => {
   const script = loadScript([bucket("plain"), bucket("other", {amber_managed: "false"})]);
 
-  assert.deepEqual(await script.refreshAllFamilyBucketRules(), []);
+  assert.deepEqual(await script.refreshAllFamilyBucketRules(), {updated: [], failed: []});
 });
 
-test("a rules release failure stops the refresh", async () => {
-  const script = loadScript([bucket("family-a", {amber_managed: "true"})], async () => {
-    throw new Error("rules unavailable");
-  });
+test("a rules release failure is reported and the other buckets are still updated", async () => {
+  const released = [];
+  const script = loadScript(
+    [
+      bucket("family-a", {amber_managed: "true"}),
+      bucket("family-b", {amber_managed: "true"}),
+    ],
+    async (bucketName) => {
+      released.push(bucketName);
+      if (bucketName === "family-a") throw new Error("rules unavailable");
+    },
+  );
 
-  await assert.rejects(script.refreshAllFamilyBucketRules(), /rules unavailable/);
+  const result = await script.refreshAllFamilyBucketRules();
+
+  assert.deepEqual(released, ["family-a", "family-b"]);
+  assert.deepEqual(result, {updated: ["family-b"], failed: ["family-a"]});
 });

@@ -71,6 +71,15 @@ service firebase.storage {
         || personId in circle.data.people;
     }
 
+    // resource is null for a missing file: deleting it is allowed, so a member deleting twice
+    // gets "not found", not "permission denied".
+    function canDeleteCircleFile(circleId) {
+      return notBeingDeleted()
+        && (circleCaregiver(circleId)
+          || (circleBucketMember(circleId)
+            && (resource == null || resource.metadata.authorId == request.auth.uid)));
+    }
+
     match /careCircles/{circleId}/media/{fileName} {
       allow read: if circleBucketMember(circleId);
       allow create: if circleBucketMember(circleId)
@@ -82,12 +91,7 @@ service firebase.storage {
         && resource.metadata.authorId == request.auth.uid
         && uploadedByCurrentUser()
         && validMediaUpload(fileName);
-      // resource is null for a missing file: deleting it is allowed, so a member deleting twice
-      // gets "not found", not "permission denied"
-      allow delete: if notBeingDeleted()
-        && (circleCaregiver(circleId)
-          || (circleBucketMember(circleId)
-            && (resource == null || resource.metadata.authorId == request.auth.uid)));
+      allow delete: if canDeleteCircleFile(circleId);
     }
 
     match /careCircles/{circleId}/people/{personId}/{fileName} {
@@ -100,10 +104,7 @@ service firebase.storage {
         && canUploadPersonPhoto(circleId, personId);
       // A photo path is never reused: caches key by path, so updates are refused.
       allow update: if false;
-      allow delete: if notBeingDeleted()
-        && (circleCaregiver(circleId)
-          || (circleBucketMember(circleId)
-            && (resource == null || resource.metadata.authorId == request.auth.uid)));
+      allow delete: if canDeleteCircleFile(circleId);
     }
 
     match /{allPaths=**} {
