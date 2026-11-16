@@ -238,7 +238,6 @@ fun AmberApp(
       composable(route = CaregiverScreen.ChangeCareCircle.route) {
         ChangeCareCircleScreen(
             onBackClick = { navigationActions.goBack() },
-            onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
         )
       }
     }

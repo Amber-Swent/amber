@@ -35,7 +35,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.media.selectableChipColors
-import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
@@ -73,14 +72,12 @@ object ChangeCareCircleTestTags {
  *
  * @param viewModel Provides the screen state and receives chip selections.
  * @param onBackClick Called when the top-bar back button is pressed.
- * @param onTabSelected Called when a bottom-navigation tab is selected.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChangeCareCircleScreen(
     viewModel: ChangeCareCircleViewModel = viewModel(),
     onBackClick: () -> Unit = {},
-    onTabSelected: (Tab) -> Unit = {},
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val activeCircleName = uiState.circles.firstOrNull { it.id == uiState.activeCircleId }?.name

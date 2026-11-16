@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
-import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.util.Locale
@@ -33,7 +32,6 @@ class ChangeCareCircleScreenTest {
   private fun showScreen(
       state: ChangeCareCircleUIState = ChangeCareCircleUIState(),
       onBackClick: () -> Unit = {},
-      onTabSelected: (Tab) -> Unit = {},
   ) {
     val viewModel = ChangeCareCircleViewModel(state)
     composeTestRule.setContent {
@@ -41,7 +39,6 @@ class ChangeCareCircleScreenTest {
         ChangeCareCircleScreen(
             viewModel = viewModel,
             onBackClick = onBackClick,
-            onTabSelected = onTabSelected,
         )
       }
     }
