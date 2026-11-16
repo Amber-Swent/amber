@@ -130,7 +130,7 @@ class CreateInvitationViewModel(
 
   private suspend fun prepareCircles() {
     val profile = readProfile() ?: return
-    val circleIds = profile.circleIds
+    val circleIds = profile.circleIds.filter { it.isNotBlank() }
     val choices = circleIds.map { id ->
       val loadedName = circleRepository.getCircle(id).getOrNull()?.name
       CareCircleChoice(id = id, name = loadedName?.takeIf { it.isNotBlank() } ?: id)
@@ -138,6 +138,13 @@ class CreateInvitationViewModel(
     val selected =
         _uiState.value.selectedCircleId?.takeIf { current -> choices.any { it.id == current } }
             ?: activeCircleRepository.activeCircleId(profile.uid, circleIds).first()
+
+    if (selected == null) {
+      _uiState.update {
+        it.copy(circles = choices, errorMsgRes = R.string.createInvitationErrorNoCircle)
+      }
+      return
+    }
     _uiState.update { it.copy(circles = choices, selectedCircleId = selected) }
   }
 
