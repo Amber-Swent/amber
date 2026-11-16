@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
+import com.github.se.amber.ui.caregiver.upload.media.selectableChipColors
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -178,6 +179,7 @@ fun ChangeCareCircleScreen(
                     onClick = { viewModel.changeActiveCareCircle(circle.id) },
                     label = { Text(circle.name, style = MaterialTheme.typography.labelLarge) },
                     modifier = Modifier.testTag(ChangeCareCircleTestTags.circleChoice(circle.id)),
+                    colors = selectableChipColors(),
                 )
               }
             }
