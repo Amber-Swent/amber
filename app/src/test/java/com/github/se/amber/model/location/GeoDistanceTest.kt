@@ -26,7 +26,7 @@ class GeoDistanceTest {
       distanceMeters(from.latitude, from.longitude, to.latitude, to.longitude)
 
   @Test
-  fun `distance is the real distance between two points, in both directions, up to opposite points`() {
+  fun distanceIsTheRealDistanceBetweenTwoPointsInBothDirectionsUpToOppositePoints() {
     val lausanneToGeneva = distance(LAUSANNE, GENEVA)
 
     assertEquals(flonToCornavinMeters, lausanneToGeneva, flonToCornavinMeters * maxDistanceError)

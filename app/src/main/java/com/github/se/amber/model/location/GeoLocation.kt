@@ -16,16 +16,6 @@ data class GeoLocation(
     val placeName: String? = null, // human-readable, e.g. typed by the user for an old photo
 )
 
-/** The largest latitude, at the poles, in degrees; the smallest is its opposite. */
-internal const val MAX_LATITUDE = 90.0
-
-/** The largest longitude, in degrees; the smallest is its opposite. */
-internal const val MAX_LONGITUDE = 180.0
-
-private val LATITUDE_RANGE = -MAX_LATITUDE..MAX_LATITUDE
-
-private val LONGITUDE_RANGE = -MAX_LONGITUDE..MAX_LONGITUDE
-
 /**
  * This place's point on the map as (lat, lng), or null when it isn't a real point: a coordinate is
  * missing (a place known only by its name), out of range, or not a number, or the place is exactly
@@ -38,3 +28,13 @@ fun GeoLocation.pointOrNull(): Pair<Double, Double>? {
   if (lat == 0.0 && lng == 0.0) return null
   return lat to lng
 }
+
+/** The largest latitude, at the poles, in degrees; the smallest is its opposite. */
+internal const val MAX_LATITUDE = 90.0
+
+/** The largest longitude, in degrees; the smallest is its opposite. */
+internal const val MAX_LONGITUDE = 180.0
+
+private val LATITUDE_RANGE = -MAX_LATITUDE..MAX_LATITUDE
+
+private val LONGITUDE_RANGE = -MAX_LONGITUDE..MAX_LONGITUDE
