@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
@@ -13,6 +14,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import io.mockk.every
 import io.mockk.mockk
 import java.io.File
+import java.io.RandomAccessFile
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -59,6 +61,12 @@ class MediaRepositoryFirebaseTest {
 
   /** A file holding [content], as the camera would give it. */
   private fun source(content: String = "bytes"): File = tmp.newFile().apply { writeText(content) }
+
+  /** A sparse file of [bytes], so a size check can run without writing that many bytes. */
+  private fun fileOfLength(bytes: Long): File =
+      File(tmp.root, "sized-$bytes.jpg").apply {
+        RandomAccessFile(this, "rw").use { it.setLength(bytes) }
+      }
 
   /** A new outbox on [outboxDir], as after an app restart. */
   private fun TestScope.newOutbox() =
@@ -172,6 +180,10 @@ class MediaRepositoryFirebaseTest {
                 {
                   val gif = item.copy(storagePath = "careCircles/c1/media/m1.gif")
                   repository.addMedia(c1, gif, source())
+                },
+            "file over 25 MiB" to
+                {
+                  repository.addMedia(c1, item, fileOfLength(MAX_FILE_BYTES + 1))
                 },
             "media of another circle" to { repository.addMedia(c1, picture("c2", "m1"), source()) },
             "circle without a bucket" to

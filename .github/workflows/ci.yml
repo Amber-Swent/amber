@@ -186,10 +186,11 @@ jobs:
             app/build/reports/androidTests/connected
             app/build/outputs/androidTest-results/connected
 
-      # Run unit tests once, with the Firestore emulator available for the rules tests.
+      # Run unit tests once, with the Firestore and Storage emulators available for the rules
+      # tests. Storage rules read care-circle documents, so both emulators have to be up.
       - name: Unit and rules tests
         run: |
-          firebase emulators:exec --only firestore \
+          firebase emulators:exec --only firestore,storage \
             './gradlew check --parallel --build-cache'
 
       - name: Generate Firestore rules coverage report

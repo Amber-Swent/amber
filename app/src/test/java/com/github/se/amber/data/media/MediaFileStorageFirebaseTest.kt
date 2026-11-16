@@ -390,6 +390,72 @@ class MediaFileStorageFirebaseTest {
 
     assertTrue("empty", emptyError is IllegalArgumentException)
     assertTrue("large", largeError is IllegalArgumentException)
+    // a person photo is capped at 2 MiB; a media file of that size is still accepted
+    assertEquals(
+        "image/jpeg",
+        requireUploadable(circle, picture, fileOfLength(MAX_PHOTO_BYTES + 1)),
+    )
+  }
+
+  @Test
+  fun requirePhotoUploadableAcceptsAJpegUpTo2MiBInThePersonsFolder() = runTest {
+    val photo = fileOfLength(MAX_PHOTO_BYTES)
+    val path = "careCircles/c1/people/tom/p1.jpg"
+
+    val contentType = requirePhotoUploadable(circle, "tom", path, photo)
+
+    assertEquals("image/jpeg", contentType)
+    assertEquals("image/jpeg", requirePhotoUploadable(circle, "tom", path, upload))
+  }
+
+  @Test
+  fun requirePhotoUploadableRefusesAPathOrFileTheRulesWouldRefuse() = runTest {
+    val photo = upload
+    val path = "careCircles/c1/people/tom/p1.jpg"
+    val refused =
+        mapOf(
+            "underscore in the circle id" to
+                {
+                  requirePhotoUploadable(circle.copy(id = "c_1"), "tom", path, photo)
+                },
+            "blank person id" to { requirePhotoUploadable(circle, " ", path, photo) },
+            "slash in the person id" to { requirePhotoUploadable(circle, "to/m", path, photo) },
+            "underscore in the person id" to
+                {
+                  requirePhotoUploadable(circle, "to_m", path, photo)
+                },
+            "another person's folder" to { requirePhotoUploadable(circle, "ada", path, photo) },
+            "nested path" to
+                {
+                  requirePhotoUploadable(
+                      circle,
+                      "tom",
+                      "careCircles/c1/people/tom/extra/p1.jpg",
+                      photo,
+                  )
+                },
+            "not a jpeg" to
+                {
+                  requirePhotoUploadable(circle, "tom", "careCircles/c1/people/tom/p1.png", photo)
+                },
+            "underscore in the file name" to
+                {
+                  requirePhotoUploadable(circle, "tom", "careCircles/c1/people/tom/p_1.jpg", photo)
+                },
+            "empty file" to { requirePhotoUploadable(circle, "tom", path, fileOfLength(0)) },
+            "file over 2 MiB" to
+                {
+                  requirePhotoUploadable(circle, "tom", path, fileOfLength(MAX_PHOTO_BYTES + 1))
+                },
+        )
+
+    for ((case, call) in refused) {
+      val error = errorOf {
+        call()
+        Unit
+      }
+      assertTrue("$case: failed with $error", error is IllegalArgumentException)
+    }
   }
 
   @Test

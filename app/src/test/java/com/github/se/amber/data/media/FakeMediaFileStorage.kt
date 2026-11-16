@@ -24,6 +24,12 @@ class FakeMediaFileStorage(val calls: MutableList<String> = mutableListOf()) : M
   /** The content of the last file uploaded, read during its upload. */
   var lastUploadedContent: String? = null
 
+  /** Content type passed to the last [upload], the one the Storage rules check. */
+  var lastUploadedContentType: String? = null
+
+  /** Author id passed to the last [upload], stored as custom metadata for the rules. */
+  var lastUploadedAuthorId: String? = null
+
   override suspend fun download(circle: CareCircle, storagePath: String, destination: File) {
     calls += "download ${circle.id}:$storagePath"
     destination.writeText("content of $storagePath")
@@ -38,6 +44,8 @@ class FakeMediaFileStorage(val calls: MutableList<String> = mutableListOf()) : M
   ) {
     onUpload(file)
     lastUploadedContent = file.readText()
+    lastUploadedContentType = contentType
+    lastUploadedAuthorId = authorId
     calls += "upload ${circle.storageBucket}:$storagePath"
   }
 

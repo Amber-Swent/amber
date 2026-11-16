@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
@@ -487,6 +488,8 @@ class MediaRepositoryFirestoreTest {
         events,
     )
     assertEquals("photo bytes", fileStorage.lastUploadedContent)
+    assertEquals("image/jpeg", fileStorage.lastUploadedContentType)
+    assertEquals(picture.authorId, fileStorage.lastUploadedAuthorId)
     assertEquals(picture.toMap() + ("id" to "m1"), created.captured)
     assertNull(outbox.get("c1", "m1"))
     // the file moved into the cache: it opens without a download
@@ -722,6 +725,8 @@ class MediaRepositoryFirestoreTest {
         events,
     )
     assertEquals("photo bytes", fileStorage.lastUploadedContent)
+    assertEquals("image/jpeg", fileStorage.lastUploadedContentType)
+    assertEquals(picture.authorId, fileStorage.lastUploadedAuthorId)
     assertEquals(picture.toMap() + ("id" to "m1"), created.captured)
     assertNull(outbox.get("c1", "m1"))
   }
