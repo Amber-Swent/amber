@@ -1,6 +1,7 @@
 // Written by GitHub Copilot.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 rules_version = '2';
 
 service firebase.storage {
@@ -44,9 +45,30 @@ service firebase.storage {
         );
     }
 
+    function validPersonPhotoUpload(fileName) {
+      return request.resource.size > 0
+        && request.resource.size <= 2 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg'
+        && fileName.matches('[^_]+\\.jpg');
+    }
+
     function uploadedByCurrentUser() {
       return request.resource.metadata.authorId == request.auth.uid
         && request.resource.metadata.keys().hasOnly(['authorId']);
+    }
+
+    // Ids must not contain '_': MediaFileCache turns '/' into '_' and relies on ids having none.
+    function idsWithoutUnderscore(circleId, personId) {
+      return !circleId.matches('.*_.*')
+        && !personId.matches('.*_.*');
+    }
+
+    function canUploadPersonPhoto(circleId, personId) {
+      let circle = firestore.get(
+        /databases/(default)/documents/careCircles/$(circleId)
+      );
+      return personId == request.auth.uid
+        || personId in circle.data.people;
     }
 
     match /careCircles/{circleId}/media/{fileName} {
@@ -62,6 +84,22 @@ service firebase.storage {
         && validMediaUpload(fileName);
       // resource is null for a missing file: deleting it is allowed, so a member deleting twice
       // gets "not found", not "permission denied"
+      allow delete: if notBeingDeleted()
+        && (circleCaregiver(circleId)
+          || (circleBucketMember(circleId)
+            && (resource == null || resource.metadata.authorId == request.auth.uid)));
+    }
+
+    match /careCircles/{circleId}/people/{personId}/{fileName} {
+      allow read: if circleBucketMember(circleId);
+      allow create: if circleBucketMember(circleId)
+        && notBeingDeleted()
+        && idsWithoutUnderscore(circleId, personId)
+        && validPersonPhotoUpload(fileName)
+        && uploadedByCurrentUser()
+        && canUploadPersonPhoto(circleId, personId);
+      // A photo path is never reused: caches key by path, so updates are refused.
+      allow update: if false;
       allow delete: if notBeingDeleted()
         && (circleCaregiver(circleId)
           || (circleBucketMember(circleId)

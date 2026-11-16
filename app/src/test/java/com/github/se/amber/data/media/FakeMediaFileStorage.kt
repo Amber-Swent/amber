@@ -1,9 +1,9 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.media.MediaItem
 import java.io.File
 
 /**
@@ -29,10 +29,16 @@ class FakeMediaFileStorage(val calls: MutableList<String> = mutableListOf()) : M
     destination.writeText("content of $storagePath")
   }
 
-  override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) {
+  override suspend fun upload(
+      circle: CareCircle,
+      storagePath: String,
+      file: File,
+      contentType: String,
+      authorId: String,
+  ) {
     onUpload(file)
     lastUploadedContent = file.readText()
-    calls += "upload ${circle.storageBucket}:${item.storagePath}"
+    calls += "upload ${circle.storageBucket}:$storagePath"
   }
 
   override suspend fun delete(circle: CareCircle, storagePath: String) {
