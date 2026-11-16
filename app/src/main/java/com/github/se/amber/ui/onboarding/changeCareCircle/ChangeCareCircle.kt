@@ -38,10 +38,10 @@ import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
-import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** Tags for the change care circle screen. */
@@ -163,7 +163,7 @@ fun ChangeCareCircleScreen(
                 modifier =
                     Modifier.fillMaxWidth()
                         .border(
-                            BORDER_THICKNESS,
+                            DIVIDER_THICKNESS,
                             MaterialTheme.colorScheme.outline,
                             RoundedCornerShape(ROUND_CORNER),
                         )
