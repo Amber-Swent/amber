@@ -159,7 +159,7 @@
     <string name="changeCareCircleCurrent">Current care circle:</string>
     <string name="changeCareCircleAll">All care circles:</string>
     <string name="changeCareCircleNone">No active care circle</string>
-    <string name="changeCareCircleEmpty">You are not linked to any care circle.</string>
+    <string name="changeCareCircleEmpty">You are not linked to any care circle. You can create a Carecircle via Parameters -> Create a new Carecircle or Join an existing care circle via Parameters -> Enter Invitation</string>
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Delete account</string>

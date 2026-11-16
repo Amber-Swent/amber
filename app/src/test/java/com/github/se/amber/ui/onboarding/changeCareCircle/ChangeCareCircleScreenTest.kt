@@ -3,6 +3,7 @@
 package com.github.se.amber.ui.onboarding.changeCareCircle
 
 import android.content.Context
+import android.content.res.Configuration
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -13,12 +14,12 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
-import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
-import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import java.util.Locale
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,9 +47,19 @@ class ChangeCareCircleScreenTest {
     }
   }
 
+  /** Returns a context whose resources are forced to [languageTag], whatever the test locale is. */
+  private fun contextFor(languageTag: String): Context {
+    val base = ApplicationProvider.getApplicationContext<Context>()
+    val configuration =
+        Configuration(base.resources.configuration).apply {
+          setLocale(Locale.forLanguageTag(languageTag))
+        }
+    return base.createConfigurationContext(configuration)
+  }
+
   @Test
   fun emptyStateShowsMessageWithoutCircleSections() {
-    showScreen()
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY))
 
     val message =
         ApplicationProvider.getApplicationContext<Context>()
@@ -59,15 +70,13 @@ class ChangeCareCircleScreenTest {
   }
 
   @Test
-  fun defaultViewModelAndCallbacksShowEmptyState() {
+  fun defaultViewModelShowsLoadingState() {
     composeTestRule.setContent { AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen() } }
 
-    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.LOADING_INDICATOR).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertDoesNotExist()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-    composeTestRule
-        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
-        .performClick()
-    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.LOADING_INDICATOR).assertIsDisplayed()
   }
 
   @Test
@@ -170,18 +179,6 @@ class ChangeCareCircleScreenTest {
   }
 
   @Test
-  fun bottomBarForwardsSelectedTab() {
-    var selectedTab: Tab? = null
-    showScreen(onTabSelected = { selectedTab = it })
-
-    composeTestRule
-        .onNodeWithTag(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Home))
-        .performClick()
-
-    assertEquals(CaregiverTab.Home, selectedTab)
-  }
-
-  @Test
   fun loadingPreviewRendersItsIndicator() {
     composeTestRule.setContent { ChangeCareCircleLoadingScreenPreview() }
 
@@ -207,12 +204,19 @@ class ChangeCareCircleScreenTest {
 
   @Test
   @Config(qualifiers = "fr")
-  fun emptyMessageUsesFrenchResource() {
-    showScreen()
+  fun emptyMessageIsDisplayedInFrenchWhenPhoneIsInFrench() {
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY))
 
-    val message =
-        ApplicationProvider.getApplicationContext<Context>()
-            .getString(R.string.changeCareCircleEmpty)
-    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertTextEquals(message)
+    composeTestRule
+        .onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE)
+        .assertTextEquals(contextFor("fr").getString(R.string.changeCareCircleEmpty))
+  }
+
+  @Test
+  fun emptyMessageFrenchTranslationDiffersFromEnglish() {
+    assertNotEquals(
+        contextFor("en").getString(R.string.changeCareCircleEmpty),
+        contextFor("fr").getString(R.string.changeCareCircleEmpty),
+    )
   }
 }

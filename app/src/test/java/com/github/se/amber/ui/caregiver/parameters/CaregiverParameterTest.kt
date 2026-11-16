@@ -189,6 +189,19 @@ class CaregiverParameterScreenTest {
   }
 
   @Test
+  fun switchCareCircleButtonCallsCallbackOnClick() {
+    var clicks = 0
+    setScreen(onSwitchCareCircleClick = { clicks++ })
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.SWITCH_CARE_CIRCLE_BUTTON)
+        .performScrollTo()
+        .performClick()
+
+    assertEquals(1, clicks)
+  }
+
+  @Test
   fun errorMessageIsClearedFromTheStateAfterTheToast() {
     val viewModel = CaregiverParameterViewModel().apply { setErrorMsg(R.string.signOutError) }
     setScreen(viewModel = viewModel)

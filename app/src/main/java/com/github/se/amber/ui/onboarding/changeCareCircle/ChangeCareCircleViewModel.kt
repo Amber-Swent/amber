@@ -39,7 +39,7 @@ enum class ChangeCareCircleStatus {
  * @param activeCircleId ID of the selected circle, or null if none is active.
  */
 data class ChangeCareCircleUIState(
-    val status: ChangeCareCircleStatus = ChangeCareCircleStatus.EMPTY,
+    val status: ChangeCareCircleStatus = ChangeCareCircleStatus.LOADING,
     val circles: List<ChangeCareCircleChoice> = emptyList(),
     val activeCircleId: String? = null,
 )

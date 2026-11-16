@@ -141,7 +141,7 @@ class AmberAppNavigationTest {
         false
       }
     }
-    composeRule.onNodeWithTag(tag).performClick()
+    composeRule.onNodeWithTag(tag).performScrollTo().performClick()
     composeRule.waitForIdle()
   }
 
@@ -358,10 +358,9 @@ class AmberAppNavigationTest {
     launch(NavGraphs.CAREGIVER)
     goTo(CaregiverScreen.Parameters.route)
 
-    composeRule.onNodeWithTag(Tags.CAREGIVER_PARAMETERS_DELETE_ACCOUNT).performScrollTo()
     click(Tags.CAREGIVER_PARAMETERS_DELETE_ACCOUNT)
 
-    waitForRoute(CaregiverScreen.DeleteAccount.route)
+    assertRoute(CaregiverScreen.DeleteAccount.route)
 
     click(Tags.DELETE_ACCOUNT_CANCEL)
 

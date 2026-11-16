@@ -53,14 +53,14 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 
 /** Test tags of [CaregiverParameterScreen]. */
 object CaregiverParametersTestTags {
-  const val TITLE = "CaregiverParameter_test_tag_title"
-  const val CREATE_CARE_CIRCLE_BUTTON = "CaregiverParameter_test_tag_create_care_circle_button"
-  const val SWITCH_CARE_CIRCLE_BUTTON = "CaregiverParameter_test_tag_switch_care_circle_button"
-  const val CREATE_INVITATION_BUTTON = "CaregiverParameter_test_tag_create_invitation_button"
-  const val ENTER_INVITATION_BUTTON = "CaregiverParameter_test_tag_enter_invitation_button"
-  const val SIGN_OUT_BUTTON = "CaregiverParameter_test_tag_sign_out_button"
-  const val DELETE_ACCOUNT_BUTTON = "CaregiverParameter_test_tag_delete_account_button"
-  const val INVITATION_HINT = "CaregiverParameter_test_tag_invitation_hint"
+  const val TITLE = "caregiverParameter_title"
+  const val CREATE_CARE_CIRCLE_BUTTON = "caregiverParameter_create_care_circle_button"
+  const val SWITCH_CARE_CIRCLE_BUTTON = "caregiverParameter_switch_care_circle_button"
+  const val CREATE_INVITATION_BUTTON = "caregiverParameter_create_invitation_button"
+  const val ENTER_INVITATION_BUTTON = "caregiverParameter_enter_invitation_button"
+  const val SIGN_OUT_BUTTON = "caregiverParameter_sign_out_button"
+  const val DELETE_ACCOUNT_BUTTON = "caregiverParameter_delete_account_button"
+  const val INVITATION_HINT = "caregiverParameter_invitation_hint"
 }
 
 /**
@@ -146,13 +146,6 @@ fun CaregiverParameterScreen(
               onClick = onCreateCareCircleClick,
           )
           DisplayButton(
-              modifier = Modifier.testTag(CaregiverParametersTestTags.SWITCH_CARE_CIRCLE_BUTTON),
-              icon = Icons.Outlined.SwapHoriz,
-              text = switchCareCircleLabel,
-              description = switchCareCircleLabel,
-              onClick = onSwitchCareCircleClick,
-          )
-          DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.CREATE_INVITATION_BUTTON),
               icon = Icons.Outlined.PersonAdd,
               text = createInvitationLabel,
@@ -165,6 +158,13 @@ fun CaregiverParameterScreen(
               text = enterInvitationLabel,
               description = enterInvitationLabel,
               onClick = onEnterInvitationClick,
+          )
+          DisplayButton(
+              modifier = Modifier.testTag(CaregiverParametersTestTags.SWITCH_CARE_CIRCLE_BUTTON),
+              icon = Icons.Outlined.SwapHoriz,
+              text = switchCareCircleLabel,
+              description = switchCareCircleLabel,
+              onClick = onSwitchCareCircleClick,
           )
           DisplayButton(
               modifier = Modifier.testTag(CaregiverParametersTestTags.SIGN_OUT_BUTTON),

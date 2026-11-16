@@ -34,16 +34,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
-import com.github.se.amber.ui.navigation.BottomNavigationMenu
-import com.github.se.amber.ui.navigation.CaregiverTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.BORDER_THICKNESS
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
-import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.ROUND_CORNER
 
 /** Tags for the change care circle screen. */
@@ -102,14 +100,7 @@ fun ChangeCareCircleScreen(
               }
             }
         )
-      },
-      bottomBar = {
-        BottomNavigationMenu(
-            selectedTab = CaregiverTab.Setting,
-            onTabSelected = onTabSelected,
-            tabs = CaregiverTab.caregiverTabs,
-        )
-      },
+      }
   ) { paddingValues ->
     when (uiState.status) {
       ChangeCareCircleStatus.LOADING,
@@ -172,7 +163,7 @@ fun ChangeCareCircleScreen(
                 modifier =
                     Modifier.fillMaxWidth()
                         .border(
-                            DIVIDER_THICKNESS,
+                            BORDER_THICKNESS,
                             MaterialTheme.colorScheme.outline,
                             RoundedCornerShape(ROUND_CORNER),
                         )
@@ -194,7 +185,8 @@ fun ChangeCareCircleScreen(
         }
       }
     }
-    // TODO display message info
+    // TODO display message info: the helper function needed is currently under review so it cannot
+    // be used now.
   }
 }
 
@@ -202,6 +194,8 @@ fun ChangeCareCircleScreen(
 @Composable
 internal fun ChangeCareCircleLoadingScreenPreview() {
   val previewViewModel = remember {
+    // Not needed to precise the status since it's the default one but it makes the preview more
+    // robust
     ChangeCareCircleViewModel(ChangeCareCircleUIState(status = ChangeCareCircleStatus.LOADING))
   }
   AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
@@ -210,7 +204,9 @@ internal fun ChangeCareCircleLoadingScreenPreview() {
 @Preview(name = "No care circles", showBackground = true, showSystemUi = true)
 @Composable
 internal fun ChangeCareCircleEmptyScreenPreview() {
-  val previewViewModel = remember { ChangeCareCircleViewModel() }
+  val previewViewModel = remember {
+    ChangeCareCircleViewModel(ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY))
+  }
   AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
 }
 
