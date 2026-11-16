@@ -2,6 +2,9 @@
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
+import android.Manifest
+import android.app.Application
+import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -9,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
+import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
@@ -20,11 +24,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
