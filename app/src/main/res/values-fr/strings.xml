@@ -390,4 +390,9 @@
     <string name="audioPlaybackLoading">Chargement</string>
     <string name="audioPlaybackRetry">Réessayer</string>
     <string name="audioPlaybackError">Cet audio n\'a pas pu être lu.</string>
+    <!-- MediaMap -->
+    <string name="mediaMapErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="mediaMapErrorLoadProfile">Impossible de charger le profil.</string>
+    <string name="mediaMapErrorNoCircle">Aucun cercle de soins trouvé.</string>
+    <string name="mediaMapErrorLoadMedia">Impossible de charger les souvenirs de la carte.</string>
 </resources>

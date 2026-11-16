@@ -1,0 +1,216 @@
+// Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+
+package com.github.se.amber.ui.map
+
+import android.util.Log
+import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.connectivity.ConnectivityMonitor
+import com.github.se.amber.data.connectivity.ConnectivityMonitorProvider
+import com.github.se.amber.data.location.MediaLocationRepository
+import com.github.se.amber.data.location.MediaLocationRepositoryProvider
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.model.location.MediaMarker
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+/**
+ * UI state of the memories map, the same for the patient and the caregiver. The errors are string
+ * resources, which the screen resolves in the app language.
+ */
+sealed interface MediaMapUIState {
+  data object Loading : MediaMapUIState
+
+  /** Nothing can be shown: [errorMsgRes] replaces the screen, with a Retry button. */
+  data class BlockingError(@param:StringRes val errorMsgRes: Int) : MediaMapUIState
+
+  /**
+   * No media of the circle has a place on the map. When [isOffline], the media may just not be
+   * loaded yet: the screen can ask to connect once.
+   */
+  data class Empty(val isOffline: Boolean = false) : MediaMapUIState
+
+  /**
+   * The pins to show. [selectedMarker] is the pin whose media are open, if any; it follows the
+   * media as they change. When [isOffline], the pins are those of the media already loaded.
+   */
+  data class Content(
+      val markers: List<MediaMarker>,
+      val selectedMarker: MediaMarker? = null,
+      val isOffline: Boolean = false,
+      @param:StringRes val errorMsgRes: Int? = null,
+  ) : MediaMapUIState
+}
+
+/**
+ * Loads the pins of the signed-in user's active care circle, patient or caregiver, and keeps them
+ * live. Switching the active circle reloads the pins of the new one.
+ *
+ * @param locationRepository gives the pins of a circle.
+ * @param profileRepository gives the signed-in user's profile and circles.
+ * @param activeCircleRepository picks which of their circles to show.
+ * @param connectivityMonitor tells whether the phone is offline, so the screen can say so.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+class MediaMapViewModel(
+    private val locationRepository: MediaLocationRepository =
+        MediaLocationRepositoryProvider.default.repository,
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
+    connectivityMonitor: ConnectivityMonitor = ConnectivityMonitorProvider.monitor,
+) : ViewModel() {
+
+  /** The pins, or why there are none yet; the open pin and the offline flag are kept apart. */
+  private sealed interface Loaded {
+    data object Loading : Loaded
+
+    data class Failed(@param:StringRes val errorMsgRes: Int) : Loaded
+
+    data class Markers(val markers: List<MediaMarker>) : Loaded
+  }
+
+  private val loaded = MutableStateFlow<Loaded>(Loaded.Loading)
+  // The media of the open pin, not its id: the id changes when the pin's oldest media is removed
+  // or an older one is added, and the pin must stay open then
+  private val selectedMediaIds = MutableStateFlow<Set<String>>(emptySet())
+  private val errorMsgRes = MutableStateFlow<Int?>(null)
+
+  val uiState: StateFlow<MediaMapUIState> =
+      combine(loaded, selectedMediaIds, errorMsgRes, connectivityMonitor.isOnline) {
+              loaded,
+              selectedIds,
+              errorMsgRes,
+              isOnline ->
+            when (loaded) {
+              Loaded.Loading -> MediaMapUIState.Loading
+              is Loaded.Failed -> MediaMapUIState.BlockingError(loaded.errorMsgRes)
+              is Loaded.Markers ->
+                  if (loaded.markers.isEmpty()) {
+                    MediaMapUIState.Empty(isOffline = !isOnline)
+                  } else {
+                    MediaMapUIState.Content(
+                        markers = loaded.markers,
+                        selectedMarker = loaded.markers.openPin(selectedIds),
+                        isOffline = !isOnline,
+                        errorMsgRes = errorMsgRes,
+                    )
+                  }
+            }
+          }
+          .stateIn(viewModelScope, SharingStarted.Eagerly, MediaMapUIState.Loading)
+
+  private var loadJob: Job? = null
+
+  init {
+    load()
+  }
+
+  /** Reloads everything and shows the loading state. */
+  fun retry() = load()
+
+  /** Opens the media of the pin [markerId]. Does nothing if no pin has this id. */
+  fun selectMarker(markerId: String) {
+    val markers = (loaded.value as? Loaded.Markers)?.markers ?: return
+    markers.find { it.id == markerId }?.let { selectedMediaIds.value = it.mediaIds() }
+  }
+
+  /** Closes the media of the selected pin. */
+  fun dismissMarker() {
+    selectedMediaIds.value = emptySet()
+  }
+
+  /** Clears the non-blocking error message. */
+  fun clearErrorMsg() {
+    errorMsgRes.value = null
+  }
+
+  /** Loads the profile, then follows the active circle and its pins. */
+  private fun load() {
+    loadJob?.cancel()
+    loaded.value = Loaded.Loading
+    selectedMediaIds.value = emptySet()
+    errorMsgRes.value = null
+
+    loadJob = viewModelScope.launch {
+      val profile =
+          profileRepository.getCurrentProfile().getOrElse { e ->
+            Log.e(TAG, "Error fetching profile", e)
+            loaded.value = Loaded.Failed(R.string.mediaMapErrorLoadProfile)
+            return@launch
+          }
+              ?: run {
+                loaded.value = Loaded.Failed(R.string.mediaMapErrorNoProfile)
+                return@launch
+              }
+
+      activeCircleRepository
+          .activeCircleId(profile.uid, profile.circleIds)
+          .distinctUntilChanged()
+          .flatMapLatest { circleId ->
+            if (circleId == null) flowOf(Loaded.Failed(R.string.mediaMapErrorNoCircle))
+            else markersOf(circleId)
+          }
+          .collect { next ->
+            val open = (next as? Loaded.Markers)?.markers?.openPin(selectedMediaIds.value)
+            loaded.value = next
+            // Keep the open pin's current media, so it stays open while they change one at a time.
+            // Forget it once it is gone (another circle, or all its media removed), so it doesn't
+            // open again by itself if its media come back
+            selectedMediaIds.value = open?.mediaIds().orEmpty()
+          }
+    }
+  }
+
+  /**
+   * The pins of [circleId], starting with [Loaded.Loading]. If they stop with an error, the pins
+   * already shown stay with a message; with none shown yet, the error replaces the screen.
+   */
+  private fun markersOf(circleId: String): Flow<Loaded> {
+    // Whether this circle's pins were shown; loaded may still hold the previous circle's
+    var shown = false
+    return locationRepository
+        .observeMarkers(circleId)
+        .map<List<MediaMarker>, Loaded> { Loaded.Markers(it) }
+        .onEach { shown = true }
+        .onStart { emit(Loaded.Loading) }
+        .catch { e ->
+          Log.e(TAG, "Error observing the pins", e)
+          if (shown) {
+            errorMsgRes.value = R.string.mediaMapErrorLoadMedia
+          } else {
+            emit(Loaded.Failed(R.string.mediaMapErrorLoadMedia))
+          }
+        }
+  }
+
+  /** The pin that has one of [mediaIds], the media of the open pin; null if none has. */
+  private fun List<MediaMarker>.openPin(mediaIds: Set<String>): MediaMarker? = find { pin ->
+    pin.media.any { it.id in mediaIds }
+  }
+
+  private fun MediaMarker.mediaIds(): Set<String> = media.mapTo(mutableSetOf()) { it.id }
+
+  private companion object {
+    const val TAG = "MediaMapViewModel"
+  }
+}

@@ -1,6 +1,7 @@
 # Written by MeiliV, with assistance from OpenAI Codex.
 # Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 # Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+# Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 
 name: CI - Test Runner
@@ -33,6 +34,9 @@ jobs:
     name: CI
     # Execute the CI on the course's runners
     runs-on: ubuntu-latest
+    # Google Maps key of the memories map; without it, the app builds and the map shows no tiles
+    env:
+      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
 
     steps:
       # First step : Checkout the repository on the runner
