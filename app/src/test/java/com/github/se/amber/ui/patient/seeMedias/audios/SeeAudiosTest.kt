@@ -1,6 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -22,7 +21,6 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.user.Person
@@ -42,7 +40,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -73,20 +70,7 @@ class SeeAudiosScreenTest {
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
                   when (modelClass) {
                     SeeAudiosViewModel::class.java -> audioViewModel as T
-                    MediaCardViewModel::class.java ->
-                        MediaCardViewModel(
-                            mockk(),
-                            mockk(),
-                            mockk<ActiveCircleRepository> {
-                              every { activeCircleId(any(), any()) } answers
-                                  {
-                                    flowOf(
-                                        secondArg<List<String>>().firstOrNull { it.isNotBlank() }
-                                    )
-                                  }
-                            },
-                        )
-                            as T
+                    MediaCardViewModel::class.java -> MediaCardViewModel(mockk(), mockk()) as T
                     else -> error("Unexpected ViewModel: $modelClass")
                   }
             }
@@ -321,17 +305,6 @@ class SeeAudiosScreenTest {
         .assertIsDisplayed()
         .assertTextEquals(string(R.string.seeAudiosEmpty))
     composeTestRule.onNodeWithTag(AudioPlaybackTestTags.CARD).assertDoesNotExist()
-  }
-
-  @Test
-  fun empty_preview_uses_the_valid_circle_after_a_blank_id() {
-    composeTestRule.setContent { SeeAudiosScreenPreview() }
-
-    composeTestRule
-        .onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS)
-        .assertIsDisplayed()
-        .assertTextEquals(string(R.string.seeAudiosEmpty))
-    composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
   }
 
   @Test

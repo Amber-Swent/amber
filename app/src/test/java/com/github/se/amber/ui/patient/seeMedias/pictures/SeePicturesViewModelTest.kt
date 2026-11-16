@@ -1,11 +1,9 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -16,7 +14,6 @@ import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,7 +36,6 @@ class SeePicturesViewModelTest {
 
   private val mediaRepository = mockk<MediaRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
-  private val activeCircleRepository = mockk<ActiveCircleRepository>()
   private val profileRepository = mockk<ProfileRepository>()
 
   private val profile =
@@ -61,10 +57,6 @@ class SeePicturesViewModelTest {
     // Unconfined: the coroutines launched in init run immediately, no need to advance time
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers
-        {
-          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-        }
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
   }
@@ -75,29 +67,7 @@ class SeePicturesViewModelTest {
   }
 
   private fun createViewModel() =
-      SeePicturesViewModel(
-          mediaRepository,
-          circleRepository,
-          profileRepository,
-          activeCircleRepository,
-      )
-
-  @Test
-  fun `loads pictures from the active circle when it is second`() {
-    val activeCircle = CareCircle(id = "circle2")
-    coEvery { profileRepository.getCurrentProfile() } returns
-        Result.success(profile.copy(circleIds = listOf("circle1", "circle2")))
-    every { activeCircleRepository.activeCircleId("patient", listOf("circle1", "circle2")) } returns
-        flowOf("circle2")
-    coEvery { circleRepository.getCircle("circle2") } returns Result.success(activeCircle)
-    coEvery { mediaRepository.observeApprovedMedia("circle2") } returns flowOf(listOf(picture1))
-
-    val state = createViewModel().uiState.value as SeePicturesUIState.Content
-
-    assertEquals(activeCircle, state.careCircle)
-    assertEquals(listOf(picture1), state.allPictures)
-    coVerify(exactly = 0) { mediaRepository.observeApprovedMedia("circle1") }
-  }
+      SeePicturesViewModel(mediaRepository, circleRepository, profileRepository)
 
   // ---------------------------------------------------------------------------------------------
   // Content / Empty

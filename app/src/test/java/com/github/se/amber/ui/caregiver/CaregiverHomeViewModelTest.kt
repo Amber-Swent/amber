@@ -21,6 +21,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -102,6 +103,29 @@ class CaregiverHomeViewModelTest {
 
     assertEquals(activeCircle, state.careCircle)
     assertEquals(activePatient, state.patient)
+  }
+
+  @Test
+  fun activeCircleChange_replacesTheDisplayedPatient() {
+    val caregiverWithTwoCircles = caregiver.copy(circleIds = listOf("circle1", "circle2"))
+    val activeCircleId = MutableStateFlow<String?>("circle1")
+    val secondCircle = CareCircle(id = "circle2", patientId = "p2")
+    val secondPatient = UserProfile(uid = "p2", role = Role.PATIENT)
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiverWithTwoCircles)
+    every { activeCircleRepository.activeCircleId("cg1", caregiverWithTwoCircles.circleIds) } returns
+        activeCircleId
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(secondCircle)
+    coEvery { profileRepo.getProfile("p1") } returns Result.success(patient)
+    coEvery { profileRepo.getProfile("p2") } returns Result.success(secondPatient)
+
+    val viewModel = createVm()
+    assertEquals(patient, viewModel.uiState.value.patient)
+
+    activeCircleId.value = "circle2"
+
+    assertEquals(secondCircle, viewModel.uiState.value.careCircle)
+    assertEquals(secondPatient, viewModel.uiState.value.patient)
   }
 
   @Test

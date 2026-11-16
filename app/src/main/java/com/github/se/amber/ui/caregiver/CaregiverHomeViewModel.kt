@@ -1,4 +1,4 @@
-// Written by Lou-Anne Maier and + , with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
@@ -24,7 +24,7 @@ import com.github.se.amber.model.user.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -113,12 +113,16 @@ class CaregiverHomeViewModel(
       _uiState.update { it.copy(caregiver = caregiver) }
 
       // 2. Active care circle id of the caregiver
-      val circleId =
-          activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).first()
-      if (circleId == null) {
-        setErrorMsg(R.string.caregiverHomeErrorNoCircle)
-        return@launch
-      }
+      activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).collectLatest { circleId ->
+        // Clear the previously displayed circle and patient when collectLatest() receives a new circleId
+        // Caregiver profile is unchanged. This is because collectLatest() cancels the old work, but it does
+        // not clear the old UI state: switching circle would leave the previous circle visible while the new one
+        // loads.
+        _uiState.value = CaregiverHomeUIState(caregiver = caregiver)
+        if (circleId == null) {
+          setErrorMsg(R.string.caregiverHomeErrorNoCircle)
+          return@collectLatest
+        }
 
       // 3. Care circle
       val circle =
@@ -131,13 +135,13 @@ class CaregiverHomeViewModel(
                     setErrorMsg(R.string.caregiverHomeErrorLoadCircle)
                     null
                   },
-              ) ?: return@launch
+              ) ?: return@collectLatest
       _uiState.update { it.copy(careCircle = circle) }
 
       // 4. Patient id (empty until the patient has redeemed their code)
       if (circle.patientId.isBlank()) {
         setErrorMsg(R.string.caregiverHomeErrorNoPatient)
-        return@launch
+        return@collectLatest
       }
 
       // 5. Patient profile
@@ -156,6 +160,7 @@ class CaregiverHomeViewModel(
                 setErrorMsg(R.string.caregiverHomeErrorLoadPatientProfile)
               },
           )
+      }
     }
   }
 

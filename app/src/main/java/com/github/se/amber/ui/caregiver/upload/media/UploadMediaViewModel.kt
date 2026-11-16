@@ -1,10 +1,8 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver.upload.media
 
 import android.util.Log
@@ -59,9 +57,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -438,12 +436,22 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.messageRes)
             return@launch
           }
-      val circleId = profile?.let { activeCircleRepo.activeCircleId(uid, it.circleIds).first() }
-      if (circleId == null) {
+      if (profile == null) {
         failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
         return@launch
       }
-      circleRepo
+
+      // Observe the circle and potential circle changes
+      activeCircleRepo.activeCircleId(uid, profile.circleIds).collectLatest { circleId ->
+        _careCircle.value = null // Prevents an upload to the previous circle while the new one loads
+        _members.value = null // Stop members choices appearing during that load
+        if (circleId == null) {
+          failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
+          return@collectLatest
+        }
+        // A later valid selection can recover from an earlier circle-load failure.
+        circleLoadFailed = false
+        circleRepo
           .getCircle(circleId)
           .onSuccess { loaded ->
             // keep the people added while the circle was loading
@@ -458,6 +466,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             Log.e(TAG, "Failed to load the care circle", it)
             failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes)
           }
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver.upload.audios

@@ -1,11 +1,9 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
-// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
 import androidx.lifecycle.ViewModelStore
 import com.github.se.amber.R
-import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.media.audio.AudioPlayer
 import com.github.se.amber.data.media.audio.AudioState
@@ -48,7 +46,6 @@ import org.junit.Test
 class SeeAudiosViewModelTest {
   private val mediaRepository = mockk<MediaRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
-  private val activeCircleRepository = mockk<ActiveCircleRepository>()
   private val profileRepository = mockk<ProfileRepository>()
   private val profile =
       UserProfile(
@@ -70,10 +67,6 @@ class SeeAudiosViewModelTest {
     Dispatchers.setMain(testDispatcher)
     audioPlayer = FakeAudioPlayer()
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
-    every { activeCircleRepository.activeCircleId(any(), any()) } answers
-        {
-          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
-        }
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circle)
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())
   }
@@ -84,13 +77,7 @@ class SeeAudiosViewModelTest {
   }
 
   private fun createViewModel() =
-      SeeAudiosViewModel(
-          mediaRepository,
-          circleRepository,
-          profileRepository,
-          audioPlayer,
-          activeCircleRepository,
-      )
+      SeeAudiosViewModel(mediaRepository, circleRepository, profileRepository, audioPlayer)
 
   @Test
   fun play_pause_resume_and_restart_loaded_audio() {
@@ -559,14 +546,7 @@ class SeeAudiosViewModelTest {
         }
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(audio))
     coEvery { mediaRepository.getFile(circle, audio) } returns file
-    val viewModel =
-        SeeAudiosViewModel(
-            mediaRepository,
-            circleRepository,
-            profileRepository,
-            player,
-            activeCircleRepository,
-        )
+    val viewModel = SeeAudiosViewModel(mediaRepository, circleRepository, profileRepository, player)
 
     viewModel.onPlayPause(audio)
     assertTrue(viewModel.playbackStates.value[audio.id] is AudioPlaybackState.Loading)
