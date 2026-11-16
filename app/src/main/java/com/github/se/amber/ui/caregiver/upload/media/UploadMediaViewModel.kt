@@ -56,8 +56,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
@@ -443,7 +443,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
 
       // Observe the circle and potential circle changes
       activeCircleRepo.activeCircleId(uid, profile.circleIds).collectLatest { circleId ->
-        _careCircle.value = null // Prevents an upload to the previous circle while the new one loads
+        _careCircle.value =
+            null // Prevents an upload to the previous circle while the new one loads
         _members.value = null // Stop members choices appearing during that load
         if (circleId == null) {
           failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
@@ -452,20 +453,20 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
         // A later valid selection can recover from an earlier circle-load failure.
         circleLoadFailed = false
         circleRepo
-          .getCircle(circleId)
-          .onSuccess { loaded ->
-            // keep the people added while the circle was loading
-            val circle =
-                if (pendingPeople.isEmpty()) loaded
-                else loaded.copy(people = loaded.people + pendingPeople)
-            pendingPeople.clear()
-            _careCircle.value = circle
-            loadMembers(circle)
-          }
-          .onFailure {
-            Log.e(TAG, "Failed to load the care circle", it)
-            failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes)
-          }
+            .getCircle(circleId)
+            .onSuccess { loaded ->
+              // keep the people added while the circle was loading
+              val circle =
+                  if (pendingPeople.isEmpty()) loaded
+                  else loaded.copy(people = loaded.people + pendingPeople)
+              pendingPeople.clear()
+              _careCircle.value = circle
+              loadMembers(circle)
+            }
+            .onFailure {
+              Log.e(TAG, "Failed to load the care circle", it)
+              failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes)
+            }
       }
     }
   }

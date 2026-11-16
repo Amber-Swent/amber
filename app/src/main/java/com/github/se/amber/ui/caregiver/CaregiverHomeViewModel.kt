@@ -113,10 +113,14 @@ class CaregiverHomeViewModel(
       _uiState.update { it.copy(caregiver = caregiver) }
 
       // 2. Active care circle id of the caregiver
-      activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).collectLatest { circleId ->
-        // Clear the previously displayed circle and patient when collectLatest() receives a new circleId
-        // Caregiver profile is unchanged. This is because collectLatest() cancels the old work, but it does
-        // not clear the old UI state: switching circle would leave the previous circle visible while the new one
+      activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).collectLatest {
+          circleId ->
+        // Clear the previously displayed circle and patient when collectLatest() receives a new
+        // circleId
+        // Caregiver profile is unchanged. This is because collectLatest() cancels the old work, but
+        // it does
+        // not clear the old UI state: switching circle would leave the previous circle visible
+        // while the new one
         // loads.
         _uiState.value = CaregiverHomeUIState(caregiver = caregiver)
         if (circleId == null) {
@@ -124,42 +128,42 @@ class CaregiverHomeViewModel(
           return@collectLatest
         }
 
-      // 3. Care circle
-      val circle =
-          circleRepository
-              .getCircle(circleId)
-              .fold(
-                  onSuccess = { it },
-                  onFailure = { e ->
-                    Log.e(TAG, "Error fetching care circle", e)
-                    setErrorMsg(R.string.caregiverHomeErrorLoadCircle)
-                    null
-                  },
-              ) ?: return@collectLatest
-      _uiState.update { it.copy(careCircle = circle) }
+        // 3. Care circle
+        val circle =
+            circleRepository
+                .getCircle(circleId)
+                .fold(
+                    onSuccess = { it },
+                    onFailure = { e ->
+                      Log.e(TAG, "Error fetching care circle", e)
+                      setErrorMsg(R.string.caregiverHomeErrorLoadCircle)
+                      null
+                    },
+                ) ?: return@collectLatest
+        _uiState.update { it.copy(careCircle = circle) }
 
-      // 4. Patient id (empty until the patient has redeemed their code)
-      if (circle.patientId.isBlank()) {
-        setErrorMsg(R.string.caregiverHomeErrorNoPatient)
-        return@collectLatest
-      }
+        // 4. Patient id (empty until the patient has redeemed their code)
+        if (circle.patientId.isBlank()) {
+          setErrorMsg(R.string.caregiverHomeErrorNoPatient)
+          return@collectLatest
+        }
 
-      // 5. Patient profile
-      profileRepository
-          .getProfile(circle.patientId)
-          .fold(
-              onSuccess = { patient ->
-                if (patient != null) {
-                  _uiState.update { it.copy(patient = patient) }
-                } else {
-                  setErrorMsg(R.string.caregiverHomeErrorNoPatientProfile)
-                }
-              },
-              onFailure = { e ->
-                Log.e(TAG, "Error fetching patient profile", e)
-                setErrorMsg(R.string.caregiverHomeErrorLoadPatientProfile)
-              },
-          )
+        // 5. Patient profile
+        profileRepository
+            .getProfile(circle.patientId)
+            .fold(
+                onSuccess = { patient ->
+                  if (patient != null) {
+                    _uiState.update { it.copy(patient = patient) }
+                  } else {
+                    setErrorMsg(R.string.caregiverHomeErrorNoPatientProfile)
+                  }
+                },
+                onFailure = { e ->
+                  Log.e(TAG, "Error fetching patient profile", e)
+                  setErrorMsg(R.string.caregiverHomeErrorLoadPatientProfile)
+                },
+            )
       }
     }
   }

@@ -112,8 +112,9 @@ class CaregiverHomeViewModelTest {
     val secondCircle = CareCircle(id = "circle2", patientId = "p2")
     val secondPatient = UserProfile(uid = "p2", role = Role.PATIENT)
     coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiverWithTwoCircles)
-    every { activeCircleRepository.activeCircleId("cg1", caregiverWithTwoCircles.circleIds) } returns
-        activeCircleId
+    every {
+      activeCircleRepository.activeCircleId("cg1", caregiverWithTwoCircles.circleIds)
+    } returns activeCircleId
     coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
     coEvery { circleRepo.getCircle("circle2") } returns Result.success(secondCircle)
     coEvery { profileRepo.getProfile("p1") } returns Result.success(patient)
