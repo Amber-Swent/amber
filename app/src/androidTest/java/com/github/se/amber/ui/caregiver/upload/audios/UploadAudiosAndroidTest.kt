@@ -98,10 +98,10 @@ class UploadAudiosAndroidTest {
   }
 
   @Test
-  fun clickingTheRecordButtonStartsTheRecording() {
+  fun clickingTheRecordButtonTellsTheViewModel() {
     launchScreen()
     tagged(UploadAudioScreenTestTags.RECORD_AUDIO).performScrollTo().performClick()
-    verify(exactly = 1) { viewModel.startRecording() }
+    verify(exactly = 1) { viewModel.onRecordClick(any(), any()) }
   }
 
   // ---------- recording ----------
