@@ -196,6 +196,150 @@ class UploadAudioViewModelTest {
     )
   }
 
+  // ---------- microphone popups ----------
+
+  @Test
+  fun initialState_hasNoMicrophoneConsentOpen() {
+    assertFalse(createViewModel().uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun initialState_hasNoMicrophoneSettingsOpen() {
+    assertFalse(createViewModel().uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillAskOpensTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillAskDoesNotOpenTheSettings() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillNotAskOpensTheSettings() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = false)
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillNotAskDoesNotOpenTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = false)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun recordClickWhenGrantedStartsRecording() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = true, androidWillAsk = false)
+    assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun recordClickWhenGrantedDoesNotOpenTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = true, androidWillAsk = true)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun dismissMicrophoneConsentClosesTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    vm.dismissMicrophoneConsent()
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun dismissMicrophoneSettingsClosesTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+    vm.dismissMicrophoneSettings()
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneAllowedStartsRecording() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = true, canAskAgain = false)
+    assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun microphoneAllowedDoesNotOpenTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = true, canAskAgain = false)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneRefusedOnceDoesNotOpenTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneRefusedOnceDoesNotStartRecording() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun microphoneRefusedTwiceOpensTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneRefusedTwiceDoesNotStartRecording() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+    assertEquals(0, recorder.startCalls)
+  }
+
+  @Test
+  fun twoConsecutiveMicrophoneRefusalsOpenSettingsOnlyAfterSecondRefusal() {
+    val vm = createViewModel()
+
+    // First request: the consent popup should open
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+
+    // User confirms, then refuses Android's permission request once
+    vm.dismissMicrophoneConsent()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+
+    // Amber should not show the settings popup yet
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+
+    // Second request: the consent popup should still open
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+
+    // User confirms, then refuses Android's permission request again
+    vm.dismissMicrophoneConsent()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+
+    // Now Amber should display the settings popup instead
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+
+    // Recording must never have started
+    assertEquals(0, recorder.startCalls)
+  }
+
   // ---------- startRecording ----------
 
   @Test

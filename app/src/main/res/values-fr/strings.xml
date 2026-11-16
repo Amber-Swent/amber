@@ -276,6 +276,12 @@
     <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
     <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
     <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>
+    <string name="uploadAudioMicrophoneTitle">Utilisation du micro</string>
+    <string name="uploadAudioMicrophoneUnderstood">J\'ai compris</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">Pour enregistrer un audio, Amber a besoin d\'accéder à votre micro.</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">Il n\'est utilisé que pendant l\'enregistrement, après votre appui sur le bouton d\'enregistrement.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">Vous avez refusé l\'accès au micro deux fois&#160;: Amber ne peut plus vous le demander.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">Pour enregistrer un audio, activez le micro pour Amber dans les paramètres de votre téléphone.</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Fermer</string>

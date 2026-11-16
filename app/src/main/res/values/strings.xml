@@ -275,6 +275,12 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
+    <string name="uploadAudioMicrophoneTitle">Use of the microphone</string>
+    <string name="uploadAudioMicrophoneUnderstood">Got it</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">To record an audio, Amber needs access to your microphone.</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">It is only used while you are recording, after you tap the record button.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">You have declined microphone access twice, so Amber can no longer ask for it.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">To record an audio, turn on the microphone for Amber in your phone\'s settings.</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>
