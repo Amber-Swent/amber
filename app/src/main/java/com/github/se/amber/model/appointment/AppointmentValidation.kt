@@ -24,6 +24,9 @@ enum class AppointmentValidationError {
  *
  * The checks run in the order of [AppointmentValidationError]. It doesn't check the id, the
  * attendees, or the fields the repository fills in itself.
+ *
+ * A start in the past is valid. A caregiver may note a visit after it happened. Edits are checked
+ * the same way, so refusing a past start would also block editing an appointment that has started.
  */
 fun Appointment.validationError(): AppointmentValidationError? {
   val duration = durationMinutes

@@ -28,32 +28,24 @@ class AppointmentErrorTest {
   }
 
   @Test
-  fun errorsOfTheSameSubtypeAreEqual() {
+  fun equalityFollowsTheSubtypeAndItsFields() {
+    val source = IllegalStateException("boom")
+    val blank = AppointmentError.InvalidAppointment(AppointmentValidationError.BLANK_TITLE)
+
+    // Same subtype: equal, with the same hash code, also inside a write failure.
     assertEquals(AppointmentError.NotFound(), AppointmentError.NotFound())
     assertEquals(AppointmentError.NotFound().hashCode(), AppointmentError.NotFound().hashCode())
     assertEquals(
         AppointmentWriteFailure("a1", AppointmentWrite.UPDATE, AppointmentError.NotFound()),
         AppointmentWriteFailure("a1", AppointmentWrite.UPDATE, AppointmentError.NotFound()),
     )
-  }
 
-  @Test
-  fun errorsOfDifferentSubtypesDifferBothWays() {
-    val notFound = AppointmentError.NotFound()
-    val denied = AppointmentError.PermissionDenied()
+    // Different subtypes: different, both ways.
+    assertNotEquals(AppointmentError.NotFound(), AppointmentError.PermissionDenied())
+    assertNotEquals(AppointmentError.PermissionDenied(), AppointmentError.NotFound())
 
-    assertNotEquals(notFound, denied)
-    assertNotEquals(denied, notFound)
-  }
-
-  @Test
-  fun dataClassErrorsAlsoCompareTheirFields() {
-    val blank = AppointmentError.InvalidAppointment(AppointmentValidationError.BLANK_TITLE)
-
-    assertEquals(
-        blank,
-        AppointmentError.InvalidAppointment(AppointmentValidationError.BLANK_TITLE),
-    )
+    // Data class subtypes also compare their fields.
+    assertEquals(blank, AppointmentError.InvalidAppointment(AppointmentValidationError.BLANK_TITLE))
     assertEquals(
         blank.hashCode(),
         AppointmentError.InvalidAppointment(AppointmentValidationError.BLANK_TITLE).hashCode(),
@@ -62,12 +54,8 @@ class AppointmentErrorTest {
         blank,
         AppointmentError.InvalidAppointment(AppointmentValidationError.MISSING_START),
     )
-  }
 
-  @Test
-  fun unknownErrorsAreEqualOnlyWithTheSameSource() {
-    val source = IllegalStateException("boom")
-
+    // Unknown compares the original exception itself.
     assertEquals(AppointmentError.Unknown(source), AppointmentError.Unknown(source))
     assertNotEquals(
         AppointmentError.Unknown(source),

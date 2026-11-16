@@ -1,5 +1,4 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.model.appointment
 
@@ -56,8 +55,9 @@ data class Appointment(
 
     // Stored for queries. Set by the repository.
 
-    // End time of the appointment, in epoch milliseconds. For a repeating appointment, the end of
-    // its last occurrence. The "not over yet" query filters on it.
+    // End time of the appointment, in epoch milliseconds. The "not over yet" query filters on it.
+    // Repeating appointments might be added later. For one of them, it would be the end of its last
+    // occurrence. That is why it is stored, and why it is named lastEndAt rather than endAt.
     val lastEndAt: Long = 0L,
 
     // Record keeping. Set by the repository: the created fields on create, the updated fields on

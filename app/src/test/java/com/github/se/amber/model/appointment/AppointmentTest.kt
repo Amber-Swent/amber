@@ -2,9 +2,9 @@
 
 package com.github.se.amber.model.appointment
 
-import com.github.se.amber.model.calendar.MAX_DURATION_MINUTES
 import com.github.se.amber.model.location.GeoLocation
 import com.google.firebase.firestore.util.CustomClassMapper
+import kotlin.time.Duration.Companion.minutes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -28,7 +28,7 @@ class AppointmentTest {
           durationMinutes = 30,
           location = GeoLocation(lat = 46.5, lng = 6.6, placeName = "CHUV"),
           attendeeIds = listOf("u1", "u2"),
-          lastEndAt = 1_000L + 30 * 60_000L,
+          lastEndAt = 1_000L + 30.minutes.inWholeMilliseconds,
           createdBy = "u1",
           createdAt = 500L,
           updatedBy = "u2",
@@ -40,7 +40,8 @@ class AppointmentTest {
     assertNull(valid.validationError())
     assertNull(valid.copy(startAt = 1L).validationError())
     assertNull(valid.copy(durationMinutes = 1).validationError())
-    assertNull(valid.copy(durationMinutes = MAX_DURATION_MINUTES).validationError())
+    // One day, written out so that a wrong MAX_DURATION_MINUTES fails.
+    assertNull(valid.copy(durationMinutes = 24 * 60).validationError())
   }
 
   @Test
@@ -67,7 +68,7 @@ class AppointmentTest {
 
   @Test
   fun aDurationOutsideTheRangeIsRefused() {
-    listOf(0, -1, MAX_DURATION_MINUTES + 1).forEach { minutes ->
+    listOf(0, -1, 24 * 60 + 1).forEach { minutes ->
       assertEquals(
           AppointmentValidationError.INVALID_DURATION,
           valid.copy(durationMinutes = minutes).validationError(),
@@ -133,8 +134,5 @@ class AppointmentTest {
     val read = CustomClassMapper.convertToCustomClass(oldDocument, Appointment::class.java, null)
 
     assertEquals(valid.copy(createdBy = "u1", createdAt = 500L), read)
-    assertEquals(0L, read.lastEndAt)
-    assertEquals("", read.updatedBy)
-    assertEquals(0L, read.updatedAt)
   }
 }

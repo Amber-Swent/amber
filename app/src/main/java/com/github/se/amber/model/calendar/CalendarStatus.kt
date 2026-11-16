@@ -2,10 +2,11 @@
 
 package com.github.se.amber.model.calendar
 
-/** How long before its start an event counts as [CalendarStatus.SOON]: one day. */
-const val SOON_WINDOW_MILLIS = 24L * 60 * 60 * 1000
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
-private const val MILLIS_PER_MINUTE = 60_000L
+/** How long before its start an event counts as [CalendarStatus.SOON]: one day. */
+val SOON_WINDOW_MILLIS = 1.days.inWholeMilliseconds
 
 /**
  * Where an event stands at a given time. The status is computed on the phone. It is never stored.
@@ -34,8 +35,8 @@ enum class CalendarStatus {
  * repository refuses it.
  */
 fun CalendarEvent.endAt(): Long {
-  val minutes = durationMinutes?.takeIf { it > 0 } ?: DEFAULT_DURATION_MINUTES
-  return startAt + minutes * MILLIS_PER_MINUTE
+  val duration = durationMinutes?.takeIf { it > 0 } ?: DEFAULT_DURATION_MINUTES
+  return startAt + duration.minutes.inWholeMilliseconds
 }
 
 /**
