@@ -98,7 +98,7 @@ class FusedLocationUpdatesRepositoryTest {
       }
 
   @Test
-  fun `precise or approximate location both count as the permission`() {
+  fun preciseOrApproximateLocationBothCountAsThePermission() {
     assertTrue(repository.hasPermission())
 
     shadowOf(app).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -109,7 +109,7 @@ class FusedLocationUpdatesRepositoryTest {
   }
 
   @Test
-  fun `without the permission or a location service the flow stops, asking nothing`() = runTest {
+  fun withoutThePermissionOrALocationServiceTheFlowStopsAskingNothing() = runTest {
     shadowOf(app).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
     var withoutPermission: Throwable? = null
     repository.observeLocation().catch { withoutPermission = it }.collect()
@@ -128,7 +128,7 @@ class FusedLocationUpdatesRepositoryTest {
   }
 
   @Test
-  fun `searches at high accuracy, then gives each position, with its accuracy if known`() =
+  fun searchesAtHighAccuracyThenGivesEachPositionWithItsAccuracyIfKnown() =
       runTest(UnconfinedTestDispatcher()) {
         val received = mutableListOf<LocationUpdate>()
         val job = launch { repository.observeLocation().collect { received.add(it) } }
@@ -153,7 +153,7 @@ class FusedLocationUpdatesRepositoryTest {
       }
 
   @Test
-  fun `follows the location setting going off and on again`() =
+  fun followsTheLocationSettingGoingOffAndOnAgain() =
       runTest(UnconfinedTestDispatcher()) {
         shadowOf(locationManager).setLocationEnabled(false)
         val received = mutableListOf<LocationUpdate>()
@@ -174,7 +174,7 @@ class FusedLocationUpdatesRepositoryTest {
       }
 
   @Test
-  fun `stopping the collection stops the GPS and the settings receiver`() =
+  fun stoppingTheCollectionStopsTheGPSAndTheSettingsReceiver() =
       runTest(UnconfinedTestDispatcher()) {
         val job = launch { repository.observeLocation().collect() }
         settingsReceivers().single() // exactly one, or this throws
@@ -186,24 +186,23 @@ class FusedLocationUpdatesRepositoryTest {
       }
 
   @Test
-  fun `a phone that can't give its position stops the flow with the error, cleaning up`() =
-      runTest {
-        val noPlayServices = IllegalStateException("Google Play services missing")
-        every { client.requestLocationUpdates(any(), capture(callback), any<Looper>()) } returns
-            Tasks.forException(noPlayServices)
-        var caught: Throwable? = null
+  fun aPhoneThatCantGiveItsPositionStopsTheFlowWithTheErrorCleaningUp() = runTest {
+    val noPlayServices = IllegalStateException("Google Play services missing")
+    every { client.requestLocationUpdates(any(), capture(callback), any<Looper>()) } returns
+        Tasks.forException(noPlayServices)
+    var caught: Throwable? = null
 
-        repository.observeLocation().catch { caught = it }.collect()
+    repository.observeLocation().catch { caught = it }.collect()
 
-        // Task.await() rethrows a copy of the error (coroutines' stack trace recovery)
-        assertTrue(caught is IllegalStateException)
-        assertEquals(noPlayServices.message, caught?.message)
-        verify(exactly = 1) { client.removeLocationUpdates(callback.captured) }
-        assertTrue(settingsReceivers().isEmpty())
-      }
+    // Task.await() rethrows a copy of the error (coroutines' stack trace recovery)
+    assertTrue(caught is IllegalStateException)
+    assertEquals(noPlayServices.message, caught?.message)
+    verify(exactly = 1) { client.removeLocationUpdates(callback.captured) }
+    assertTrue(settingsReceivers().isEmpty())
+  }
 
   @Test
-  fun `while searching, a recent last known position is given first, marked, but not an old one`() =
+  fun whileSearchingARecentLastKnownPositionIsGivenFirstMarkedButNotAnOldOne() =
       runTest(UnconfinedTestDispatcher()) {
         val recent = LAUSANNE_FLON.copy(accuracyMeters = GPS_ACCURACY_METERS)
         every { client.lastLocation } returns
@@ -229,7 +228,7 @@ class FusedLocationUpdatesRepositoryTest {
       }
 
   @Test
-  fun `no last known position when the location is off, after a new one, or if it can't be read`() =
+  fun noLastKnownPositionWhenTheLocationIsOffAfterANewOneOrIfItCantBeRead() =
       runTest(UnconfinedTestDispatcher()) {
         val recent = LAUSANNE_FLON.copy(accuracyMeters = GPS_ACCURACY_METERS)
         every { client.lastLocation } returns

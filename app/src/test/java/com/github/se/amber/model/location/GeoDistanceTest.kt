@@ -47,7 +47,7 @@ class GeoDistanceTest {
   }
 
   @Test
-  fun `pins within the radius are near you, nearest first, the first one between equals`() {
+  fun pinsWithinTheRadiusAreNearYouNearestFirstTheFirstOneBetweenEquals() {
     val atHalfRadius = pinAt(here.movedNorth(halfRadius), id = "north")
     val southAtHalfRadius = pinAt(here.movedNorth(-halfRadius), id = "south")
     val justInside = pinAt(here.movedNorth(-justInsideRadius))
@@ -69,7 +69,7 @@ class GeoDistanceTest {
   }
 
   @Test
-  fun `a pin near before stays near up to the exit margin, one not near before doesn't`() {
+  fun aPinNearBeforeStaysNearUpToTheExitMarginOneNotNearBeforeDoesnt() {
     val inExitMargin = pinAt(here.movedNorth(radius + NEARBY_EXIT_MARGIN_METERS / 2))
     val pastExitMargin = pinAt(here.movedNorth(radius + NEARBY_EXIT_MARGIN_METERS * 2))
     val nearBefore = setOf(inExitMargin.id, pastExitMargin.id)

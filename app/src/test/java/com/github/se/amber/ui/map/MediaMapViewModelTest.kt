@@ -416,7 +416,7 @@ class MediaMapViewModelTest {
   private fun MediaMapViewModel.location() = locationState.value
 
   @Test
-  fun `without the permission the map works without the GPS, until the user allows it`() {
+  fun withoutThePermissionTheMapWorksWithoutTheGPSUntilTheUserAllowsIt() {
     locationUpdates.permission = false
     val viewModel = createViewModel()
     viewModel.showMap()
@@ -437,7 +437,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `the pins near you need a position known well enough, indoors included`() {
+  fun thePinsNearYouNeedAPositionKnownWellEnoughIndoorsIncluded() {
     val viewModel = createViewModel()
     viewModel.showMap()
     fun locatedAt(position: DevicePosition): MediaMapLocationState.Located {
@@ -471,7 +471,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `a pin near you stays near at the edge, and leaves past the exit margin`() {
+  fun aPinNearYouStaysNearAtTheEdgeAndLeavesPastTheExitMargin() {
     val viewModel = createViewModel()
     viewModel.showMap()
     val atEdge = atLausannePin.movedNorth(NEARBY_RADIUS_METERS + NEARBY_EXIT_MARGIN_METERS / 2)
@@ -489,7 +489,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `the pin near you follows the pins as they change`() {
+  fun thePinNearYouFollowsThePinsAsTheyChange() {
     mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
     val viewModel = createViewModel()
     viewModel.showMap()
@@ -505,7 +505,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `follows the location turned off and on again, searching before the position`() {
+  fun followsTheLocationTurnedOffAndOnAgainSearchingBeforeThePosition() {
     locationUpdates.updates.value = LocationUpdate.LocationOff
     val viewModel = createViewModel()
     viewModel.showMap()
@@ -519,7 +519,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `a permission taken back while the map shows the position is NoPermission`() {
+  fun aPermissionTakenBackWhileTheMapShowsThePositionIsNoPermission() {
     val viewModel = createViewModel()
     viewModel.showMap()
     locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
@@ -539,7 +539,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `a phone that can't give its position is Unavailable, and the map still works`() {
+  fun aPhoneThatCantGiveItsPositionIsUnavailableAndTheMapStillWorks() {
     locationUpdates.failure.value = IllegalStateException("Google Play services missing")
     val viewModel = createViewModel()
     viewModel.showMap()
@@ -549,7 +549,7 @@ class MediaMapViewModelTest {
   }
 
   @Test
-  fun `the GPS runs only while the map is shown, and stops a while after it is closed`() {
+  fun theGPSRunsOnlyWhileTheMapIsShownAndStopsAWhileAfterItIsClosed() {
     val scheduler = useStandardDispatcher().scheduler
     val viewModel = createViewModel()
     advanceMain()

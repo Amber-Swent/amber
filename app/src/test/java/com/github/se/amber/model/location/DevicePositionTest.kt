@@ -17,7 +17,7 @@ class DevicePositionTest {
   private fun withAccuracy(meters: Float?) = LAUSANNE_FLON.copy(accuracyMeters = meters)
 
   @Test
-  fun `a position is precise within its accuracy or more, not with an unknown or worse one`() {
+  fun aPositionIsPreciseWithinItsAccuracyOrMoreNotWithAnUnknownOrWorseOne() {
     assertTrue(withAccuracy(GPS_ACCURACY_METERS).isPreciseWithin(limit))
     assertTrue(withAccuracy(limit.toFloat()).isPreciseWithin(limit))
 

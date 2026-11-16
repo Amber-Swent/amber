@@ -19,7 +19,7 @@ class FakeLocationUpdatesRepositoryTest {
   private val here = LocationUpdate.Position(LAUSANNE_FLON)
 
   @Test
-  fun `gives the permission, then Searching and each update, telling while it runs`() =
+  fun givesThePermissionThenSearchingAndEachUpdateTellingWhileItRuns() =
       runTest(UnconfinedTestDispatcher()) {
         val repository = FakeLocationUpdatesRepository(permission = false)
         assertFalse(repository.hasPermission())
@@ -39,7 +39,7 @@ class FakeLocationUpdatesRepositoryTest {
       }
 
   @Test
-  fun `a failure stops the running collection after its updates, and the next one at once`() =
+  fun aFailureStopsTheRunningCollectionAfterItsUpdatesAndTheNextOneAtOnce() =
       runTest(UnconfinedTestDispatcher()) {
         val denied = SecurityException("permission taken back")
         val repository = FakeLocationUpdatesRepository()
