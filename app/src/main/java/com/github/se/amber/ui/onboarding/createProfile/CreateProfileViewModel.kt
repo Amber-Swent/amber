@@ -16,6 +16,7 @@ import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.data.profile.ProfileUpdateError
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.model.validation.InputValidation
 import com.github.se.amber.ui.utils.UiText
 import com.github.se.amber.ui.utils.errorText
@@ -203,7 +204,7 @@ class CreateProfileViewModel(
       role: Role,
       onSuccess: (Role) -> Unit,
   ) {
-    val current =
+    val current: UserProfile? =
         profileRepository.getCurrentProfile().getOrElse { error ->
           showFailure(error)
           return
