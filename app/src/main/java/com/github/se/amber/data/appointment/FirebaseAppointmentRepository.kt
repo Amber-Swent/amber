@@ -24,12 +24,15 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.Executor
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Firebase-backed implementation of [AppointmentRepository].
@@ -38,8 +41,9 @@ import kotlinx.coroutines.flow.map
  * the live lists, and sends it once online. A listener on the write's task reports a refusal in
  * [writeFailures].
  *
- * [observeAppointments] filters on [Appointment.lastEndAt] alone, so Firestore's automatic
- * single-field index serves it.
+ * [observeAppointments] filters a range on [Appointment.lastEndAt] and one on
+ * [Appointment.startAt]. It needs the composite index on both fields, in
+ * firebase/firestore/firestore.indexes.json. Without it, the server refuses the query.
  *
  * This repository must stay the only code that writes appointments. It always sets
  * [Appointment.lastEndAt]. A document without it reads back as 0, so [observeAppointments] would
@@ -154,12 +158,12 @@ class FirebaseAppointmentRepository(
   }
 
   /**
-   * Queries `lastEndAt > start of the window`, then keeps on the phone the appointments that start
-   * before its end. Firestore can only filter a range on two fields with a composite index, which
-   * might be added later. The phone then gets every appointment from the window on, which is a few
-   * dozen for one circle.
+   * Queries `lastEndAt > start of the window` and `startAt < end of the window`, so the server
+   * sends only the appointments of the window. Filtering a range on two fields needs the composite
+   * index on `lastEndAt` and `startAt`.
    *
-   * The list is sorted by start, then by id, so the order never changes between two emissions.
+   * Firestore doesn't order such a query by start. The list is sorted by start, then by id, so the
+   * order never changes between two emissions.
    *
    * @param circleId the id of the care circle.
    * @param firstDay the first day of the window.
@@ -176,13 +180,35 @@ class FirebaseAppointmentRepository(
 
     return appointments(circleId)
         .whereGreaterThan(LAST_END_AT_FIELD, window.startMillis)
+        .whereLessThan(START_AT_FIELD, window.endMillis)
         .observeDocuments(map = { it.toAppointment() }, onError = { it.toAppointmentError() })
-        .map { list ->
-          list
-              .filter { it.value.startAt < window.endMillis }
-              .sortedWith(compareBy({ it.value.startAt }, { it.value.id }))
-        }
+        .map { list -> list.sortedWith(compareBy({ it.value.startAt }, { it.value.id })) }
   }
+
+  /**
+   * Waits up to [UNSYNCED_WAIT] for Firestore's `waitForPendingWrites()`. Firestore can't say how
+   * many writes are waiting, so a write still waiting after that time counts as not sent.
+   *
+   * The wait fails if the signed-in user changes meanwhile. It then counts as not sent too, since
+   * nothing confirms the writes were received.
+   *
+   * @return true if the writes didn't all reach the server within [UNSYNCED_WAIT].
+   */
+  override suspend fun hasUnsyncedWrites(): Boolean =
+      try {
+        // await() gives null for a Task<Void>, so true marks that the wait finished in time
+        val sent =
+            withTimeoutOrNull(UNSYNCED_WAIT) {
+              firestore.waitForPendingWrites().await()
+              true
+            }
+        sent == null
+      } catch (exception: CancellationException) {
+        throw exception
+      } catch (exception: Exception) {
+        Log.w(TAG, "Couldn't wait for the pending writes", exception)
+        true
+      }
 
   /**
    * Checks a write before anything is written, and returns the uid of the signed-in user. The
@@ -321,6 +347,11 @@ class FirebaseAppointmentRepository(
     const val APPOINTMENTS_COLLECTION = "appointments"
     const val FAILURE_BUFFER = 16
     val LAST_END_AT_FIELD = Appointment::lastEndAt.name
+    val START_AT_FIELD = Appointment::startAt.name
+
+    // How long hasUnsyncedWrites waits for the server. Long enough for a write to be sent online,
+    // short enough not to keep the user waiting at sign-out.
+    val UNSYNCED_WAIT = 2.seconds
 
     // Runs the failure listener on the thread that completes the task, not on the main thread.
     // tryEmit is safe from any thread, and tests then need no Android looper.

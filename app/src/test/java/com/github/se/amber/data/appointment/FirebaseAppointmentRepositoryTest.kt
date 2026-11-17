@@ -27,8 +27,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -371,6 +373,28 @@ class FirebaseAppointmentRepositoryTest {
     val failures = collectFailures()
 
     assertEquals(emptyList<AppointmentWriteFailure>(), failures)
+  }
+
+  @Test
+  fun hasUnsyncedWritesIsTrueWhenTheWritesAreNotSentInTime() = runTest {
+    // Never completes, like a write waiting offline
+    every { firestore.waitForPendingWrites() } returns TaskCompletionSource<Void>().task
+
+    assertTrue(repository.hasUnsyncedWrites())
+    // Written out: the repository waits 2 seconds, then gives up
+    assertEquals(2_000L, currentTime)
+
+    // The wait fails when the signed-in user changes, so nothing confirms the writes were sent
+    every { firestore.waitForPendingWrites() } returns
+        Tasks.forException(firestoreError(FirebaseFirestoreException.Code.ABORTED))
+    assertTrue(repository.hasUnsyncedWrites())
+  }
+
+  @Test
+  fun hasUnsyncedWritesIsFalseOnceTheServerHasEveryWrite() = runTest {
+    every { firestore.waitForPendingWrites() } returns Tasks.forResult(null)
+
+    assertFalse(repository.hasUnsyncedWrites())
   }
 
   @Test

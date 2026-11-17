@@ -16,15 +16,26 @@ import com.github.se.amber.model.location.GeoLocation
  * for a one-off place. The repository fills in [lastEndAt] and the update fields itself. On create,
  * it also fills in the creator fields. It never trusts the values it is given for them.
  *
- * Read: the calendar queries the appointments not over yet (lastEndAt > a time) and keeps a
- * snapshot listener, so changes made by caregivers show up live. An appointment that has started
- * but isn't over stays in the list.
+ * Read: the calendar queries the appointments of a window of days (lastEndAt > its start and
+ * startAt < its end) and keeps a snapshot listener, so changes made by caregivers show up live. An
+ * appointment that started before the window and isn't over is listed too.
  *
  * Status: planned, soon, ongoing and passed are computed on the phone with the helpers of
  * CalendarStatus.kt, such as `statusAt`. They are never stored.
  *
  * Rules: readable by every member of the circle (CareCircle.memberIds); writable only by members
- * whose UserProfile.role is CAREGIVER.
+ * whose UserProfile.role is CAREGIVER. On every save, the rules check that:
+ * - the document holds only the fields of this class, and [id] is the document id;
+ * - [title] isn't empty;
+ * - [startAt], [lastEndAt] and [updatedAt] are numbers, and [lastEndAt] isn't before [startAt];
+ * - [updatedBy] is the user saving it;
+ * - every attendee is a member of the circle.
+ *
+ * On create, [createdBy] must be the user saving it. An edit can't change [createdBy] or
+ * [createdAt].
+ *
+ * Account deletion: the backend deletes the appointments the user created. On the others, it
+ * removes the user from [attendeeIds], and sets [updatedBy] to "" if they saved it last.
  *
  * Planned, not handled yet:
  * - reminders: a notification on the patient's phone before [startAt], scheduled locally so it
@@ -62,8 +73,8 @@ data class Appointment(
 
     // Record keeping. Set by the repository: the created fields on create, the updated fields on
     // every save. Times are in epoch milliseconds.
-    val createdBy: String = "", // the caregiver who created it; "" once their account is deleted
+    val createdBy: String = "", // the caregiver who created it
     val createdAt: Long = 0L,
-    val updatedBy: String = "", // the last caregiver who saved it
+    val updatedBy: String = "", // the last caregiver who saved it; "" once their account is deleted
     val updatedAt: Long = 0L,
 ) : CalendarEvent

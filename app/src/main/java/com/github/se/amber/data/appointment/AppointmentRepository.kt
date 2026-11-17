@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.Flow
  * Every failed [Result] contains an [AppointmentError]. Cancellation is rethrown.
  *
  * [observeAppointments] reads them, one day or several days at a time.
+ *
+ * [hasUnsyncedWrites] tells whether some changes are still waiting to be sent, for example before
+ * signing out.
  */
 interface AppointmentRepository {
 
@@ -86,8 +89,8 @@ interface AppointmentRepository {
    * values actually saved, so the caller should use it instead of its own copy.
    *
    * The attendees must be members of the circle. The repository doesn't check it, since that would
-   * need the circle and the network. The security rules don't check it yet. They might check it on
-   * the server later. A refusal would then be reported in [writeFailures].
+   * need the circle and the network. The security rules check it on the server. A refusal is then
+   * reported in [writeFailures] as [AppointmentError.PermissionDenied].
    *
    * Fails right away, without writing anything, with:
    * - [AppointmentError.InvalidCircleId] or [AppointmentError.InvalidAppointmentId] for an invalid
@@ -158,6 +161,21 @@ interface AppointmentRepository {
    * a restart. If the server refuses it then, nothing is reported.
    */
   val writeFailures: Flow<AppointmentWriteFailure>
+
+  /**
+   * Tells whether this phone still has changes the server hasn't received. Call it before signing
+   * out. The changes not sent yet would otherwise be sent later with the next user's account, and
+   * the server would refuse them without a word.
+   *
+   * It covers every change of the app saved this way, not only appointments. The check can't tell
+   * them apart.
+   *
+   * It waits a little for the changes to be sent, then gives up. Offline, it returns true as soon
+   * as a change is waiting.
+   *
+   * @return true if some changes are not sent yet, false if the server has them all.
+   */
+  suspend fun hasUnsyncedWrites(): Boolean
 }
 
 /** The kinds of writes [AppointmentRepository] makes. */

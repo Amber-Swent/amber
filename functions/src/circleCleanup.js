@@ -1,5 +1,6 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const { FieldValue } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
 const { deleteDocuments, writeInBatches } = require("./batches");
@@ -68,21 +69,27 @@ async function removeFromRemainingMedia(uid, circleRef) {
 }
 
 /**
- * Removes the user from the attendees of a circle's appointments. The appointments they created
- * stay for the others, with an empty creator.
+ * Deletes the appointments the user created in a circle. Removes the user from the attendees of the
+ * others, and empties their last editor where it was the user.
  * @param {string} uid the user being deleted
  * @param {DocumentReference} circleRef the circle to clean up
  */
 async function removeFromAppointments(uid, circleRef) {
   const appointments = circleRef.collection("appointments");
-  const [attending, created] = await Promise.all([
-    appointments.where("attendeeIds", "array-contains", uid).get(),
+  const [created, attending, updated] = await Promise.all([
     appointments.where("createdBy", "==", uid).get(),
+    appointments.where("attendeeIds", "array-contains", uid).get(),
+    appointments.where("updatedBy", "==", uid).get(),
   ]);
-  await writeInBatches(attending.docs, (batch, appointment) =>
+  await deleteDocuments(created.docs);
+  // An update of a deleted appointment would fail, so only the others are updated
+  const createdIds = new Set(created.docs.map((appointment) => appointment.id));
+  const others = (snapshot) =>
+    snapshot.docs.filter((appointment) => !createdIds.has(appointment.id));
+  await writeInBatches(others(attending), (batch, appointment) =>
     batch.update(appointment.ref, { attendeeIds: FieldValue.arrayRemove(uid) }));
-  await writeInBatches(created.docs, (batch, appointment) =>
-    batch.update(appointment.ref, { createdBy: "" }));
+  await writeInBatches(others(updated), (batch, appointment) =>
+    batch.update(appointment.ref, { updatedBy: "" }));
 }
 
 /**

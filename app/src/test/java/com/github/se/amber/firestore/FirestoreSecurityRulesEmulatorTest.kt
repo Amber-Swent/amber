@@ -504,18 +504,11 @@ class FirestoreSecurityRulesEmulatorTest {
             ),
         ),
     )
-    val appointment =
-        mapOf(
-            "id" to "a1",
-            "title" to "Doctor",
-            "notes" to "",
-            "startAt" to now,
-            "attendeeIds" to emptyList<String>(),
-            "createdBy" to care,
-            "createdAt" to now,
-        )
-    fs.assertFails(pat, fs.set("careCircles/$circleId/appointments/a1", appointment))
-    fs.assertSucceeds(care, fs.set("careCircles/$circleId/appointments/a1", appointment))
+    fs.assertFails(pat, fs.set("careCircles/$circleId/appointments/a1", appointment("a1", pat)))
+    fs.assertSucceeds(
+        care,
+        fs.set("careCircles/$circleId/appointments/a1", appointment("a1", care)),
+    )
     fs.assertFails(pat, fs.delete("careCircles/$circleId/appointments/a1"))
     fs.assertSucceeds(care, fs.delete("careCircles/$circleId/appointments/a1"))
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
@@ -619,6 +612,49 @@ class FirestoreSecurityRulesEmulatorTest {
     )
   }
 
+  /** The writes behind AppointmentRepository: the fields it sets, and only those. */
+  @Test
+  fun appointments_savedByTheWriter_withValidFields_enforcedByEmulator() {
+    val circleId = "c-appointments"
+    val care = "care"
+    val care2 = "care2"
+    val pat = "pat"
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, care, listOf(care, care2, pat), patientId = pat),
+    )
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$care2", user(care2, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    val path = "careCircles/$circleId/appointments"
+    val created = appointment("a1", care)
+
+    fs.assertSucceeds(care, fs.set("$path/a1", created))
+    // created as someone else, or with an end before its start
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care2)))
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("lastEndAt" to START - 1)))
+    // a field Appointment doesn't have, an empty title, an attendee who isn't a member
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("color" to "red")))
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("title" to "")))
+    fs.assertFails(
+        care,
+        fs.set("$path/a2", appointment("a2", care) + ("attendeeIds" to listOf("eve"))),
+    )
+    // the patient is still refused, even for their own appointment
+    fs.assertFails(pat, fs.set("$path/a2", appointment("a2", pat)))
+
+    // Any caregiver may edit it, as the last editor: the fields the repository's update() writes
+    val edit = mapOf("title" to "Dentist", "updatedBy" to care2, "updatedAt" to START)
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("updatedBy" to care)))
+    // but not who created it or when
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("createdBy" to care2)))
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("createdAt" to 1L)))
+    // and an edit keeps a start and an end the calendar's query can use
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("startAt" to "10:00")))
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("lastEndAt" to START - 1)))
+    fs.assertSucceeds(care2, fs.patch("$path/a1", edit))
+  }
+
   /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
   fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
@@ -645,6 +681,9 @@ class FirestoreSecurityRulesEmulatorTest {
   companion object {
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
+
+    /** The start of the appointments of these tests, in epoch milliseconds. */
+    private const val START = 1_800_000_000_000L
 
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long
@@ -737,6 +776,26 @@ class FirestoreSecurityRulesEmulatorTest {
             "authorizedIds" to emptyList<String>(),
             "status" to "APPROVED",
             "text" to "Hello",
+        )
+
+    /**
+     * @return a valid appointment [id], created and last saved by [savedBy], with the fields
+     *   AppointmentRepository writes.
+     */
+    private fun appointment(id: String, savedBy: String) =
+        mapOf(
+            "id" to id,
+            "title" to "Doctor",
+            "notes" to "",
+            "startAt" to START,
+            "durationMinutes" to 60,
+            "location" to null,
+            "attendeeIds" to listOf(savedBy),
+            "lastEndAt" to START + 60 * 60_000L,
+            "createdBy" to savedBy,
+            "createdAt" to START - 1,
+            "updatedBy" to savedBy,
+            "updatedAt" to START - 1,
         )
 
     private fun media(id: String, authorId: String, storagePath: String) =

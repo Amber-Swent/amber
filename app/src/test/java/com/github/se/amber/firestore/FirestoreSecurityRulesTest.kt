@@ -18,6 +18,7 @@ import com.github.se.amber.model.story.Story
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.google.firebase.firestore.util.CustomClassMapper
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -514,9 +515,8 @@ class FirestoreSecurityRulesTest {
     assertFalse(db.rulesFor("outsider").canWriteStory("c1", story))
     assertTrue(db.rulesFor("pat").canDeleteStory("c1"))
 
-    val appointment = Appointment(id = "a1", title = "Doctor", createdBy = "care")
-    assertTrue(db.rulesFor("care").canWriteAppointment("c1", appointment))
-    assertFalse(db.rulesFor("pat").canWriteAppointment("c1", appointment))
+    assertTrue(db.rulesFor("care").canCreateAppointment("c1", "a1", storedAppointment("care")))
+    assertFalse(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
     assertTrue(db.rulesFor("care").canDeleteAppointment("c1"))
     assertFalse(db.rulesFor("pat").canDeleteAppointment("c1"))
   }
@@ -540,7 +540,7 @@ class FirestoreSecurityRulesTest {
             status = MediaStatus.PENDING,
         )
     val story = Story(id = "s1", title = "Trip", createdBy = "care")
-    val appointment = Appointment(id = "a1", title = "Doctor", createdBy = "care")
+    val appointment = storedAppointment("care")
     val invite = Invitation(code = "ABC123", circleId = "c1", createdBy = "care", usedBy = null)
     db.putUser(caregiver)
     db.putCircle(circle)
@@ -567,7 +567,8 @@ class FirestoreSecurityRulesTest {
     assertFalse(rules.canDeleteMedia("c1", picture))
     assertFalse(rules.canWriteStory("c1", story))
     assertFalse(rules.canDeleteStory("c1"))
-    assertFalse(rules.canWriteAppointment("c1", appointment))
+    assertFalse(rules.canCreateAppointment("c1", "a1", appointment))
+    assertFalse(rules.canUpdateAppointment("c1", "a1", appointment, appointment))
     assertFalse(rules.canDeleteAppointment("c1"))
     assertFalse(rules.canCreateInvitation(invite))
   }
@@ -609,6 +610,69 @@ class FirestoreSecurityRulesTest {
     // Redeem is backend-only (Admin SDK / Cloud Functions in PR #83).
     assertFalse(db.rulesFor("pat", now).canUpdateInvitation(invite, redeemed))
     assertFalse(db.rulesFor("care", now).canDeleteInvitation())
+  }
+
+  /** The writes behind AppointmentRepository: the fields it sets, and only those. */
+  @Test
+  fun appointments_savedByTheWriter_withValidFields_enforcedByFakeStore() {
+    val db = FakeFirestore()
+    db.putUser(UserProfile(uid = "care", role = Role.CAREGIVER, circleIds = listOf("c1")))
+    db.putUser(UserProfile(uid = "care2", role = Role.CAREGIVER, circleIds = listOf("c1")))
+    db.putUser(UserProfile(uid = "pat", role = Role.PATIENT, circleIds = listOf("c1")))
+    db.putCircle(CareCircle(id = "c1", memberIds = listOf("care", "care2", "pat")))
+    val created = storedAppointment("care")
+    val care = db.rulesFor("care")
+    val care2 = db.rulesFor("care2")
+
+    assertTrue(care.canCreateAppointment("c1", "a1", created))
+    // created as someone else, or with an end before its start
+    assertFalse(care.canCreateAppointment("c1", "a1", storedAppointment("care2")))
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("lastEndAt" to START - 1)))
+    // a field Appointment doesn't have, an empty title, an attendee who isn't a member
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("color" to "red")))
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("title" to "")))
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("attendeeIds" to listOf("eve"))))
+    // the patient is still refused, even for their own appointment
+    assertFalse(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
+
+    // Any caregiver may edit it, as the last editor
+    val edited = created + ("title" to "Dentist") + ("updatedBy" to "care2")
+    assertTrue(care2.canUpdateAppointment("c1", "a1", created, edited))
+    assertFalse(care2.canUpdateAppointment("c1", "a1", created, created + ("title" to "Dentist")))
+    // but not who created it or when
+    assertFalse(care2.canUpdateAppointment("c1", "a1", created, edited + ("createdBy" to "care2")))
+    assertFalse(care2.canUpdateAppointment("c1", "a1", created, edited + ("createdAt" to 1L)))
+    // and an edit keeps a start and an end the calendar's query can use
+    assertFalse(care2.canUpdateAppointment("c1", "a1", created, edited + ("startAt" to "10:00")))
+    assertFalse(
+        care2.canUpdateAppointment("c1", "a1", created, edited + ("lastEndAt" to START - 1))
+    )
+  }
+
+  /**
+   * @return a valid appointment "a1" created and last saved by [savedBy], as Firestore stores it.
+   *   The SDK's own mapper builds it, so it holds exactly the fields the repository writes.
+   */
+  @Suppress("UNCHECKED_CAST")
+  private fun storedAppointment(savedBy: String): Map<String, Any?> =
+      CustomClassMapper.convertToPlainJavaTypes(
+          Appointment(
+              id = "a1",
+              title = "Doctor",
+              startAt = START,
+              durationMinutes = 60,
+              attendeeIds = listOf(savedBy),
+              lastEndAt = START + 60 * 60_000L,
+              createdBy = savedBy,
+              createdAt = START - 1,
+              updatedBy = savedBy,
+              updatedAt = START - 1,
+          )
+      ) as Map<String, Any?>
+
+  private companion object {
+    /** The start of the appointments of these tests, in epoch milliseconds. */
+    const val START = 1_800_000_000_000L
   }
 }
 
@@ -868,8 +932,51 @@ private class FirestoreSecurityRules(
 
   fun canDeleteStory(circleId: String): Boolean = canWriteTo(circleId)
 
-  fun canWriteAppointment(circleId: String, resource: Appointment): Boolean =
-      canWriteTo(circleId) && isCaregiver() && resource.id.isNotEmpty()
+  // An appointment as it is stored after the write: only the fields of Appointment, saved by the
+  // signed-in user, with a start and an end that keep it in the calendar's query, and members as
+  // attendees. Longs stand for the rules' ints.
+  fun isValidAppointment(
+      circleId: String,
+      appointmentId: String,
+      data: Map<String, Any?>,
+  ): Boolean {
+    val title = data["title"] as? String ?: return false
+    val startAt = data["startAt"] as? Long ?: return false
+    val lastEndAt = data["lastEndAt"] as? Long ?: return false
+    val attendeeIds = data["attendeeIds"] as? List<*> ?: return false
+    val memberIds = lookup.circle(circleId)?.memberIds ?: return false
+    return data["id"] == appointmentId &&
+        APPOINTMENT_FIELDS.containsAll(data.keys) &&
+        title.isNotEmpty() &&
+        lastEndAt >= startAt &&
+        data["updatedBy"] == authUid &&
+        data["updatedAt"] is Long &&
+        memberIds.containsAll(attendeeIds)
+  }
+
+  fun canCreateAppointment(
+      circleId: String,
+      appointmentId: String,
+      resource: Map<String, Any?>,
+  ): Boolean =
+      canWriteTo(circleId) &&
+          isCaregiver() &&
+          isValidAppointment(circleId, appointmentId, resource) &&
+          resource["createdBy"] == authUid &&
+          resource["createdAt"] is Long
+
+  // Every caregiver may edit any appointment, but not who created it or when.
+  fun canUpdateAppointment(
+      circleId: String,
+      appointmentId: String,
+      before: Map<String, Any?>,
+      after: Map<String, Any?>,
+  ): Boolean =
+      canWriteTo(circleId) &&
+          isCaregiver() &&
+          isValidAppointment(circleId, appointmentId, after) &&
+          after["createdBy"] == before["createdBy"] &&
+          after["createdAt"] == before["createdAt"]
 
   fun canDeleteAppointment(circleId: String): Boolean = canWriteTo(circleId) && isCaregiver()
 
@@ -896,6 +1003,25 @@ private class FirestoreSecurityRules(
     if (before.person != after.person) keys += "person"
     if (before.circleIds != after.circleIds) keys += "circleIds"
     return keys
+  }
+
+  private companion object {
+    /** The fields of Appointment, the only ones `hasOnly` allows. */
+    val APPOINTMENT_FIELDS =
+        setOf(
+            "id",
+            "title",
+            "notes",
+            "startAt",
+            "durationMinutes",
+            "location",
+            "attendeeIds",
+            "lastEndAt",
+            "createdBy",
+            "createdAt",
+            "updatedBy",
+            "updatedAt",
+        )
   }
 
   private fun affectedCircleKeys(before: CareCircle, after: CareCircle): Set<String> {
