@@ -49,6 +49,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -94,9 +95,11 @@ class CreateProfileUITests {
           ),
       signOutViewModel: SignOutViewModel = viewModelFor(idleAuthRepository()),
       onSignedOut: () -> Unit = {},
+      onProfileCreated: (Role) -> Unit = {},
   ) {
     composeTestRule.setContent {
       CreateProfileScreen(
+          onProfileCreated = onProfileCreated,
           viewModel = viewModel,
           signOutViewModel = signOutViewModel,
           onSignedOut = onSignedOut,
@@ -223,13 +226,18 @@ class CreateProfileUITests {
   }
 
   @Test
-  fun rolesWaitForTheSavedProfileWhichThenFillsTheForm() {
+  fun rolesWaitForTheSavedProfileWhichThenFillsTheFormAndTheSameRoleGoesOn() {
     val load = CompletableDeferred<Result<UserProfile?>>()
     val saved = Person(id = "uid", firstName = "Ada", lastName = "Lovelace")
+    var createdPerson: Person? = null
+    var nextScreenFor: Role? = null
     val viewModel =
         CreateProfileViewModel(
             object : ProfileRepository {
-              override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
+              override suspend fun createProfile(person: Person, role: Role): Result<Unit> {
+                createdPerson = person
+                return Result.success(Unit)
+              }
 
               override suspend fun updateOnboardingProfile(person: Person, role: Role) =
                   Result.success(Unit)
@@ -239,7 +247,7 @@ class CreateProfileUITests {
               override suspend fun getProfile(uid: String) = Result.success(null)
             }
         )
-    setCreateProfile(viewModel = viewModel)
+    setCreateProfile(viewModel = viewModel, onProfileCreated = { nextScreenFor = it })
 
     composeTestRule
         .onNodeWithTag(PatientUtilsTestTags.BUTTON)
@@ -262,6 +270,12 @@ class CreateProfileUITests {
         .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
         .performScrollTo()
         .assertIsEnabled()
+
+    // the saved profile already has this role and name: no new profile, straight to the next step
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().performClick()
+    composeTestRule.waitForIdle()
+    assertEquals(Role.PATIENT, nextScreenFor)
+    assertNull(createdPerson)
   }
 
   @Test

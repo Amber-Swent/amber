@@ -137,7 +137,7 @@ class CreateProfileViewModelTests {
     assertFalse(loading.uiState.value.canSubmit)
     loading.onRoleSelected(Role.PATIENT, onSuccess)
     runCurrent()
-    assertEquals(0, successCount)
+    assertNull(lastSuccessRole)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
 
     load.complete(Result.success(savedProfile(role = Role.PATIENT)))
@@ -164,8 +164,13 @@ class CreateProfileViewModelTests {
     offline.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
 
-    assertEquals(1, successCount)
-    coVerify(exactly = 1) { profileRepository.createProfile(any(), Role.PATIENT) }
+    assertEquals(Role.PATIENT, lastSuccessRole)
+    coVerify(exactly = 1) {
+      profileRepository.createProfile(
+          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          role = Role.PATIENT,
+      )
+    }
   }
 
   @Test
