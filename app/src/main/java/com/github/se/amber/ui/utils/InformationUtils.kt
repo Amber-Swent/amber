@@ -2,7 +2,6 @@
 
 package com.github.se.amber.ui.utils
 
-import android.R.attr.contentDescription
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,7 +44,7 @@ import com.github.se.amber.ui.theme.PADDING_MINI
 fun DisplayInformation(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Default.Info,
-    contentDescription: String = stringResource(R.string.displayInformationIconDescription),
+    contentDescription: String = stringResource(R.string.displayInformationIconDefaultDescription),
     sentences: List<String> = emptyList(),
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     size: Dp = CAREGIVER_ICON_SIZE,
