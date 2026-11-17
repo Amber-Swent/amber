@@ -1,6 +1,7 @@
 // Written by Alaabrine with the aid of AI coding agent
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.createProfile
 
@@ -9,8 +10,10 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -29,6 +32,7 @@ import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
+import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.authentication.signOut.PreviewActiveCircleRepository
 import com.github.se.amber.ui.authentication.signOut.SignOutViewModel
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
@@ -216,6 +220,48 @@ class CreateProfileUITests {
 
     composeTestRule.onNodeWithTag(CreateProfileTestTags.SUBMIT_ERROR).assertDoesNotExist()
     composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assertIsDisplayed()
+  }
+
+  @Test
+  fun rolesWaitForTheSavedProfileWhichThenFillsTheForm() {
+    val load = CompletableDeferred<Result<UserProfile?>>()
+    val saved = Person(id = "uid", firstName = "Ada", lastName = "Lovelace")
+    val viewModel =
+        CreateProfileViewModel(
+            object : ProfileRepository {
+              override suspend fun createProfile(person: Person, role: Role) = Result.success(Unit)
+
+              override suspend fun updateOnboardingProfile(person: Person, role: Role) =
+                  Result.success(Unit)
+
+              override suspend fun getCurrentProfile() = load.await()
+
+              override suspend fun getProfile(uid: String) = Result.success(null)
+            }
+        )
+    setCreateProfile(viewModel = viewModel)
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+        .performScrollTo()
+        .assertIsNotEnabled()
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+        .performScrollTo()
+        .assertIsNotEnabled()
+
+    load.complete(Result.success(UserProfile(uid = saved.id, role = Role.PATIENT, person = saved)))
+    composeTestRule.waitForIdle()
+
+    composeTestRule.onNodeWithTag(CreateProfileTestTags.NAME_INPUT).assert(hasText(saved.firstName))
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.SURNAME_INPUT)
+        .assert(hasText(saved.lastName))
+    composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).performScrollTo().assertIsEnabled()
+    composeTestRule
+        .onNodeWithTag(CreateProfileTestTags.CAREGIVER_BUTTON)
+        .performScrollTo()
+        .assertIsEnabled()
   }
 
   @Test
