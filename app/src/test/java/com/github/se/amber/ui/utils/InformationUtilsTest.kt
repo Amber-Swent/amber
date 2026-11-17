@@ -5,8 +5,11 @@ package com.github.se.amber.ui.utils
 import androidx.activity.ComponentActivity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -14,7 +17,11 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -91,6 +98,49 @@ class InformationUtilsTest {
     composeTestRule.onNodeWithContentDescription(ICON).assertIsDisplayed()
   }
 
+  // ---------- text style and color ----------
+
+  /** The layout of the text [text], which holds the color and the style it was drawn with. */
+  private fun textLayoutOf(text: String): TextLayoutResult {
+    val layouts = mutableListOf<TextLayoutResult>()
+    composeTestRule
+        .onNodeWithText(text)
+        .fetchSemanticsNode()
+        .config[SemanticsActions.GetTextLayoutResult]
+        .action
+        ?.invoke(layouts)
+    return layouts.first()
+  }
+
+  @Test
+  fun theTextUsesTheMutedColorByDefault() {
+    var mutedColor = Color.Unspecified
+    composeTestRule.setContent {
+      mutedColor = MaterialTheme.colorScheme.outline
+      DisplayInformation(sentences = listOf(FIRST))
+    }
+    assertEquals(mutedColor, textLayoutOf(FIRST).layoutInput.style.color)
+  }
+
+  @Test
+  fun theTextUsesTheRequestedColor() {
+    composeTestRule.setContent {
+      DisplayInformation(sentences = listOf(FIRST), color = CUSTOM_COLOR)
+    }
+    assertEquals(CUSTOM_COLOR, textLayoutOf(FIRST).layoutInput.style.color)
+  }
+
+  @Test
+  fun theTextUsesTheRequestedStyle() {
+    composeTestRule.setContent {
+      DisplayInformation(
+          sentences = listOf(FIRST),
+          style = TextStyle(fontSize = CUSTOM_FONT_SIZE),
+      )
+    }
+    assertEquals(CUSTOM_FONT_SIZE, textLayoutOf(FIRST).layoutInput.style.fontSize)
+  }
+
   // ---------- preview ----------
 
   @Test
@@ -105,6 +155,8 @@ class InformationUtilsTest {
 
   private companion object {
     val ICON_SIZE = 30.dp
+    val CUSTOM_COLOR = Color.Red
+    val CUSTOM_FONT_SIZE = 20.sp
     const val PREVIEW_INFORMATION_ICON = "Information"
     const val PREVIEW_ERROR_ICON = "Error"
     const val PREVIEW_FIRST_LINE = "First line of the hint."
