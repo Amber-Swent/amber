@@ -1,6 +1,7 @@
 # Written by MeiliV, with assistance from OpenAI Codex.
 # Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 # Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+# Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 
 name: CI - Test Runner
@@ -33,6 +34,9 @@ jobs:
     name: CI
     # Execute the CI on the course's runners
     runs-on: ubuntu-latest
+    # Google Maps key of the memories map; without it, the app builds and the map shows no tiles
+    env:
+      MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
 
     steps:
       # First step : Checkout the repository on the runner
@@ -186,10 +190,11 @@ jobs:
             app/build/reports/androidTests/connected
             app/build/outputs/androidTest-results/connected
 
-      # Run unit tests once, with the Firestore emulator available for the rules tests.
+      # Run unit tests once, with the Firestore and Storage emulators available for the rules
+      # tests. Storage rules read care-circle documents, so both emulators have to be up.
       - name: Unit and rules tests
         run: |
-          firebase emulators:exec --only firestore \
+          firebase emulators:exec --only firestore,storage \
             './gradlew check --parallel --build-cache'
 
       - name: Generate Firestore rules coverage report

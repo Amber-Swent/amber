@@ -126,9 +126,16 @@ const val WEIGHT_FIFTEENTH = 0.15f
 const val WEIGHT_TWO = 2f
 
 // ------- GENERAL WIDTH --------
-
-const val DIALOG_WIDTH = 0.8f
 const val CAREGIVER_TITLE_WIDTH = 1f
+
+// ------- DIALOG - POPUP --------
+const val DIALOG_WIDTH = 0.8f
+
+/**
+ * Shortest a popup gets, as a fraction of the screen height. A popup whose content needs more is
+ * taller.
+ */
+const val POPUP_DIALOG_MIN_HEIGHT_FRACTION = 0.5f
 
 // ------- AUDIO PLAYBACK -------
 /** Opacity Material uses for a disabled control. */

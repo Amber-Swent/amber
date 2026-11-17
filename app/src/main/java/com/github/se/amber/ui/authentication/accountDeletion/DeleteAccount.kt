@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.accountDeletion
 
@@ -32,12 +33,15 @@ import androidx.credentials.CredentialManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
-import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.authentication.DisplayAuthenticationButton
+import com.github.se.amber.ui.authentication.authenticationTextStyle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
+import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.WEIGHT_FIFTEENTH
 import com.github.se.amber.ui.utils.asString
 
@@ -55,6 +59,10 @@ object DeleteAccountTestTags {
  * progress and prevents leaving through Cancel or system Back. The repository restarts the app on
  * success, so this screen does not navigate after confirmation.
  *
+ * The screen is shared by both roles: [isPatient] selects the patient or caregiver title, buttons,
+ * padding and text size. Patient screens use larger text.
+ *
+ * @param isPatient Boolean indicating if the user viewing the screen is a Patient.
  * @param viewModel Owns the warnings, reauthentication, deletion, and retry state.
  * @param credentialManager Requests a fresh Google credential when deletion is confirmed.
  * @param onBack Returns to parameters when deletion is not running.
@@ -62,6 +70,7 @@ object DeleteAccountTestTags {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteAccountScreen(
+    isPatient: Boolean = true,
     viewModel: DeleteAccountViewModel = viewModel(),
     credentialManager: CredentialManager = CredentialManager.create(LocalContext.current),
     onBack: () -> Unit = {},
@@ -69,6 +78,8 @@ fun DeleteAccountScreen(
   val context = LocalContext.current
   val resources = LocalResources.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val textStyle = authenticationTextStyle(isPatient)
+  val padding = if (isPatient) PATIENT_PADDING_MEDIUM else CAREGIVER_PADDING_BIG
 
   // Consume system Back while the deletion request is in progress.
   BackHandler(enabled = uiState.isDeleting) {}
@@ -91,10 +102,17 @@ fun DeleteAccountScreen(
                       onBackClick = onBack,
                   )
                 }
-                DisplayCaregiverTitle(
-                    modifier = Modifier.testTag(DeleteAccountTestTags.TITLE),
-                    title = stringResource(R.string.deleteAccountTitle),
-                )
+                if (isPatient) {
+                  DisplayPatientTitle(
+                      title = stringResource(R.string.deleteAccountTitle),
+                      testTag = DeleteAccountTestTags.TITLE,
+                  )
+                } else {
+                  DisplayCaregiverTitle(
+                      modifier = Modifier.testTag(DeleteAccountTestTags.TITLE),
+                      title = stringResource(R.string.deleteAccountTitle),
+                  )
+                }
               }
             }
         )
@@ -107,18 +125,21 @@ fun DeleteAccountScreen(
                       .verticalScroll(rememberScrollState())
                       .heightIn(min = maxHeight)
                       .padding(
-                          start = CAREGIVER_PADDING_BIG,
-                          end = CAREGIVER_PADDING_BIG,
+                          start = padding,
+                          end = padding,
                           bottom = maxHeight * WEIGHT_FIFTEENTH,
                       ),
-              verticalArrangement =
-                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
+              verticalArrangement = Arrangement.spacedBy(padding, Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
-                text = stringResource(R.string.deleteAccountExplanation),
+                text =
+                    stringResource(
+                        if (isPatient) R.string.deleteAccountPatientExplanation
+                        else R.string.deleteAccountCaregiverExplanation
+                    ),
                 color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.bodyLarge,
+                style = textStyle,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().testTag(DeleteAccountTestTags.EXPLANATION),
             )
@@ -126,7 +147,7 @@ fun DeleteAccountScreen(
               Text(
                   text = warning.asString(resources),
                   color = MaterialTheme.colorScheme.error,
-                  style = MaterialTheme.typography.bodyLarge,
+                  style = textStyle,
                   textAlign = TextAlign.Center,
               )
             }
@@ -135,29 +156,31 @@ fun DeleteAccountScreen(
                 Text(
                     text = stringResource(R.string.deleteAccountProgress),
                     color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = textStyle,
                     textAlign = TextAlign.Center,
                 )
               }
               uiState.warningsLoaded -> {
-                DisplayCaregiverButton(
+                DisplayAuthenticationButton(
+                    isPatient = isPatient,
                     text =
                         if (uiState.localCleanupNeeded)
                             stringResource(R.string.deleteAccountCleanupLabel)
                         else stringResource(R.string.deleteAccountTitle),
                     onClick = { viewModel.deleteAccount(context, credentialManager) },
-                    buttonTestTag = DeleteAccountTestTags.BUTTON,
+                    testTag = DeleteAccountTestTags.BUTTON,
                 )
               }
               uiState.isLoading -> {
                 Text(
                     text = stringResource(R.string.deleteAccountCheckingLabel),
                     color = MaterialTheme.colorScheme.onBackground,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = textStyle,
                 )
               }
               else -> {
-                DisplayCaregiverButton(
+                DisplayAuthenticationButton(
+                    isPatient = isPatient,
                     text = stringResource(R.string.deleteAccountRetryLabel),
                     onClick = viewModel::loadWarnings,
                 )

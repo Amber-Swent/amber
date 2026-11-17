@@ -183,16 +183,14 @@ class DeleteAccountViewModelTest {
   }
 
   @Test
-  fun patientProfileNeverEnablesDeletion() = runTest {
+  fun patientProfileEnablesDeletion() = runTest {
     coEvery { profileRepository.getCurrentProfile() } returns
         Result.success(UserProfile(uid = "patient", role = Role.PATIENT))
 
     viewModel.loadWarnings()
     advanceUntilIdle()
 
-    assertFalse(viewModel.uiState.value.warningsLoaded)
-    viewModel.deleteAccount(context, credentialManager)
-    coVerify(exactly = 0) { deletionRepository.deleteAccount() }
+    assertTrue(viewModel.uiState.value.warningsLoaded)
   }
 
   @Test

@@ -1,5 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
@@ -487,10 +487,28 @@ class MediaRepositoryFirestoreTest {
         events,
     )
     assertEquals("photo bytes", fileStorage.lastUploadedContent)
+    assertEquals("image/jpeg", fileStorage.lastUploadedContentType)
+    assertEquals(picture.authorId, fileStorage.lastUploadedAuthorId)
     assertEquals(picture.toMap() + ("id" to "m1"), created.captured)
     assertNull(outbox.get("c1", "m1"))
     // the file moved into the cache: it opens without a download
     assertEquals("photo bytes", repository.getFile(circle, picture).readText())
+  }
+
+  @Test
+  fun sendPassesTheContentTypeOfTheFileExtension() = runTest {
+    stubStoredDocument(noDocument())
+    val audio =
+        MediaItem.Audio(
+            id = "m1",
+            authorId = picture.authorId,
+            storagePath = "careCircles/c1/media/m1.m4a",
+        )
+    val repository = newRepository(outbox = newOutbox())
+    repository.addMedia(circle, audio, source())
+
+    assertEquals(SendResult.DONE, repository.send("c1", "m1"))
+    assertEquals("audio/mp4", fileStorage.lastUploadedContentType)
   }
 
   @Test
@@ -553,24 +571,24 @@ class MediaRepositoryFirestoreTest {
     val outbox = newOutbox()
     val repository = newRepository(outbox = outbox)
     repository.addMedia(circle, picture, source())
-    val permanent =
-        mapOf(
-            "Firestore refusing the user" to
-                {
-                  stubFirestoreError(FirebaseFirestoreException.Code.PERMISSION_DENIED)
-                },
-            "the file refused before sending" to
-                {
-                  fileStorage.onUpload = { throw IllegalArgumentException("file over 25 MiB") }
-                },
-        )
+    stubFirestoreError(FirebaseFirestoreException.Code.PERMISSION_DENIED)
 
-    for ((case, stub) in permanent) {
-      stub()
-      assertEquals(case, SendResult.FAILED, repository.send("c1", "m1"))
-      assertEquals(case, SendState.FAILED, outbox.stateOf("m1"))
-      repository.retrySend("c1", "m1") // back to WAITING for the next case
-    }
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+    assertEquals(SendState.FAILED, outbox.stateOf("m1"))
+  }
+
+  @Test
+  fun aRefusedFileFailsAgainOnEveryRetryWithoutUploading() = runTest {
+    val outbox = newOutbox()
+    val repository = newRepository(outbox = outbox)
+    repository.addMedia(circle, picture, source())
+    File(outboxDir, "c1/m1.bin").writeBytes(ByteArray(0))
+
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+    repository.retrySend("c1", "m1")
+    assertEquals(SendResult.FAILED, repository.send("c1", "m1"))
+    assertEquals(SendState.FAILED, outbox.stateOf("m1"))
+    assertEquals(emptyList<String>(), events.filter { it.startsWith("upload ") })
   }
 
   @Test
@@ -722,6 +740,8 @@ class MediaRepositoryFirestoreTest {
         events,
     )
     assertEquals("photo bytes", fileStorage.lastUploadedContent)
+    assertEquals("image/jpeg", fileStorage.lastUploadedContentType)
+    assertEquals(picture.authorId, fileStorage.lastUploadedAuthorId)
     assertEquals(picture.toMap() + ("id" to "m1"), created.captured)
     assertNull(outbox.get("c1", "m1"))
   }

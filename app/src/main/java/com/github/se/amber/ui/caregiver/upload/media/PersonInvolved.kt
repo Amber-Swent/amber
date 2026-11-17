@@ -22,9 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,6 +38,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.ROUND_CORNER
 import com.github.se.amber.ui.theme.WEIGHT_ONE
+import com.github.se.amber.ui.utils.selectableChipColors
 
 /** Tags owned by the person selector helper. */
 object DisplayWhoIsInvolvedTestTags {
@@ -160,16 +159,6 @@ private fun DisplayAddPersonChip(
           ),
   )
 }
-
-/** Colors of the selectable chips: the theme's tertiary color, and its secondary once selected. */
-@Composable
-internal fun selectableChipColors(): SelectableChipColors =
-    FilterChipDefaults.filterChipColors(
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        labelColor = MaterialTheme.colorScheme.onTertiary,
-        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-        selectedLabelColor = MaterialTheme.colorScheme.onTertiary,
-    )
 
 /** Preview of [DisplayWhoIsInvolved] using the Amber application theme. */
 @Preview(showBackground = true, showSystemUi = true)

@@ -1,5 +1,6 @@
 // Written by Alaabrine, with assistance from Cursor.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -45,10 +46,11 @@ class SignOutScreenTest {
     every { viewModel.uiState } returns stateFlow
   }
 
-  private fun setScreen() {
+  private fun setScreen(isPatient: Boolean = false) {
     composeTestRule.setContent {
       AmberAppTheme {
         SignOutScreen(
+            isPatient = isPatient,
             viewModel = viewModel,
             onSignedOut = { signedOutCount++ },
             onBack = { backCount++ },
@@ -63,14 +65,14 @@ class SignOutScreenTest {
 
     composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SignOutTestTags.EXPLANATION).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).assertIsDisplayed()
   }
 
   @Test
   fun confirmClickCallsSignOut() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).performClick()
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).performClick()
 
     verify(exactly = 1) { viewModel.signOut() }
   }
@@ -82,6 +84,40 @@ class SignOutScreenTest {
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
     assertEquals(1, backCount)
+  }
+
+  @Test
+  fun patientTitle_andExplanation_areDisplayed() {
+    setScreen(isPatient = true)
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SignOutTestTags.EXPLANATION).assertIsDisplayed()
+  }
+
+  @Test
+  fun patientConfirmClickCallsSignOut() {
+    setScreen(isPatient = true)
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).performClick()
+
+    verify(exactly = 1) { viewModel.signOut() }
+  }
+
+  @Test
+  fun patientBackClickInvokesOnBack() {
+    setScreen(isPatient = true)
+
+    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
+
+    assertEquals(1, backCount)
+  }
+
+  @Test
+  fun patientButtonIsDisabledWhileSigningOut() {
+    stateFlow.value = SignOutUIState(isSigningOut = true)
+    setScreen(isPatient = true)
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).assertIsNotEnabled()
   }
 
   @Test
@@ -99,14 +135,22 @@ class SignOutScreenTest {
     stateFlow.value = SignOutUIState(isSigningOut = true)
     setScreen()
 
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).assertIsNotEnabled()
+  }
+
+  @Test
+  fun buttonIsDisabledWhenAlreadySignedOut() {
+    stateFlow.value = SignOutUIState(signedOut = true)
+    setScreen()
+
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).assertIsNotEnabled()
   }
 
   @Test
   fun buttonIsEnabledByDefault() {
     setScreen()
 
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsEnabled()
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).assertIsEnabled()
   }
 
   @Test
@@ -178,6 +222,6 @@ class SignOutScreenTest {
     composeTestRule.setContent { SignOutScreenPreview() }
 
     composeTestRule.onNodeWithTag(SignOutTestTags.TITLE).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(SignOutButtonTestTags.BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(SignOutTestTags.BUTTON).assertIsDisplayed()
   }
 }

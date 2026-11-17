@@ -2,6 +2,7 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.signOut
 
@@ -34,38 +35,50 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
+import com.github.se.amber.ui.authentication.DisplayAuthenticationButton
+import com.github.se.amber.ui.authentication.authenticationTextStyle
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
 import com.github.se.amber.ui.patient.DisplayPatientTitle
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_BIG
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
+import com.github.se.amber.ui.theme.PATIENT_PADDING_MEDIUM
 
 /** Test tags of [SignOutScreen]. */
 object SignOutTestTags {
-  const val TITLE = "SignOut_test_tag_title"
-  const val EXPLANATION = "SignOut_test_tag_explanation"
+  const val TITLE = "sign_out_title"
+  const val EXPLANATION = "sign_out_explanation"
+  const val BUTTON = "sign_out_button"
 }
 
 /**
  * Confirmation screen shared by caregiver and patient parameters.
  *
- * Shows a short explanation and the shared [SignOutButton] helper. Navigation after a successful
- * sign-out is handled by [onSignedOut].
+ * Shows a short explanation and a confirmation button built with the shared patient or caregiver
+ * button helper. Navigation after a successful sign-out is handled by [onSignedOut].
  *
- * @param viewModel ViewModel shared with [SignOutButton].
+ * The screen is shared by both roles: [isPatient] selects the patient or caregiver title, buttons,
+ * padding and text size. Patient screens use larger elements.
+ *
+ * @param isPatient Boolean indicating if the user viewing the screen is a Patient.
+ * @param viewModel ViewModel that performs the sign-out.
  * @param onSignedOut Called once sign-out succeeds.
  * @param onBack Called when the user cancels from the top bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignOutScreen(
+    isPatient: Boolean = true,
     viewModel: SignOutViewModel = viewModel(),
     onSignedOut: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+  val textStyle = authenticationTextStyle(isPatient)
+  val padding = if (isPatient) PATIENT_PADDING_MEDIUM else CAREGIVER_PADDING_BIG
   // Configuration-aware resources, so the toast follows the app language
   val resources = LocalResources.current
 
@@ -93,10 +106,17 @@ fun SignOutScreen(
                     action = TopNavigationAction.CANCEL,
                     onBackClick = onBack,
                 )
-                DisplayPatientTitle(
-                    title = stringResource(R.string.signOutTitle),
-                    testTag = SignOutTestTags.TITLE,
-                )
+                if (isPatient) {
+                  DisplayPatientTitle(
+                      title = stringResource(R.string.signOutTitle),
+                      testTag = SignOutTestTags.TITLE,
+                  )
+                } else {
+                  DisplayCaregiverTitle(
+                      modifier = Modifier.testTag(SignOutTestTags.TITLE),
+                      title = stringResource(R.string.signOutTitle),
+                  )
+                }
               }
             }
         )
@@ -108,19 +128,24 @@ fun SignOutScreen(
                   Modifier.fillMaxWidth()
                       .verticalScroll(rememberScrollState())
                       .heightIn(min = maxHeight)
-                      .padding(horizontal = CAREGIVER_PADDING_BIG),
-              verticalArrangement =
-                  Arrangement.spacedBy(CAREGIVER_PADDING_BIG, Alignment.CenterVertically),
+                      .padding(horizontal = padding),
+              verticalArrangement = Arrangement.spacedBy(padding, Alignment.CenterVertically),
               horizontalAlignment = Alignment.CenterHorizontally,
           ) {
             Text(
                 text = stringResource(R.string.signOutExplanation),
                 color = MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.bodyLarge,
+                style = textStyle,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().testTag(SignOutTestTags.EXPLANATION),
             )
-            SignOutButton(viewModel = viewModel)
+            DisplayAuthenticationButton(
+                isPatient = isPatient,
+                text = stringResource(R.string.signOutButton),
+                onClick = viewModel::signOut,
+                enabled = !uiState.signedOut && !uiState.isSigningOut,
+                testTag = SignOutTestTags.BUTTON,
+            )
           }
         }
       },

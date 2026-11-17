@@ -4,6 +4,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -51,6 +52,7 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
+import com.github.se.amber.ui.onboarding.changeCareCircle.ChangeCareCircleScreen
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
@@ -211,6 +213,9 @@ fun AmberApp(
             onCreateCareCircleClick = {
               navigationActions.navigateTo(OnboardingScreen.CreateCareCircle)
             },
+            onSwitchCareCircleClick = {
+              navigationActions.navigateTo(CaregiverScreen.ChangeCareCircle)
+            },
             onCreateInvitationClick = {
               navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
             },
@@ -223,12 +228,14 @@ fun AmberApp(
       }
       composable(route = CaregiverScreen.SignOut.route) {
         SignOutScreen(
+            isPatient = false,
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
             onBack = { navigationActions.goBack() },
         )
       }
       composable(route = CaregiverScreen.DeleteAccount.route) {
         DeleteAccountScreen(
+            isPatient = false,
             credentialManager = credentialManager,
             onBack = { navigationActions.goBack() },
         )
@@ -237,6 +244,11 @@ fun AmberApp(
         CreateInvitationScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             checkout = { navigationActions.goBack() },
+        )
+      }
+      composable(route = CaregiverScreen.ChangeCareCircle.route) {
+        ChangeCareCircleScreen(
+            onBackClick = { navigationActions.goBack() },
         )
       }
     }
@@ -274,11 +286,20 @@ fun AmberApp(
         PatientParameterScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             onSignOutClick = { navigationActions.navigateTo(PatientScreen.SignOut) },
+            onDeleteAccountClick = { navigationActions.navigateTo(PatientScreen.DeleteAccount) },
         )
       }
       composable(route = PatientScreen.SignOut.route) {
         SignOutScreen(
+            isPatient = true,
             onSignedOut = { navigationActions.navigateToGraph(NavGraphs.AUTH) },
+            onBack = { navigationActions.goBack() },
+        )
+      }
+      composable(route = PatientScreen.DeleteAccount.route) {
+        DeleteAccountScreen(
+            isPatient = true,
+            credentialManager = credentialManager,
             onBack = { navigationActions.goBack() },
         )
       }

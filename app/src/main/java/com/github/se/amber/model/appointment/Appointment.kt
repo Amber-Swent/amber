@@ -2,20 +2,26 @@
 
 package com.github.se.amber.model.appointment
 
+import com.github.se.amber.model.calendar.CalendarEvent
 import com.github.se.amber.model.location.GeoLocation
 
 /**
- * An upcoming appointment of the patient (doctor, physio, hairdresser...), shown to them so they
- * know what is planned and who will come along. Stored at careCircles/{circleId}/appointments/{id}.
+ * An appointment of the patient (doctor, physio, hairdresser...), shown to them so they know what
+ * is planned and who will come along. Stored at careCircles/{circleId}/appointments/{id}.
  *
- * Written: created and edited by caregivers only, for now (subject to change). Created once with
- * set(); later edits update only the fields that changed. A cancelled appointment is deleted.
- * [location] is picked from CareCircle.places (a copy, so later edits to the place don't change it)
- * or entered for a one-off place.
+ * Written: created and edited by caregivers only, for now (subject to change). Every caregiver of
+ * the circle can edit or delete any appointment, not only its creator. Created once with set().
+ * Later edits update only the editable fields. A cancelled appointment is deleted. [location] is
+ * picked from CareCircle.places (a copy, so later edits to the place don't change it) or entered
+ * for a one-off place. The repository fills in [lastEndAt] and the update fields itself. On create,
+ * it also fills in the creator fields. It never trusts the values it is given for them.
  *
- * Read: the patient's screen queries appointments where startAt >= now, ordered by startAt, and
- * keeps a snapshot listener so changes made by caregivers show up live. Past appointments are left
- * out by that query.
+ * Read: the calendar queries the appointments not over yet (lastEndAt > a time) and keeps a
+ * snapshot listener, so changes made by caregivers show up live. An appointment that has started
+ * but isn't over stays in the list.
+ *
+ * Status: planned, soon, ongoing and passed are computed on the phone with the helpers of
+ * CalendarStatus.kt, such as `statusAt`. They are never stored.
  *
  * Rules: readable by every member of the circle (CareCircle.memberIds); writable only by members
  * whose UserProfile.role is CAREGIVER.
@@ -27,18 +33,37 @@ import com.github.se.amber.model.location.GeoLocation
  *   its own appointment.
  *
  * New fields must get a default value, so documents written before they existed can still be read.
+ * Computed values must be extension functions, like [validationError]. Firestore stores every
+ * public getter, so a property would be written to each document.
  */
 data class Appointment(
-    val id: String = "", // document id
-    val title: String = "", // "Dr. Martin, neurologist"; the doctor goes here, not in attendeeIds
-    val notes: String = "", // "bring the blood test results"
-    val startAt: Long = 0L, // exact time, epoch milliseconds; shown in the device's time zone
-    val durationMinutes: Int? = null, // null = unknown
-    // where it takes place, copied from a Place or entered; null = not set
-    val location: GeoLocation? = null,
-    // uids of the circle members going with the patient (CareCircle.memberIds); the patient always
-    // attends and is not listed
-    val attendeeIds: List<String> = emptyList(),
-    val createdBy: String = "", // uid of the caregiver who created it
-    val createdAt: Long = 0L, // Optional; epoch milliseconds
-)
+    // Shown on the calendar. Each field is described in CalendarEvent; only what is specific to
+    // appointments is noted here. Caregivers edit these.
+
+    // What it is
+    override val id: String = "", // the document id
+    override val title: String = "", // the doctor goes here, not in attendeeIds
+    override val notes: String = "",
+
+    // When it happens
+    override val startAt: Long = 0L,
+    override val durationMinutes: Int? = null,
+
+    // Where, and who comes along
+    override val location: GeoLocation? = null, // copied from a Place, or entered
+    override val attendeeIds: List<String> = emptyList(),
+
+    // Stored for queries. Set by the repository.
+
+    // End time of the appointment, in epoch milliseconds. The "not over yet" query filters on it.
+    // Repeating appointments might be added later. For one of them, it would be the end of its last
+    // occurrence. That is why it is stored, and why it is named lastEndAt rather than endAt.
+    val lastEndAt: Long = 0L,
+
+    // Record keeping. Set by the repository: the created fields on create, the updated fields on
+    // every save. Times are in epoch milliseconds.
+    val createdBy: String = "", // the caregiver who created it; "" once their account is deleted
+    val createdAt: Long = 0L,
+    val updatedBy: String = "", // the last caregiver who saved it
+    val updatedAt: Long = 0L,
+) : CalendarEvent

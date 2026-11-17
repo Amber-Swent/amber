@@ -6,6 +6,7 @@
 package com.github.se.amber.ui.caregiver.upload.media
 
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
@@ -34,7 +35,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -66,6 +69,7 @@ class MediaViewModelTest {
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private lateinit var activeCircleRepo: ActiveCircleRepository
   private lateinit var placeRepo: PlaceSearchRepository
 
   private lateinit var circle: CareCircle
@@ -79,6 +83,11 @@ class MediaViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
+    activeCircleRepo = mockk()
+    every { activeCircleRepo.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     placeRepo = mockk()
 
     circle = fakeCircle()
@@ -104,6 +113,7 @@ class MediaViewModelTest {
           authRepo = authRepo,
           profileRepo = profileRepo,
           circleRepo = circleRepo,
+          activeCircleRepo = activeCircleRepo,
           requiresContent = requiresContent,
           placeRepo = placeRepo,
       )
@@ -206,17 +216,89 @@ class MediaViewModelTest {
   }
 
   @Test
-  fun firstCircleOfTheProfileIsRequested() {
+  fun activeCircleOfTheProfileIsRequested() {
     stubProfile(listOf("circle1", "circle2"))
+    every { activeCircleRepo.activeCircleId("user1", listOf("circle1", "circle2")) } returns
+        flowOf("circle2")
+    val activeCircle = fakeCircle(circleId = "circle2")
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(activeCircle)
     createViewModel()
-    coVerify(exactly = 1) { circleRepo.getCircle("circle1") }
+    coVerify(exactly = 1) { circleRepo.getCircle("circle2") }
+  }
+
+  @Test
+  fun activeCircleChange_uploadsToTheNewCircle() {
+    stubProfile(listOf("circle1", "circle2"))
+    val activeCircleId = MutableStateFlow<String?>("circle1")
+    every { activeCircleRepo.activeCircleId("user1", listOf("circle1", "circle2")) } returns
+        activeCircleId
+    val secondCircle = fakeCircle(circleId = "circle2")
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(secondCircle)
+
+    val viewModel = createViewModel()
+    assertSame(circle, viewModel.careCircle.value)
+
+    activeCircleId.value = "circle2"
+
+    assertSame(secondCircle, viewModel.careCircle.value)
+    coVerify(exactly = 1) { circleRepo.getCircle("circle2") }
+    viewModel.setContent(contentFile)
+    viewModel.setDescription("A description")
+    viewModel.setDate(MemoryDate(2024, Month.MAY, 12))
+    viewModel.uploadMedia()
+    coVerify(exactly = 1) { mediaRepo.addMedia(secondCircle, any(), any()) }
+    coVerify(exactly = 0) { mediaRepo.addMedia(circle, any(), any()) }
+  }
+
+  @Test
+  fun activeCircleChange_blocksUploadWhileTheNewCircleLoads() {
+    stubProfile(listOf("circle1", "circle2"))
+    val activeCircleId = MutableStateFlow<String?>("circle1")
+    every { activeCircleRepo.activeCircleId("user1", listOf("circle1", "circle2")) } returns
+        activeCircleId
+    val secondCircle = fakeCircle(circleId = "circle2")
+    val secondCircleLoad = CompletableDeferred<Result<CareCircle>>()
+    coEvery { circleRepo.getCircle("circle2") } coAnswers { secondCircleLoad.await() }
+    val viewModel = readyViewModel()
+    assertSame(circle, viewModel.careCircle.value)
+
+    activeCircleId.value = "circle2"
+    assertNull(viewModel.careCircle.value)
+    viewModel.uploadMedia()
+    assertEquals(
+        MediaViewModelErrorMessage.STILL_LOADING.messageRes,
+        viewModel.uiState.value.common.errorMsgRes,
+    )
+    coVerify(exactly = 0) { mediaRepo.addMedia(any(), any(), any()) }
+
+    secondCircleLoad.complete(Result.success(secondCircle))
+    assertSame(secondCircle, viewModel.careCircle.value)
+  }
+
+  @Test
+  fun missingActiveCircle_clearsThePreviousUploadDestination() {
+    val activeCircleId = MutableStateFlow<String?>("circle1")
+    every { activeCircleRepo.activeCircleId("user1", listOf("circle1")) } returns activeCircleId
+    val viewModel = createViewModel()
+    assertSame(circle, viewModel.careCircle.value)
+
+    activeCircleId.value = null
+
+    assertNull(viewModel.careCircle.value)
+    assertEquals(
+        MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes,
+        viewModel.uiState.value.common.errorMsgRes,
+    )
   }
 
   @Test
   fun otherCirclesOfTheProfileAreNotRequested() {
     stubProfile(listOf("circle1", "circle2"))
+    every { activeCircleRepo.activeCircleId("user1", listOf("circle1", "circle2")) } returns
+        flowOf("circle2")
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(fakeCircle("circle2"))
     createViewModel()
-    coVerify(exactly = 0) { circleRepo.getCircle("circle2") }
+    coVerify(exactly = 0) { circleRepo.getCircle("circle1") }
   }
 
   @Test
@@ -1568,6 +1650,7 @@ private class FakeMediaViewModel(
     authRepo: AuthRepository,
     profileRepo: ProfileRepository,
     circleRepo: CareCircleRepository,
+    activeCircleRepo: ActiveCircleRepository,
     placeRepo: PlaceSearchRepository,
     private val requiresContent: Boolean = true,
 ) :
@@ -1577,6 +1660,7 @@ private class FakeMediaViewModel(
         authRepo = authRepo,
         profileRepo = profileRepo,
         circleRepo = circleRepo,
+        activeCircleRepo = activeCircleRepo,
         placeRepo = placeRepo,
     ) {
 
