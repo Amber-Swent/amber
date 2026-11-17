@@ -79,7 +79,8 @@ fun <T : Any> Query.observeDocuments(
     map: (DocumentSnapshot) -> T?,
     onError: (Exception) -> Exception,
 ): Flow<List<Synced<T>>> =
-    // TODO explain the .INCLUDE in a small comment.
+    // INCLUDE: when the server confirms a write, only the metadata changes. Without it, no new
+    // list would be emitted, and isSynced would stay false.
     observeSnapshots(MetadataChanges.INCLUDE)
         .map { snapshot ->
           snapshot.documents.mapNotNull { document ->
