@@ -208,8 +208,8 @@ class CreateProfileViewModel(
           showFailure(error)
           return
         }
-    val alreadyJoined = current?.circleIds?.any { it.isNotBlank() } == true
-    if (current == null || alreadyJoined) {
+    // already in a care circle: the role can't be changed anymore
+    if (current == null || current.circleIds.any { it.isNotBlank() }) {
       showFailure(ProfileCreationError.ProfileAlreadyExists)
       return
     }
