@@ -37,8 +37,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
-import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.caregiver.upload.media.selectableChipColors
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -164,7 +164,8 @@ fun ChangeCareCircleScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           Text(
-              text = stringResource(uiState.errorMsgRes ?: R.string.changeCareCircleErrorLoadCircle),
+              text =
+                  stringResource(uiState.errorMsgRes ?: R.string.changeCareCircleErrorLoadCircle),
               modifier = Modifier.testTag(ChangeCareCircleTestTags.ERROR_MESSAGE),
               color = MaterialTheme.colorScheme.error,
               style = MaterialTheme.typography.titleMedium,
@@ -263,12 +264,11 @@ internal fun ChangeCareCircleEmptyScreenPreview() {
 @Preview(name = "error", showBackground = true, showSystemUi = true)
 @Composable
 internal fun ChangeCareCircleErrorScreenPreview() {
-    val previewViewModel = remember {
-        ChangeCareCircleViewModel(ChangeCareCircleUIState(status = ChangeCareCircleStatus.ERROR))
-    }
-    AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
+  val previewViewModel = remember {
+    ChangeCareCircleViewModel(ChangeCareCircleUIState(status = ChangeCareCircleStatus.ERROR))
+  }
+  AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
 }
-
 
 @Preview(name = "care circles", showBackground = true, showSystemUi = true)
 @Composable
@@ -282,7 +282,7 @@ internal fun ChangeCareCircleScreenPreview() {
                     ChangeCareCircleChoice("one", "Cira's circle"),
                     ChangeCareCircleChoice("two", "Eloise's circle"),
                     ChangeCareCircleChoice("three", "Flora's circle"),
-                    ChangeCareCircleChoice("four", "Natsu's circle"),
+                    ChangeCareCircleChoice("four", "Naya's circle"),
                 ),
             activeCircleId = "two",
         )

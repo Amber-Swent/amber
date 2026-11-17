@@ -79,6 +79,9 @@ class ChangeCareCircleViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(initialState ?: ChangeCareCircleUIState())
   val uiState: StateFlow<ChangeCareCircleUIState> = _uiState.asStateFlow()
+  private var loadJob: Job? = null
+  private var selectionJob: Job? = null
+  private var caregiverUid: String? = null
 
   /** Clears the selection error after its toast has been shown. */
   fun clearErrorMsg() {
@@ -87,10 +90,27 @@ class ChangeCareCircleViewModel(
       else current
     }
   }
-  private var loadJob: Job? = null
-  private var selectionJob: Job? = null
-  private var caregiverUid: String? = null
 
+  /**
+   * Records a non-blocking selection error for the screen to show as a toast.
+   *
+   * The ready screen and its current circle remain visible. This method has no effect after the
+   * screen leaves the ready state.
+   *
+   * @param errorMsgRes Localized string resource for the toast.
+   */
+  private fun setErrorMsg(@StringRes errorMsgRes: Int) {
+      _uiState.update { current ->
+          if (current.status == ChangeCareCircleStatus.READY) current.copy(errorMsgRes = errorMsgRes)
+          else current
+      }
+  }
+
+  /**
+   * Replaces the screen with a loading error and retry action.
+   *
+   * @param errorMsgRes Localized string resource displayed on the error screen.
+   */
   private fun setBlockingErrorMsg(@StringRes errorMsgRes: Int) {
     _uiState.value =
         ChangeCareCircleUIState(
@@ -135,11 +155,12 @@ class ChangeCareCircleViewModel(
         }
         val repository = circleRepository ?: CareCircleRepositoryProvider.default.repository
         val circles = ids.map { id ->
-          val circle = repository.getCircle(id).getOrElse { error ->
-            Log.e(TAG, "Error fetching care circle", error)
-            setBlockingErrorMsg(R.string.changeCareCircleErrorLoadCircle)
-            return@launch
-          }
+          val circle =
+              repository.getCircle(id).getOrElse { error ->
+                Log.e(TAG, "Error fetching care circle", error)
+                setBlockingErrorMsg(R.string.changeCareCircleErrorLoadCircle)
+                return@launch
+              }
           ChangeCareCircleChoice(id = id, name = circle.name)
         }
         caregiverUid = profile.uid
@@ -147,11 +168,11 @@ class ChangeCareCircleViewModel(
             .activeCircleId(profile.uid, ids)
             .collect { activeId ->
               _uiState.update { current ->
-                  current.copy(
-                      status = ChangeCareCircleStatus.READY,
-                      circles = circles,
-                      activeCircleId = activeId,
-                  )
+                current.copy(
+                    status = ChangeCareCircleStatus.READY,
+                    circles = circles,
+                    activeCircleId = activeId,
+                )
               }
             }
       } catch (error: CancellationException) {
@@ -164,7 +185,11 @@ class ChangeCareCircleViewModel(
   }
 
   /**
-   * Persists a valid selection and updates [uiState] only after the write succeeds.
+   * Persists a valid circle selection for the current caregiver.
+   *
+   * Ignores selections while loading or saving, as well as unknown or already selected circles.
+   * A successful write updates [uiState]. On failure, the previously selected circle stays visible
+   * and [setErrorMsg] requests a toast so the caregiver can try again.
    *
    * @param circleId ID of the circle selected by the caregiver.
    */
@@ -172,17 +197,22 @@ class ChangeCareCircleViewModel(
     val state = _uiState.value
     val uid = caregiverUid ?: return
 
-    if (state.status != ChangeCareCircleStatus.READY ||
-        circleId == state.activeCircleId ||
-        state.circles.none { it.id == circleId } ||
-        selectionJob?.isActive == true) return
+    if (
+        state.status != ChangeCareCircleStatus.READY ||
+            circleId == state.activeCircleId ||
+            state.circles.none { it.id == circleId } ||
+            selectionJob?.isActive == true
+    )
+        return
     selectionJob = viewModelScope.launch {
       try {
         (activeCircleRepository ?: ActiveCircleRepositoryProvider.default.repository)
             .setActiveCircle(uid, circleId)
         _uiState.update { current ->
-          if (current.status == ChangeCareCircleStatus.READY &&
-              current.circles.any { it.id == circleId })
+          if (
+              current.status == ChangeCareCircleStatus.READY &&
+                  current.circles.any { it.id == circleId }
+          )
               current.copy(activeCircleId = circleId)
           else current
         }
@@ -192,13 +222,6 @@ class ChangeCareCircleViewModel(
         Log.e(TAG, "Error changing active care circle", error)
         setErrorMsg(R.string.changeCareCircleErrorChange)
       }
-    }
-  }
-
-  private fun setErrorMsg(@StringRes errorMsgRes: Int) {
-    _uiState.update { current ->
-      if (current.status == ChangeCareCircleStatus.READY) current.copy(errorMsgRes = errorMsgRes)
-      else current
     }
   }
 

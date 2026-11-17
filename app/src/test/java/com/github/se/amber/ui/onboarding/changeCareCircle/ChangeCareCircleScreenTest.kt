@@ -16,10 +16,10 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
-import java.util.Locale
 import io.mockk.every
 import io.mockk.spyk
 import io.mockk.verify
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule

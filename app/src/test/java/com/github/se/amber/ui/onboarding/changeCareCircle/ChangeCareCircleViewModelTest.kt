@@ -99,7 +99,10 @@ class ChangeCareCircleViewModelTest {
 
     assertEquals(ChangeCareCircleStatus.READY, state.status)
     assertEquals(
-        listOf(ChangeCareCircleChoice("first", "Family"), ChangeCareCircleChoice("second", "Friends")),
+        listOf(
+            ChangeCareCircleChoice("first", "Family"),
+            ChangeCareCircleChoice("second", "Friends"),
+        ),
         state.circles,
     )
     assertEquals("first", state.activeCircleId)
@@ -137,8 +140,7 @@ class ChangeCareCircleViewModelTest {
 
   @Test
   fun blankProfileUidShowsBlockingError() {
-    coEvery { profileRepository.getCurrentProfile() } returns
-        Result.success(profile.copy(uid = ""))
+    coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile.copy(uid = ""))
 
     assertEquals(
         R.string.changeCareCircleErrorLoadProfile,
@@ -158,7 +160,8 @@ class ChangeCareCircleViewModelTest {
 
   @Test
   fun unexpectedLoadExceptionShowsBlockingError() {
-    every { activeCircleRepository.activeCircleId(any(), any()) } throws IllegalStateException("bad")
+    every { activeCircleRepository.activeCircleId(any(), any()) } throws
+        IllegalStateException("bad")
 
     assertEquals(
         R.string.changeCareCircleErrorLoadCircle,
@@ -198,9 +201,10 @@ class ChangeCareCircleViewModelTest {
   @Test
   fun validSelectionIsPersistedBeforeStateChanges() {
     val pendingWrite = CompletableDeferred<Unit>()
-    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers {
-      pendingWrite.await()
-    }
+    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers
+        {
+          pendingWrite.await()
+        }
     val viewModel = createViewModel()
 
     viewModel.changeActiveCareCircle("second")
@@ -236,9 +240,10 @@ class ChangeCareCircleViewModelTest {
   @Test
   fun secondSelectionIsIgnoredWhileWriteIsPending() {
     val pendingWrite = CompletableDeferred<Unit>()
-    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers {
-      pendingWrite.await()
-    }
+    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers
+        {
+          pendingWrite.await()
+        }
     val viewModel = createViewModel()
 
     viewModel.changeActiveCareCircle("second")
@@ -268,9 +273,10 @@ class ChangeCareCircleViewModelTest {
   @Test
   fun reloadCancelsPendingSelectionAndResetsState() {
     val pendingWrite = CompletableDeferred<Unit>()
-    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers {
-      pendingWrite.await()
-    }
+    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers
+        {
+          pendingWrite.await()
+        }
     val viewModel = createViewModel()
     viewModel.changeActiveCareCircle("second")
     coEvery { profileRepository.getCurrentProfile() } returns
@@ -285,14 +291,16 @@ class ChangeCareCircleViewModelTest {
   fun selectionCompletionDoesNotReplaceBlockingError() {
     val failObservation = CompletableDeferred<Unit>()
     val pendingWrite = CompletableDeferred<Unit>()
-    every { activeCircleRepository.activeCircleId(any(), any()) } returns flow {
-      emit("first")
-      failObservation.await()
-      throw IllegalStateException("observation failed")
-    }
-    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers {
-      pendingWrite.await()
-    }
+    every { activeCircleRepository.activeCircleId(any(), any()) } returns
+        flow {
+          emit("first")
+          failObservation.await()
+          throw IllegalStateException("observation failed")
+        }
+    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers
+        {
+          pendingWrite.await()
+        }
     val viewModel = createViewModel()
 
     viewModel.changeActiveCareCircle("second")
@@ -307,9 +315,10 @@ class ChangeCareCircleViewModelTest {
   @Test
   fun staleSelectionDoesNotSelectCircleRemovedDuringReload() {
     val pendingWrite = CompletableDeferred<Unit>()
-    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers {
-      withContext(NonCancellable) { pendingWrite.await() }
-    }
+    coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } coAnswers
+        {
+          withContext(NonCancellable) { pendingWrite.await() }
+        }
     val viewModel = createViewModel()
     viewModel.changeActiveCareCircle("second")
     coEvery { profileRepository.getCurrentProfile() } returns
