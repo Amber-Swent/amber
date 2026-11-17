@@ -21,6 +21,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.se.amber.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -96,6 +97,16 @@ class InformationUtilsTest {
       )
     }
     composeTestRule.onNodeWithContentDescription(ICON).assertIsDisplayed()
+  }
+
+  @Test
+  fun withoutDescriptionDisplaysTheIconWithTheDefaultDescription() {
+    composeTestRule.setContent { DisplayInformation() }
+    composeTestRule
+        .onNodeWithContentDescription(
+            composeTestRule.activity.getString(R.string.displayInformationIconDefaultDescription)
+        )
+        .assertIsDisplayed()
   }
 
   // ---------- text style and color ----------
