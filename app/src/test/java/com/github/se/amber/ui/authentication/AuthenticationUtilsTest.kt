@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
-class AuthentificationUtilsTest {
+class AuthenticationUtilsTest {
   @get:Rule val composeTestRule = createComposeRule()
 
   private var style: TextStyle? = null
