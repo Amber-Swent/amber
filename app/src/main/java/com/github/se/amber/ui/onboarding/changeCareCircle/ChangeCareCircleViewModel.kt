@@ -79,6 +79,14 @@ class ChangeCareCircleViewModel(
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(initialState ?: ChangeCareCircleUIState())
   val uiState: StateFlow<ChangeCareCircleUIState> = _uiState.asStateFlow()
+
+  /** Clears the selection error after its toast has been shown. */
+  fun clearErrorMsg() {
+    _uiState.update { current ->
+      if (current.status == ChangeCareCircleStatus.READY) current.copy(errorMsgRes = null)
+      else current
+    }
+  }
   private var loadJob: Job? = null
   private var selectionJob: Job? = null
   private var caregiverUid: String? = null
@@ -138,12 +146,13 @@ class ChangeCareCircleViewModel(
         (activeCircleRepository ?: ActiveCircleRepositoryProvider.default.repository)
             .activeCircleId(profile.uid, ids)
             .collect { activeId ->
-              _uiState.value =
-                  ChangeCareCircleUIState(
+              _uiState.update { current ->
+                  current.copy(
                       status = ChangeCareCircleStatus.READY,
                       circles = circles,
                       activeCircleId = activeId,
                   )
+              }
             }
       } catch (error: CancellationException) {
         throw error
@@ -181,8 +190,15 @@ class ChangeCareCircleViewModel(
         throw error
       } catch (error: Exception) {
         Log.e(TAG, "Error changing active care circle", error)
-        // Keep the previously persisted selection visible so the user can retry.
+        setErrorMsg(R.string.changeCareCircleErrorChange)
       }
+    }
+  }
+
+  private fun setErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.update { current ->
+      if (current.status == ChangeCareCircleStatus.READY) current.copy(errorMsgRes = errorMsgRes)
+      else current
     }
   }
 

@@ -256,6 +256,9 @@ class ChangeCareCircleViewModelTest {
 
     viewModel.changeActiveCareCircle("second")
     assertEquals("first", viewModel.uiState.value.activeCircleId)
+    assertEquals(R.string.changeCareCircleErrorChange, viewModel.uiState.value.errorMsgRes)
+    viewModel.clearErrorMsg()
+    assertNull(viewModel.uiState.value.errorMsgRes)
     coEvery { activeCircleRepository.setActiveCircle("caregiver", "second") } returns Unit
     viewModel.changeActiveCareCircle("second")
 

@@ -2,6 +2,7 @@
 
 package com.github.se.amber.ui.onboarding.changeCareCircle
 
+import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,10 +23,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -84,6 +88,17 @@ fun ChangeCareCircleScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val activeCircleName = uiState.circles.firstOrNull { it.id == uiState.activeCircleId }?.name
+  val context = LocalContext.current
+  val resources = LocalResources.current
+
+  LaunchedEffect(uiState.errorMsgRes, uiState.status) {
+    if (uiState.status == ChangeCareCircleStatus.READY) {
+      uiState.errorMsgRes?.let { errorMsgRes ->
+        Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
+        viewModel.clearErrorMsg()
+      }
+    }
+  }
 
   Scaffold(
       topBar = {

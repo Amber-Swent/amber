@@ -27,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 class ChangeCareCircleScreenTest {
@@ -105,6 +106,26 @@ class ChangeCareCircleScreenTest {
             ApplicationProvider.getApplicationContext<Context>()
                 .getString(R.string.changeCareCircleErrorLoadCircle)
         )
+  }
+
+  @Test
+  fun selectionErrorShowsToastInReadyState() {
+    showScreen(
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.READY,
+            circles = listOf(ChangeCareCircleChoice("first", "Family")),
+            activeCircleId = "first",
+            errorMsgRes = R.string.changeCareCircleErrorChange,
+        )
+    )
+
+    composeTestRule.waitForIdle()
+    assertEquals(
+        ApplicationProvider.getApplicationContext<Context>()
+            .getString(R.string.changeCareCircleErrorChange),
+        ShadowToast.getTextOfLatestToast(),
+    )
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.circleChoice("first")).assertIsSelected()
   }
 
   @Test
