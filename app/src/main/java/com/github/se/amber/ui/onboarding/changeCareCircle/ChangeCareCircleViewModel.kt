@@ -2,10 +2,24 @@
 
 package com.github.se.amber.ui.onboarding.changeCareCircle
 
+import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * A care circle available to the caregiver.
@@ -18,13 +32,14 @@ data class ChangeCareCircleChoice(val id: String, val name: String)
 /**
  * Determines which content [ChangeCareCircleScreen] renders.
  *
- * [LOADING] shows progress, [EMPTY] shows the no-circles message, and [READY] shows the current
- * circle and available chips. The status determines the visible content.
+ * [LOADING] shows progress, [EMPTY] shows the no-circles message, [READY] shows the circles, and
+ * [ERROR] shows a loading failure.
  */
 enum class ChangeCareCircleStatus {
   LOADING,
   EMPTY,
   READY,
+  ERROR,
 }
 
 /**
@@ -34,48 +49,144 @@ enum class ChangeCareCircleStatus {
  * looks up [activeCircleId] in [circles] for the current-circle name and selected chip. A null or
  * unmatched ID displays the localized fallback and leaves every chip unselected.
  *
+ * The default status is [ChangeCareCircleStatus.LOADING].
+ *
  * @param status Determines whether loading, empty, or ready content is shown.
  * @param circles Care circles displayed as chips in the ready state.
  * @param activeCircleId ID of the selected circle, or null if none is active.
+ * @param errorMsgRes Error that replaces the screen when loading fails.
  */
 data class ChangeCareCircleUIState(
     val status: ChangeCareCircleStatus = ChangeCareCircleStatus.LOADING,
     val circles: List<ChangeCareCircleChoice> = emptyList(),
     val activeCircleId: String? = null,
+    @param:StringRes val errorMsgRes: Int? = null,
 )
 
 /**
  * Owns the state and selection actions for the change care circle screen.
  *
- * The default state is [ChangeCareCircleStatus.EMPTY]. [initialState] also lets previews and tests
- * show other states without a repository.
+ * Loads the signed-in caregiver's circles and observes the device's active-circle choice. A
+ * supplied [initialState] is used only by previews and screen tests and skips automatic loading.
  *
- * @param initialState Initial screen state; defaults to the empty state.
+ * @param initialState Optional preview state.
  */
 class ChangeCareCircleViewModel(
-    initialState: ChangeCareCircleUIState = ChangeCareCircleUIState(),
+    initialState: ChangeCareCircleUIState? = null,
+    private val profileRepository: ProfileRepository? = null,
+    private val circleRepository: CareCircleRepository? = null,
+    private val activeCircleRepository: ActiveCircleRepository? = null,
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(initialState)
+  private val _uiState = MutableStateFlow(initialState ?: ChangeCareCircleUIState())
   val uiState: StateFlow<ChangeCareCircleUIState> = _uiState.asStateFlow()
+  private var loadJob: Job? = null
+  private var selectionJob: Job? = null
+  private var caregiverUid: String? = null
+
+  private fun setBlockingErrorMsg(@StringRes errorMsgRes: Int) {
+    _uiState.value =
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.ERROR,
+            errorMsgRes = errorMsgRes,
+        )
+  }
+
+  init {
+    if (initialState == null) loadCareCircles()
+  }
 
   /**
    * Load the caregiver's circles and active circle into [uiState].
    *
-   * This is currently a no-op. Repository access and loading, empty, and ready transitions are
-   * reserved for the follow-up implementation.
+   * Reloads the profile and every circle in its membership list. The active-circle flow then keeps
+   * the selected chip in sync with changes made elsewhere in the app.
    */
   fun loadCareCircles() {
-    // TODO: Load the caregiver's circles and active circle through repositories.
+    loadJob?.cancel()
+    selectionJob?.cancel()
+    caregiverUid = null
+    _uiState.value = ChangeCareCircleUIState()
+    loadJob = viewModelScope.launch {
+      try {
+        val profile =
+            (profileRepository ?: ProfileRepositoryProvider.default.repository)
+                .getCurrentProfile()
+                .getOrElse { error ->
+                  Log.e(TAG, "Error fetching profile", error)
+                  setBlockingErrorMsg(R.string.changeCareCircleErrorLoadProfile)
+                  return@launch
+                }
+        if (profile == null || profile.uid.isBlank()) {
+          setBlockingErrorMsg(R.string.changeCareCircleErrorLoadProfile)
+          return@launch
+        }
+        val ids = profile.circleIds.filter(String::isNotBlank).distinct()
+        if (ids.isEmpty()) {
+          _uiState.value = ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY)
+          return@launch
+        }
+        val repository = circleRepository ?: CareCircleRepositoryProvider.default.repository
+        val circles = ids.map { id ->
+          val circle = repository.getCircle(id).getOrElse { error ->
+            Log.e(TAG, "Error fetching care circle", error)
+            setBlockingErrorMsg(R.string.changeCareCircleErrorLoadCircle)
+            return@launch
+          }
+          ChangeCareCircleChoice(id = id, name = circle.name)
+        }
+        caregiverUid = profile.uid
+        (activeCircleRepository ?: ActiveCircleRepositoryProvider.default.repository)
+            .activeCircleId(profile.uid, ids)
+            .collect { activeId ->
+              _uiState.value =
+                  ChangeCareCircleUIState(
+                      status = ChangeCareCircleStatus.READY,
+                      circles = circles,
+                      activeCircleId = activeId,
+                  )
+            }
+      } catch (error: CancellationException) {
+        throw error
+      } catch (error: Exception) {
+        Log.e(TAG, "Error loading care circles", error)
+        setBlockingErrorMsg(R.string.changeCareCircleErrorLoadCircle)
+      }
+    }
   }
 
   /**
-   * Will persist a selected circle and update [uiState] after success.
-   *
-   * Chip clicks call this method, but it is currently a no-op; the selection does not change yet.
+   * Persists a valid selection and updates [uiState] only after the write succeeds.
    *
    * @param circleId ID of the circle selected by the caregiver.
    */
   fun changeActiveCareCircle(circleId: String) {
-    // TODO: Persist the selected active circle through the data layer and update UI state.
+    val state = _uiState.value
+    val uid = caregiverUid ?: return
+
+    if (state.status != ChangeCareCircleStatus.READY ||
+        circleId == state.activeCircleId ||
+        state.circles.none { it.id == circleId } ||
+        selectionJob?.isActive == true) return
+    selectionJob = viewModelScope.launch {
+      try {
+        (activeCircleRepository ?: ActiveCircleRepositoryProvider.default.repository)
+            .setActiveCircle(uid, circleId)
+        _uiState.update { current ->
+          if (current.status == ChangeCareCircleStatus.READY &&
+              current.circles.any { it.id == circleId })
+              current.copy(activeCircleId = circleId)
+          else current
+        }
+      } catch (error: CancellationException) {
+        throw error
+      } catch (error: Exception) {
+        Log.e(TAG, "Error changing active care circle", error)
+        // Keep the previously persisted selection visible so the user can retry.
+      }
+    }
+  }
+
+  private companion object {
+    const val TAG = "ChangeCareCircleViewModel"
   }
 }
