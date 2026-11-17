@@ -21,7 +21,7 @@
     <string name="screenTitleCreateCareCircle">Create a CareCircle</string>
     <string name="screenTitleEnterInvitation">Enter an invitation</string>
     <string name="screenTitleCaregiverHome">Home</string>
-    <string name="screenTitleCaregiverUpload">Upload Pictures or Audios</string>
+    <string name="screenTitleCaregiverUpload">Upload Pictures, Audios or Text</string>
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
     <string name="screenTitleCaregiverUploadText">Upload Text</string>

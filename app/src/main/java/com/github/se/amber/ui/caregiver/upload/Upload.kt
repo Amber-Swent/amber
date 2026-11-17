@@ -6,6 +6,7 @@
 
 package com.github.se.amber.ui.caregiver.upload
 
+import android.content.res.Configuration
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -174,9 +175,21 @@ fun DisplayButton(
   )
 }
 
-/** Preview of [UploadScreen] using the Amber application theme. */
-@Preview(showBackground = true)
+/** Preview of [UploadScreen] in light mode. */
+@Preview(showBackground = true, showSystemUi = true, name = "Upload menu light")
 @Composable
 private fun UploadScreenPreview() {
-  AmberAppTheme(dynamicColor = false) { UploadScreen() }
+  AmberAppTheme(dynamicColor = false, darkTheme = false) { UploadScreen() }
+}
+
+/** Preview of [UploadScreen] in dark mode. */
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    name = "Upload menu dark",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+internal fun UploadScreenDarkPreview() {
+  AmberAppTheme(dynamicColor = false, darkTheme = true) { UploadScreen() }
 }

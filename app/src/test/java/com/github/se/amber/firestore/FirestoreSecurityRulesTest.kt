@@ -851,7 +851,16 @@ private class FirestoreSecurityRules(
     val old = before.toMap() + ("id" to before.id)
     val new = after.toMap() + ("id" to after.id)
     val editable =
-        setOf("description", "date", "location", "shownIds", "authorizedIds", "text", "transcript")
+        setOf(
+            "description",
+            "date",
+            "location",
+            "shownIds",
+            "authorizedIds",
+            "title",
+            "text",
+            "transcript",
+        )
     return (old.keys + new.keys).filter { old[it] != new[it] }.all { it in editable }
   }
 

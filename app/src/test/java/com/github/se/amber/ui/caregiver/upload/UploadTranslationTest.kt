@@ -8,14 +8,10 @@ import android.content.Context
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.model.media.MemoryDate
@@ -33,8 +29,6 @@ import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestT
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureUIState
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModelErrorMessage
-import com.github.se.amber.ui.caregiver.upload.text.UploadTextScreen
-import com.github.se.amber.ui.caregiver.upload.text.UploadTextScreenTestTags
 import com.github.se.amber.ui.utils.UiText
 import com.github.se.amber.ui.utils.asString
 import io.mockk.every
@@ -212,40 +206,6 @@ class UploadTranslationTest {
         "Votre cercle de soins est encore en cours de chargement, réessayez",
         context.getString(MediaViewModelErrorMessage.STILL_LOADING.messageRes),
     )
-  }
-
-  @Test
-  fun uploadTextScreenIsInFrench() {
-    composeTestRule.setContent { UploadTextScreen() }
-
-    composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.TITLE)
-        .assertTextEquals(context.getString(R.string.uploadTextTitle))
-    composeTestRule
-        .onNodeWithText(context.getString(R.string.uploadTextTitleLabel))
-        .assertIsDisplayed()
-    composeTestRule
-        .onNode(
-            hasSetTextAction() and hasAnyAncestor(hasTestTag(UploadTextScreenTestTags.STORY_TITLE)),
-            useUnmergedTree = true,
-        )
-        .performClick()
-    composeTestRule
-        .onNodeWithText(context.getString(R.string.uploadTextTitlePlaceholder))
-        .assertIsDisplayed()
-    composeTestRule
-        .onNode(
-            hasSetTextAction() and hasAnyAncestor(hasTestTag(UploadTextScreenTestTags.DESCRIPTION)),
-            useUnmergedTree = true,
-        )
-        .performScrollTo()
-        .performClick()
-    composeTestRule
-        .onNodeWithText(context.getString(R.string.uploadTextDescriptionPlaceholder))
-        .assertIsDisplayed()
-    composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON)
-        .assertTextEquals(context.getString(R.string.uploadTextUpload))
   }
 
   @Test

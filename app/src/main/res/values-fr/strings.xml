@@ -17,7 +17,7 @@
     <string name="screenTitleCreateCareCircle">Créer un cercle de soins</string>
     <string name="screenTitleEnterInvitation">Saisir une invitation</string>
     <string name="screenTitleCaregiverHome">Accueil</string>
-    <string name="screenTitleCaregiverUpload">Ajouter des photos ou des audios</string>
+    <string name="screenTitleCaregiverUpload">Ajouter des photos, des audios ou un texte</string>
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
     <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>

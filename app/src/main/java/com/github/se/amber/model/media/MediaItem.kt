@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modify by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.model.media
 
@@ -45,6 +46,10 @@ sealed interface MediaItem {
   val authorizedIds: List<String>
   val status: MediaStatus
 
+  /**
+   * A written story. [title] is the title from the upload screen. [text] is the story body typed in
+   * that screen's description box. [description] stays empty: a text story has no shared caption.
+   */
   data class Text(
       override val id: String = "",
       override val authorId: String = "",
@@ -56,6 +61,7 @@ sealed interface MediaItem {
       override val shownIds: List<String> = emptyList(),
       override val authorizedIds: List<String> = emptyList(),
       override val status: MediaStatus = MediaStatus.APPROVED,
+      val title: String = "",
       val text: String = "",
   ) : MediaItem
 
