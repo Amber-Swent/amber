@@ -6,10 +6,12 @@ import com.github.se.amber.model.appointment.Appointment
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -32,28 +34,49 @@ class FakeAppointmentRepositoryTest {
   }
 
   @Test
+  fun anUpdateOfAMissingAppointmentIsReportedAndSavesNothing() = runTest {
+    val failures = collectFailures()
+
+    val result = repository.updateAppointment("circle", Appointment(id = "a1", title = "Physio"))
+
+    assertEquals("a1", result.getOrThrow().id)
+    assertEquals(emptyList<Appointment>(), repository.appointmentsOf("circle"))
+    assertEquals(
+        listOf(AppointmentWriteFailure("a1", AppointmentWrite.UPDATE, AppointmentError.NotFound())),
+        failures,
+    )
+  }
+
+  @Test
   fun failWithMakesEveryWriteFailWithoutSaving() = runTest {
     val error = AppointmentError.PermissionDenied()
     repository.failWith = error
 
+    // assertSame: the errors are equal by type, so assertEquals would accept a new instance.
     val appointment = Appointment(id = "a1", title = "Physio")
-    assertEquals(error, repository.addAppointment("circle", appointment).exceptionOrNull())
-    assertEquals(error, repository.updateAppointment("circle", appointment).exceptionOrNull())
-    assertEquals(error, repository.deleteAppointment("circle", "a1").exceptionOrNull())
+    assertSame(error, repository.addAppointment("circle", appointment).exceptionOrNull())
+    assertSame(error, repository.updateAppointment("circle", appointment).exceptionOrNull())
+    assertSame(error, repository.deleteAppointment("circle", "a1").exceptionOrNull())
     assertEquals(emptyList<Appointment>(), repository.appointmentsOf("circle"))
   }
 
   @Test
   fun anEmittedFailureReachesTheCollectors() = runTest {
-    val received = mutableListOf<AppointmentWriteFailure>()
-    backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-      repository.writeFailures.toList(received)
-    }
+    val failures = collectFailures()
     val failure =
-        AppointmentWriteFailure("a1", AppointmentWrite.UPDATE, AppointmentError.NotFound())
+        AppointmentWriteFailure("a1", AppointmentWrite.DELETE, AppointmentError.PermissionDenied())
 
     repository.emitWriteFailure(failure)
 
-    assertEquals(listOf(failure), received)
+    assertEquals(listOf(failure), failures)
+  }
+
+  /** Collects [FakeAppointmentRepository.writeFailures] from now on, without delay. */
+  private fun TestScope.collectFailures(): List<AppointmentWriteFailure> {
+    val failures = mutableListOf<AppointmentWriteFailure>()
+    backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+      repository.writeFailures.toList(failures)
+    }
+    return failures
   }
 }

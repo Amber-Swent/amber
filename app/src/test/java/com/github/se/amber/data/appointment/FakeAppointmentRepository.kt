@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.asSharedFlow
  * It saves what it is given as is: it doesn't check, trim or fill in any field. Set [failWith] to
  * make every write fail with that error, without saving anything. Call [emitWriteFailure] to act as
  * if the server refused a write.
+ *
+ * Like the real repository, an update of an appointment that isn't saved succeeds but changes
+ * nothing, and is reported in [writeFailures] as [AppointmentError.NotFound].
  */
 class FakeAppointmentRepository : AppointmentRepository {
 
@@ -20,10 +23,11 @@ class FakeAppointmentRepository : AppointmentRepository {
   var failWith: AppointmentError? = null
 
   private val circles = mutableMapOf<String, MutableMap<String, Appointment>>()
-  private val failures = MutableSharedFlow<AppointmentWriteFailure>(extraBufferCapacity = 16)
+  private val failures =
+      MutableSharedFlow<AppointmentWriteFailure>(extraBufferCapacity = FAILURE_BUFFER)
   private var lastId = 0
 
-  /** The failures sent with [emitWriteFailure]. Nothing else sends any. */
+  /** The failures sent with [emitWriteFailure], and the updates of missing appointments. */
   override val writeFailures: Flow<AppointmentWriteFailure> = failures.asSharedFlow()
 
   /** The appointments saved in [circleId], in the order they were first added. */
@@ -36,17 +40,49 @@ class FakeAppointmentRepository : AppointmentRepository {
   /** @return "appointment-1", then "appointment-2", and so on. */
   override fun newId(): String = "appointment-${++lastId}"
 
-  /** Saves [appointment] as given. See [save]. */
+  /**
+   * Saves [appointment] as given, unless [failWith] is set.
+   *
+   * @return the saved appointment, or a failure with [failWith].
+   */
   override suspend fun addAppointment(
       circleId: String,
       appointment: Appointment,
-  ): Result<Appointment> = save(circleId, appointment)
+  ): Result<Appointment> {
+    failWith?.let {
+      return Result.failure(it)
+    }
+    circles.getOrPut(circleId) { linkedMapOf() }[appointment.id] = appointment
+    return Result.success(appointment)
+  }
 
-  /** Saves [appointment] as given, even if it wasn't added before. See [save]. */
+  /**
+   * Replaces the saved appointment with [appointment], unless [failWith] is set. If it isn't saved,
+   * nothing changes and [AppointmentError.NotFound] is reported in [writeFailures].
+   *
+   * @return [appointment], or a failure with [failWith].
+   */
   override suspend fun updateAppointment(
       circleId: String,
       appointment: Appointment,
-  ): Result<Appointment> = save(circleId, appointment)
+  ): Result<Appointment> {
+    failWith?.let {
+      return Result.failure(it)
+    }
+    val saved = circles[circleId]
+    if (saved?.containsKey(appointment.id) == true) {
+      saved[appointment.id] = appointment
+    } else {
+      failures.tryEmit(
+          AppointmentWriteFailure(
+              appointment.id,
+              AppointmentWrite.UPDATE,
+              AppointmentError.NotFound(),
+          )
+      )
+    }
+    return Result.success(appointment)
+  }
 
   /**
    * Removes the appointment [appointmentId] from [circleId], unless [failWith] is set.
@@ -61,17 +97,8 @@ class FakeAppointmentRepository : AppointmentRepository {
     return Result.success(Unit)
   }
 
-  /**
-   * Saves [appointment] in [circleId], replacing any appointment with the same id, unless
-   * [failWith] is set.
-   *
-   * @return the saved appointment, or a failure with [failWith].
-   */
-  private fun save(circleId: String, appointment: Appointment): Result<Appointment> {
-    failWith?.let {
-      return Result.failure(it)
-    }
-    circles.getOrPut(circleId) { linkedMapOf() }[appointment.id] = appointment
-    return Result.success(appointment)
+  private companion object {
+    /** How many failures wait for a slow collector, as in the real repository. */
+    const val FAILURE_BUFFER = 16
   }
 }

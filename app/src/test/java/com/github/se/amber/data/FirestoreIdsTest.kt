@@ -2,33 +2,26 @@
 
 package com.github.se.amber.data
 
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FirestoreIdsTest {
 
   @Test
-  fun aGeneratedIdIsValid() {
-    assertTrue(isValidDocumentId("AbC123xyz-_"))
-  }
+  fun onlyAnIdOfOneDocumentIsValid() {
+    val cases =
+        listOf(
+            "AbC123xyz-_" to true, // the kind of id Firestore generates
+            "" to false,
+            "   " to false,
+            " circle" to false, // spaces around it
+            "circle\n" to false,
+            "circle/media/m1" to false, // a document further down the tree
+            "/" to false,
+        )
 
-  @Test
-  fun aBlankIdIsInvalid() {
-    assertFalse(isValidDocumentId(""))
-    assertFalse(isValidDocumentId("   "))
-  }
-
-  @Test
-  fun anIdWithSpacesAroundItIsInvalid() {
-    assertFalse(isValidDocumentId(" circle"))
-    assertFalse(isValidDocumentId("circle\n"))
-  }
-
-  @Test
-  fun anIdWithASlashIsInvalid() {
-    // It would point to a document further down the tree.
-    assertFalse(isValidDocumentId("circle/media/m1"))
-    assertFalse(isValidDocumentId("/"))
+    for ((id, expected) in cases) {
+      assertEquals("isValidDocumentId(\"$id\")", expected, isValidDocumentId(id))
+    }
   }
 }

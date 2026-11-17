@@ -57,6 +57,10 @@ class FirebaseAppointmentRepository(
   /**
    * Generates the id with Firestore's `document()`, which works offline.
    *
+   * The id comes from the `careCircles` collection, but it is not a circle id. Firestore makes the
+   * same kind of random id for any collection, and the appointments collection depends on the
+   * circle, which isn't known here.
+   *
    * @return a new random id.
    */
   override fun newId(): String = firestore.collection(CARE_CIRCLES_COLLECTION).document().id

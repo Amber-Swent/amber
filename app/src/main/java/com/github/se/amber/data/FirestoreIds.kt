@@ -1,4 +1,5 @@
-// Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Written by Neha Chakraborty and Claude Code
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.data
 
