@@ -15,7 +15,8 @@ import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasErrors
 import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasViewModel
 
-private val PICTURES_ERRORS =
+/** Error message resources used by the picture ViewModel, passed to [SeeGeneralMediasViewModel]. */
+private val picturesErrors =
     SeeGeneralMediasErrors(
         loadProfile = R.string.seePicturesErrorLoadProfile,
         noProfile = R.string.seePicturesErrorNoProfile,
@@ -36,7 +37,7 @@ class SeePicturesViewModel(
         mediaRepository = mediaRepository,
         circleRepository = circleRepository,
         profileRepository = profileRepository,
-        errors = PICTURES_ERRORS,
+        errors = picturesErrors,
     ) {
 
   init {

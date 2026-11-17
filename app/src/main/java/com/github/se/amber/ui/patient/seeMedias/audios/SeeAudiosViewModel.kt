@@ -28,7 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private val AUDIOS_ERRORS =
+/** Error message resources used by the audio ViewModel, passed to [SeeGeneralMediasViewModel]. */
+private val audiosErrors =
     SeeGeneralMediasErrors(
         loadProfile = R.string.seeAudiosErrorLoadProfile,
         noProfile = R.string.seeAudiosErrorNoProfile,
@@ -57,7 +58,7 @@ class SeeAudiosViewModel(
         mediaRepository = mediaRepository,
         circleRepository = circleRepository,
         profileRepository = profileRepository,
-        errors = AUDIOS_ERRORS,
+        errors = audiosErrors,
     ) {
   private val _playbackStates = MutableStateFlow<Map<String, AudioPlaybackState>>(emptyMap())
   val playbackStates: StateFlow<Map<String, AudioPlaybackState>> = _playbackStates.asStateFlow()
@@ -77,6 +78,10 @@ class SeeAudiosViewModel(
 
   /** Stops the playback if the active audio is no longer in the list. */
   override fun onItemsChanged(items: List<MediaItem.Audio>) {
+    if (loadingAudioId != null && items.none { it.id == loadingAudioId }) {
+      playbackJob?.cancel()
+      loadingAudioId = null
+    }
     if (activeAudioId != null && items.none { it.id == activeAudioId }) {
       playbackJob?.cancel()
       activeFile?.let(audioPlayer::stop)

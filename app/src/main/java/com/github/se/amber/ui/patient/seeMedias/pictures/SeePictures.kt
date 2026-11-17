@@ -31,7 +31,7 @@ object SeePicturesTestTags {
 }
 
 /** Texts and test tags of the pictures screen, given to [SeeGeneralMedias]. */
-private val PICTURES_SCREEN_CONFIG =
+private val picturesScreenConfig =
     SeeGeneralMediasConfig(
         titleRes = R.string.seePicturesTitle,
         retryRes = R.string.seePicturesRetry,
@@ -53,7 +53,7 @@ fun SeePicturesScreen(
 
   SeeGeneralMedias(
       uiState = uiState,
-      config = PICTURES_SCREEN_CONFIG,
+      config = picturesScreenConfig,
       onRetry = pictureViewModel::retry,
       onErrorShown = pictureViewModel::clearErrorMsg,
       onBackClick = onBackClick,

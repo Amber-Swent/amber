@@ -31,7 +31,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-private val TEST_ERRORS =
+private val testErrors =
     SeeGeneralMediasErrors(
         loadProfile = R.string.seePicturesErrorLoadProfile,
         noProfile = R.string.seePicturesErrorNoProfile,
@@ -45,8 +45,11 @@ private class FakeMediasViewModel(
     mediaRepo: MediaRepository,
     circleRepo: CareCircleRepository,
     profileRepo: ProfileRepository,
-) : SeeGeneralMediasViewModel<MediaItem.Picture>(mediaRepo, circleRepo, profileRepo, TEST_ERRORS) {
+) : SeeGeneralMediasViewModel<MediaItem.Picture>(mediaRepo, circleRepo, profileRepo, testErrors) {
   val receivedItems = mutableListOf<List<MediaItem.Picture>>()
+
+  // record the UI state when the callback executes
+  val statesSeenInHook = mutableListOf<SeeGeneralMediasUIState<MediaItem.Picture>>()
 
   init {
     load()
@@ -56,6 +59,7 @@ private class FakeMediasViewModel(
       media.filterIsInstance<MediaItem.Picture>()
 
   override fun onItemsChanged(items: List<MediaItem.Picture>) {
+    statesSeenInHook.add(uiState.value)
     receivedItems.add(items)
   }
 }
@@ -183,6 +187,33 @@ class SeeGeneralMediasViewModelTest {
     )
   }
 
+  @Test
+  fun `onItemsChanged executes before publishing the new UI state`() {
+    val media = MutableStateFlow<List<MediaItem>>(listOf(picture1))
+    coEvery { mediaRepository.observeApprovedMedia("circle1") } returns media
+
+    val viewModel = createViewModel()
+
+    // Initially, picture1 is displayed
+    assertEquals(
+        listOf(picture1),
+        (viewModel.uiState.value as SeeGeneralMediasUIState.Content).items,
+    )
+
+    // Repository publishes a different picture
+    media.value = listOf(picture2)
+
+    // During the callback, the oldstate should still be visible
+    val stateDuringHook = viewModel.statesSeenInHook.last() as SeeGeneralMediasUIState.Content
+
+    assertEquals(listOf(picture1), stateDuringHook.items)
+
+    // After the callback, the newstate should be published
+    val finalState = viewModel.uiState.value as SeeGeneralMediasUIState.Content
+
+    assertEquals(listOf(picture2), finalState.items)
+  }
+
   // ---------------------------------------------------------------------------------------------
   // Blocking errors
   // ---------------------------------------------------------------------------------------------
@@ -193,7 +224,7 @@ class SeeGeneralMediasViewModelTest {
 
     val state = createViewModel().uiState.value as SeeGeneralMediasUIState.BlockingError
 
-    assertEquals(TEST_ERRORS.noProfile, state.errorMsgRes)
+    assertEquals(testErrors.noProfile, state.errorMsgRes)
   }
 
   @Test
@@ -202,7 +233,7 @@ class SeeGeneralMediasViewModelTest {
 
     val state = createViewModel().uiState.value as SeeGeneralMediasUIState.BlockingError
 
-    assertEquals(TEST_ERRORS.loadProfile, state.errorMsgRes)
+    assertEquals(testErrors.loadProfile, state.errorMsgRes)
   }
 
   @Test
@@ -212,7 +243,7 @@ class SeeGeneralMediasViewModelTest {
 
     val state = createViewModel().uiState.value as SeeGeneralMediasUIState.BlockingError
 
-    assertEquals(TEST_ERRORS.noCircle, state.errorMsgRes)
+    assertEquals(testErrors.noCircle, state.errorMsgRes)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
@@ -223,7 +254,7 @@ class SeeGeneralMediasViewModelTest {
 
     val state = createViewModel().uiState.value as SeeGeneralMediasUIState.BlockingError
 
-    assertEquals(TEST_ERRORS.loadCircle, state.errorMsgRes)
+    assertEquals(testErrors.loadCircle, state.errorMsgRes)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
 
@@ -234,7 +265,7 @@ class SeeGeneralMediasViewModelTest {
 
     val state = createViewModel().uiState.value as SeeGeneralMediasUIState.BlockingError
 
-    assertEquals(TEST_ERRORS.loadMedia, state.errorMsgRes)
+    assertEquals(testErrors.loadMedia, state.errorMsgRes)
   }
 
   @Test
@@ -262,7 +293,7 @@ class SeeGeneralMediasViewModelTest {
 
     val withError = viewModel.uiState.value as SeeGeneralMediasUIState.Content
     assertEquals(listOf(picture1), withError.items)
-    assertEquals(TEST_ERRORS.loadMedia, withError.errorMsgRes)
+    assertEquals(testErrors.loadMedia, withError.errorMsgRes)
 
     viewModel.clearErrorMsg()
 
@@ -280,7 +311,7 @@ class SeeGeneralMediasViewModelTest {
         }
     val viewModel = createViewModel()
     assertEquals(
-        TEST_ERRORS.loadMedia,
+        testErrors.loadMedia,
         (viewModel.uiState.value as SeeGeneralMediasUIState.Empty).errorMsgRes,
     )
 
@@ -297,7 +328,7 @@ class SeeGeneralMediasViewModelTest {
     viewModel.clearErrorMsg()
 
     val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
-    assertEquals(TEST_ERRORS.noProfile, state.errorMsgRes)
+    assertEquals(testErrors.noProfile, state.errorMsgRes)
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -319,7 +350,7 @@ class SeeGeneralMediasViewModelTest {
         }
     val viewModel = createViewModel()
     assertEquals(
-        TEST_ERRORS.loadMedia,
+        testErrors.loadMedia,
         (viewModel.uiState.value as SeeGeneralMediasUIState.Content).errorMsgRes,
     )
 

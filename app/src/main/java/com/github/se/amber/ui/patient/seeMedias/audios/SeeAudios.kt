@@ -29,7 +29,7 @@ object SeeAudiosTestTags {
 }
 
 /** Texts and test tags of the audios screen, given to [SeeGeneralMedias]. */
-private val AUDIOS_SCREEN_CONFIG =
+private val audiosScreenConfig =
     SeeGeneralMediasConfig(
         titleRes = R.string.seeAudiosTitle,
         retryRes = R.string.seeAudiosRetry,
@@ -60,7 +60,7 @@ fun SeeAudiosScreen(
 
   SeeGeneralMedias(
       uiState = uiState,
-      config = AUDIOS_SCREEN_CONFIG,
+      config = audiosScreenConfig,
       onRetry = audioViewModel::retry,
       onErrorShown = audioViewModel::clearErrorMsg,
       onBackClick = onBackClick,

@@ -100,6 +100,17 @@ class SeeGeneralMediasTest {
             }
       }
 
+  /**
+   * Displays [SeeGeneralMedias] with a test configuration and a simple text for each item, so that
+   * the tests only check what the general screen itself shows.
+   *
+   * @param state the state the screen starts with; a test can change [uiState] afterwards to check
+   *   that the screen follows it.
+   * @param onRetry called when the Retry button of the blocking error is pressed.
+   * @param onErrorShown called once the non-blocking error was shown in a Toast.
+   * @param onBackClick called when the top navigation action is selected.
+   * @param onTabSelected called when a bottom navigation tab is selected.
+   */
   private fun setContent(
       state: SeeGeneralMediasUIState<MediaItem.Audio> = SeeGeneralMediasUIState.Loading,
       onRetry: () -> Unit = {},

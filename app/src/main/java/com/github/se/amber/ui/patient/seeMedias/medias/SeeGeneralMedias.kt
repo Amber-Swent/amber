@@ -48,8 +48,17 @@ import com.github.se.amber.ui.theme.PATIENT_PADDING_SMALL
 
 /**
  * What differs between two "See medias" screens apart from how one item is drawn: texts and test
- * tags.
+ * tags. No parameter has a default value on purpose: each one belongs to a given screen, so a
+ * default would let a new screen silently show another screen's text or reuse its test tags. The
+ * compiler makes every screen provide all of them.
  *
+ * @param titleRes title of the screen.
+ * @param retryRes text of the Retry button of the blocking error.
+ * @param emptyRes message shown when there is no media of this kind.
+ * @param titleTag test tag of the title.
+ * @param errorTag test tag of the blocking error message.
+ * @param emptyTag test tag of the empty message.
+ * @param loadingTag test tag of the loading indicator.
  * @param cardTag test tag of the [MediaCard] below the item with the given media ID.
  */
 data class SeeGeneralMediasConfig(
@@ -67,6 +76,11 @@ data class SeeGeneralMediasConfig(
  * Scaffold, loading / blocking error / empty states, error Toast and scrollable list shared by the
  * patient "See medias" screens. Each item is its media ([itemContent]) followed by its [MediaCard].
  *
+ * [uiState], [config] and [itemContent] have no default value on purpose: there is no sensible
+ * state to show, no texts that fit every kind of media, and the general screen cannot draw a media
+ * by itself. The callbacks do nothing by default, so a caller (or a test) only gives the ones it
+ * needs.
+ *
  * @param uiState the state to display.
  * @param config texts and test tags of this kind of media.
  * @param onRetry called when the Retry button of the blocking error is pressed.
@@ -80,10 +94,10 @@ data class SeeGeneralMediasConfig(
 fun <T : MediaItem> SeeGeneralMedias(
     uiState: SeeGeneralMediasUIState<T>,
     config: SeeGeneralMediasConfig,
-    onRetry: () -> Unit,
-    onErrorShown: () -> Unit,
-    onBackClick: () -> Unit,
-    onTabSelected: (Tab) -> Unit,
+    onRetry: () -> Unit = {},
+    onErrorShown: () -> Unit = {},
+    onBackClick: () -> Unit = {},
+    onTabSelected: (Tab) -> Unit = {},
     itemContent: @Composable (item: T, circle: CareCircle, modifier: Modifier) -> Unit,
 ) {
   val context = LocalContext.current

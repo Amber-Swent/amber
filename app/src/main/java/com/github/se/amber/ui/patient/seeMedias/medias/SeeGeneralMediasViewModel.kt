@@ -171,7 +171,7 @@ abstract class SeeGeneralMediasViewModel<T : MediaItem>(
             // Show the message once, not on every retry
             if (attempt == 0L) setNonBlockingErrorMsg(errors.loadMedia)
             // Retry the subscription; the current list stays visible while we wait.
-            delay(MEDIA_RETRY_DELAY)
+            delay(mediaRetryDelay)
             true
           }
           .collect { media ->
@@ -196,6 +196,6 @@ abstract class SeeGeneralMediasViewModel<T : MediaItem>(
 
   private companion object {
     /** How long to wait before re-subscribing to the media after an error. */
-    val MEDIA_RETRY_DELAY = 3_000L.milliseconds
+    val mediaRetryDelay = 3_000L.milliseconds
   }
 }
