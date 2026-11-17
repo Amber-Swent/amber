@@ -643,6 +643,101 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(care, fs.get("careCircles/c-missing"))
   }
 
+  @Test
+  fun personPhotos_oneOwnOrRecordedPersonEntry_enforcedByEmulator() {
+    val circleId = "c-photos"
+    val care = "care"
+    val pat = "pat"
+    val aunt = "aunt"
+    val stranger = "stranger"
+    val circlePath = "careCircles/$circleId"
+    fun photo(personId: String, photoId: String = "portrait") =
+        "careCircles/$circleId/people/$personId/$photoId.jpg"
+    fun writePhotos(photos: Map<String, String>) =
+        fs.patch(circlePath, mapOf("personPhotos" to photos))
+
+    val people = mapOf("aunt" to mapOf("id" to aunt, "firstName" to "Aunt"))
+    val seeded = circle(circleId, care, listOf(care, pat), patientId = pat) + ("people" to people)
+    fs.adminSet(circlePath, seeded)
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    fs.adminSet("users/$stranger", user(stranger, "CAREGIVER", emptyList(), "Eve"))
+
+    val none = emptyMap<String, String>()
+    val own = mapOf(pat to photo(pat))
+    val ownLater = mapOf(pat to photo(pat, "later"))
+    val ownAndAunt = mapOf(pat to photo(pat, "later"), aunt to photo(aunt))
+    val ownAndAuntLater = mapOf(pat to photo(pat, "later"), aunt to photo(aunt, "later"))
+    val auntOnly = mapOf(aunt to photo(aunt, "later"))
+    // A missing personPhotos field is {}, so writing {} changes nothing the rules care about.
+    fs.assertSucceeds(pat, writePhotos(none))
+    fs.assertFails(care, writePhotos(mapOf(pat to photo(pat))))
+    fs.assertFails(care, writePhotos(mapOf("nobody" to photo("nobody"))))
+    fs.assertFails(care, writePhotos(mapOf(care to photo(care), aunt to photo(aunt))))
+    fs.assertFails(care, writePhotos(mapOf(care to photo(aunt))))
+    fs.assertFails(care, writePhotos(mapOf(care to "careCircles/$circleId/media/portrait.jpg")))
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/portrait.png")),
+    )
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/my_photo.jpg")),
+    )
+    fs.assertFails(
+        care,
+        fs.patch(
+            circlePath,
+            mapOf(
+                "people" to (people + ("newborn" to mapOf("id" to "newborn", "firstName" to "Bo"))),
+                "personPhotos" to mapOf("newborn" to photo("newborn")),
+            ),
+        ),
+    )
+    fs.assertFails(stranger, writePhotos(mapOf(stranger to photo(stranger))))
+
+    fs.assertSucceeds(pat, writePhotos(own))
+    fs.assertSucceeds(pat, writePhotos(ownLater))
+    fs.assertSucceeds(pat, writePhotos(ownAndAunt))
+    fs.assertSucceeds(pat, writePhotos(ownAndAuntLater))
+    fs.assertSucceeds(pat, writePhotos(auntOnly))
+    fs.assertSucceeds(care, writePhotos(mapOf(aunt to photo(aunt, "later"), care to photo(care))))
+    fs.adminSet(
+        circlePath,
+        seeded + ("personPhotos" to mapOf(aunt to photo(care, "later"), care to photo(care))),
+    )
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(aunt to photo(care, "later"), care to photo(care, "later"))),
+    )
+    fs.adminSet(
+        circlePath,
+        seeded + ("people" to mapOf("au_nt" to mapOf("id" to "au_nt", "firstName" to "Ann"))),
+    )
+    fs.assertFails(care, writePhotos(mapOf("au_nt" to photo("au_nt"))))
+
+    fs.assertFails(
+        care,
+        fs.set(
+            "careCircles/c-born",
+            circle("c-born", care, listOf(care), patientId = "") +
+                ("personPhotos" to mapOf(care to "careCircles/c-born/people/$care/portrait.jpg")),
+        ),
+    )
+    fs.adminSet(
+        "users/$care",
+        user(care, "CAREGIVER", listOf(circleId), "Ada") + ("deletionRequested" to true),
+    )
+    fs.adminSet(circlePath, seeded + ("personPhotos" to mapOf(care to photo(care))))
+    fs.assertFails(care, writePhotos(mapOf(care to photo(care, "later"))))
+    // care is being deleted; pat is not. Removing aunt's key is the case under test.
+    fs.adminSet(
+        circlePath,
+        seeded + ("personPhotos" to mapOf(aunt to photo(aunt), care to photo(care))),
+    )
+    fs.assertSucceeds(pat, writePhotos(mapOf(care to photo(care))))
+  }
+
   companion object {
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L

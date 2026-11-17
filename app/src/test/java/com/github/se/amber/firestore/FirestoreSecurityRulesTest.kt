@@ -445,6 +445,173 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
+  fun personPhotos_oneOwnOrRecordedPersonEntry_enforcedByFakeStore() {
+    val db = FakeFirestore()
+    val circleId = "c1"
+    val aunt = "aunt"
+    fun photo(personId: String, photoId: String = "portrait") =
+        "careCircles/$circleId/people/$personId/$photoId.jpg"
+
+    db.putUser(
+        UserProfile(
+            uid = "care",
+            role = Role.CAREGIVER,
+            person = Person(id = "care"),
+            circleIds = listOf(circleId),
+        ),
+    )
+    db.putUser(
+        UserProfile(
+            uid = "pat",
+            role = Role.PATIENT,
+            person = Person(id = "pat"),
+            circleIds = listOf(circleId),
+        ),
+    )
+    db.putUser(
+        UserProfile(
+            uid = "stranger",
+            role = Role.CAREGIVER,
+            person = Person(id = "stranger"),
+            circleIds = emptyList(),
+        ),
+    )
+    val circle =
+        CareCircle(
+            id = circleId,
+            name = "Family",
+            patientId = "pat",
+            memberIds = listOf("care", "pat"),
+            people = mapOf(aunt to Person(id = aunt, firstName = "Aunt")),
+            createdBy = "care",
+            createdAt = 1L,
+        )
+    db.putCircle(circle)
+
+    val own = circle.copy(personPhotos = mapOf("pat" to photo("pat")))
+    val ownLater = circle.copy(personPhotos = mapOf("pat" to photo("pat", "later")))
+    val ownAndAunt =
+        circle.copy(personPhotos = mapOf("pat" to photo("pat", "later"), aunt to photo(aunt)))
+    val ownAndAuntLater =
+        circle.copy(
+            personPhotos = mapOf("pat" to photo("pat", "later"), aunt to photo(aunt, "later")),
+        )
+    val auntOnly = circle.copy(personPhotos = mapOf(aunt to photo(aunt, "later")))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(circle, circle))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(circle, own))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(own, ownLater))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(ownLater, ownAndAunt))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(ownAndAunt, ownAndAuntLater))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(ownAndAuntLater, auntOnly))
+    assertTrue(db.rulesFor("pat").canUpdateCircle(auntOnly, circle))
+    assertTrue(
+        db.rulesFor("care")
+            .canUpdateCircle(circle, circle.copy(personPhotos = mapOf("care" to photo("care")))),
+    )
+
+    assertFalse(db.rulesFor("care").canUpdateCircle(own, ownLater))
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(personPhotos = mapOf("nobody" to photo("nobody"))),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(personPhotos = mapOf("care" to photo("care"), aunt to photo(aunt))),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(circle, circle.copy(personPhotos = mapOf("care" to photo(aunt)))),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    personPhotos = mapOf("care" to "careCircles/$circleId/media/portrait.jpg"),
+                ),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    personPhotos =
+                        mapOf("care" to "careCircles/$circleId/people/care/portrait.png"),
+                ),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    personPhotos =
+                        mapOf("care" to "careCircles/$circleId/people/care/my_photo.jpg"),
+                ),
+            ),
+    )
+    val underscored =
+        circle.copy(people = mapOf("au_nt" to Person(id = "au_nt", firstName = "Ann")))
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                underscored,
+                underscored.copy(
+                    personPhotos =
+                        mapOf("au_nt" to "careCircles/$circleId/people/au_nt/portrait.jpg"),
+                ),
+            ),
+    )
+    val copied =
+        circle.copy(
+            personPhotos = mapOf(aunt to photo("care", "later"), "care" to photo("care")),
+        )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                copied,
+                copied.copy(
+                    personPhotos =
+                        mapOf(aunt to photo("care", "later"), "care" to photo("care", "later")),
+                ),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("pat")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    people =
+                        circle.people + ("newborn" to Person(id = "newborn", firstName = "Bo")),
+                    personPhotos = mapOf("newborn" to photo("newborn")),
+                ),
+            ),
+    )
+    assertFalse(db.rulesFor("stranger").canUpdateCircle(circle, own))
+    db.markBeingDeleted("pat")
+    assertFalse(db.rulesFor("pat").canUpdateCircle(circle, own))
+
+    val created =
+        CareCircle(id = "c2", memberIds = listOf("care"), createdBy = "care", createdAt = 1L)
+    assertTrue(db.rulesFor("care").canCreateCircle(created))
+    assertFalse(
+        db.rulesFor("care")
+            .canCreateCircle(
+                created.copy(
+                    personPhotos = mapOf("care" to "careCircles/c2/people/care/portrait.jpg"),
+                ),
+            ),
+    )
+  }
+
+  @Test
   fun mediaStoriesAppointments_memberAndRoleGates_enforcedByFakeStore() {
     val db = FakeFirestore()
     db.putUser(
