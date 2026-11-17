@@ -4,6 +4,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.firestore
 
@@ -754,6 +755,37 @@ private class FirestoreSecurityRules(
   fun placesChangedOnlyByCaregiver(before: Map<*, *>, after: Map<*, *>): Boolean =
       before == after || isCaregiver()
 
+  // One personPhotos entry per write. The key is read directly: the writer's uid, or a key of
+  // people on the document before this write. A kept value is that key's photo path. A new path
+  // that copies another entry is refused. Removing the one allowed key is allowed.
+  private fun personPhotosChangeIsValid(
+      circleId: String,
+      before: CareCircle,
+      after: CareCircle,
+  ): Boolean {
+    if (before.personPhotos == after.personPhotos) return true
+    val changedKeys =
+        (before.personPhotos.keys + after.personPhotos.keys).filter {
+          before.personPhotos[it] != after.personPhotos[it]
+        }
+    val key = changedKeys.singleOrNull() ?: return false
+    if (key != authUid && key !in before.people) return false
+    val path = after.personPhotos[key] ?: return true
+    val newValues = after.personPhotos.values.filter { it !in before.personPhotos.values }
+    return newValues == listOf(path) && personPhotoPathMatches(circleId, key, path)
+  }
+
+  private fun personPhotoPathMatches(circleId: String, personId: String, path: String): Boolean {
+    if ('_' in circleId || '_' in personId) return false
+    val parts = path.split('/')
+    return parts.size == 5 &&
+        parts[0] == "careCircles" &&
+        parts[1] == circleId &&
+        parts[2] == "people" &&
+        parts[3] == personId &&
+        parts[4].matches(Regex("[^_]+\\.jpg"))
+  }
+
   // A text has no file: its storagePath must be empty. Any other media's file is in the circle's
   // media folder.
   fun mediaStoragePathMatches(circleId: String, resource: MediaItem): Boolean =
@@ -772,9 +804,10 @@ private class FirestoreSecurityRules(
       return false
     }
     val affected = affectedCircleKeys(before, after)
-    return affected.all { it in setOf("name", "people", "nicknames", "places") } &&
+    return affected.all { it in setOf("name", "people", "nicknames", "places", "personPhotos") } &&
         onlyOwnNicknameChanged(before.nicknames, after.nicknames) &&
-        placesChangedOnlyByCaregiver(before.places, after.places)
+        placesChangedOnlyByCaregiver(before.places, after.places) &&
+        personPhotosChangeIsValid(circleId, before, after)
   }
 
   fun canReadUser(resource: UserProfile): Boolean =
@@ -833,7 +866,8 @@ private class FirestoreSecurityRules(
           resource.createdBy == authUid &&
           resource.memberIds == listOf(authUid) &&
           resource.patientId == "" &&
-          resource.storageBucket == ""
+          resource.storageBucket == "" &&
+          resource.personPhotos.isEmpty()
 
   fun canUpdateCircle(before: CareCircle, after: CareCircle): Boolean =
       memberCircleFieldEdit(before.id, before, after)
@@ -906,6 +940,7 @@ private class FirestoreSecurityRules(
     if (before.memberIds != after.memberIds) keys += "memberIds"
     if (before.people != after.people) keys += "people"
     if (before.nicknames != after.nicknames) keys += "nicknames"
+    if (before.personPhotos != after.personPhotos) keys += "personPhotos"
     if (before.places != after.places) keys += "places"
     if (before.createdBy != after.createdBy) keys += "createdBy"
     if (before.createdAt != after.createdAt) keys += "createdAt"

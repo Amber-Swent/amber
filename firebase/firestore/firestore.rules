@@ -5,6 +5,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 rules_version = '2';
 
 service cloud.firestore {
@@ -92,6 +93,54 @@ service cloud.firestore {
         && userDoc(request.auth.uid).circleIds.hasAny(resource.data.circleIds);
     }
 
+    // One personPhotos entry per write. A missing field counts as {}. The key is the writer's
+    // uid or a key of people before this write, so a same-write edit of people cannot authorize
+    // a new key. A kept value is that key's photo path. Rules v2 cannot index a Set, so the
+    // folder is taken from the single new value; a new path that copies another entry has no
+    // new value and is refused. Removing the one allowed key is allowed. An unchanged map,
+    // including {} added beside a name, people, nicknames, or places edit, stays valid.
+    function personPhotosChangeIsValid(circleId) {
+      let before = resource.data.get('personPhotos', {});
+      let after = request.resource.data.get('personPhotos', {});
+      return before == after || onePersonPhotoEntryChanged(circleId, before, after);
+    }
+
+    function onePersonPhotoEntryChanged(circleId, before, after) {
+      let affected = after.diff(before).affectedKeys();
+      let removed = after.diff(before).removedKeys();
+      let newValues = after.values().removeAll(before.values());
+      return affected.size() == 1
+        && (
+          (removed.size() == 1 && personPhotoKeyAllowed(affected))
+          || (removed.size() == 0 && personPhotoValueIsOwnPath(circleId, affected, newValues))
+        );
+    }
+
+    function personPhotoKeyAllowed(affected) {
+      let peopleKeys = resource.data.get('people', {}).keys();
+      return affected.hasOnly([request.auth.uid])
+        || peopleKeys.union(affected).size() == peopleKeys.size();
+    }
+
+    function personPhotoValueIsOwnPath(circleId, affected, newValues) {
+      return newValues.size() == 1
+        && newValues[0] is string
+        && personPhotoPathMatches(circleId, affected, newValues[0]);
+    }
+
+    function personPhotoPathMatches(circleId, affected, path) {
+      let parts = path.split('/');
+      return parts.size() == 5
+        && parts[0] == 'careCircles'
+        && parts[1] == circleId
+        && parts[2] == 'people'
+        && parts[4].matches('[^_]+\\.jpg')
+        && !circleId.matches('.*_.*')
+        && !parts[3].matches('.*_.*')
+        && (parts[3] == request.auth.uid || parts[3] in resource.data.get('people', {}))
+        && affected.hasOnly([parts[3]]);
+    }
+
     // Membership / invite redeem is backend-only (Admin SDK / Cloud Functions).
     function memberCircleFieldEdit(circleId) {
       return canWriteTo(circleId)
@@ -101,9 +150,10 @@ service cloud.firestore {
         && request.resource.data.memberIds == resource.data.memberIds
         && request.resource.data.patientId == resource.data.patientId
         && request.resource.data.diff(resource.data)
-             .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places'])
+             .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places', 'personPhotos'])
         && onlyOwnNicknameChanged()
-        && placesChangedOnlyByCaregiver();
+        && placesChangedOnlyByCaregiver()
+        && personPhotosChangeIsValid(circleId);
     }
 
     function onlyOwnNicknameChanged() {
@@ -194,6 +244,8 @@ service cloud.firestore {
         && request.resource.data.patientId == ''
         // the bucket is assigned by the backend only: the app writes it empty
         && request.resource.data.get('storageBucket', '') == ''
+        // photos are added after create; a missing or empty map keeps existing creates working
+        && request.resource.data.get('personPhotos', {}) == {}
         && request.resource.data.createdAt is int;
 
       allow update: if memberCircleFieldEdit(circleId);
