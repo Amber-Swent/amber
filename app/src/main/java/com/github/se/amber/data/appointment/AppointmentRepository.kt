@@ -28,6 +28,8 @@ interface AppointmentRepository {
    * Generates a new appointment id on the phone, without writing anything. It works offline.
    *
    * Pass it as [Appointment.id] to [addAppointment]. The id doesn't depend on the circle.
+   *
+   * @return a new random id, not used by any appointment yet.
    */
   fun newId(): String
 
@@ -57,6 +59,10 @@ interface AppointmentRepository {
    *
    * Call it once per appointment. To change an appointment after it is saved, use
    * [updateAppointment].
+   *
+   * @param circleId the id of the care circle the appointment belongs to.
+   * @param appointment the new appointment, with an id from [newId].
+   * @return the appointment as saved on the phone, or a failure with an [AppointmentError].
    */
   suspend fun addAppointment(circleId: String, appointment: Appointment): Result<Appointment>
 
@@ -76,6 +82,10 @@ interface AppointmentRepository {
    * refuses the edit. It is reported in [writeFailures] as [AppointmentError.NotFound].
    *
    * Fails right away, without writing anything, for the same reasons as [addAppointment].
+   *
+   * @param circleId the id of the care circle the appointment belongs to.
+   * @param appointment the appointment with its new values. Its id says which one to change.
+   * @return the appointment as saved on the phone, or a failure with an [AppointmentError].
    */
   suspend fun updateAppointment(circleId: String, appointment: Appointment): Result<Appointment>
 
@@ -88,6 +98,11 @@ interface AppointmentRepository {
    * - [AppointmentError.InvalidCircleId] or [AppointmentError.InvalidAppointmentId] for an invalid
    *   id, as in [addAppointment];
    * - [AppointmentError.NotAuthenticated] when nobody is signed in.
+   *
+   * @param circleId the id of the care circle the appointment belongs to.
+   * @param appointmentId the id of the appointment to delete.
+   * @return success once the deletion is saved on the phone, or a failure with an
+   *   [AppointmentError].
    */
   suspend fun deleteAppointment(circleId: String, appointmentId: String): Result<Unit>
 
