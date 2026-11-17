@@ -25,15 +25,15 @@
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
-    <string name="screenTitleCaregiverSignOut">Sign out</string>
+    <string name="screenTitleSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
-    <string name="screenTitleCaregiverDeleteAccount">Delete account</string>
+    <string name="screenTitleDeleteAccount">Delete account</string>
+    <string name="screenTitleCaregiverChangeCareCircle">Switch Care Circle</string>
     <string name="screenTitlePatientHome">Home</string>
     <string name="screenTitlePatientSeeMedias">See Medias</string>
     <string name="screenTitlePatientSeePictures">See Pictures</string>
     <string name="screenTitlePatientSeeAudios">See Audios</string>
     <string name="screenTitlePatientParameters">Parameters</string>
-    <string name="screenTitlePatientSignOut">Sign out</string>
 
     <!-- EmailSignIn -->
     <string name="signInWelcome">Welcome to Amber</string>
@@ -146,15 +146,24 @@
     <!-- CaregiverParameter -->
     <string name="caregiverParameterTitle">Parameters</string>
     <string name="caregiverParameterCreateCareCircle">Create a new care circle</string>
+    <string name="caregiverParameterSwitchCareCircle">Switch Care Circle</string>
     <string name="caregiverParameterCreateInvitation">Create Invitation</string>
     <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
     <string name="caregiverParameterSignOut">Sign out</string>
     <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
     <string name="caregiverParameterDeleteAccount">Delete account</string>
 
+    <!-- ChangeCareCircle -->
+    <string name="changeCareCircleTitle">Switch Care Circle</string>
+    <string name="changeCareCircleCurrent">Current care circle:</string>
+    <string name="changeCareCircleAll">All care circles:</string>
+    <string name="changeCareCircleNone">No active care circle</string>
+    <string name="changeCareCircleEmpty">You are not linked to any care circle.\nYou can create one from %1$s &gt; %2$s, or join one from %1$s &gt; %3$s.</string>
+
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Delete account</string>
-    <string name="deleteAccountExplanation">Deletion is permanent. Everything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
+    <string name="deleteAccountCaregiverExplanation">Deletion is permanent.\nEverything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
+    <string name="deleteAccountPatientExplanation">Deletion is permanent. You won\'t be able to recover your account.\nEverything you uploaded will be deleted.</string>
     <string name="deleteAccountProgress">Deleting your account. This may take a few minutes.</string>
     <string name="deleteAccountCleanupLabel">Finish deleting</string>
     <string name="deleteAccountCheckingLabel">Checking your families…</string>
@@ -275,6 +284,12 @@
     <string name="uploadAudioErrorStartRecording">Could not start the recording</string>
     <string name="uploadAudioErrorStopRecording">Could not keep the recording</string>
     <string name="uploadAudioErrorPlayRecording">Could not play the recording</string>
+    <string name="uploadAudioMicrophoneTitle">Use of the microphone</string>
+    <string name="uploadAudioMicrophoneUnderstood">Got it</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">To record an audio, Amber needs access to your microphone.</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">It is only used while you are recording, after you tap the record button.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">You have declined microphone access twice, so Amber can no longer ask for it.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">To record an audio, turn on the microphone for Amber in your phone\'s settings.</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>
@@ -334,6 +349,7 @@
     <!-- PatientParameter -->
     <string name="patientParameterTitle">Parameters</string>
     <string name="patientParameterSignOut">Sign out</string>
+    <string name="patientParameterDeleteAccount">Delete account</string>
 
     <!-- SeeMedias -->
     <string name="seeMediasTitle">See Medias</string>
@@ -382,4 +398,9 @@
     <string name="audioPlaybackLoading">Loading</string>
     <string name="audioPlaybackRetry">Retry</string>
     <string name="audioPlaybackError">This memo could not be played.</string>
+    <!-- MediaMap -->
+    <string name="mediaMapErrorNoProfile">No profile found.</string>
+    <string name="mediaMapErrorLoadProfile">Failed to load the profile.</string>
+    <string name="mediaMapErrorNoCircle">No care circle found.</string>
+    <string name="mediaMapErrorLoadMedia">Failed to load the memories of the map.</string>
 </resources>

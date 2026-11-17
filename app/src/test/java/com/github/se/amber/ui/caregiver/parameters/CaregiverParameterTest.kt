@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -49,6 +50,7 @@ class CaregiverParameterScreenTest {
   private fun setScreen(
       viewModel: CaregiverParameterViewModel = CaregiverParameterViewModel(),
       onTabSelected: (Tab) -> Unit = {},
+      onSwitchCareCircleClick: () -> Unit = {},
       onCreateInvitationClick: () -> Unit = {},
       onEnterInvitationClick: () -> Unit = {},
       onSignOutClick: () -> Unit = {},
@@ -59,6 +61,7 @@ class CaregiverParameterScreenTest {
         CaregiverParameterScreen(
             viewModel = viewModel,
             onTabSelected = onTabSelected,
+            onSwitchCareCircleClick = onSwitchCareCircleClick,
             onCreateInvitationClick = onCreateInvitationClick,
             onEnterInvitationClick = onEnterInvitationClick,
             onSignOutClick = onSignOutClick,
@@ -80,6 +83,15 @@ class CaregiverParameterScreenTest {
 
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON)
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun switchCareCircleButtonIsDisplayed() {
+    setScreen()
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.SWITCH_CARE_CIRCLE_BUTTON)
         .assertIsDisplayed()
   }
 
@@ -114,6 +126,7 @@ class CaregiverParameterScreenTest {
 
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
+        .performScrollTo()
         .assertIsDisplayed()
         .assertTextEquals(invitationHint)
   }
@@ -168,10 +181,24 @@ class CaregiverParameterScreenTest {
 
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON)
+        .performScrollTo()
         .assertIsDisplayed()
         .performClick()
 
     assertEquals(1, deleteAccountClicks)
+  }
+
+  @Test
+  fun switchCareCircleButtonCallsCallbackOnClick() {
+    var clicks = 0
+    setScreen(onSwitchCareCircleClick = { clicks++ })
+
+    composeTestRule
+        .onNodeWithTag(CaregiverParametersTestTags.SWITCH_CARE_CIRCLE_BUTTON)
+        .performScrollTo()
+        .performClick()
+
+    assertEquals(1, clicks)
   }
 
   @Test
@@ -352,6 +379,7 @@ class CaregiverParameterScreenTest {
 
     composeTestRule
         .onNodeWithTag(CaregiverParametersTestTags.INVITATION_HINT)
+        .performScrollTo()
         .assertIsDisplayed()
         .assertTextEquals(invitationHint)
   }

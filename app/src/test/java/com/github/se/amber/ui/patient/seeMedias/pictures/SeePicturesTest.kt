@@ -1,5 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.pictures
 
@@ -19,6 +20,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -36,6 +38,7 @@ import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasUIState
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,6 +74,7 @@ class SeePicturesScreenTest {
 
   private val mediaRepository = mockk<MediaRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
   private val profileRepository = mockk<ProfileRepository>()
 
   private val profile =
@@ -89,7 +93,12 @@ class SeePicturesScreenTest {
             object : ViewModelProvider.Factory {
               @Suppress("UNCHECKED_CAST")
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                  MediaCardViewModel(profileRepository, circleRepository) as T
+                  MediaCardViewModel(
+                      profileRepository,
+                      circleRepository,
+                      activeCircleRepository,
+                  )
+                      as T
             }
       }
 
@@ -97,6 +106,7 @@ class SeePicturesScreenTest {
   fun setUp() {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
+    every { activeCircleRepository.activeCircleId(any(), any()) } returns flowOf("circle1")
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.success(CareCircle(id = "circle1"))
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(emptyList())

@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -42,6 +43,18 @@ android {
     // Lets the orchestrator collect each process's coverage file
     testInstrumentationRunnerArguments["useTestStorageService"] = "true"
     vectorDrawables { useSupportLibrary = true }
+
+    // Google Maps key: MAPS_API_KEY in local.properties locally, the MAPS_API_KEY secret on CI.
+    // Without one, the app still builds; the map just shows no tiles.
+    val localProperties = Properties()
+    rootProject
+        .file("local.properties")
+        .takeIf { it.exists() }
+        ?.reader()
+        ?.use(localProperties::load)
+    val mapsApiKey =
+        localProperties.getProperty("MAPS_API_KEY") ?: System.getenv("MAPS_API_KEY").orEmpty()
+    manifestPlaceholders["mapsApiKey"] = mapsApiKey.ifBlank { "MISSING_MAPS_API_KEY" }
   }
 
   buildTypes {
@@ -217,6 +230,10 @@ dependencies {
   implementation(libs.firebase.storage)
   // Task.await() for Firebase calls
   implementation(libs.kotlinx.coroutines.play.services)
+
+  // ----------      Google Maps      ------------
+  // The memories map; the key comes from manifestPlaceholders["mapsApiKey"]
+  implementation(libs.maps.compose)
 
   // ----------       DataStore       ------------
   // Remembers which care circle is active on this device, per signed-in user.
