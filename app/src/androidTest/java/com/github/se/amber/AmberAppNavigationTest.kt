@@ -3,8 +3,8 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber
 
@@ -20,7 +20,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
-import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
+import com.github.se.amber.ui.authentication.signOut.SignOutTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
 import com.github.se.amber.ui.navigation.AuthScreen
@@ -82,7 +82,7 @@ class AmberAppNavigationTest {
     const val CAREGIVER_PARAMETERS_DELETE_ACCOUNT =
         CaregiverParametersTestTags.DELETE_ACCOUNT_BUTTON
     const val CREATE_INVITATION_BACK = TopNavigationMenuTestTags.BACK_BUTTON
-    const val SIGN_OUT_CONFIRM = SignOutButtonTestTags.BUTTON
+    const val SIGN_OUT_CONFIRM = SignOutTestTags.BUTTON
     const val SIGN_OUT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val DELETE_ACCOUNT_CANCEL = TopNavigationMenuTestTags.BACK_BUTTON
 
@@ -91,6 +91,7 @@ class AmberAppNavigationTest {
     val PATIENT_TAB_SEE_MEDIAS = tabTag(PatientTab.SeeMedias)
     val PATIENT_TAB_PARAMETERS = tabTag(PatientTab.Setting)
     const val PATIENT_PARAMETERS_SIGN_OUT = PatientParameterTestTags.SIGN_OUT_BUTTON
+    const val PATIENT_PARAMETERS_DELETE_ACCOUNT = PatientParameterTestTags.DELETE_BUTTON
     const val SEE_PICTURES_BACK = TopNavigationMenuTestTags.BACK_BUTTON
   }
 
@@ -507,6 +508,27 @@ class AmberAppNavigationTest {
     click(Tags.PATIENT_PARAMETERS_SIGN_OUT)
 
     assertRoute(PatientScreen.SignOut.route)
+  }
+
+  @Test
+  fun patientParameters_deleteAccount_navigatesToDeleteAccountScreen() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.Parameters.route)
+
+    click(Tags.PATIENT_PARAMETERS_DELETE_ACCOUNT)
+
+    assertRoute(PatientScreen.DeleteAccount.route)
+  }
+
+  @Test
+  fun patientDeleteAccount_cancel_returnsToParameters() {
+    launch(NavGraphs.PATIENT)
+    goTo(PatientScreen.Parameters.route)
+    goTo(PatientScreen.DeleteAccount.route)
+
+    click(Tags.DELETE_ACCOUNT_CANCEL)
+
+    assertRoute(PatientScreen.Parameters.route)
   }
 
   @Test

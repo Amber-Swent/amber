@@ -21,16 +21,15 @@
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
     <string name="screenTitleCaregiverParameters">Paramètres</string>
-    <string name="screenTitleCaregiverSignOut">Déconnexion</string>
+    <string name="screenTitleSignOut">Déconnexion</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
+    <string name="screenTitleDeleteAccount">Supprimer son compte</string>
     <string name="screenTitleCaregiverChangeCareCircle">Changer de cercle de soins</string>
-    <string name="screenTitleCaregiverDeleteAccount">Supprimer son compte</string>
     <string name="screenTitlePatientHome">Accueil</string>
     <string name="screenTitlePatientSeeMedias">Voir les médias</string>
     <string name="screenTitlePatientSeePictures">Voir les photos</string>
     <string name="screenTitlePatientSeeAudios">Voir les audios</string>
     <string name="screenTitlePatientParameters">Paramètres</string>
-    <string name="screenTitlePatientSignOut">Déconnexion</string>
 
     <!-- EmailSignIn -->
     <string name="signInWelcome">Bienvenue sur Amber</string>
@@ -162,7 +161,8 @@
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Supprimer son compte</string>
-    <string name="deleteAccountExplanation">La suppression est définitive. Vos contenus importés et vos histoires sont supprimés pour toute la famille, y compris des histoires des autres personnes. Les photos de vous importées par d\'autres personnes restent, même si vous y figurez. Vous êtes également retiré des rendez-vous.</string>
+    <string name="deleteAccountCaregiverExplanation">La suppression est définitive.\nVos contenus importés et vos histoires sont supprimés pour toute la famille, y compris des histoires des autres personnes. Les photos de vous importées par d\'autres personnes restent, même si vous y figurez. Vous êtes également retiré des rendez-vous.</string>
+    <string name="deleteAccountPatientExplanation">La suppression est définitive. Vous ne pourrez pas récupérer votre compte.\nTout ce que vous avez ajouté sera supprimé.</string>
     <string name="deleteAccountProgress">Suppression de votre compte en cours. Cela peut prendre quelques minutes.</string>
     <string name="deleteAccountCleanupLabel">Terminer la suppression</string>
     <string name="deleteAccountCheckingLabel">Vérification de vos familles…</string>
@@ -351,6 +351,7 @@
     <!-- PatientParameter -->
     <string name="patientParameterTitle">Paramètres</string>
     <string name="patientParameterSignOut">Se déconnecter</string>
+    <string name="patientParameterDeleteAccount">Supprimer votre compte</string>
 
     <!-- SeeMedias -->
     <string name="seeMediasTitle">Voir les médias</string>
