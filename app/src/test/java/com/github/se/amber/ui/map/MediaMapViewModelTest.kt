@@ -555,11 +555,63 @@ class MediaMapViewModelTest {
     scheduler.runCurrent()
     assertFalse(locationUpdates.isRunning)
 
-    // The GPS starts again: the last position stays until the next update, no "searching" between
+    // The GPS starts again with "searching", like the real repository: the last position stays,
+    // as last known, until a new one comes
+    locationUpdates.updates.value = LocationUpdate.Searching
     val seenAgain = mutableListOf<MediaMapLocationState>()
     viewModel.showMap(seenAgain)
     advanceMain()
-    assertEquals(listOf(MediaMapLocationState.Located(farFromLausanne)), seenAgain)
+    locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
+    advanceMain()
+    assertEquals(
+        listOf(
+            MediaMapLocationState.Located(farFromLausanne),
+            MediaMapLocationState.Located(farFromLausanne.copy(isLastKnown = true)),
+            MediaMapLocationState.Located(nearLausanne, nearbyMarkers = listOf(twoPins[0])),
+        ),
+        seenAgain,
+    )
+  }
+
+  @Test
+  fun aPositionShownBeforeTheGPSStoppedIsNotPreciseWhenShownAgainNorNearAPin() {
+    val scheduler = useStandardDispatcher().scheduler
+    val viewModel = createViewModel()
+    val firstMap = viewModel.showMap()
+    locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
+    advanceMain()
+    firstMap.cancel()
+    scheduler.advanceTimeBy(MAP_LOCATION_STOP_DELAY_MILLIS)
+    scheduler.runCurrent()
+
+    locationUpdates.updates.value = LocationUpdate.Searching
+    viewModel.showMap()
+    advanceMain()
+
+    val shownAgain = viewModel.location() as MediaMapLocationState.Located
+    assertEquals(MediaMapLocationState.Located(nearLausanne.copy(isLastKnown = true)), shownAgain)
+    assertFalse(shownAgain.isPrecise)
+  }
+
+  @Test
+  fun afterTheLocationWasOffOrUnavailableTheMapShownAgainSearchesWithoutAnOldPosition() {
+    val viewModel = createViewModel()
+    viewModel.showMap()
+    locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
+    locationUpdates.updates.value = LocationUpdate.LocationOff
+    locationUpdates.updates.value = LocationUpdate.Searching
+    assertEquals(MediaMapLocationState.Searching, viewModel.location())
+
+    locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
+    locationUpdates.failure.value = IllegalStateException("Google Play services missing")
+    assertEquals(MediaMapLocationState.Unavailable, viewModel.location())
+    locationUpdates.failure.value = null
+    locationUpdates.updates.value = LocationUpdate.Searching
+    locationUpdates.permission = false
+    viewModel.refreshPermission()
+    locationUpdates.permission = true
+    viewModel.refreshPermission()
+    assertEquals(MediaMapLocationState.Searching, viewModel.location())
   }
 
   @Test

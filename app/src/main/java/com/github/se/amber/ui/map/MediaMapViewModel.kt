@@ -97,7 +97,10 @@ sealed interface MediaMapLocationState {
   /**
    * The user is at [position]. [nearbyMarkers] are the pins near it, nearest first (see [nearby]):
    * empty if none is, or if the position isn't [isPrecise]. A pin that became near stays near up to
-   * [NEARBY_EXIT_MARGIN_METERS] further, so it doesn't blink.
+   * [NEARBY_EXIT_MARGIN_METERS] further, so it doesn't blink. The margin is forgotten once the GPS
+   * stops: the user may have moved far by the time the map is shown again.
+   *
+   * When the map is shown again, the last position stays, as last known, until a new one comes.
    */
   data class Located(
       val position: DevicePosition,
@@ -327,14 +330,21 @@ class MediaMapViewModel(
         }
       }
 
-  /** The live position; the repository first says whether the location is on. */
+  /**
+   * The live position; the repository first says whether the location is on. When the GPS starts
+   * again, the position shown before stays as last known while searching, so it isn't said precise
+   * nor near a pin until a new one comes.
+   */
   private fun positions(): Flow<MediaMapLocationState> =
       locationUpdatesRepository
           .observeLocation()
           .map { update ->
             when (update) {
               LocationUpdate.LocationOff -> MediaMapLocationState.LocationOff
-              LocationUpdate.Searching -> MediaMapLocationState.Searching
+              LocationUpdate.Searching ->
+                  (locationState.value as? MediaMapLocationState.Located)?.let {
+                    MediaMapLocationState.Located(it.position.copy(isLastKnown = true))
+                  } ?: MediaMapLocationState.Searching
               is LocationUpdate.Position -> MediaMapLocationState.Located(update.position)
             }
           }

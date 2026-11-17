@@ -5,7 +5,8 @@ package com.github.se.amber.data.location
 import com.github.se.amber.model.location.TestPositions.LAUSANNE_FLON
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -41,6 +42,23 @@ class FakeLocationUpdatesRepositoryTest {
       }
 
   @Test
+  fun eachCollectionStartsWithTheSettingLikeTheRealRepositoryNotTheLastPosition() =
+      runTest(UnconfinedTestDispatcher()) {
+        val repository = FakeLocationUpdatesRepository()
+        repository.updates.value = here
+        assertEquals(
+            listOf(LocationUpdate.Searching, here),
+            repository.observeLocation().take(2).toList(),
+        )
+
+        repository.updates.value = LocationUpdate.LocationOff
+        val received = mutableListOf<LocationUpdate>()
+        val job = launch { repository.observeLocation().collect { received.add(it) } }
+        job.cancel()
+        assertEquals(listOf(LocationUpdate.LocationOff), received)
+      }
+
+  @Test
   fun aFailureStopsTheRunningCollectionAfterItsUpdatesAndTheNextOneAtOnce() =
       runTest(UnconfinedTestDispatcher()) {
         val denied = SecurityException("permission taken back")
@@ -62,7 +80,10 @@ class FakeLocationUpdatesRepositoryTest {
         assertSameError(denied, caughtAgain)
 
         repository.failure.value = null
-        assertEquals(here, repository.observeLocation().first())
+        assertEquals(
+            listOf(LocationUpdate.Searching, here),
+            repository.observeLocation().take(2).toList(),
+        )
       }
 
   private fun assertSameError(expected: Throwable, actual: Throwable?) {
