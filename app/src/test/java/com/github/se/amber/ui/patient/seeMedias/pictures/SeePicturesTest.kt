@@ -35,6 +35,7 @@ import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
+import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasUIState
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.coEvery
 import io.mockk.every
@@ -185,7 +186,7 @@ class SeePicturesScreenTest {
 
     val viewModel = setContent()
 
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Loading)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
     composeTestRule.onNodeWithTag(PatientUtilsTestTags.BUTTON).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertDoesNotExist()
@@ -222,7 +223,7 @@ class SeePicturesScreenTest {
 
     val viewModel = setContent()
 
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Content)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("1")).assertExists()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.picture("2")).assertExists()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.pictureCard("1")).assertExists()
@@ -267,7 +268,7 @@ class SeePicturesScreenTest {
     val viewModel = setContent()
 
     assertEquals(string(R.string.seePicturesErrorLoadMedia), ShadowToast.getTextOfLatestToast())
-    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsgRes)
+    assertNull((viewModel.uiState.value as SeeGeneralMediasUIState.Empty).errorMsgRes)
     // The screen is still usable: no blocking error replaced it
     composeTestRule.onNodeWithTag(SeePicturesTestTags.NO_PICTURES).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
@@ -285,9 +286,9 @@ class SeePicturesScreenTest {
     val viewModel = setContent()
 
     assertEquals(string(R.string.seePicturesErrorLoadMedia), ShadowToast.getTextOfLatestToast())
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
     assertNull(state.errorMsgRes)
-    assertEquals(listOf(picture), state.allPictures)
+    assertEquals(listOf(picture), state.items)
     composeTestRule.onNodeWithTag(SeePicturesTestTags.ERROR).assertDoesNotExist()
   }
 
