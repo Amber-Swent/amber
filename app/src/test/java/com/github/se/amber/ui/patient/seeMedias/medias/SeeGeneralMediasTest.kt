@@ -21,6 +21,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -84,6 +85,7 @@ class SeeGeneralMediasTest {
 
   private val circleRepository = mockk<CareCircleRepository>()
   private val profileRepository = mockk<ProfileRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
 
   private val uiState =
       mutableStateOf<SeeGeneralMediasUIState<MediaItem.Audio>>(SeeGeneralMediasUIState.Loading)
@@ -101,7 +103,8 @@ class SeeGeneralMediasTest {
             object : ViewModelProvider.Factory {
               @Suppress("UNCHECKED_CAST")
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                  MediaCardViewModel(profileRepository, circleRepository) as T
+                  MediaCardViewModel(profileRepository, circleRepository, activeCircleRepository)
+                      as T
             }
       }
 
