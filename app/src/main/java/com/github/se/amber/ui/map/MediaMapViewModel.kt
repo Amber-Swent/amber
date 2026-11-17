@@ -33,11 +33,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -182,9 +184,13 @@ class MediaMapViewModel(
 
   private val hasLocationPermission = MutableStateFlow(locationUpdatesRepository.hasPermission())
 
+  // The real first state, so the screen doesn't show "searching" before the location is off
   private val initialLocationState =
-      if (hasLocationPermission.value) MediaMapLocationState.Searching
-      else MediaMapLocationState.NoPermission
+      when {
+        !hasLocationPermission.value -> MediaMapLocationState.NoPermission
+        !locationUpdatesRepository.isLocationEnabled() -> MediaMapLocationState.LocationOff
+        else -> MediaMapLocationState.Searching
+      }
 
   /**
    * The user's position and the pin near them. The GPS runs only while this is collected, and stops
@@ -196,19 +202,19 @@ class MediaMapViewModel(
           .flatMapLatest { granted ->
             if (granted) positions() else flowOf(MediaMapLocationState.NoPermission)
           }
-          .combine(loaded) { location, loaded ->
-            location to (loaded as? Loaded.Markers)?.markers.orEmpty()
-          }
-          // The pins near before are kept up to the exit margin, so they don't blink
-          .scan(initialLocationState) { previous, (location, markers) ->
+          .combine(shownMarkers()) { location, markers -> location to markers }
+          // The pins near before are kept up to the exit margin, so they don't blink. The fold
+          // starts from null, which isn't emitted: the first state is the repository's
+          .runningFold<_, MediaMapLocationState?>(null) { previous, (location, markers) ->
             if (location !is MediaMapLocationState.Located || !location.isPrecise) {
-              return@scan location
+              return@runningFold location
             }
             val nearBefore = (previous as? MediaMapLocationState.Located)?.nearbyMarkers.orEmpty()
             location.copy(
                 nearbyMarkers = markers.nearby(location.position, nearBefore.map { it.id }.toSet())
             )
           }
+          .filterNotNull()
           .distinctUntilChanged()
           .stateIn(
               viewModelScope,
@@ -308,6 +314,19 @@ class MediaMapViewModel(
         }
   }
 
+  /**
+   * The pins the position is compared with. While they reload, the last ones are kept, so a pin
+   * near you doesn't lose its exit margin on a reload of the same pins.
+   */
+  private fun shownMarkers(): Flow<List<MediaMarker>> =
+      loaded.scan(emptyList()) { previous, next ->
+        when (next) {
+          Loaded.Loading -> previous
+          is Loaded.Failed -> emptyList()
+          is Loaded.Markers -> next.markers
+        }
+      }
+
   /** The live position; the repository first says whether the location is on. */
   private fun positions(): Flow<MediaMapLocationState> =
       locationUpdatesRepository
@@ -321,7 +340,7 @@ class MediaMapViewModel(
           }
           .catch { e ->
             if (e is SecurityException) {
-              // Taken back in the settings: the flow above switches to NoPermission
+              // Missing when the GPS started: the flow above switches to NoPermission
               hasLocationPermission.value = false
             } else {
               Log.e(TAG, "Error reading the location", e)

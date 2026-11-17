@@ -86,9 +86,13 @@ class FusedLocationUpdatesRepositoryTest {
     return received
   }
 
-  private fun locationSettingChanged(enabled: Boolean) {
+  /** Sets the location on or off, then sends [action] as the system does when it changes. */
+  private fun locationSettingChanged(
+      enabled: Boolean,
+      action: String = LocationManager.PROVIDERS_CHANGED_ACTION,
+  ) {
     shadowOf(locationManager).setLocationEnabled(enabled)
-    app.sendBroadcast(Intent(LocationManager.PROVIDERS_CHANGED_ACTION).setPackage(app.packageName))
+    app.sendBroadcast(Intent(action).setPackage(app.packageName))
     shadowOf(Looper.getMainLooper()).idle()
   }
 
@@ -106,6 +110,19 @@ class FusedLocationUpdatesRepositoryTest {
 
     shadowOf(app).grantPermissions(Manifest.permission.ACCESS_COARSE_LOCATION)
     assertTrue(repository.hasPermission())
+  }
+
+  @Test
+  fun tellsWhetherTheLocationIsOnAndSaysOffWithoutALocationService() {
+    assertTrue(repository.isLocationEnabled())
+
+    shadowOf(locationManager).setLocationEnabled(false)
+    assertFalse(repository.isLocationEnabled())
+
+    shadowOf(locationManager).setLocationEnabled(true)
+    assertFalse(
+        FusedLocationUpdatesRepository(app, client, locationManager = null).isLocationEnabled()
+    )
   }
 
   @Test
@@ -174,10 +191,35 @@ class FusedLocationUpdatesRepositoryTest {
       }
 
   @Test
+  fun aProviderChangeWhileTheLocationStaysOnKeepsThePositionAndTheModeChangeIsHeardToo() =
+      runTest(UnconfinedTestDispatcher()) {
+        val here = LAUSANNE_FLON.copy(accuracyMeters = GPS_ACCURACY_METERS)
+
+        val received = updatesWhile {
+          callback.captured.onLocationResult(LocationResult.create(listOf(here.toLocation())))
+          // e.g. Wi-Fi scanning turned off: a provider changed, the location is still on
+          locationSettingChanged(enabled = true)
+          locationSettingChanged(enabled = false, action = LocationManager.MODE_CHANGED_ACTION)
+          // Both broadcasts come for one change: the second one sends nothing more
+          locationSettingChanged(enabled = false)
+        }
+
+        assertEquals(
+            listOf(
+                LocationUpdate.Searching,
+                LocationUpdate.Position(here),
+                LocationUpdate.LocationOff,
+            ),
+            received,
+        )
+      }
+
+  @Test
   fun stoppingTheCollectionStopsTheGPSAndTheSettingsReceiver() =
       runTest(UnconfinedTestDispatcher()) {
         val job = launch { repository.observeLocation().collect() }
-        settingsReceivers().single() // exactly one, or this throws
+        val receiver = settingsReceivers().single() // exactly one, or this throws
+        assertTrue(receiver.intentFilter.hasAction(LocationManager.MODE_CHANGED_ACTION))
 
         job.cancel()
 

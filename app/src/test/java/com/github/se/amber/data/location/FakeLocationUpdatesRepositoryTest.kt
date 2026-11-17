@@ -30,8 +30,10 @@ class FakeLocationUpdatesRepositoryTest {
         val job = launch { repository.observeLocation().collect { received.add(it) } }
         assertTrue(repository.isRunning)
 
+        assertTrue(repository.isLocationEnabled())
         repository.updates.value = here
         repository.updates.value = LocationUpdate.LocationOff
+        assertFalse(repository.isLocationEnabled())
         job.cancel()
 
         assertEquals(listOf(LocationUpdate.Searching, here, LocationUpdate.LocationOff), received)

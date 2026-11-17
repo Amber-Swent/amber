@@ -95,7 +95,7 @@ Caregivers can use the phone's camera and microphone to add memories to a care c
 | **Camera** | Caregivers can take a picture in the app or choose an existing one from the phone's gallery before uploading it.                                                                              |
 | **Microphone** | Caregivers can record a voice memo in the app and upload it with a description for the circle.                                                                                                |
 | **Place search** | Caregivers can tag a picture with a saved place or search for a place by name or address. Amber uses Android's Geocoder to suggest places.                                                    |
-| **Location (GPS)** | While the memories map is open, Amber reads the phone's position to show it as a dot on the map and to point out a memory within about 100 m. It works without internet, as it uses the GPS.  |
+| **Location (GPS)** | While the memories map is open, Amber reads the phone's position to show it as a dot on the map and to point out the memories within about 100 m. It works without internet, as it uses the GPS. |
 
 Amber asks for microphone permission the first time a caregiver records a voice memo. Taking a picture opens the phone’s own camera app. Searching for place suggestions requires a network connection.
 

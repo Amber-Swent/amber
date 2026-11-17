@@ -129,9 +129,16 @@ class MediaMapViewModelTest {
           locationUpdates,
       )
 
-  /** Collects [MediaMapViewModel.locationState], as the screen does, until cancelled. */
-  private fun MediaMapViewModel.showMap(): Job =
-      CoroutineScope(Dispatchers.Main).launch { locationState.collect {} }.also { shownMaps += it }
+  /**
+   * Collects [MediaMapViewModel.locationState], as the screen does, until cancelled, adding each
+   * state to [seen].
+   */
+  private fun MediaMapViewModel.showMap(
+      seen: MutableList<MediaMapLocationState> = mutableListOf()
+  ): Job =
+      CoroutineScope(Dispatchers.Main)
+          .launch { locationState.collect { seen += it } }
+          .also { shownMaps += it }
 
   private fun MediaMapViewModel.content() = uiState.value as MediaMapUIState.Content
 
@@ -489,6 +496,19 @@ class MediaMapViewModelTest {
   }
 
   @Test
+  fun aPinNearYouKeepsItsExitMarginWhileTheSamePinsReload() {
+    val viewModel = createViewModel()
+    viewModel.showMap()
+    val atEdge = atLausannePin.movedNorth(NEARBY_RADIUS_METERS + NEARBY_EXIT_MARGIN_METERS / 2)
+    locationUpdates.updates.value = LocationUpdate.Position(nearLausanne)
+    locationUpdates.updates.value = LocationUpdate.Position(atEdge)
+
+    viewModel.retry()
+
+    assertEquals(MediaMapLocationState.Located(atEdge, listOf(twoPins[0])), viewModel.location())
+  }
+
+  @Test
   fun thePinNearYouFollowsThePinsAsTheyChange() {
     mediaLocationRepository.markers.value = mapOf("circle1" to genevaOnly)
     val viewModel = createViewModel()
@@ -516,6 +536,30 @@ class MediaMapViewModelTest {
 
     locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
     assertEquals(MediaMapLocationState.Located(farFromLausanne), viewModel.location())
+  }
+
+  @Test
+  fun theMapStartsOnTheRealLocationStateWithoutSearchingFirstAlsoWhenShownAgain() {
+    val scheduler = useStandardDispatcher().scheduler
+    locationUpdates.updates.value = LocationUpdate.LocationOff
+    val viewModel = createViewModel()
+    val seenFirstTime = mutableListOf<MediaMapLocationState>()
+    val firstMap = viewModel.showMap(seenFirstTime)
+    advanceMain()
+    assertEquals(listOf(MediaMapLocationState.LocationOff), seenFirstTime)
+
+    locationUpdates.updates.value = LocationUpdate.Position(farFromLausanne)
+    advanceMain()
+    firstMap.cancel()
+    scheduler.advanceTimeBy(MAP_LOCATION_STOP_DELAY_MILLIS)
+    scheduler.runCurrent()
+    assertFalse(locationUpdates.isRunning)
+
+    // The GPS starts again: the last position stays until the next update, no "searching" between
+    val seenAgain = mutableListOf<MediaMapLocationState>()
+    viewModel.showMap(seenAgain)
+    advanceMain()
+    assertEquals(listOf(MediaMapLocationState.Located(farFromLausanne)), seenAgain)
   }
 
   @Test

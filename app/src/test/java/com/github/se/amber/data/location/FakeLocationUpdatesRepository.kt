@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.merge
 /**
  * A [LocationUpdatesRepository] whose permission and updates the test sets, like the real one:
  * - [hasPermission] returns [permission];
+ * - [isLocationEnabled] is false while the current [updates] is [LocationUpdate.LocationOff];
  * - each collection first gets the current [updates] ([LocationUpdate.Searching] at first), then
  *   each new one;
  * - setting [failure] stops the running collections with it, and the next ones at once, until it is
@@ -31,6 +32,8 @@ class FakeLocationUpdatesRepository(var permission: Boolean = true) : LocationUp
     get() = activeCollectors > 0
 
   override fun hasPermission(): Boolean = permission
+
+  override fun isLocationEnabled(): Boolean = updates.value != LocationUpdate.LocationOff
 
   override fun observeLocation(): Flow<LocationUpdate> = flow {
     activeCollectors++

@@ -23,7 +23,6 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -51,51 +50,75 @@ class FusedLocationUpdatesRepository(
     ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
   }
 
-  // The permission is checked first; a permission taken back later throws a SecurityException
+  override fun isLocationEnabled(): Boolean = locationManager?.isLocationEnabled == true
+
+  // The permission is checked first; Android ends the app's process if it is taken back later
   @SuppressLint("MissingPermission")
   override fun observeLocation(): Flow<LocationUpdate> = callbackFlow {
     if (!hasPermission()) throw SecurityException("The location permission isn't granted")
     val locationManager =
         locationManager ?: throw IllegalStateException("This phone has no location service")
 
+    // The callbacks and this coroutine may run on different threads: each send is made under
+    // the lock, so an old last known position can't follow a new one
+    val lock = Any()
     // Set once a new position arrived: the last known one must not replace it
-    val hasNewPosition = AtomicBoolean(false)
+    var hasNewPosition = false
+    // The setting last sent; null before the first
+    var sentSetting: LocationUpdate? = null
+
+    /** Sends whether the location is on, only when it changed since the last time. */
+    fun sendSettingIfChanged() =
+        synchronized(lock) {
+          val setting = locationManager.currentSetting()
+          if (setting != sentSetting) {
+            sentSetting = setting
+            trySend(setting)
+          }
+        }
+
     val callback =
         object : LocationCallback() {
           override fun onLocationResult(result: LocationResult) {
             result.lastLocation?.let {
-              hasNewPosition.set(true)
-              trySend(LocationUpdate.Position(it.toDevicePosition()))
+              synchronized(lock) {
+                hasNewPosition = true
+                trySend(LocationUpdate.Position(it.toDevicePosition()))
+              }
             }
           }
         }
     // The location turned off or on in the settings; once on, the positions come back by
-    // themselves
+    // themselves. A provider changing while the location stays on sends nothing, so the
+    // position shown stays
     val settingsReceiver =
         object : BroadcastReceiver() {
-          override fun onReceive(context: Context, intent: Intent) {
-            trySend(locationManager.currentSetting())
-          }
+          override fun onReceive(context: Context, intent: Intent) = sendSettingIfChanged()
         }
 
-    // Registered before reading the setting, so a change in between isn't missed
+    // Registered before reading the setting, so a change in between isn't missed. Both are
+    // protected system broadcasts, which reach a receiver that isn't exported
     ContextCompat.registerReceiver(
         context,
         settingsReceiver,
-        IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION),
+        IntentFilter().apply {
+          addAction(LocationManager.MODE_CHANGED_ACTION)
+          addAction(LocationManager.PROVIDERS_CHANGED_ACTION)
+        },
         ContextCompat.RECEIVER_NOT_EXPORTED,
     )
-    val setting = locationManager.currentSetting()
-    trySend(setting)
+    sendSettingIfChanged()
     try {
       client.requestLocationUpdates(REQUEST, callback, Looper.getMainLooper()).await()
       // While the first new position is awaited, which can take minutes without internet, show
-      // the last known one if it is recent; never when the location is off. A new position landing
-      // between the check and the send would be followed by the old one, until the next update
-      // a few seconds later: harmless, so no lock
-      if (setting == LocationUpdate.Searching) {
+      // the last known one if it is recent; never when the location is off
+      if (locationManager.isLocationEnabled) {
         recentLastKnownPosition()?.let {
-          if (!hasNewPosition.get()) trySend(LocationUpdate.Position(it))
+          synchronized(lock) {
+            if (!hasNewPosition && sentSetting == LocationUpdate.Searching) {
+              trySend(LocationUpdate.Position(it))
+            }
+          }
         }
       }
       awaitClose()

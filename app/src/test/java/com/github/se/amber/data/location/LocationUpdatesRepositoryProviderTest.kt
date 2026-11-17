@@ -14,6 +14,8 @@ class LocationUpdatesRepositoryProviderTest {
       object : LocationUpdatesRepository {
         override fun hasPermission() = false
 
+        override fun isLocationEnabled() = false
+
         override fun observeLocation() = emptyFlow<LocationUpdate>()
       }
 
