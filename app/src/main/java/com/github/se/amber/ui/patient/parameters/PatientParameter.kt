@@ -52,7 +52,7 @@ object PatientParameterTestTags {
  * @param viewModel ViewModel providing the UI state of the screen.
  * @param onTabSelected Callback invoked when the user selects a bottom navigation tab.
  * @param onSignOutClick Callback invoked when the user chooses to open the sign-out screen.
- * @param onDeleteClick Callback invoked when the user chooses to open the delete screen.
+ * @param onDeleteAccountClick Callback invoked when the user chooses to open the delete screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +60,7 @@ fun PatientParameterScreen(
     viewModel: PatientParameterViewModel = viewModel(),
     onTabSelected: (Tab) -> Unit = {},
     onSignOutClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {},
+    onDeleteAccountClick: () -> Unit = {},
 ) {
   val context = LocalContext.current
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -111,7 +111,7 @@ fun PatientParameterScreen(
           )
           DisplayPatientButton(
               text = stringResource(R.string.patientParameterDeleteAccount),
-              onClick = onDeleteClick,
+              onClick = onDeleteAccountClick,
               testTag = PatientParameterTestTags.DELETE_BUTTON,
           )
         }

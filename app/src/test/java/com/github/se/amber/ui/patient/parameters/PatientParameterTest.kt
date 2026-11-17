@@ -44,7 +44,7 @@ class PatientParameterScreenTest {
             viewModel = viewModel,
             onTabSelected = onTabSelected,
             onSignOutClick = onSignOutClick,
-            onDeleteClick = onDeleteClick,
+            onDeleteAccountClick = onDeleteClick,
         )
       }
     }

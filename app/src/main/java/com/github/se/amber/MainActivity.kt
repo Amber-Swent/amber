@@ -269,7 +269,7 @@ fun AmberApp(
         PatientParameterScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             onSignOutClick = { navigationActions.navigateTo(PatientScreen.SignOut) },
-            onDeleteClick = { navigationActions.navigateTo(PatientScreen.DeleteAccount) },
+            onDeleteAccountClick = { navigationActions.navigateTo(PatientScreen.DeleteAccount) },
         )
       }
       composable(route = PatientScreen.SignOut.route) {
