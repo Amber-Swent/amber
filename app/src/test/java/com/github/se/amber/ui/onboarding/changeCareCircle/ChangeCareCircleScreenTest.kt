@@ -54,13 +54,19 @@ class ChangeCareCircleScreenTest {
     return base.createConfigurationContext(configuration)
   }
 
+  private fun emptyMessage(context: Context): String =
+      context.getString(
+          R.string.changeCareCircleEmpty,
+          context.getString(R.string.navigationTabSetting),
+          context.getString(R.string.caregiverParameterCreateCareCircle),
+          context.getString(R.string.caregiverParameterEnterInvitation),
+      )
+
   @Test
   fun emptyStateShowsMessageWithoutCircleSections() {
     showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY))
 
-    val message =
-        ApplicationProvider.getApplicationContext<Context>()
-            .getString(R.string.changeCareCircleEmpty)
+    val message = emptyMessage(ApplicationProvider.getApplicationContext())
     composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertTextEquals(message)
     composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.CURRENT_CIRCLE).assertDoesNotExist()
     composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.CIRCLE_LIST).assertDoesNotExist()
@@ -186,9 +192,7 @@ class ChangeCareCircleScreenTest {
   fun emptyPreviewRendersItsMessage() {
     composeTestRule.setContent { ChangeCareCircleEmptyScreenPreview() }
 
-    val message =
-        ApplicationProvider.getApplicationContext<Context>()
-            .getString(R.string.changeCareCircleEmpty)
+    val message = emptyMessage(ApplicationProvider.getApplicationContext())
     composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertTextEquals(message)
   }
 
@@ -206,14 +210,14 @@ class ChangeCareCircleScreenTest {
 
     composeTestRule
         .onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE)
-        .assertTextEquals(contextFor("fr").getString(R.string.changeCareCircleEmpty))
+        .assertTextEquals(emptyMessage(contextFor("fr")))
   }
 
   @Test
   fun emptyMessageFrenchTranslationDiffersFromEnglish() {
     assertNotEquals(
-        contextFor("en").getString(R.string.changeCareCircleEmpty),
-        contextFor("fr").getString(R.string.changeCareCircleEmpty),
+        emptyMessage(contextFor("en")),
+        emptyMessage(contextFor("fr")),
     )
   }
 }

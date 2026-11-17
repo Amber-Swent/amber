@@ -53,14 +53,14 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 
 /** Test tags of [CaregiverParameterScreen]. */
 object CaregiverParametersTestTags {
-  const val TITLE = "caregiverParameter_title"
-  const val CREATE_CARE_CIRCLE_BUTTON = "caregiverParameter_create_care_circle_button"
-  const val SWITCH_CARE_CIRCLE_BUTTON = "caregiverParameter_switch_care_circle_button"
-  const val CREATE_INVITATION_BUTTON = "caregiverParameter_create_invitation_button"
-  const val ENTER_INVITATION_BUTTON = "caregiverParameter_enter_invitation_button"
-  const val SIGN_OUT_BUTTON = "caregiverParameter_sign_out_button"
-  const val DELETE_ACCOUNT_BUTTON = "caregiverParameter_delete_account_button"
-  const val INVITATION_HINT = "caregiverParameter_invitation_hint"
+  const val TITLE = "caregiver_parameter_title"
+  const val CREATE_CARE_CIRCLE_BUTTON = "caregiver_parameter_create_care_circle_button"
+  const val SWITCH_CARE_CIRCLE_BUTTON = "caregiver_parameter_switch_care_circle_button"
+  const val CREATE_INVITATION_BUTTON = "caregiver_parameter_create_invitation_button"
+  const val ENTER_INVITATION_BUTTON = "caregiver_parameter_enter_invitation_button"
+  const val SIGN_OUT_BUTTON = "caregiver_parameter_sign_out_button"
+  const val DELETE_ACCOUNT_BUTTON = "caregiver_parameter_delete_account_button"
+  const val INVITATION_HINT = "caregiver_parameter_invitation_hint"
 }
 
 /**

@@ -158,7 +158,7 @@
     <string name="changeCareCircleCurrent">Cercle de soins actuel&#160;:</string>
     <string name="changeCareCircleAll">Tous les cercles de soins&#160;:</string>
     <string name="changeCareCircleNone">Aucun cercle de soins actif</string>
-    <string name="changeCareCircleEmpty">Vous n\'êtes lié à aucun cercle de soins. Vous pouvez en créer un depuis Paramètres -> Créer un nouveau cercle de soins ou rejoindre un cercle de soins existant via Paramètres -> Entrer une invitation.</string>
+    <string name="changeCareCircleEmpty">Vous n\'êtes lié à aucun cercle de soins.\nVous pouvez en créer un depuis %1$s &gt; %2$s, ou en rejoindre un depuis %1$s &gt; %3$s.</string>
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Supprimer son compte</string>

@@ -117,7 +117,13 @@ fun ChangeCareCircleScreen(
             )
           } else {
             Text(
-                text = stringResource(R.string.changeCareCircleEmpty),
+                text =
+                    stringResource(
+                        R.string.changeCareCircleEmpty,
+                        stringResource(R.string.navigationTabSetting),
+                        stringResource(R.string.caregiverParameterCreateCareCircle),
+                        stringResource(R.string.caregiverParameterEnterInvitation),
+                    ),
                 modifier = Modifier.testTag(ChangeCareCircleTestTags.EMPTY_MESSAGE),
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.bodyLarge,
