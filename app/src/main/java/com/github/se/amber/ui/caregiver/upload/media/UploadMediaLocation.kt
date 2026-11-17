@@ -1,6 +1,7 @@
 // Written by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Moved by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver.upload.media
 
 import androidx.compose.foundation.clickable
@@ -31,6 +32,7 @@ import com.github.se.amber.ui.caregiver.DisplayTextField
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.MAX_CHAR_PLACE_SEARCH
+import com.github.se.amber.ui.utils.selectableChipColors
 
 /** Test tags used by the "Location - optional" section of the upload screens. */
 object UploadMediaLocationTestTags {

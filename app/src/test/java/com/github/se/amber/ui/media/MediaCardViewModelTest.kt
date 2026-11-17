@@ -1,9 +1,12 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.media
 
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -12,10 +15,15 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -37,6 +45,7 @@ class MediaCardViewModelTest {
 
   private val profileRepository = mockk<ProfileRepository>()
   private val circleRepository = mockk<CareCircleRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
   private lateinit var viewModel: MediaCardViewModel
 
   private val authorProfile = userProfile("author", "Alice")
@@ -66,8 +75,12 @@ class MediaCardViewModelTest {
     Dispatchers.setMain(UnconfinedTestDispatcher())
     coEvery { profileRepository.getProfile("author") } returns Result.success(authorProfile)
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(currentProfile)
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     coEvery { circleRepository.getCircle("circle1") } returns Result.success(circleWith())
-    viewModel = MediaCardViewModel(profileRepository, circleRepository)
+    viewModel = MediaCardViewModel(profileRepository, circleRepository, activeCircleRepository)
   }
 
   @After
@@ -85,6 +98,24 @@ class MediaCardViewModelTest {
     assertTrue(state.relatedNicknames.isEmpty())
     assertTrue(state.isLoading)
     assertNull(state.errorMsgRes)
+  }
+
+  @Test
+  fun defaultActiveCircleProviderIsUsedWhenRepositoryIsNotInjected() {
+    val provider = ActiveCircleRepositoryProvider.default
+    mockkObject(provider)
+    try {
+      every { provider.repository } returns activeCircleRepository
+      coEvery { circleRepository.getCircle("circle1") } returns
+          Result.success(circleWith("p1" to "Bob"))
+
+      MediaCardViewModel(profileRepository, circleRepository).load(media(shownIds = listOf("p1")))
+
+      verify(exactly = 1) { activeCircleRepository.activeCircleId("me", listOf("circle1")) }
+      coVerify(exactly = 1) { circleRepository.getCircle("circle1") }
+    } finally {
+      unmockkObject(provider)
+    }
   }
 
   // ---------- happy paths ----------

@@ -1,5 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Alaabrine, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
@@ -394,7 +394,10 @@ class MediaRepositoryFirebase(
     if (item !is MediaItem.Text) {
       if (file == null) return sentWithoutFile(circleId, item, document)
       // the outbox kept the circle's bucket: no need to read the circle
-      fileStorage.upload(CareCircle(id = circleId, storageBucket = bucket), item, file)
+      val circle = CareCircle(id = circleId, storageBucket = bucket)
+      // the rules would refuse it with "permission denied", which a send could retry forever
+      val contentType = requireUploadable(circle, item, file)
+      fileStorage.upload(circle, item.storagePath, file, contentType, item.authorId)
     }
     createIfMissing(document, item)
     rememberSent(circleId, item)

@@ -1,10 +1,14 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -111,6 +115,7 @@ class UploadAudioViewModel(
     authRepo: AuthRepository = AuthRepositoryProvider.repository,
     profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    activeCircleRepo: ActiveCircleRepository = ActiveCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val recorder: AudioRecorder = AudioRecorderProvider.recorder,
@@ -125,6 +130,7 @@ class UploadAudioViewModel(
         authRepo = authRepo,
         profileRepo = profileRepo,
         circleRepo = circleRepo,
+        activeCircleRepo = activeCircleRepo,
         placeRepo = placeRepo,
         cleanupScope = cleanupScope,
     ) {
