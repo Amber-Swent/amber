@@ -27,6 +27,7 @@
     <string name="screenTitleCaregiverParameters">Parameters</string>
     <string name="screenTitleCaregiverSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
+    <string name="screenTitleCaregiverChangeCareCircle">Switch Care Circle</string>
     <string name="screenTitleCaregiverDeleteAccount">Delete account</string>
     <string name="screenTitlePatientHome">Home</string>
     <string name="screenTitlePatientSeeMedias">See Medias</string>
@@ -146,11 +147,19 @@
     <!-- CaregiverParameter -->
     <string name="caregiverParameterTitle">Parameters</string>
     <string name="caregiverParameterCreateCareCircle">Create a new care circle</string>
+    <string name="caregiverParameterSwitchCareCircle">Switch Care Circle</string>
     <string name="caregiverParameterCreateInvitation">Create Invitation</string>
     <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
     <string name="caregiverParameterSignOut">Sign out</string>
     <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
     <string name="caregiverParameterDeleteAccount">Delete account</string>
+
+    <!-- ChangeCareCircle -->
+    <string name="changeCareCircleTitle">Switch Care Circle</string>
+    <string name="changeCareCircleCurrent">Current care circle:</string>
+    <string name="changeCareCircleAll">All care circles:</string>
+    <string name="changeCareCircleNone">No active care circle</string>
+    <string name="changeCareCircleEmpty">You are not linked to any care circle.\nYou can create one from %1$s &gt; %2$s, or join one from %1$s &gt; %3$s.</string>
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Delete account</string>

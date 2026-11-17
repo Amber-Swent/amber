@@ -140,6 +140,12 @@ sealed class CaregiverScreen(
           route = "create_invitation_code",
           title = R.string.screenTitleCaregiverCreateInvitationCode,
       )
+
+  data object ChangeCareCircle :
+      CaregiverScreen(
+          route = "change_care_circle",
+          title = R.string.screenTitleCaregiverChangeCareCircle,
+      )
 }
 
 /**

@@ -23,6 +23,7 @@
     <string name="screenTitleCaregiverParameters">Paramètres</string>
     <string name="screenTitleCaregiverSignOut">Déconnexion</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
+    <string name="screenTitleCaregiverChangeCareCircle">Changer de cercle de soins</string>
     <string name="screenTitleCaregiverDeleteAccount">Supprimer son compte</string>
     <string name="screenTitlePatientHome">Accueil</string>
     <string name="screenTitlePatientSeeMedias">Voir les médias</string>
@@ -145,11 +146,19 @@
     <!-- CaregiverParameter -->
     <string name="caregiverParameterTitle">Paramètres</string>
     <string name="caregiverParameterCreateCareCircle">Créer un nouveau cercle de soins</string>
+    <string name="caregiverParameterSwitchCareCircle">Changer de cercle de soins</string>
     <string name="caregiverParameterCreateInvitation">Créer une invitation</string>
     <string name="caregiverParameterEnterInvitation">Saisir une invitation</string>
     <string name="caregiverParameterSignOut">Se déconnecter</string>
     <string name="caregiverParameterInvitationHint">Pour ajouter quelqu\'un à votre cercle, appuyez sur «&#160;%1$s&#160;» et envoyez-lui le code.</string>
     <string name="caregiverParameterDeleteAccount">Supprimer son compte</string>
+
+    <!-- ChangeCareCircle -->
+    <string name="changeCareCircleTitle">Changer de cercle de soins</string>
+    <string name="changeCareCircleCurrent">Cercle de soins actuel&#160;:</string>
+    <string name="changeCareCircleAll">Tous les cercles de soins&#160;:</string>
+    <string name="changeCareCircleNone">Aucun cercle de soins actif</string>
+    <string name="changeCareCircleEmpty">Vous n\'êtes lié à aucun cercle de soins.\nVous pouvez en créer un depuis %1$s &gt; %2$s, ou en rejoindre un depuis %1$s &gt; %3$s.</string>
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Supprimer son compte</string>
