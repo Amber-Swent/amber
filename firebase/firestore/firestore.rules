@@ -117,7 +117,9 @@ service cloud.firestore {
     }
 
     function personPhotoKeyAllowed(affected) {
-      let peopleKeys = resource.data.get('people', {}).keys();
+      // keys() is a List. union() exists only on Set, so a people-key removal
+      // would otherwise fail closed and a member could not clear that photo.
+      let peopleKeys = resource.data.get('people', {}).keys().toSet();
       return affected.hasOnly([request.auth.uid])
         || peopleKeys.union(affected).size() == peopleKeys.size();
     }
