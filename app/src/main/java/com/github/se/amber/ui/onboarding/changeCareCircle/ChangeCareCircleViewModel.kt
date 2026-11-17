@@ -100,10 +100,10 @@ class ChangeCareCircleViewModel(
    * @param errorMsgRes Localized string resource for the toast.
    */
   private fun setErrorMsg(@StringRes errorMsgRes: Int) {
-      _uiState.update { current ->
-          if (current.status == ChangeCareCircleStatus.READY) current.copy(errorMsgRes = errorMsgRes)
-          else current
-      }
+    _uiState.update { current ->
+      if (current.status == ChangeCareCircleStatus.READY) current.copy(errorMsgRes = errorMsgRes)
+      else current
+    }
   }
 
   /**
@@ -187,8 +187,8 @@ class ChangeCareCircleViewModel(
   /**
    * Persists a valid circle selection for the current caregiver.
    *
-   * Ignores selections while loading or saving, as well as unknown or already selected circles.
-   * A successful write updates [uiState]. On failure, the previously selected circle stays visible
+   * Ignores selections while loading or saving, as well as unknown or already selected circles. A
+   * successful write updates [uiState]. On failure, the previously selected circle stays visible
    * and [setErrorMsg] requests a toast so the caregiver can try again.
    *
    * @param circleId ID of the circle selected by the caregiver.
