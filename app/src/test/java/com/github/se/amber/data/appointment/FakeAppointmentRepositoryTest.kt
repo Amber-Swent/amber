@@ -2,12 +2,16 @@
 
 package com.github.se.amber.data.appointment
 
+import com.github.se.amber.data.Synced
 import com.github.se.amber.model.appointment.Appointment
+import java.time.LocalDate
+import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -31,6 +35,35 @@ class FakeAppointmentRepositoryTest {
 
     assertEquals(listOf(first.copy(title = "Physio at 10")), repository.appointmentsOf("circle"))
     assertEquals(emptyList<Appointment>(), repository.appointmentsOf("other circle"))
+  }
+
+  @Test
+  fun observeAppointmentsListsTheDayAndFollowsTheChanges() = runTest {
+    // Written out: 17 November 2026 at 00:00 UTC, the fake's default zone.
+    val dayStart = 1_794_873_600_000L
+    val hour = 1.hours.inWholeMilliseconds
+    // No duration, so each one lasts the default 60 minutes.
+    val acrossMidnight = Appointment(id = "a1", title = "Night care", startAt = dayStart - hour / 2)
+    val yesterday = Appointment(id = "a2", title = "Dentist", startAt = dayStart - 2 * hour)
+    val later = Appointment(id = "a3", title = "Physio", startAt = dayStart + 10 * hour)
+    val tomorrow = Appointment(id = "a4", title = "Hairdresser", startAt = dayStart + 24 * hour)
+    for (appointment in listOf(later, yesterday, tomorrow, acrossMidnight)) {
+      repository.addAppointment("circle", appointment)
+    }
+    val lists = mutableListOf<List<Synced<Appointment>>>()
+    backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+      repository.observeAppointments("circle", LocalDate.of(2026, 11, 17), days = 1).toList(lists)
+    }
+
+    repository.deleteAppointment("circle", later.id)
+    runCurrent()
+
+    assertEquals(
+        listOf(listOf(acrossMidnight, later), listOf(acrossMidnight)).map { list ->
+          list.map { Synced(it, isSynced = true) }
+        },
+        lists,
+    )
   }
 
   @Test

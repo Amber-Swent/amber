@@ -2,12 +2,14 @@
 
 package com.github.se.amber.data.appointment
 
+import com.github.se.amber.data.Synced
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.appointment.AppointmentValidationError
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Creates, edits and deletes the appointments of a care circle, stored at
+ * Creates, edits, deletes and watches the appointments of a care circle, stored at
  * careCircles/{circleId}/appointments/{id}.
  *
  * Writes don't wait for the server. Each write is saved on the phone first, and the call then
@@ -20,9 +22,46 @@ import kotlinx.coroutines.flow.Flow
  *
  * Every failed [Result] contains an [AppointmentError]. Cancellation is rethrown.
  *
- * Reading appointments is not part of this interface yet. It might be added later.
+ * [observeAppointments] reads them, one day or several days at a time.
  */
 interface AppointmentRepository {
+
+  /**
+   * Watches the appointments of the circle [circleId] that happen, at least in part, during the
+   * [days] days that start with [firstDay]. Emits the list at once, then again on every change,
+   * until the collector stops.
+   *
+   * [firstDay] is included. The window runs from midnight at the start of [firstDay] to midnight at
+   * the end of its last day, in the phone's time zone. For example, a [firstDay] of Monday 17
+   * November with 7 [days] covers Monday 17 to Sunday 23 November, both included.
+   *
+   * An appointment that started the day before and isn't over yet is listed too. The list is sorted
+   * by [Appointment.startAt], soonest first.
+   *
+   * The list holds every status: an appointment earlier today is listed as well as an ongoing one.
+   * Use `statusAt` to tell them apart.
+   *
+   * Each appointment comes with [Synced.isSynced]. It is false while the appointment has a write
+   * the server hasn't confirmed yet. A write made on this phone shows up at once, even offline.
+   *
+   * The flow ends with an [AppointmentError]:
+   * - [AppointmentError.InvalidCircleId] right away, for an invalid id, as in [addAppointment];
+   * - [AppointmentError.PermissionDenied] when the user can't read the circle, for example after
+   *   leaving it.
+   *
+   * Going offline doesn't end it. The list then comes from what this phone has already loaded.
+   *
+   * @param circleId the id of the care circle.
+   * @param firstDay the first day of the window. It is included.
+   * @param days how many days the window holds. It must be at least 1.
+   * @return the live list, which ends with an [AppointmentError].
+   * @throws IllegalArgumentException if [days] is 0 or less. That is a bug in the caller.
+   */
+  fun observeAppointments(
+      circleId: String,
+      firstDay: LocalDate,
+      days: Int,
+  ): Flow<List<Synced<Appointment>>>
 
   /**
    * Generates a new appointment id on the phone, without writing anything. It works offline.
