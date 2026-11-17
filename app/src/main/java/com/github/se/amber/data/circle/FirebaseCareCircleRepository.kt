@@ -1,8 +1,10 @@
 // Written by Neha Chakraborty and Claude Code
 // Modified by MeiliV, with assistance from OpenAI Codex
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.data.circle
 
+import com.github.se.amber.data.isValidDocumentId
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.google.firebase.Firebase
@@ -22,7 +24,7 @@ class FirebaseCareCircleRepository(
   override fun newId(): String = newId(firestore.collection(CARE_CIRCLES_COLLECTION))
 
   override suspend fun getCircle(circleId: String): Result<CareCircle> {
-    if (!isValidId(circleId)) {
+    if (!isValidDocumentId(circleId)) {
       return Result.failure(CareCircleError.InvalidCircleId)
     }
 
@@ -38,7 +40,7 @@ class FirebaseCareCircleRepository(
   }
 
   override suspend fun addPerson(circleId: String, person: Person): Result<Person> {
-    if (!isValidId(circleId)) {
+    if (!isValidDocumentId(circleId)) {
       return Result.failure(CareCircleError.InvalidCircleId)
     }
 
@@ -79,9 +81,6 @@ class FirebaseCareCircleRepository(
       }
 
   private fun newId(collection: CollectionReference): String = collection.document().id
-
-  // A '/' would make document() resolve to a nested path and read a different document.
-  private fun isValidId(id: String): Boolean = id.isNotBlank() && id == id.trim() && '/' !in id
 
   private fun FirebaseFirestoreException.toCareCircleError(): CareCircleError =
       when (code) {

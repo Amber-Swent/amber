@@ -50,6 +50,7 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
+import com.github.se.amber.ui.onboarding.changeCareCircle.ChangeCareCircleScreen
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen
@@ -203,6 +204,9 @@ fun AmberApp(
             onCreateCareCircleClick = {
               navigationActions.navigateTo(OnboardingScreen.CreateCareCircle)
             },
+            onSwitchCareCircleClick = {
+              navigationActions.navigateTo(CaregiverScreen.ChangeCareCircle)
+            },
             onCreateInvitationClick = {
               navigationActions.navigateTo(CaregiverScreen.CreateInvitationCode)
             },
@@ -229,6 +233,11 @@ fun AmberApp(
         CreateInvitationScreen(
             onTabSelected = { tab -> navigationActions.navigateToTab(tab) },
             checkout = { navigationActions.goBack() },
+        )
+      }
+      composable(route = CaregiverScreen.ChangeCareCircle.route) {
+        ChangeCareCircleScreen(
+            onBackClick = { navigationActions.goBack() },
         )
       }
     }

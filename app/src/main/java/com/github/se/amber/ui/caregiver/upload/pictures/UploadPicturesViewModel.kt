@@ -15,6 +15,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -105,6 +107,7 @@ class UploadPictureViewModel(
     authRepo: AuthRepository = AuthRepositoryProvider.repository,
     profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    activeCircleRepo: ActiveCircleRepository = ActiveCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     private val pictureReader: SelectedPictureReader = reader,
     private val capturedPictureSource: CapturedPictureSource = capturedPictures,
@@ -122,6 +125,7 @@ class UploadPictureViewModel(
         authRepo = authRepo,
         profileRepo = profileRepo,
         circleRepo = circleRepo,
+        activeCircleRepo = activeCircleRepo,
         placeRepo = placeRepo,
     ) {
   /** URIs the camera app should save a new picture to: the screen opens the camera on each. */

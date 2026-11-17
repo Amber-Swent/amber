@@ -1,9 +1,8 @@
-/* Written by Lou-Anne Maier, with assistance from
- * Claude (Anthropic) via Claude Code.
- * Modified by MeiliV, with assistance from OpenAI Codex.
- * Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
- * Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
- */
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+
 package com.github.se.amber.ui.caregiver.upload.media
 
 import android.util.Log
@@ -11,6 +10,8 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -55,6 +56,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.filter
@@ -302,6 +304,8 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
     protected val profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     protected val circleRepo: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
+    protected val activeCircleRepo: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
     protected val placeRepo: PlaceSearchRepository =
         PlaceSearchRepositoryProvider.default.repository,
     private val cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
@@ -432,26 +436,38 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
             failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_PROFILE_ID.messageRes)
             return@launch
           }
-      val circleId = profile?.circleIds?.firstOrNull()
-      if (circleId == null) {
+      if (profile == null) {
         failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
         return@launch
       }
-      circleRepo
-          .getCircle(circleId)
-          .onSuccess { loaded ->
-            // keep the people added while the circle was loading
-            val circle =
-                if (pendingPeople.isEmpty()) loaded
-                else loaded.copy(people = loaded.people + pendingPeople)
-            pendingPeople.clear()
-            _careCircle.value = circle
-            loadMembers(circle)
-          }
-          .onFailure {
-            Log.e(TAG, "Failed to load the care circle", it)
-            failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes)
-          }
+
+      // Observe the circle and potential circle changes
+      activeCircleRepo.activeCircleId(uid, profile.circleIds).collectLatest { circleId ->
+        _careCircle.value =
+            null // Prevents an upload to the previous circle while the new one loads
+        _members.value = null // Stop members choices appearing during that load
+        if (circleId == null) {
+          failCircleLoad(MediaViewModelErrorMessage.NOT_SET_CARE_CIRCLE.messageRes)
+          return@collectLatest
+        }
+        // A later valid selection can recover from an earlier circle-load failure.
+        circleLoadFailed = false
+        circleRepo
+            .getCircle(circleId)
+            .onSuccess { loaded ->
+              // keep the people added while the circle was loading
+              val circle =
+                  if (pendingPeople.isEmpty()) loaded
+                  else loaded.copy(people = loaded.people + pendingPeople)
+              pendingPeople.clear()
+              _careCircle.value = circle
+              loadMembers(circle)
+            }
+            .onFailure {
+              Log.e(TAG, "Failed to load the care circle", it)
+              failCircleLoad(MediaViewModelErrorMessage.COULD_NOT_LOAD_CARE_CIRCLE.messageRes)
+            }
+      }
     }
   }
 
