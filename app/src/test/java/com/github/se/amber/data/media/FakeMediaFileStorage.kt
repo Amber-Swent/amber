@@ -1,9 +1,9 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.media.MediaItem
 import java.io.File
 
 /**
@@ -24,15 +24,29 @@ class FakeMediaFileStorage(val calls: MutableList<String> = mutableListOf()) : M
   /** The content of the last file uploaded, read during its upload. */
   var lastUploadedContent: String? = null
 
+  /** Content type passed to the last [upload], the one the Storage rules check. */
+  var lastUploadedContentType: String? = null
+
+  /** Author id passed to the last [upload], stored as custom metadata for the rules. */
+  var lastUploadedAuthorId: String? = null
+
   override suspend fun download(circle: CareCircle, storagePath: String, destination: File) {
     calls += "download ${circle.id}:$storagePath"
     destination.writeText("content of $storagePath")
   }
 
-  override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) {
+  override suspend fun upload(
+      circle: CareCircle,
+      storagePath: String,
+      file: File,
+      contentType: String,
+      authorId: String,
+  ) {
     onUpload(file)
     lastUploadedContent = file.readText()
-    calls += "upload ${circle.storageBucket}:${item.storagePath}"
+    lastUploadedContentType = contentType
+    lastUploadedAuthorId = authorId
+    calls += "upload ${circle.storageBucket}:$storagePath"
   }
 
   override suspend fun delete(circle: CareCircle, storagePath: String) {

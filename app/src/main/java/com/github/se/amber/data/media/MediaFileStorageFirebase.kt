@@ -1,11 +1,11 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
 import android.net.Uri
 import com.github.se.amber.data.storage.CircleStorageProvider
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.media.MediaItem
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
@@ -18,10 +18,10 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.tasks.await
 
 /**
- * [MediaFileStorage] backed by Firebase Storage, where a media file lives at its
- * [MediaItem.storagePath] in its circle's bucket. Cancelling the calling coroutine also cancels a
- * download or an upload. A deletion can't be cancelled once requested: cancelling stops the wait,
- * but the file may still be deleted.
+ * [MediaFileStorage] backed by Firebase Storage, where a media file lives at its storage path in
+ * its circle's bucket. Cancelling the calling coroutine also cancels a download or an upload. A
+ * deletion can't be cancelled once requested: cancelling stops the wait, but the file may still be
+ * deleted.
  *
  * @param storageFor the Firebase Storage instance of a circle's bucket; the app uses
  *   [CircleStorageProvider.forCircle], tests pass a mock.
@@ -35,20 +35,24 @@ class MediaFileStorageFirebase(
     storage.reference.child(storagePath).getFile(destination).awaitOrCancel("Download", storagePath)
   }
 
-  override suspend fun upload(circle: CareCircle, item: MediaItem, file: File) {
-    // the rules would refuse it with "permission denied", which a send could retry forever
-    val contentType = requireUploadable(circle, item, file)
+  override suspend fun upload(
+      circle: CareCircle,
+      storagePath: String,
+      file: File,
+      contentType: String,
+      authorId: String,
+  ) {
     val metadata =
         StorageMetadata.Builder()
             .setContentType(contentType)
-            .setCustomMetadata(AUTHOR_ID_KEY, item.authorId)
+            .setCustomMetadata(AUTHOR_ID_KEY, authorId)
             .build()
     // set before putFile: the upload task reads it when it is created
     val storage = storageFor(circle).apply { maxUploadRetryTimeMillis = MAX_UPLOAD_RETRY_MS }
     storage.reference
-        .child(item.storagePath)
+        .child(storagePath)
         .putFile(Uri.fromFile(file), metadata)
-        .awaitOrCancel("Upload", item.storagePath)
+        .awaitOrCancel("Upload", storagePath)
   }
 
   override suspend fun delete(circle: CareCircle, storagePath: String) {
