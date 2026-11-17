@@ -60,6 +60,9 @@
     <!-- AmberHeader -->
     <string name="amberHeaderLogo">Amber logo</string>
 
+    <!-- DisplayInformation: default description of its information icon (ui/utils/InformationUtils.kt) -->
+    <string name ="displayInformationIconDefaultDescription">Information</string>
+
     <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
     <string name="inputErrorBlank">Please fill this out</string>
     <plurals name="inputErrorIncomplete">

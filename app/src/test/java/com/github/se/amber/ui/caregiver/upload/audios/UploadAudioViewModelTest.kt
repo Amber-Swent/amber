@@ -1,5 +1,6 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -7,8 +8,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.AudioRecorder
@@ -566,6 +567,14 @@ class UploadAudioViewModelTest {
     vm.stopRecording()
     slow.stopGate.complete(Unit)
     assertTrue(vm.uiState.value.audioFile!!.exists())
+  }
+
+  @Test
+  fun stopTappedWhileALimitSaveIsRunningStillTellsTheMaximumLengthWasReached() {
+    val (vm, slow) = savingAfterALimit()
+    vm.stopRecording()
+    slow.stopGate.complete(Unit)
+    assertEquals(R.string.uploadAudioErrorMaxLength, vm.uiState.value.recordingErrorRes)
   }
 
   @Test

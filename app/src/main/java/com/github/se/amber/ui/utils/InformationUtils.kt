@@ -16,9 +16,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.github.se.amber.R
 import com.github.se.amber.ui.theme.AmberAppTheme
 import com.github.se.amber.ui.theme.CAREGIVER_ICON_SIZE
 import com.github.se.amber.ui.theme.PADDING_MINI
@@ -27,8 +29,15 @@ import com.github.se.amber.ui.theme.PADDING_MINI
  * Displays an information icon followed by one or more sentences of hint text, in the muted
  * `outline` color unless [color] says otherwise, shared by the screens that guide the user.
  *
+ * Design choice: [icon] and [contentDescription] are independent parameters, so nothing forces the
+ * description to follow the icon. It is the responsibility of the caller: whoever passes a custom
+ * [icon] MUST also pass a matching [contentDescription], otherwise the icon is announced with the
+ * default "Information" description.
+ *
  * @param modifier modifier applied to the whole indication, for example its test tag.
- * @param contentDescription description of the information icon, for accessibility.
+ * @param icon the icon shown before the text. Defaults to the information icon.
+ * @param contentDescription non-null description of the information icon, for accessibility. It
+ *   defaults to the description of the default information icon.
  * @param sentences the sentences of text shown one under the other, next to the icon.
  * @param color the color of the icon and of the text, e.g. `colorScheme.error` for an error.
  */
@@ -36,7 +45,7 @@ import com.github.se.amber.ui.theme.PADDING_MINI
 fun DisplayInformation(
     modifier: Modifier = Modifier,
     icon: ImageVector = Icons.Default.Info,
-    contentDescription: String = "",
+    contentDescription: String = stringResource(R.string.displayInformationIconDescription),
     sentences: List<String> = emptyList(),
     style: TextStyle = MaterialTheme.typography.bodyMedium,
     size: Dp = CAREGIVER_ICON_SIZE,

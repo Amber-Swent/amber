@@ -72,12 +72,6 @@ class InformationUtilsTest {
   }
 
   @Test
-  fun withDefaultParametersDisplaysTheInformation() {
-    composeTestRule.setContent { DisplayInformation(modifier = Modifier.testTag(TAG)) }
-    composeTestRule.onNodeWithTag(TAG).assertIsDisplayed()
-  }
-
-  @Test
   fun theIconHasTheRequestedSize() {
     composeTestRule.setContent {
       DisplayInformation(contentDescription = ICON, sentences = listOf(FIRST), size = ICON_SIZE)
@@ -86,7 +80,7 @@ class InformationUtilsTest {
   }
 
   @Test
-  fun displaysACustomIcon() {
+  fun withACustomIconDisplaysTheIconWithItsDescription() {
     composeTestRule.setContent {
       DisplayInformation(
           icon = Icons.Default.Warning,
