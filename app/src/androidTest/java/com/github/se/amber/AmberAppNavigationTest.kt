@@ -11,10 +11,12 @@ package com.github.se.amber
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
@@ -141,7 +143,12 @@ class AmberAppNavigationTest {
         false
       }
     }
-    composeRule.onNodeWithTag(tag).performClick()
+    val node = composeRule.onNodeWithTag(tag)
+    val hasScrollParent =
+        generateSequence(node.fetchSemanticsNode().parent) { it.parent }
+            .any { hasScrollAction().matches(it) }
+    if (hasScrollParent) node.performScrollTo()
+    node.performClick()
     composeRule.waitForIdle()
   }
 

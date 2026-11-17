@@ -1,7 +1,8 @@
-// Written by Lou-Anne Maier and + , with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver
 
@@ -10,6 +11,8 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.profile.ProfileRepository
@@ -21,6 +24,7 @@ import com.github.se.amber.model.user.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -60,6 +64,8 @@ class CaregiverHomeViewModel(
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val circleRepository: CareCircleRepository =
         CareCircleRepositoryProvider.default.repository,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(CaregiverHomeUIState())
   val uiState: StateFlow<CaregiverHomeUIState> = _uiState.asStateFlow()
@@ -83,7 +89,7 @@ class CaregiverHomeViewModel(
   }
 
   /**
-   * Sequentially loads the caregiver profile, its first care circle, and then the patient profile
+   * Sequentially loads the caregiver profile, its active care circle, and then the patient profile
    * linked to that circle. Each step updates the UI state; on failure an error message is set and
    * the chain stops.
    */
@@ -106,49 +112,57 @@ class CaregiverHomeViewModel(
               ) ?: return@launch
       _uiState.update { it.copy(caregiver = caregiver) }
 
-      // 2. First care circle id of the caregiver
-      val circleId = caregiver.circleIds.firstOrNull { it.isNotBlank() }
-      if (circleId == null) {
-        setErrorMsg(R.string.caregiverHomeErrorNoCircle)
-        return@launch
+      // 2. Active care circle id of the caregiver
+      activeCircleRepository.activeCircleId(caregiver.uid, caregiver.circleIds).collectLatest {
+          circleId ->
+        // Clear the previously displayed circle and patient when collectLatest() receives a new
+        // circleId.
+        // Caregiver profile is unchanged. This is because collectLatest() cancels the old work, but
+        // it does not clear the old UI state: switching circle would leave the previous circle
+        // visible while the new one loads.
+        _uiState.value = CaregiverHomeUIState(caregiver = caregiver)
+        if (circleId == null) {
+          setErrorMsg(R.string.caregiverHomeErrorNoCircle)
+          return@collectLatest
+        }
+
+        // 3. Care circle
+        val circle =
+            circleRepository
+                .getCircle(circleId)
+                .fold(
+                    onSuccess = { it },
+                    onFailure = { e ->
+                      Log.e(TAG, "Error fetching care circle", e)
+                      setErrorMsg(R.string.caregiverHomeErrorLoadCircle)
+                      null
+                    },
+                ) ?: return@collectLatest
+        _uiState.update { it.copy(careCircle = circle) }
+
+        // 4. Patient id (empty until the patient has redeemed their code)
+        if (circle.patientId.isBlank()) {
+          setErrorMsg(R.string.caregiverHomeErrorNoPatient)
+          return@collectLatest
+        }
+
+        // 5. Patient profile
+        profileRepository
+            .getProfile(circle.patientId)
+            .fold(
+                onSuccess = { patient ->
+                  if (patient != null) {
+                    _uiState.update { it.copy(patient = patient) }
+                  } else {
+                    setErrorMsg(R.string.caregiverHomeErrorNoPatientProfile)
+                  }
+                },
+                onFailure = { e ->
+                  Log.e(TAG, "Error fetching patient profile", e)
+                  setErrorMsg(R.string.caregiverHomeErrorLoadPatientProfile)
+                },
+            )
       }
-
-      // 3. Care circle
-      val circle =
-          circleRepository
-              .getCircle(circleId)
-              .fold(
-                  onSuccess = { it },
-                  onFailure = { e ->
-                    Log.e(TAG, "Error fetching care circle", e)
-                    setErrorMsg(R.string.caregiverHomeErrorLoadCircle)
-                    null
-                  },
-              ) ?: return@launch
-      _uiState.update { it.copy(careCircle = circle) }
-
-      // 4. Patient id (empty until the patient has redeemed their code)
-      if (circle.patientId.isBlank()) {
-        setErrorMsg(R.string.caregiverHomeErrorNoPatient)
-        return@launch
-      }
-
-      // 5. Patient profile
-      profileRepository
-          .getProfile(circle.patientId)
-          .fold(
-              onSuccess = { patient ->
-                if (patient != null) {
-                  _uiState.update { it.copy(patient = patient) }
-                } else {
-                  setErrorMsg(R.string.caregiverHomeErrorNoPatientProfile)
-                }
-              },
-              onFailure = { e ->
-                Log.e(TAG, "Error fetching patient profile", e)
-                setErrorMsg(R.string.caregiverHomeErrorLoadPatientProfile)
-              },
-          )
     }
   }
 

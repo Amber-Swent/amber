@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -11,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.HasDefaultViewModelProviderFactory
@@ -21,6 +23,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.user.Person
@@ -40,6 +43,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -56,6 +60,11 @@ import org.robolectric.shadows.ShadowToast
 class SeeAudiosScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
 
+  private val activeCircleRepository =
+      mockk<ActiveCircleRepository> {
+        every { activeCircleId(any(), any()) } returns flowOf("circle1")
+      }
+
   /** Text of [id] in the current test language, with [args] for its placeholders. */
   private fun string(id: Int, vararg args: Any): String =
       ApplicationProvider.getApplicationContext<Context>().getString(id, *args)
@@ -70,7 +79,8 @@ class SeeAudiosScreenTest {
               override fun <T : ViewModel> create(modelClass: Class<T>): T =
                   when (modelClass) {
                     SeeAudiosViewModel::class.java -> audioViewModel as T
-                    MediaCardViewModel::class.java -> MediaCardViewModel(mockk(), mockk()) as T
+                    MediaCardViewModel::class.java ->
+                        MediaCardViewModel(mockk(), mockk(), activeCircleRepository) as T
                     else -> error("Unexpected ViewModel: $modelClass")
                   }
             }
@@ -348,6 +358,33 @@ class SeeAudiosScreenTest {
     composeTestRule
         .onNodeWithTag(MediaCardTestTags.relatedItem("sample1", 0))
         .assertTextEquals("Evangeline")
+  }
+
+  @Test
+  fun content_preview_resolves_second_cards_author_and_related_person() {
+    composeTestRule.setContent { SeeAudiosContentPreview() }
+
+    composeTestRule.onNodeWithTag(MediaCardTestTags.toggleButtonTextShow("sample2")).performClick()
+
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.addedBy("sample2"))
+        .assertTextEquals(string(R.string.mediaCardAddedBy, "Circee"))
+    composeTestRule
+        .onNodeWithTag(MediaCardTestTags.relatedItem("sample2", 0))
+        .assertTextEquals("Evangeline")
+  }
+
+  @Test
+  fun content_preview_play_failure_shows_a_recoverable_error() {
+    composeTestRule.setContent { SeeAudiosContentPreview() }
+
+    composeTestRule.onAllNodesWithTag(AudioPlaybackTestTags.PLAY_PAUSE)[0].performClick()
+    composeTestRule.waitForIdle()
+
+    composeTestRule
+        .onNodeWithTag(AudioPlaybackTestTags.ERROR)
+        .assertTextEquals(string(R.string.audioPlaybackError))
+    composeTestRule.onNodeWithTag(AudioPlaybackTestTags.RETRY).assertIsDisplayed()
   }
 
   @Test
