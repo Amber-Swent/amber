@@ -87,6 +87,8 @@ data class SeeGeneralMediasConfig(
  * @param onErrorShown called once the non-blocking error was shown in a Toast.
  * @param onBackClick called when the top navigation action is selected.
  * @param onTabSelected called when a bottom navigation tab is selected.
+ * @param titleArgs format arguments of the title string ([SeeGeneralMediasConfig.titleRes]), for a
+ *   title that contains a value such as a name. Empty when the title is a plain text.
  * @param itemContent draws one media; use the given modifier (it carries the common width).
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +100,7 @@ fun <T : MediaItem> SeeGeneralMedias(
     onErrorShown: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onTabSelected: (Tab) -> Unit = {},
+    titleArgs: List<Any> = emptyList(),
     itemContent: @Composable (item: T, circle: CareCircle, modifier: Modifier) -> Unit,
 ) {
   val context = LocalContext.current
@@ -131,7 +134,7 @@ fun <T : MediaItem> SeeGeneralMedias(
                     onBackClick = onBackClick,
                 )
                 DisplayPatientTitle(
-                    title = stringResource(config.titleRes),
+                    title = stringResource(config.titleRes, *titleArgs.toTypedArray()),
                     testTag = config.titleTag,
                 )
               }
