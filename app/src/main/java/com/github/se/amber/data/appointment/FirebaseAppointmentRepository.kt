@@ -2,24 +2,34 @@
 
 package com.github.se.amber.data.appointment
 
+import android.util.Log
+import com.github.se.amber.data.Synced
 import com.github.se.amber.data.isValidDocumentId
+import com.github.se.amber.data.observeDocuments
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.appointment.validationError
+import com.github.se.amber.model.calendar.dayWindow
 import com.github.se.amber.model.calendar.endAt
 import com.google.android.gms.tasks.Task
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.firestore
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.Executor
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 
 /**
  * Firebase-backed implementation of [AppointmentRepository].
@@ -28,19 +38,25 @@ import kotlinx.coroutines.flow.asSharedFlow
  * the live lists, and sends it once online. A listener on the write's task reports a refusal in
  * [writeFailures].
  *
+ * [observeAppointments] filters on [Appointment.lastEndAt] alone, so Firestore's automatic
+ * single-field index serves it.
+ *
  * This repository must stay the only code that writes appointments. It always sets
- * [Appointment.lastEndAt]. A document without it reads back as 0, so the "not over yet" query would
+ * [Appointment.lastEndAt]. A document without it reads back as 0, so [observeAppointments] would
  * never return it.
  *
  * @param firestore the database the appointments are written to.
  * @param auth gives the signed-in user, who is saved as the creator or the last editor.
  * @param now gives the current time in epoch milliseconds, for the created and updated times. Only
  *   tests change it.
+ * @param zone gives the time zone the days of [observeAppointments] are counted in. It is read on
+ *   each call, so a change of the phone's zone is followed. Only tests change it.
  */
 class FirebaseAppointmentRepository(
     private val firestore: FirebaseFirestore = Firebase.firestore,
     private val auth: FirebaseAuth = Firebase.auth,
     private val now: () -> Long = System::currentTimeMillis,
+    private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) : AppointmentRepository {
 
   // No replay: a failure nobody collects is dropped. The buffer keeps a slow collector from
@@ -138,6 +154,37 @@ class FirebaseAppointmentRepository(
   }
 
   /**
+   * Queries `lastEndAt > start of the window`, then keeps on the phone the appointments that start
+   * before its end. Firestore can only filter a range on two fields with a composite index, which
+   * might be added later. The phone then gets every appointment from the window on, which is a few
+   * dozen for one circle.
+   *
+   * The list is sorted by start, then by id, so the order never changes between two emissions.
+   *
+   * @param circleId the id of the care circle.
+   * @param firstDay the first day of the window.
+   * @param days how many days the window holds. It must be at least 1.
+   * @return the live list, which ends with an [AppointmentError].
+   */
+  override fun observeAppointments(
+      circleId: String,
+      firstDay: LocalDate,
+      days: Int,
+  ): Flow<List<Synced<Appointment>>> {
+    val window = dayWindow(firstDay, days, zone())
+    if (!isValidDocumentId(circleId)) return flow { throw AppointmentError.InvalidCircleId() }
+
+    return appointments(circleId)
+        .whereGreaterThan(LAST_END_AT_FIELD, window.startMillis)
+        .observeDocuments(map = { it.toAppointment() }, onError = { it.toAppointmentError() })
+        .map { list ->
+          list
+              .filter { it.value.startAt < window.endMillis }
+              .sortedWith(compareBy({ it.value.startAt }, { it.value.id }))
+        }
+  }
+
+  /**
    * Checks a write before anything is written, and returns the uid of the signed-in user. The
    * checks run in this order: the circle id, the appointment id, then [appointment] if given, then
    * the user.
@@ -193,15 +240,35 @@ class FirebaseAppointmentRepository(
 
   /**
    * @param circleId the id of the care circle.
-   * @param appointmentId the id of the appointment.
-   * @return the document of the appointment, at careCircles/{circleId}/appointments/{id}.
+   * @return the appointments of the circle, at careCircles/{circleId}/appointments.
    */
-  private fun document(circleId: String, appointmentId: String): DocumentReference =
+  private fun appointments(circleId: String): CollectionReference =
       firestore
           .collection(CARE_CIRCLES_COLLECTION)
           .document(circleId)
           .collection(APPOINTMENTS_COLLECTION)
-          .document(appointmentId)
+
+  /**
+   * @param circleId the id of the care circle.
+   * @param appointmentId the id of the appointment.
+   * @return the document of the appointment, at careCircles/{circleId}/appointments/{id}.
+   */
+  private fun document(circleId: String, appointmentId: String): DocumentReference =
+      appointments(circleId).document(appointmentId)
+
+  /**
+   * Reads one appointment document. A document this version of the app can't read is logged and
+   * skipped, so one bad document doesn't break the whole list.
+   *
+   * @return the appointment, or null if the document can't be read.
+   */
+  private fun DocumentSnapshot.toAppointment(): Appointment? =
+      try {
+        toObject(Appointment::class.java)
+      } catch (exception: RuntimeException) {
+        Log.w(TAG, "Couldn't read appointment ${reference.path}", exception)
+        null
+      }
 
   /** @return a copy with the spaces around the title and the notes removed. */
   private fun Appointment.withTrimmedText(): Appointment =
@@ -249,9 +316,11 @@ class FirebaseAppointmentRepository(
       }
 
   private companion object {
+    const val TAG = "FirebaseAppointmentRepository"
     const val CARE_CIRCLES_COLLECTION = "careCircles"
     const val APPOINTMENTS_COLLECTION = "appointments"
     const val FAILURE_BUFFER = 16
+    val LAST_END_AT_FIELD = Appointment::lastEndAt.name
 
     // Runs the failure listener on the thread that completes the task, not on the main thread.
     // tryEmit is safe from any thread, and tests then need no Android looper.

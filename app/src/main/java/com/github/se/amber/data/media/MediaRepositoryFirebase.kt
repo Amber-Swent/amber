@@ -4,6 +4,7 @@
 package com.github.se.amber.data.media
 
 import android.util.Log
+import com.github.se.amber.data.observeSnapshots
 import com.github.se.amber.data.runEveryStep
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -25,15 +26,13 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -539,27 +538,11 @@ class MediaRepositoryFirebase(
 
   /**
    * Watches the media this query finds: emits the list at once, then again each time one of them is
-   * added, changed or removed, until the collector stops. A collector slower than the changes only
-   * gets the latest list; older ones are dropped, being out of date anyway.
-   *
-   * If Firebase refuses to answer (e.g. permission denied after the user left the circle), the flow
-   * ends with that error, so the collector can catch it. Going offline doesn't end it: the list
-   * then comes from what this phone has already loaded. Firestore's ready-made `Query.snapshots()`
-   * isn't used: it ends with a cancellation instead, which a ViewModel's coroutine treats as a
-   * normal stop, so the error would go unnoticed.
+   * added, changed or removed, until the collector stops. It ends with Firebase's error, as
+   * explained in [observeSnapshots].
    */
-  private fun Query.observeItems(): Flow<List<MediaItem>> {
-    val items = callbackFlow {
-      val registration = addSnapshotListener { snapshot, error ->
-        when {
-          error != null -> close(error)
-          snapshot != null -> trySend(snapshot.documents.mapNotNull { it.toMediaItem() })
-        }
-      }
-      awaitClose { registration.remove() }
-    }
-    return items.conflate()
-  }
+  private fun Query.observeItems(): Flow<List<MediaItem>> =
+      observeSnapshots().map { snapshot -> snapshot.documents.mapNotNull { it.toMediaItem() } }
 
   /**
    * The media stored in this document; null if there is no document, or if this app version can't

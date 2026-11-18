@@ -77,7 +77,7 @@ class FirebaseAppointmentRepositoryTest {
     signIn(uid)
     stubWrites(Tasks.forResult(null))
 
-    repository = FirebaseAppointmentRepository(firestore, auth) { now }
+    repository = FirebaseAppointmentRepository(firestore, auth, now = { now })
   }
 
   @Test
