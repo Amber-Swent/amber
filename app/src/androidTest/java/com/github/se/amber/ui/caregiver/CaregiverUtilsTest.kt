@@ -1,5 +1,6 @@
 // Written by LaMaier, with the assistance of Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver
 
@@ -209,6 +210,21 @@ class DisplayCaregiverButtonTest {
   fun icon_isDisplayed_whenIconProvided() {
     setButton(withIcon = true)
     iconNode().assertIsDisplayed()
+  }
+
+  @Test
+  fun iconAboveText_placesTheIconAboveTheLabel() {
+    composeTestRule.setContent {
+      DisplayCaregiverButton(
+          icon = icon,
+          description = iconDescription,
+          iconAboveText = true,
+      )
+    }
+
+    val iconBounds = iconNode().fetchSemanticsNode().boundsInRoot
+    val textBounds = textNode().fetchSemanticsNode().boundsInRoot
+    assertTrue(iconBounds.bottom <= textBounds.top)
   }
 
   @Test

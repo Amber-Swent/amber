@@ -12,8 +12,6 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationCreationRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepositoryProvider
 import com.github.se.amber.data.invitation.InvitationCreationResult
@@ -34,26 +32,19 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "CreateInvitationViewModel"
 
-data class CareCircleChoice(
-    val id: String,
-    val name: String,
-)
-
 /**
  * UI state of the create invitation screen.
  *
  * @property generatedCode the code created last, or null before the first one.
- * @property invitations the invitations of the selected circle.
+ * @property invitations the invitations of the active circle.
  * @property errorMsgRes the error to show, as a string resource, or null for none.
- * @property circles the circles the caregiver can invite to.
- * @property selectedCircleId the circle new invitations are created for.
+ * @property selectedCircleId the active circle new invitations are created for.
  * @property isCreating whether an invitation is being created.
  */
 data class CreateInvitationUIState(
     val generatedCode: String? = null,
     val invitations: List<InvitationSummary> = emptyList(),
     @param:StringRes val errorMsgRes: Int? = null,
-    val circles: List<CareCircleChoice> = emptyList(),
     val selectedCircleId: String? = null,
     val isCreating: Boolean = false,
 )
@@ -64,8 +55,6 @@ class CreateInvitationViewModel(
         InvitationCreationRepositoryProvider.default.repository,
     private val lookupRepository: InvitationLookupRepository =
         InvitationLookupRepositoryProvider.default.repository,
-    private val circleRepository: CareCircleRepository =
-        CareCircleRepositoryProvider.default.repository,
     private val activeCircleRepository: ActiveCircleRepository =
         ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
@@ -79,23 +68,6 @@ class CreateInvitationViewModel(
       val circleId = _uiState.value.selectedCircleId ?: return@launch
       fetchInvitations(circleId)
     }
-  }
-
-  fun selectCircle(circleId: String) {
-    val state = _uiState.value
-    if (state.isCreating) return
-    if (state.circles.none { it.id == circleId }) return
-    if (state.selectedCircleId == circleId) return
-    _uiState.update {
-      it.copy(
-          selectedCircleId = circleId,
-          generatedCode = null,
-          invitations = emptyList(),
-          errorMsgRes = null,
-      )
-    }
-    invitationsJob?.cancel()
-    invitationsJob = viewModelScope.launch { fetchInvitations(circleId) }
   }
 
   fun createInvitation() {
@@ -132,21 +104,12 @@ class CreateInvitationViewModel(
   private suspend fun prepareCircles() {
     val profile = readProfile() ?: return
     val circleIds = profile.circleIds.filter { it.isNotBlank() }
-    val choices = circleIds.map { id ->
-      val loadedName = circleRepository.getCircle(id).getOrNull()?.name
-      CareCircleChoice(id = id, name = loadedName?.takeIf { it.isNotBlank() } ?: id)
-    }
-    val selected =
-        _uiState.value.selectedCircleId?.takeIf { current -> choices.any { it.id == current } }
-            ?: activeCircleRepository.activeCircleId(profile.uid, circleIds).first()
-
+    val selected = activeCircleRepository.activeCircleId(profile.uid, circleIds).first()
     if (selected == null) {
-      _uiState.update {
-        it.copy(circles = choices, errorMsgRes = R.string.createInvitationErrorNoCircle)
-      }
+      _uiState.update { it.copy(errorMsgRes = R.string.createInvitationErrorNoCircle) }
       return
     }
-    _uiState.update { it.copy(circles = choices, selectedCircleId = selected) }
+    _uiState.update { it.copy(selectedCircleId = selected) }
   }
 
   private suspend fun fetchInvitations(

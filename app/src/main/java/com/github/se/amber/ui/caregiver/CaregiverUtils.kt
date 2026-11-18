@@ -157,26 +157,37 @@ fun DisplayCaregiverButton(
           ),
       shape = RoundedCornerShape(ROUND_CORNER),
   ) {
-    if (iconAboveText && icon != null) {
-      Column(
-          modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
-          verticalArrangement =
-              Arrangement.spacedBy(CAREGIVER_PADDING_SMALL, Alignment.CenterVertically),
-          horizontalAlignment = Alignment.CenterHorizontally,
-      ) {
+    val iconAboveTheText = iconAboveText && icon != null
+    val iconContent: @Composable () -> Unit = {
+      if (icon != null) {
         Icon(
             imageVector = icon,
             contentDescription = description,
             modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.ICON),
             tint = MaterialTheme.colorScheme.onTertiary,
         )
-        Text(
-            text = text,
-            modifier = Modifier.fillMaxWidth().testTag(DisplayCaregiverButtonTestTags.TEXT),
-            color = MaterialTheme.colorScheme.onTertiary,
-            textAlign = TextAlign.Center,
-            style = style,
-        )
+      }
+    }
+    val textContent: @Composable () -> Unit = {
+      Text(
+          text = text,
+          modifier =
+              Modifier.then(if (iconAboveTheText) Modifier.fillMaxWidth() else Modifier)
+                  .testTag(DisplayCaregiverButtonTestTags.TEXT),
+          color = MaterialTheme.colorScheme.onTertiary,
+          textAlign = TextAlign.Center,
+          style = style,
+      )
+    }
+    if (iconAboveTheText) {
+      Column(
+          modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
+          verticalArrangement =
+              Arrangement.spacedBy(CAREGIVER_PADDING_SMALL, Alignment.CenterVertically),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        iconContent()
+        textContent()
       }
     } else {
       Row(
@@ -185,21 +196,8 @@ fun DisplayCaregiverButton(
               if (icon == null) Arrangement.Center else Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically,
       ) {
-        Text(
-            text = text,
-            modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.TEXT),
-            color = MaterialTheme.colorScheme.onTertiary,
-            textAlign = TextAlign.Center,
-            style = style,
-        )
-        if (icon != null) {
-          Icon(
-              imageVector = icon,
-              contentDescription = description,
-              modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.ICON),
-              tint = MaterialTheme.colorScheme.onTertiary,
-          )
-        }
+        textContent()
+        iconContent()
       }
     }
   }
@@ -463,6 +461,19 @@ internal fun DisplayBoxWithIconTextPreview() {
 @Composable
 private fun DisplayCaregiverButtonPreview() {
   AmberAppTheme { DisplayCaregiverButton() }
+}
+
+/** Preview of [DisplayCaregiverButton] with the icon above the text. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun DisplayCaregiverButtonIconAboveTextPreview() {
+  AmberAppTheme {
+    DisplayCaregiverButton(
+        icon = Icons.Default.Add,
+        description = stringResource(R.string.caregiverIconButtonAdd),
+        iconAboveText = true,
+    )
+  }
 }
 
 /** Preview of [DisplayCaregiverIconButton] using the Amber application theme. */
