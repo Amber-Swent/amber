@@ -111,7 +111,7 @@ object DisplayCaregiverButtonTestTags {
  *
  * An icon and its content description must either both be provided or both be omitted. If there is
  * no icon, the text is centered. If there is an icon, the text is on the left and the icon on the
- * right
+ * right, unless [iconAboveText] places the icon above the text.
  *
  * @param modifier modifier applied to the button.
  * @param onClick callback invoked when the button is clicked.
@@ -124,6 +124,7 @@ object DisplayCaregiverButtonTestTags {
  * @param widthPercentage fraction of the available width occupied by the button.
  * @param paddingTextAndIcon padding applied between the button content and its edges.
  * @param buttonTestTag The test tag applied to the button.
+ * @param iconAboveText places [icon] above [text]. Ignored when [icon] is null.
  */
 @Composable
 fun DisplayCaregiverButton(
@@ -138,6 +139,7 @@ fun DisplayCaregiverButton(
     widthPercentage: Float = CAREGIVER_BUTTON_WIDTH_MEDIUM,
     paddingTextAndIcon: Dp = CAREGIVER_PADDING_SMALL,
     buttonTestTag: String = BUTTON,
+    iconAboveText: Boolean = false,
 ) {
   require((icon == null && description.isEmpty()) || (icon != null && description.isNotEmpty())) {
     "An icon requires a description, and a description requires an icon"
@@ -155,18 +157,8 @@ fun DisplayCaregiverButton(
           ),
       shape = RoundedCornerShape(ROUND_CORNER),
   ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
-        horizontalArrangement = if (icon == null) Arrangement.Center else Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-      Text(
-          text = text,
-          modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.TEXT),
-          color = MaterialTheme.colorScheme.onTertiary,
-          textAlign = TextAlign.Center,
-          style = style,
-      )
+    val iconAboveTheText = iconAboveText && icon != null
+    val iconContent: @Composable () -> Unit = {
       if (icon != null) {
         Icon(
             imageVector = icon,
@@ -174,6 +166,38 @@ fun DisplayCaregiverButton(
             modifier = Modifier.testTag(DisplayCaregiverButtonTestTags.ICON),
             tint = MaterialTheme.colorScheme.onTertiary,
         )
+      }
+    }
+    val textContent: @Composable () -> Unit = {
+      Text(
+          text = text,
+          modifier =
+              Modifier.then(if (iconAboveTheText) Modifier.fillMaxWidth() else Modifier)
+                  .testTag(DisplayCaregiverButtonTestTags.TEXT),
+          color = MaterialTheme.colorScheme.onTertiary,
+          textAlign = TextAlign.Center,
+          style = style,
+      )
+    }
+    if (iconAboveTheText) {
+      Column(
+          modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
+          verticalArrangement =
+              Arrangement.spacedBy(CAREGIVER_PADDING_SMALL, Alignment.CenterVertically),
+          horizontalAlignment = Alignment.CenterHorizontally,
+      ) {
+        iconContent()
+        textContent()
+      }
+    } else {
+      Row(
+          modifier = Modifier.fillMaxWidth().padding(paddingTextAndIcon),
+          horizontalArrangement =
+              if (icon == null) Arrangement.Center else Arrangement.SpaceBetween,
+          verticalAlignment = Alignment.CenterVertically,
+      ) {
+        textContent()
+        iconContent()
       }
     }
   }
@@ -437,6 +461,19 @@ internal fun DisplayBoxWithIconTextPreview() {
 @Composable
 private fun DisplayCaregiverButtonPreview() {
   AmberAppTheme { DisplayCaregiverButton() }
+}
+
+/** Preview of [DisplayCaregiverButton] with the icon above the text. */
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+internal fun DisplayCaregiverButtonIconAboveTextPreview() {
+  AmberAppTheme {
+    DisplayCaregiverButton(
+        icon = Icons.Default.Add,
+        description = stringResource(R.string.caregiverIconButtonAdd),
+        iconAboveText = true,
+    )
+  }
 }
 
 /** Preview of [DisplayCaregiverIconButton] using the Amber application theme. */
