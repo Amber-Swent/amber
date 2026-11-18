@@ -150,7 +150,10 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1", "member")))
 
-    assertEquals(listOf("Bob", "Dave"), viewModel.uiState.value.relatedPersons.map { it.firstName })
+    val persons = viewModel.uiState.value.relatedPersons
+    assertEquals(listOf("Bob", "Dave"), persons.map { it.firstName })
+    // the ids are what the button passes to the navigation callback
+    assertEquals(listOf("p1", "member"), persons.map { it.id })
   }
 
   @Test

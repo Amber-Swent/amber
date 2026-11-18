@@ -152,7 +152,7 @@ fun DisplayPatientButton(
           if (outlined) {
             ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onTertiary,
+                contentColor = MaterialTheme.colorScheme.tertiary,
             )
           } else {
             ButtonDefaults.buttonColors(

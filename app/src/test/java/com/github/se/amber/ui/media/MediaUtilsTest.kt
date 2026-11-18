@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -15,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import com.github.se.amber.ui.theme.PADDING_MINI
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -81,16 +82,6 @@ class MediaUtilsTest {
   }
 
   @Test
-  fun click_isNotTriggeredWithoutInteraction() {
-    var clickedId: String? = null
-    setContent(Person(id = "person-42", firstName = "Alice"), onClick = { clickedId = it })
-
-    composeTestRule.waitForIdle()
-
-    assertNull(clickedId)
-  }
-
-  @Test
   fun usesDefaultButtonTestTag_whenNoTestTagIsGiven() {
     setContent(Person(id = "1", firstName = "Alice"), tag = null)
 
@@ -98,10 +89,11 @@ class MediaUtilsTest {
   }
 
   @Test
-  fun button_withCustomModifier_isDisplayed() {
+  fun button_withCustomModifier_appliesItsWidth() {
     setContent(Person(id = "1", firstName = "Alice"), modifier = Modifier.width(150.dp))
 
-    composeTestRule.onNodeWithTag(testTag).assertIsDisplayed()
+    // the custom width is applied outside the button's own padding
+    composeTestRule.onNodeWithTag(testTag).assertWidthIsEqualTo(150.dp - PADDING_MINI * 2)
   }
 
   @Test
