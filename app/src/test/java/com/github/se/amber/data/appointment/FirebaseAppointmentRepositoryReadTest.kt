@@ -64,6 +64,17 @@ class FirebaseAppointmentRepositoryReadTest {
           lastEndAt = dayStart + 10.hours.inWholeMilliseconds + 45.minutes.inWholeMilliseconds,
       )
 
+  // Started the day before and ends during the day, so it is part of it. Only its lastEndAt lets
+  // the query find it.
+  private val overnight =
+      Appointment(
+          id = "overnight",
+          title = "Night care",
+          startAt = dayStart - 1.hours.inWholeMilliseconds,
+          durationMinutes = 2 * 60,
+          lastEndAt = dayStart + 1.hours.inWholeMilliseconds,
+      )
+
   // Starts right at the end of the day, so it is not part of it.
   private val tomorrow =
       Appointment(
@@ -108,6 +119,7 @@ class FirebaseAppointmentRepositoryReadTest {
     // Firestore's order: by end. The physio was edited offline, so it isn't synced yet.
     listener.captured.onEvent(
         queryResult(
+            document(overnight),
             document(physio, pending = true),
             unreadableDocument(),
             document(checkUp),
@@ -118,7 +130,13 @@ class FirebaseAppointmentRepositoryReadTest {
     runCurrent()
 
     assertEquals(
-        listOf(listOf(Synced(checkUp, isSynced = true), Synced(physio, isSynced = false))),
+        listOf(
+            listOf(
+                Synced(overnight, isSynced = true),
+                Synced(checkUp, isSynced = true),
+                Synced(physio, isSynced = false),
+            )
+        ),
         lists,
     )
   }
