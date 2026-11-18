@@ -1,4 +1,5 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.data.media
 
@@ -57,14 +58,8 @@ class MediaFileStorageFirebaseTest {
 
   @get:Rule val tmp = TemporaryFolder()
 
-  /** The file to upload: one byte, since `upload` refuses an empty file. Its bytes aren't sent. */
+  /** The file to upload: one byte. Its bytes aren't sent. */
   private val upload by lazy { tmp.newFile("picture.jpg").apply { writeBytes(byteArrayOf(1)) } }
-
-  /** A file whose [File.length] is [bytes], without writing them to disk. */
-  private fun fileOfLength(bytes: Long) =
-      object : File(tmp.root, "sized.jpg") {
-        override fun length() = bytes
-      }
 
   private val picture =
       MediaItem.Picture(id = "m1", authorId = "u1", storagePath = "careCircles/c1/media/m1.jpg")
@@ -162,7 +157,15 @@ class MediaFileStorageFirebaseTest {
     val pendingPicture = picture.copy(storagePath = "careCircles/pending/media/m1.jpg")
 
     val downloadError = errorOf { fileStorage.download(pending, picture.storagePath, destination) }
-    val uploadError = errorOf { fileStorage.upload(pending, pendingPicture, upload) }
+    val uploadError = errorOf {
+      fileStorage.upload(
+          pending,
+          pendingPicture.storagePath,
+          upload,
+          "image/jpeg",
+          pendingPicture.authorId,
+      )
+    }
     val deleteError = errorOf { fileStorage.delete(pending, picture.storagePath) }
 
     assertTrue("download", downloadError is IllegalArgumentException)
@@ -174,20 +177,6 @@ class MediaFileStorageFirebaseTest {
   }
 
   @Test
-  fun uploadChecksTheItemAndFileBeforeTheBucket() = runTest {
-    val fileStorage = MediaFileStorageFirebase()
-    val pending = CareCircle(id = "c1")
-    val text = MediaItem.Text(id = "t1")
-
-    val textError = errorOf { fileStorage.upload(pending, text, upload) }
-    val emptyError = errorOf { fileStorage.upload(pending, picture, tmp.newFile("empty.jpg")) }
-
-    // a bug in the item or file is reported as such, not as a bucket that isn't assigned yet
-    assertEquals("Media t1 is a text: it has no file to upload", textError?.message)
-    assertEquals("Media m1's file is empty or over 25 MiB", emptyError?.message)
-  }
-
-  @Test
   fun aTransferCancelledByFirebaseThrowsItsError() = runTest {
     // what Firebase really does when it cancels a transfer: the task fails with ERROR_CANCELED
     val cancelled = StorageException.fromErrorStatus(Status.RESULT_CANCELED)
@@ -195,7 +184,8 @@ class MediaFileStorageFirebaseTest {
         fakeFirebase(upload = mock<UploadTask>().inState(failure = cancelled, cancelled = true))
 
     val error = errorOf {
-      MediaFileStorageFirebase { firebase.storage }.upload(circle, picture, upload)
+      MediaFileStorageFirebase { firebase.storage }
+          .upload(circle, picture.storagePath, upload, "image/jpeg", picture.authorId)
     }
 
     // passed on as is, not a CancellationException that would silently stop the caller
@@ -290,7 +280,8 @@ class MediaFileStorageFirebaseTest {
     val other = fakeFirebase()
     val buckets = mapOf("c1" to firebase.storage, "c2" to other.storage)
 
-    MediaFileStorageFirebase { buckets.getValue(it.id) }.upload(circle, picture, upload)
+    MediaFileStorageFirebase { buckets.getValue(it.id) }
+        .upload(circle, picture.storagePath, upload, "image/jpeg", picture.authorId)
 
     verify(firebase.root).child("careCircles/c1/media/m1.jpg")
     verify(firebase.file).putFile(eq(Uri.fromFile(upload)), any())
@@ -311,7 +302,8 @@ class MediaFileStorageFirebaseTest {
     for ((item, contentType) in items) {
       val firebase = fakeFirebase()
 
-      MediaFileStorageFirebase { firebase.storage }.upload(circle, item, upload)
+      MediaFileStorageFirebase { firebase.storage }
+          .upload(circle, item.storagePath, upload, contentType, item.authorId)
 
       val metadata = argumentCaptor<StorageMetadata>()
       verify(firebase.file).putFile(any(), metadata.capture())
@@ -323,61 +315,14 @@ class MediaFileStorageFirebaseTest {
   }
 
   @Test
-  fun uploadRefusesAMediaWithoutAnAcceptedFile() = runTest {
+  fun uploadLeavesTheSizeCheckToTheCaller() = runTest {
     val firebase = fakeFirebase()
-    val fileStorage = MediaFileStorageFirebase { firebase.storage }
-    val gif = picture.copy(storagePath = "careCircles/c1/media/m1.gif")
-
-    val textError = errorOf { fileStorage.upload(circle, MediaItem.Text(id = "t1"), upload) }
-    val gifError = errorOf { fileStorage.upload(circle, gif, upload) }
-
-    assertTrue("text", textError is IllegalArgumentException)
-    assertEquals("text", "Media t1 is a text: it has no file to upload", textError?.message)
-    // the rules would refuse it: a bug, reported before anything is sent
-    assertTrue("gif", gifError is IllegalArgumentException)
-    verify(firebase.root, never()).child(any())
-  }
-
-  @Test
-  fun uploadRefusesAMediaOfAnotherCircle() = runTest {
-    val firebase = fakeFirebase()
-    val otherCircle = picture.copy(storagePath = "careCircles/c2/media/m1.jpg")
-
-    val error = errorOf {
-      MediaFileStorageFirebase { firebase.storage }.upload(circle, otherCircle, upload)
-    }
-
-    // the rules would answer "permission denied", which a send could retry forever
-    assertTrue(error is IllegalArgumentException)
-    assertEquals(
-        "Media m1 (careCircles/c2/media/m1.jpg) isn't a media of care circle c1",
-        error?.message,
-    )
-    verify(firebase.root, never()).child(any())
-  }
-
-  @Test
-  fun uploadRefusesAnEmptyFileOrOneOver25MiB() = runTest {
-    val firebase = fakeFirebase()
-    val fileStorage = MediaFileStorageFirebase { firebase.storage }
-    val maxBytes = 25L * 1024 * 1024
-
-    val emptyError = errorOf { fileStorage.upload(circle, picture, fileOfLength(0)) }
-    val largeError = errorOf { fileStorage.upload(circle, picture, fileOfLength(maxBytes + 1)) }
-
-    assertTrue("empty", emptyError is IllegalArgumentException)
-    assertTrue("large", largeError is IllegalArgumentException)
-    verify(firebase.root, never()).child(any())
-  }
-
-  @Test
-  fun uploadAcceptsAFileOfExactly25MiB() = runTest {
-    val firebase = fakeFirebase()
+    // over 25 MiB: requireUploadable would refuse this, and upload must not
+    val file = fileOfLength(tmp.root, MAX_FILE_BYTES + 1)
 
     MediaFileStorageFirebase { firebase.storage }
-        .upload(circle, picture, fileOfLength(25L * 1024 * 1024))
+        .upload(circle, picture.storagePath, file, "image/jpeg", picture.authorId)
 
-    // the rules' limit is inclusive
     verify(firebase.file).putFile(any(), any())
   }
 
@@ -385,7 +330,8 @@ class MediaFileStorageFirebaseTest {
   fun uploadsStopRetryingAfterOneMinute() = runTest {
     val firebase = fakeFirebase()
 
-    MediaFileStorageFirebase { firebase.storage }.upload(circle, picture, upload)
+    MediaFileStorageFirebase { firebase.storage }
+        .upload(circle, picture.storagePath, upload, "image/jpeg", picture.authorId)
 
     // before putFile: the upload task reads it when it is created
     inOrder(firebase.storage, firebase.file) {
@@ -400,7 +346,8 @@ class MediaFileStorageFirebaseTest {
     val firebase = fakeFirebase(upload = mock<UploadTask>().inState(failure = denied))
 
     val error = errorOf {
-      MediaFileStorageFirebase { firebase.storage }.upload(circle, picture, upload)
+      MediaFileStorageFirebase { firebase.storage }
+          .upload(circle, picture.storagePath, upload, "image/jpeg", picture.authorId)
     }
 
     // passed on as is, so the send can tell a lasting error from one worth retrying
@@ -412,7 +359,10 @@ class MediaFileStorageFirebaseTest {
     val task = mock<UploadTask>().inState(complete = false)
     val fileStorage = MediaFileStorageFirebase { fakeFirebase(upload = task).storage }
 
-    val thrown = cancelWhileRunning(task) { fileStorage.upload(circle, picture, upload) }
+    val thrown =
+        cancelWhileRunning(task) {
+          fileStorage.upload(circle, picture.storagePath, upload, "image/jpeg", picture.authorId)
+        }
 
     verify(task).cancel() // a cancelled send doesn't keep uploading in the background
     assertTrue(thrown is CancellationException)

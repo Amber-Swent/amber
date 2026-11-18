@@ -3,6 +3,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.navigation
 
@@ -115,6 +116,12 @@ sealed class CaregiverScreen(
       CaregiverScreen(
           route = "caregiver_upload_audio",
           title = R.string.screenTitleCaregiverUploadAudio,
+      )
+
+  data object UploadText :
+      CaregiverScreen(
+          route = "caregiver_upload_text",
+          title = R.string.screenTitleCaregiverUploadText,
       )
 
   data object Parameters :
