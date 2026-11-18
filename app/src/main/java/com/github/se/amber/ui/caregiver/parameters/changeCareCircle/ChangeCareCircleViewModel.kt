@@ -1,6 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 
-package com.github.se.amber.ui.onboarding.changeCareCircle
+package com.github.se.amber.ui.caregiver.parameters.changeCareCircle
 
 import android.util.Log
 import androidx.annotation.StringRes
@@ -54,7 +54,8 @@ enum class ChangeCareCircleStatus {
  * @param status Determines whether loading, empty, or ready content is shown.
  * @param circles Care circles displayed as chips in the ready state.
  * @param activeCircleId ID of the selected circle, or null if none is active.
- * @param errorMsgRes Error that replaces the screen when loading fails.
+ * @param errorMsgRes Error shown as a blocking message after loading fails, or as a toast when
+ *   changing the active circle fails in the ready state.
  */
 data class ChangeCareCircleUIState(
     val status: ChangeCareCircleStatus = ChangeCareCircleStatus.LOADING,
@@ -73,9 +74,11 @@ data class ChangeCareCircleUIState(
  */
 class ChangeCareCircleViewModel(
     initialState: ChangeCareCircleUIState? = null,
-    private val profileRepository: ProfileRepository? = null,
-    private val circleRepository: CareCircleRepository? = null,
-    private val activeCircleRepository: ActiveCircleRepository? = null,
+    private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    private val circleRepository: CareCircleRepository =
+        CareCircleRepositoryProvider.default.repository,
+    private val activeCircleRepository: ActiveCircleRepository =
+        ActiveCircleRepositoryProvider.default.repository,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(initialState ?: ChangeCareCircleUIState())
   val uiState: StateFlow<ChangeCareCircleUIState> = _uiState.asStateFlow()

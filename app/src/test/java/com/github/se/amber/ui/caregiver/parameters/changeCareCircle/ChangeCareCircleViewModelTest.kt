@@ -1,6 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 
-package com.github.se.amber.ui.onboarding.changeCareCircle
+package com.github.se.amber.ui.caregiver.parameters.changeCareCircle
 
 import android.util.Log
 import com.github.se.amber.R
