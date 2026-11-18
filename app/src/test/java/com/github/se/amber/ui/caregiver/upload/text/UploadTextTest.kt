@@ -182,6 +182,7 @@ class UploadTextScreenTest {
 
     showScreen(viewModel, onUpload = { leftTheScreen = true })
 
+    composeTestRule.waitForIdle()
     assertTrue(leftTheScreen)
   }
 
