@@ -86,7 +86,15 @@ class ChangeCareCircleViewModelTest {
             activeCircleId = "circle",
         )
 
-    assertEquals(initialState, ChangeCareCircleViewModel(initialState).uiState.value)
+    val viewModel =
+        ChangeCareCircleViewModel(
+            initialState = initialState,
+            profileRepository = profileRepository,
+            circleRepository = circleRepository,
+            activeCircleRepository = activeCircleRepository,
+        )
+
+    assertEquals(initialState, viewModel.uiState.value)
     coVerify(exactly = 0) { profileRepository.getCurrentProfile() }
   }
 
