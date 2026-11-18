@@ -643,6 +643,144 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(care, fs.get("careCircles/c-missing"))
   }
 
+  @Test
+  fun personPhotos_oneOwnOrRecordedPersonEntry_enforcedByEmulator() {
+    val circleId = "c-photos"
+    val care = "care"
+    val pat = "pat"
+    val aunt = "aunt"
+    val stranger = "stranger"
+    val circlePath = "careCircles/$circleId"
+    fun photo(personId: String, photoId: String = "portrait") =
+        "careCircles/$circleId/people/$personId/$photoId.jpg"
+    fun writePhotos(photos: Map<String, String>) =
+        fs.patch(circlePath, mapOf("personPhotos" to photos))
+
+    val people = mapOf("aunt" to mapOf("id" to aunt, "firstName" to "Aunt"))
+    val seeded = circle(circleId, care, listOf(care, pat), patientId = pat) + ("people" to people)
+    fs.adminSet(circlePath, seeded)
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    fs.adminSet("users/$stranger", user(stranger, "CAREGIVER", emptyList(), "Eve"))
+
+    val none = emptyMap<String, String>()
+    val own = mapOf(pat to photo(pat))
+    val ownLater = mapOf(pat to photo(pat, "later"))
+    val ownAndAunt = mapOf(pat to photo(pat, "later"), aunt to photo(aunt))
+    val ownAndAuntLater = mapOf(pat to photo(pat, "later"), aunt to photo(aunt, "later"))
+    val auntOnly = mapOf(aunt to photo(aunt, "later"))
+    // A missing personPhotos field is {}, so writing {} changes nothing the rules care about.
+    fs.assertSucceeds(pat, writePhotos(none))
+    // Another member's uid: pat is not the writer, and not a key of people.
+    fs.assertFails(care, writePhotos(mapOf(pat to photo(pat))))
+    // A key that is neither the writer nor recorded in people.
+    fs.assertFails(care, writePhotos(mapOf("nobody" to photo("nobody"))))
+    // Two keys in one write.
+    fs.assertFails(care, writePhotos(mapOf(care to photo(care), aunt to photo(aunt))))
+    // The folder must be the changed key, not someone else's.
+    fs.assertFails(care, writePhotos(mapOf(care to photo(aunt))))
+    // Four parts: rejected by parts.size() == 5, not by the folder name.
+    fs.assertFails(care, writePhotos(mapOf(care to "careCircles/$circleId/media/portrait.jpg")))
+    // Five parts whose folder is not people: parts[2] == 'people'.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/media/$care/portrait.jpg")),
+    )
+    // A path in another circle: parts[1] == circleId.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/other/people/$care/portrait.jpg")),
+    )
+    // An extra segment.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/extra/portrait.jpg")),
+    )
+    // The value has to be a string path.
+    fs.assertFails(care, fs.patch(circlePath, mapOf("personPhotos" to mapOf(care to 1))))
+    // Not a JPEG, and not a name containing '_'.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/portrait.png")),
+    )
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/my_photo.jpg")),
+    )
+    // Adding a person and their photo together: the key is not in people yet.
+    fs.assertFails(
+        care,
+        fs.patch(
+            circlePath,
+            mapOf(
+                "people" to (people + ("newborn" to mapOf("id" to "newborn", "firstName" to "Bo"))),
+                "personPhotos" to mapOf("newborn" to photo("newborn")),
+            ),
+        ),
+    )
+    // A stranger is not a member.
+    fs.assertFails(stranger, writePhotos(mapOf(stranger to photo(stranger))))
+
+    // pat sets their own photo, replaces it, then adds, replaces, and removes aunt's.
+    fs.assertSucceeds(pat, writePhotos(own))
+    fs.assertSucceeds(pat, writePhotos(ownLater))
+    fs.assertSucceeds(pat, writePhotos(ownAndAunt))
+    fs.assertSucceeds(pat, writePhotos(ownAndAuntLater))
+    fs.assertSucceeds(pat, writePhotos(auntOnly))
+    // care may set their own photo beside aunt's.
+    fs.assertSucceeds(care, writePhotos(mapOf(aunt to photo(aunt, "later"), care to photo(care))))
+    fs.adminSet(
+        circlePath,
+        seeded + ("personPhotos" to mapOf(aunt to photo(care, "later"), care to photo(care))),
+    )
+    // A replacement that copies a path already stored for someone else.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(aunt to photo(care, "later"), care to photo(care, "later"))),
+    )
+    // A person id that contains '_' cannot be a folder name.
+    fs.adminSet(
+        circlePath,
+        seeded + ("people" to mapOf("au_nt" to mapOf("id" to "au_nt", "firstName" to "Ann"))),
+    )
+    fs.assertFails(care, writePhotos(mapOf("au_nt" to photo("au_nt"))))
+
+    // Onboarding writes the CareCircle data class, so personPhotos is {} rather than absent.
+    fs.assertSucceeds(
+        care,
+        fs.set(
+            "careCircles/c-empty",
+            circle("c-empty", care, listOf(care), patientId = "") +
+                ("personPhotos" to emptyMap<String, String>()),
+        ),
+    )
+    // A create that already points at a photo is refused.
+    fs.assertFails(
+        care,
+        fs.set(
+            "careCircles/c-born",
+            circle("c-born", care, listOf(care), patientId = "") +
+                ("personPhotos" to mapOf(care to "careCircles/c-born/people/$care/portrait.jpg")),
+        ),
+    )
+    // A user being deleted may not change personPhotos.
+    fs.adminSet(
+        "users/$care",
+        user(care, "CAREGIVER", listOf(circleId), "Ada") + ("deletionRequested" to true),
+    )
+    fs.adminSet(circlePath, seeded + ("personPhotos" to mapOf(care to photo(care))))
+    fs.assertFails(care, writePhotos(mapOf(care to photo(care, "later"))))
+    // pat may clear aunt's photo: aunt is a key of people. care's deletion flag does not apply.
+    fs.adminSet(
+        circlePath,
+        seeded + ("personPhotos" to mapOf(aunt to photo(aunt), care to photo(care))),
+    )
+    fs.assertSucceeds(pat, writePhotos(mapOf(care to photo(care))))
+    // pat may not clear care's photo: care is a member, not pat, and not in people.
+    fs.adminSet(circlePath, seeded + ("personPhotos" to mapOf(care to photo(care))))
+    fs.assertFails(pat, writePhotos(emptyMap()))
+  }
+
   companion object {
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
