@@ -466,7 +466,7 @@ private fun DisplayCaregiverButtonPreview() {
 /** Preview of [DisplayCaregiverButton] with the icon above the text. */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun DisplayCaregiverButtonIconAboveTextPreview() {
+internal fun DisplayCaregiverButtonIconAboveTextPreview() {
   AmberAppTheme {
     DisplayCaregiverButton(
         icon = Icons.Default.Add,
