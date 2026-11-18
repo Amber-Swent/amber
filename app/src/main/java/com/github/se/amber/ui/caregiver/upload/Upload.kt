@@ -175,11 +175,11 @@ fun DisplayButton(
   )
 }
 
-/** Preview of [UploadScreen] in light mode. */
-@Preview(showBackground = true, showSystemUi = true, name = "Upload menu light")
+/** Preview of [UploadScreen] using the Amber application theme. */
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun UploadScreenPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = false) { UploadScreen() }
+  AmberAppTheme(dynamicColor = false) { UploadScreen() }
 }
 
 /** Preview of [UploadScreen] in dark mode. */

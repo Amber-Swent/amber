@@ -1,23 +1,37 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload.text
 
-import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.location.PlaceSearchRepository
+import com.github.se.amber.data.location.PlaceSearchRepositoryProvider
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
+import com.github.se.amber.model.authentication.AuthRepository
+import com.github.se.amber.model.authentication.AuthRepositoryProvider
+import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.media.MediaItem
+import com.github.se.amber.model.media.MediaRepository
+import com.github.se.amber.model.media.MediaRepositoryProvider
 import com.github.se.amber.model.media.MemoryDate
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
-import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import com.github.se.amber.ui.caregiver.upload.media.MediaUIState
+import com.github.se.amber.ui.caregiver.upload.media.MediaViewModel
+import java.io.File
+import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * UI state of the text upload screen.
  *
- * @property title the story title typed by the caregiver. This is [MediaItem.Text.title].
+ * @property title the story title typed by the caregiver. [MediaItem.Text] has no title yet.
  * @property text the story body typed in the description box. This is [MediaItem.Text.text].
  * @property common the date, place and people shared with the other upload screens. A text story
  *   keeps [CommonMediaUIState.description] empty.
@@ -25,26 +39,53 @@ import kotlinx.coroutines.flow.receiveAsFlow
 data class UploadTextUIState(
     val title: String = "",
     val text: String = "",
-    val common: CommonMediaUIState = CommonMediaUIState(),
-) {
+    override val common: CommonMediaUIState = CommonMediaUIState(),
+) : MediaUIState<UploadTextUIState> {
   /** Whether the story has a title and a body, so the upload button can be pressed. */
-  val canUpload: Boolean
+  override val canUpload: Boolean
     get() = title.isNotBlank() && text.isNotBlank()
+
+  override fun withCommon(common: CommonMediaUIState): UploadTextUIState = copy(common = common)
 }
 
 /**
  * Holds the text upload screen state.
  *
- * The functions name the actions the screen can take. A body that only has a `//Todo:` comment is
- * not implemented yet. Leaving the screen stays in the composable: this class does not navigate.
+ * The date, place, people and upload are [MediaViewModel]. This class only adds the title and the
+ * story body. A body that only has a `//Todo:` comment is not implemented yet. Leaving the screen
+ * stays in the composable: this class does not navigate.
+ *
+ * @param mediaRepo The repository used to create and upload media items.
+ * @param authRepo The repository used to access the currently authenticated user.
+ * @param profileRepo The repository used to load the authenticated user's profile.
+ * @param circleRepo The repository used to load the user's care circle.
+ * @param activeCircleRepo The repository used to follow the user's active care circle.
+ * @param placeRepo The repository used to find real places from what the user types.
+ * @param cleanupScope Where a canceled upload finishes its cleanup.
  */
-class UploadTextViewModel : ViewModel() {
-  private val _uiState = MutableStateFlow(UploadTextUIState())
-  val uiState: StateFlow<UploadTextUIState> = _uiState.asStateFlow()
+class UploadTextViewModel(
+    mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
+    authRepo: AuthRepository = AuthRepositoryProvider.repository,
+    profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
+    circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    activeCircleRepo: ActiveCircleRepository = ActiveCircleRepositoryProvider.default.repository,
+    placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
+    cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+) :
+    MediaViewModel<UploadTextUIState>(
+        initialState =
+            UploadTextUIState(common = CommonMediaUIState(date = MemoryDate(LocalDate.now().year))),
+        mediaRepo = mediaRepo,
+        authRepo = authRepo,
+        profileRepo = profileRepo,
+        circleRepo = circleRepo,
+        activeCircleRepo = activeCircleRepo,
+        placeRepo = placeRepo,
+        cleanupScope = cleanupScope,
+    ) {
 
-  private val _events = Channel<MediaEvent>(Channel.BUFFERED)
-  val events: Flow<MediaEvent> = _events.receiveAsFlow()
-
+  // FIXME: MediaItem.Text needs a title parameter. Save this field there once that parameter
+  // exists.
   /** Stores [title] as the story title. */
   fun setTitle(title: String) {
     // Todo: save the title in the UI state
@@ -63,53 +104,24 @@ class UploadTextViewModel : ViewModel() {
     // Todo: save the story body in MediaItem.Text.text
   }
 
-  /** Stores [date] as the day the story happened. */
-  fun setDate(date: MemoryDate?) {
-    // Todo: save the date in the shared media state
+  @StringRes
+  override fun checkContent(state: UploadTextUIState): Int? {
+    // Todo: check that [state] has a title and a body
+    return null
   }
 
-  /** Stores [query] as the place being searched. */
-  fun setPlaceQuery(query: String) {
-    // Todo: save the place query and search for a location
-  }
+  /** A text story has no file. [state] is not read. */
+  override fun fileOf(state: UploadTextUIState): File? = null
 
-  /** Opens the dialog for adding a person to the story. */
-  fun onAddPerson() {
-    // Todo: open the add-person dialog
-  }
-
-  /** Closes the add-person dialog without saving. */
-  fun dismissAddPerson() {
-    // Todo: close the add-person dialog
-  }
-
-  /** Stores [firstName] in the add-person dialog. */
-  fun setPersonFirstName(firstName: String) {
-    // Todo: save the first name typed in the dialog
-  }
-
-  /** Stores [lastName] in the add-person dialog. */
-  fun setPersonLastName(lastName: String) {
-    // Todo: save the last name typed in the dialog
-  }
-
-  /** Stores [nickname] in the add-person dialog. */
-  fun setPersonNickname(nickname: String) {
-    // Todo: save the nickname typed in the dialog
-  }
-
-  /** Saves the person typed in the add-person dialog. */
-  fun addPerson() {
-    // Todo: add the typed person to the story
-  }
-
-  /** Clears the error currently shown on the screen. */
-  fun clearErrorMsg() {
-    // Todo: clear the error shown on the screen
-  }
-
-  /** Uploads the story. The screen navigates only after [MediaEvent.Uploaded]. */
-  fun uploadText() {
-    // Todo: save the text story, then send MediaEvent.Uploaded
+  override fun createItem(
+      id: String,
+      state: UploadTextUIState,
+      authorId: String,
+      circle: CareCircle,
+      date: MemoryDate,
+      shownIds: List<String>,
+  ): MediaItem {
+    // Todo: build the text story from the title and the body
+    return MediaItem.Text(id = id, authorId = authorId, date = date, shownIds = shownIds)
   }
 }

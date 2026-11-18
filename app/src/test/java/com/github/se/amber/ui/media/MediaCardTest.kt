@@ -1,7 +1,6 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
-// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.media
 
@@ -317,29 +316,6 @@ class MediaCardTest {
     composeTestRule
         .onNodeWithTag(MediaCardTestTags.addedBy("m1"))
         .assertTextEquals(string(R.string.mediaCardAddedBy, "Alice"))
-  }
-
-  @Test
-  fun expandedText_hidesDescriptionAndKeepsTheAuthor() {
-    setCard(
-        MediaItem.Text(
-            id = "m1",
-            authorId = "author",
-            description = "not shown",
-            text = "We bought bread.",
-            date = MemoryDate(2020),
-            location = GeoLocation(lat = 46.5, lng = 6.6, placeName = "Lausanne"),
-        ),
-    )
-
-    toggle()
-
-    composeTestRule.onNodeWithTag(MediaCardTestTags.description("m1")).assertDoesNotExist()
-    composeTestRule
-        .onNodeWithTag(MediaCardTestTags.addedBy("m1"))
-        .assertTextEquals(string(R.string.mediaCardAddedBy, "Alice"))
-    composeTestRule.onNodeWithTag(MediaCardTestTags.date("m1")).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(MediaCardTestTags.location("m1")).assertTextEquals("Lausanne")
   }
 
   // ---------- related persons ----------

@@ -1,7 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -47,13 +46,7 @@ class MediaItemMappingTest {
       )
 
   private val text =
-      MediaItem.Text(
-          id = "m3",
-          authorId = "u1",
-          createdAt = 1_700_000_000_002L,
-          title = "Market day",
-          text = "Hi!",
-      )
+      MediaItem.Text(id = "m3", authorId = "u1", createdAt = 1_700_000_000_002L, text = "Hi!")
 
   @Test
   fun everyKindOfMediaComesBackUnchanged() {

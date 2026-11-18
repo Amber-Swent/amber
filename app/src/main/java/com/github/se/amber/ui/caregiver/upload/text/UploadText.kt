@@ -71,10 +71,10 @@ object UploadTextScreenTestTags {
  * Displays the text upload screen.
  *
  * The form matches the picture upload screen, with a title field in place of the camera and gallery
- * buttons. The title box is stored as [MediaItem.Text.title]. The description box keeps that label,
- * but its text is the story body, [MediaItem.Text.text]. A text story has no shared caption, so
- * [MediaItem.description] stays empty and the media card does not show one. What is typed is sent
- * to [viewModel]. [onUpload] and [goBack] only move between screens.
+ * buttons. The title box is not stored on [MediaItem.Text] yet. The description box keeps that
+ * label, but its text is the story body, [MediaItem.Text.text]. A text story has no shared caption,
+ * so [MediaItem.description] stays empty. What is typed is sent to [viewModel]. [onUpload] and
+ * [goBack] only move between screens.
  *
  * @param viewModel the view model that owns the story being typed.
  * @param onUpload called after the view model reports that the story was uploaded.
@@ -177,7 +177,7 @@ fun UploadTextScreen(
       },
       bottomBar = {
         DisplayCaregiverButton(
-            onClick = viewModel::uploadText,
+            onClick = viewModel::uploadMedia,
             modifier =
                 Modifier.navigationBarsPadding()
                     .padding(CAREGIVER_PADDING_MEDIUM)
@@ -210,10 +210,10 @@ fun UploadTextScreen(
 /** Preview of [UploadTextScreen] in light mode. */
 @Preview(showBackground = true, showSystemUi = true, name = "Upload text light")
 @Composable
-internal fun UploadTextScreenPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = false) {
-    UploadTextScreen(viewModel = remember { UploadTextViewModel() })
-  }
+internal fun UploadTextScreenPreview(
+    viewModel: UploadTextViewModel = remember { UploadTextViewModel() },
+) {
+  AmberAppTheme(dynamicColor = false, darkTheme = false) { UploadTextScreen(viewModel = viewModel) }
 }
 
 /** Preview of [UploadTextScreen] in dark mode. */
@@ -224,8 +224,8 @@ internal fun UploadTextScreenPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-internal fun UploadTextScreenDarkPreview() {
-  AmberAppTheme(dynamicColor = false, darkTheme = true) {
-    UploadTextScreen(viewModel = remember { UploadTextViewModel() })
-  }
+internal fun UploadTextScreenDarkPreview(
+    viewModel: UploadTextViewModel = remember { UploadTextViewModel() },
+) {
+  AmberAppTheme(dynamicColor = false, darkTheme = true) { UploadTextScreen(viewModel = viewModel) }
 }

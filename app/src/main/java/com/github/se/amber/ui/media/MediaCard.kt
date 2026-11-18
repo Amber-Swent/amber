@@ -1,6 +1,5 @@
 // Written by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.media
 
@@ -157,20 +156,16 @@ fun MediaCard(
               verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
               modifier = Modifier.padding(PATIENT_PADDING_SMALL),
           ) {
-            // Pictures and audio show their caption here. A text story keeps description empty
-            // and stores its body in MediaItem.Text.text, so this expanded section shows only the
-            // author and the related people.
+            // to display the description and name of the people who wrote it
             DisplayBox() {
               Column(
                   verticalArrangement = Arrangement.spacedBy(PATIENT_PADDING_SMALL),
                   modifier = Modifier.fillMaxWidth(),
               ) {
-                if (media !is MediaItem.Text) {
-                  Text(
-                      text = media.description,
-                      modifier = Modifier.testTag(MediaCardTestTags.description(media.id)),
-                  )
-                }
+                Text(
+                    text = media.description,
+                    modifier = Modifier.testTag(MediaCardTestTags.description(media.id)),
+                )
                 Text(
                     text = stringResource(R.string.mediaCardAddedBy, uiState.addedByNickname),
                     modifier =

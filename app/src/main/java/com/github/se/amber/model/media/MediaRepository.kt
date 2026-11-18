@@ -1,5 +1,4 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.model.media
 
@@ -128,11 +127,10 @@ interface MediaRepository {
 
   /**
    * Saves [item]'s new details in [circleId]: its description, date, location, people shown
-   * ([MediaItem.shownIds]), [MediaItem.authorizedIds], a text's title and text, or an audio's
-   * transcript. Nothing else changes, whatever [item] holds: its author, file, type, status and
-   * creation time stay as stored. Needs a connection: it returns once Firebase has saved them, and
-   * fails offline instead of waiting for the connection. Not defined yet for a media still in the
-   * outbox.
+   * ([MediaItem.shownIds]), [MediaItem.authorizedIds], and a text's text or an audio's transcript.
+   * Nothing else changes, whatever [item] holds: its author, file, type, status and creation time
+   * stay as stored. Needs a connection: it returns once Firebase has saved them, and fails offline
+   * instead of waiting for the connection. Not defined yet for a media still in the outbox.
    *
    * @throws Exception if Firebase refuses it (only [item]'s author may edit it), can't be reached,
    *   or [item] no longer exists (e.g. deleted meanwhile: it isn't created again).

@@ -1,4 +1,5 @@
 // Written by Yuhan YANG, with assistance from Cursor.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload.text
 
@@ -27,6 +28,7 @@ import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialogTestTags
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
 import com.github.se.amber.ui.caregiver.upload.media.MIN_PLACE_QUERY_LENGTH
+import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
 import com.github.se.amber.ui.caregiver.upload.media.UploadMediaLocationTestTags
 import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags
@@ -36,6 +38,8 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -43,6 +47,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /** Tests the upload-text entry button and that the screen sends edits to [UploadTextViewModel]. */
 @RunWith(RobolectricTestRunner::class)
@@ -79,7 +84,9 @@ class UploadTextScreenTest {
   @Test
   fun screenShowsATitleFieldInsteadOfThePictureButtons() {
     var wentBack = false
-    composeTestRule.setContent { UploadTextScreen(goBack = { wentBack = true }) }
+    composeTestRule.setContent {
+      UploadTextScreen(viewModel = viewModel(), goBack = { wentBack = true })
+    }
 
     composeTestRule
         .onNodeWithTag(UploadTextScreenTestTags.TITLE)
@@ -135,7 +142,7 @@ class UploadTextScreenTest {
     composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).assertIsEnabled()
     composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).performClick()
 
-    verify { viewModel.uploadText() }
+    verify { viewModel.uploadMedia() }
     assertFalse(leftTheScreen)
   }
 
@@ -212,7 +219,7 @@ class UploadTextScreenTest {
   @Test
   @Config(qualifiers = "fr")
   fun screenTextIsInFrench() {
-    composeTestRule.setContent { UploadTextScreen() }
+    composeTestRule.setContent { UploadTextScreen(viewModel = viewModel()) }
 
     composeTestRule
         .onNodeWithTag(UploadTextScreenTestTags.TITLE)
@@ -230,8 +237,36 @@ class UploadTextScreenTest {
   }
 
   @Test
+  @Config(qualifiers = "fr")
+  fun anErrorToastUsesTheFrenchMessageAndClearsIt() {
+    ShadowToast.reset()
+    val viewModel =
+        viewModel(
+            UploadTextUIState(
+                common = CommonMediaUIState(errorMsgRes = R.string.uploadTextTitleEmpty)
+            )
+        )
+
+    showScreen(viewModel)
+
+    assertEquals(string(R.string.uploadTextTitleEmpty), ShadowToast.getTextOfLatestToast())
+    verify(exactly = 1) { viewModel.clearErrorMsg() }
+  }
+
+  @Test
+  fun uploadedEventLeavesTheScreen() {
+    var leftTheScreen = false
+    val viewModel = viewModel()
+    every { viewModel.events } returns flowOf(MediaEvent.Uploaded)
+
+    showScreen(viewModel, onUpload = { leftTheScreen = true })
+
+    assertTrue(leftTheScreen)
+  }
+
+  @Test
   fun previewShowsTheUploadTextScreen() {
-    composeTestRule.setContent { UploadTextScreenPreview() }
+    composeTestRule.setContent { UploadTextScreenPreview(viewModel()) }
 
     composeTestRule
         .onNodeWithTag(UploadTextScreenTestTags.TITLE)
@@ -250,7 +285,7 @@ class UploadTextScreenTest {
 
   @Test
   fun darkPreviewShowsTheUploadTextScreen() {
-    composeTestRule.setContent { UploadTextScreenDarkPreview() }
+    composeTestRule.setContent { UploadTextScreenDarkPreview(viewModel()) }
 
     composeTestRule
         .onNodeWithTag(UploadTextScreenTestTags.TITLE)
@@ -260,7 +295,7 @@ class UploadTextScreenTest {
 
   @Test
   fun cancelStaysOnTheScreenUntilNavigationRuns() {
-    composeTestRule.setContent { UploadTextScreen() }
+    composeTestRule.setContent { UploadTextScreen(viewModel = viewModel()) }
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule
