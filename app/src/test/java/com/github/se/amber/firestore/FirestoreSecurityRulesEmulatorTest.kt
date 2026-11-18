@@ -671,7 +671,7 @@ class FirestoreSecurityRulesEmulatorTest {
     val auntOnly = mapOf(aunt to photo(aunt, "later"))
     // A missing personPhotos field is {}, so writing {} changes nothing the rules care about.
     fs.assertSucceeds(pat, writePhotos(none))
-    // Another member's uid is not the writer's, and care is not in people.
+    // Another member's uid: pat is not the writer, and not a key of people.
     fs.assertFails(care, writePhotos(mapOf(pat to photo(pat))))
     // A key that is neither the writer nor recorded in people.
     fs.assertFails(care, writePhotos(mapOf("nobody" to photo("nobody"))))
