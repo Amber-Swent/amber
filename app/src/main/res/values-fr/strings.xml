@@ -17,9 +17,10 @@
     <string name="screenTitleCreateCareCircle">Créer un cercle de soins</string>
     <string name="screenTitleEnterInvitation">Saisir une invitation</string>
     <string name="screenTitleCaregiverHome">Accueil</string>
-    <string name="screenTitleCaregiverUpload">Ajouter des photos ou des audios</string>
+    <string name="screenTitleCaregiverUpload">Ajouter des photos, des audios ou des textes</string>
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
+    <string name="screenTitleCaregiverUploadText">Ajouter un texte</string>
     <string name="screenTitleCaregiverParameters">Paramètres</string>
     <string name="screenTitleSignOut">Déconnexion</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
@@ -55,6 +56,10 @@
 
     <!-- AmberHeader -->
     <string name="amberHeaderLogo">Logo d\'Amber</string>
+
+    <!-- DisplayInformation -->
+    <string name="displayInformationIconDefaultDescription">Information</string>
+
 
     <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
     <string name="inputErrorBlank">Veuillez remplir ce champ</string>
@@ -254,6 +259,8 @@
     <string name="uploadChoosePictureIcon">Photo</string>
     <string name="uploadChooseAudio">Ajouter un audio</string>
     <string name="uploadChooseAudioIcon">Audio</string>
+    <string name="uploadChooseText">Ajouter un texte</string>
+    <string name="uploadChooseTextIcon">Texte</string>
 
     <!-- UploadPicture -->
     <string name="uploadPictureTitle">Ajouter une photo</string>
@@ -291,6 +298,21 @@
     <string name="uploadAudioMicrophoneConsentTextSecond">Il n\'est utilisé que pendant l\'enregistrement, après votre appui sur le bouton d\'enregistrement.</string>
     <string name="uploadAudioMicrophoneSettingsTextFirst">Vous avez refusé l\'accès au micro deux fois&#160;: Amber ne peut plus vous le demander.</string>
     <string name="uploadAudioMicrophoneSettingsTextSecond">Pour enregistrer un audio, activez le micro pour Amber dans les paramètres de votre téléphone.</string>
+    <string name="uploadAudioErrorMaxLength">Durée maximale d\'enregistrement atteinte. Nous avons été forcé de couper votre audio, mais il est conservé</string>
+    <string name="uploadAudioInfoIcon">Information</string>
+    <string name="uploadAudioRecordingInfoFirst">Votre histoire est en cours d\'enregistrement</string>
+    <string name="uploadAudioRecordingInfoSecond">Appuyez sur le carré pour terminer l\'enregistrement</string>
+    <string name="uploadAudioRecordedInfo">Votre audio est enregistré&#160;!</string>
+
+    <!-- UploadText -->
+    <string name="uploadTextTitle">Ajouter un texte</string>
+    <string name="uploadTextTitleLabel">Titre</string>
+    <string name="uploadTextTitlePlaceholder">Saisissez un titre pour l\'histoire.</string>
+    <string name="uploadTextTitleEmpty">Le titre ne peut pas être vide</string>
+    <string name="uploadTextDescriptionLabel">Description</string>
+    <string name="uploadTextDescriptionPlaceholder">Saisissez une description de l\'histoire.</string>
+    <string name="uploadTextDescriptionEmpty">La description ne peut pas être vide</string>
+    <string name="uploadTextUpload">Ajouter le texte</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Fermer</string>

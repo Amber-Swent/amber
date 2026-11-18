@@ -1,6 +1,7 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload
 
@@ -41,6 +42,10 @@ class UploadTest {
     fun onUploadAudioClick() {
       calls.add("audio")
     }
+
+    fun onUploadTextClick() {
+      calls.add("text")
+    }
   }
 
   // ---------- Setup helpers ----------
@@ -53,6 +58,7 @@ class UploadTest {
           viewModel = viewModel,
           onUploadPictureClick = actions::onUploadPictureClick,
           onUploadAudioClick = actions::onUploadAudioClick,
+          onUploadTextClick = actions::onUploadTextClick,
       )
     }
   }
@@ -101,12 +107,19 @@ class UploadTest {
     checkIsDisplayed(UploadTestTags.AUDIO_BUTTON)
   }
 
+  @Test
+  fun textButtonIsDisplayed() {
+    setUpload()
+    checkIsDisplayed(UploadTestTags.TEXT_BUTTON)
+  }
+
   // ---------- Upload: accessibility ----------
   @Test
   fun buttonHaveClickAction() {
     setUpload()
     node(UploadTestTags.PICTURE_BUTTON).assertHasClickAction()
     node(UploadTestTags.AUDIO_BUTTON).assertHasClickAction()
+    node(UploadTestTags.TEXT_BUTTON).assertHasClickAction()
   }
 
   // ---------- Upload: callbacks ----------
@@ -124,6 +137,14 @@ class UploadTest {
     setUpload(actions = actions)
     node(UploadTestTags.AUDIO_BUTTON).performClick()
     assertEquals(listOf("audio"), actions.calls)
+  }
+
+  @Test
+  fun clickingTextButtonInvokesOnlyTextCallback() {
+    val actions = FakeUploadActions()
+    setUpload(actions = actions)
+    node(UploadTestTags.TEXT_BUTTON).performClick()
+    assertEquals(listOf("text"), actions.calls)
   }
 
   // ---------- Upload: error handling ----------

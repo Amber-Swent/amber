@@ -38,6 +38,7 @@ import com.github.se.amber.ui.navigation.PatientTab
 import com.github.se.amber.ui.navigation.Tab
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.patient.PatientUtilsTestTags
+import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasUIState
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
 import io.mockk.mockk
@@ -89,12 +90,12 @@ class SeeAudiosScreenTest {
   private fun setContent(
       onBackClick: () -> Unit = {},
       onTabSelected: (Tab) -> Unit = {},
-      state: SeeAudiosUIState =
-          SeeAudiosUIState.Empty(
+      state: SeeGeneralMediasUIState<MediaItem.Audio> =
+          SeeGeneralMediasUIState.Empty(
               UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
               CareCircle(id = "circle1"),
           ),
-      uiState: MutableStateFlow<SeeAudiosUIState> = MutableStateFlow(state),
+      uiState: MutableStateFlow<SeeGeneralMediasUIState<MediaItem.Audio>> = MutableStateFlow(state),
       playbackStates: MutableStateFlow<Map<String, AudioPlaybackState>> =
           MutableStateFlow(emptyMap()),
   ): SeeAudiosViewModel {
@@ -125,7 +126,7 @@ class SeeAudiosScreenTest {
     val viewModel =
         setContent(
             state =
-                SeeAudiosUIState.Content(
+                SeeGeneralMediasUIState.Content(
                     UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
                     CareCircle(id = "circle1"),
                     listOf(audio),
@@ -150,7 +151,7 @@ class SeeAudiosScreenTest {
     val viewModel =
         setContent(
             state =
-                SeeAudiosUIState.Content(
+                SeeGeneralMediasUIState.Content(
                     UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
                     CareCircle(id = "circle1"),
                     listOf(audio),
@@ -172,20 +173,20 @@ class SeeAudiosScreenTest {
     val audio = MediaItem.Audio(id = "a1")
     val secondAudio = MediaItem.Audio(id = "a2")
     val uiState =
-        MutableStateFlow<SeeAudiosUIState>(
-            SeeAudiosUIState.Content(profile, circle, listOf(audio, secondAudio))
+        MutableStateFlow<SeeGeneralMediasUIState<MediaItem.Audio>>(
+            SeeGeneralMediasUIState.Content(profile, circle, listOf(audio, secondAudio))
         )
     setContent(uiState = uiState)
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertIsDisplayed()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a2")).assertIsDisplayed()
 
     composeTestRule.runOnIdle {
-      uiState.value = SeeAudiosUIState.Content(profile, circle, listOf(secondAudio))
+      uiState.value = SeeGeneralMediasUIState.Content(profile, circle, listOf(secondAudio))
     }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a1")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a2")).assertIsDisplayed()
 
-    composeTestRule.runOnIdle { uiState.value = SeeAudiosUIState.Empty(profile, circle) }
+    composeTestRule.runOnIdle { uiState.value = SeeGeneralMediasUIState.Empty(profile, circle) }
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.audio("a2")).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
   }
@@ -202,7 +203,7 @@ class SeeAudiosScreenTest {
 
   @Test
   fun loading_hides_messages_and_audio_controls() {
-    setContent(state = SeeAudiosUIState.Loading)
+    setContent(state = SeeGeneralMediasUIState.Loading)
 
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertDoesNotExist()
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.ERROR).assertDoesNotExist()
@@ -214,7 +215,7 @@ class SeeAudiosScreenTest {
   @Test
   fun blocking_error_shows_message_and_retry_calls_view_model() {
     val viewModel =
-        setContent(state = SeeAudiosUIState.BlockingError(R.string.seeAudiosErrorLoadMedia))
+        setContent(state = SeeGeneralMediasUIState.BlockingError(R.string.seeAudiosErrorLoadMedia))
 
     composeTestRule
         .onNodeWithTag(SeeAudiosTestTags.ERROR)
@@ -229,8 +230,12 @@ class SeeAudiosScreenTest {
     val profile = UserProfile(uid = "patient", role = Role.PATIENT, person = Person())
     val circle = CareCircle(id = "circle1")
     val uiState =
-        MutableStateFlow<SeeAudiosUIState>(
-            SeeAudiosUIState.Empty(profile, circle, errorMsgRes = R.string.seeAudiosErrorLoadMedia)
+        MutableStateFlow<SeeGeneralMediasUIState<MediaItem.Audio>>(
+            SeeGeneralMediasUIState.Empty(
+                profile,
+                circle,
+                errorMsgRes = R.string.seeAudiosErrorLoadMedia,
+            )
         )
     val viewModel =
         setContent(
@@ -243,11 +248,11 @@ class SeeAudiosScreenTest {
     composeTestRule.onNodeWithTag(SeeAudiosTestTags.NO_AUDIOS).assertIsDisplayed()
 
     val audio = MediaItem.Audio(id = "a1")
-    composeTestRule.runOnIdle { uiState.value = SeeAudiosUIState.Empty(profile, circle) }
+    composeTestRule.runOnIdle { uiState.value = SeeGeneralMediasUIState.Empty(profile, circle) }
     composeTestRule.waitForIdle()
     composeTestRule.runOnIdle {
       uiState.value =
-          SeeAudiosUIState.Content(
+          SeeGeneralMediasUIState.Content(
               profile,
               circle,
               listOf(audio),
@@ -299,7 +304,7 @@ class SeeAudiosScreenTest {
     val viewModel = mockk<SeeAudiosViewModel>(relaxed = true)
     every { viewModel.uiState } returns
         MutableStateFlow(
-            SeeAudiosUIState.Empty(
+            SeeGeneralMediasUIState.Empty(
                 UserProfile(uid = "patient", role = Role.PATIENT, person = Person()),
                 CareCircle(id = "circle1"),
             )

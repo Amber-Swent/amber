@@ -5,9 +5,12 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber
 
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -17,6 +20,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
@@ -40,6 +44,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+
+private const val NAVIGATION_TIMEOUT_MS = 5_000L
 
 /**
  * Instrumented tests for the navigation wiring of [AmberApp].
@@ -75,6 +81,8 @@ class AmberAppNavigationTest {
     const val UPLOAD_PICTURE_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val UPLOAD_AUDIO_BUTTON = UploadTestTags.AUDIO_BUTTON
     const val UPLOAD_AUDIO_BACK = TopNavigationMenuTestTags.BACK_BUTTON
+    const val UPLOAD_TEXT_BUTTON = UploadTestTags.TEXT_BUTTON
+    const val UPLOAD_TEXT_BACK = TopNavigationMenuTestTags.BACK_BUTTON
     const val CREATE_CARE_CIRCLE_BUTTON = CaregiverParametersTestTags.CREATE_CARE_CIRCLE_BUTTON
     const val CREATE_INVITATION_BUTTON = CaregiverParametersTestTags.CREATE_INVITATION_BUTTON
     const val ENTER_INVITATION_BUTTON = CaregiverParametersTestTags.ENTER_INVITATION_BUTTON
@@ -127,16 +135,36 @@ class AmberAppNavigationTest {
     composeRule.waitForIdle()
   }
 
-  /** Programmatically moves to [route] (used to reach a nested screen before clicking). */
+  /**
+   * Programmatically moves to [route] (used to reach a nested screen before clicking).
+   *
+   * The navigation is posted to the next loop turn. On a cold emulator the current entry can still
+   * be below [Lifecycle.State.CREATED], and navigating in that same turn makes Navigation destroy
+   * the new entry before it is created.
+   */
   private fun goTo(route: String) {
-    composeRule.runOnUiThread { navController.navigate(route) }
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
+      navController.currentBackStackEntry
+          ?.lifecycle
+          ?.currentState
+          ?.isAtLeast(Lifecycle.State.STARTED) == true
+    }
+    composeRule.runOnUiThread {
+      Handler(Looper.getMainLooper()).post { navController.navigate(route) }
+    }
+    composeRule.waitUntil(
+        conditionDescription = "navigated to $route",
+        timeoutMillis = NAVIGATION_TIMEOUT_MS,
+    ) {
+      navController.currentDestination?.route == route
+    }
     composeRule.waitForIdle()
   }
 
   private fun click(tag: String) {
     // The screen can still be composing after a navigation, so the click target is not there yet.
     // During the screen transition both screens show their own bottom bar, so wait for exactly one.
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       try {
         composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size == 1
       } catch (_: IllegalStateException) {
@@ -157,7 +185,7 @@ class AmberAppNavigationTest {
   }
 
   private fun waitForRoute(expected: String) {
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentDestination?.route == expected
     }
     assertRoute(expected)
@@ -297,6 +325,16 @@ class AmberAppNavigationTest {
   }
 
   @Test
+  fun upload_uploadTextButton_navigatesToUploadText() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+
+    click(Tags.UPLOAD_TEXT_BUTTON)
+
+    assertRoute(CaregiverScreen.UploadText.route)
+  }
+
+  @Test
   fun upload_homeTab_navigatesToCaregiverHome() {
     launch(NavGraphs.CAREGIVER)
     goTo(CaregiverScreen.Upload.route)
@@ -342,6 +380,17 @@ class AmberAppNavigationTest {
     goTo(CaregiverScreen.UploadAudio.route)
 
     click(Tags.UPLOAD_AUDIO_BACK)
+
+    assertRoute(CaregiverScreen.Upload.route)
+  }
+
+  @Test
+  fun uploadText_back_returnsToUpload() {
+    launch(NavGraphs.CAREGIVER)
+    goTo(CaregiverScreen.Upload.route)
+    goTo(CaregiverScreen.UploadText.route)
+
+    click(Tags.UPLOAD_TEXT_BACK)
 
     assertRoute(CaregiverScreen.Upload.route)
   }
@@ -393,7 +442,7 @@ class AmberAppNavigationTest {
 
     click(Tags.SIGN_OUT_CONFIRM)
 
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentDestination?.route == AuthScreen.Auth.route
     }
 
@@ -539,7 +588,7 @@ class AmberAppNavigationTest {
 
     click(Tags.SIGN_OUT_CONFIRM)
 
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentDestination?.route == AuthScreen.Auth.route
     }
 

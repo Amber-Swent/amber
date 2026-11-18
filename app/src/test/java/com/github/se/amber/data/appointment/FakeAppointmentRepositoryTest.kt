@@ -55,6 +55,8 @@ class FakeAppointmentRepositoryTest {
       repository.observeAppointments("circle", LocalDate.of(2026, 11, 17), days = 1).toList(lists)
     }
 
+    // A change in another circle doesn't make this list emit again.
+    repository.addAppointment("other circle", later)
     repository.deleteAppointment("circle", later.id)
     runCurrent()
 

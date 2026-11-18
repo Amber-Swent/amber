@@ -68,6 +68,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
+import com.github.se.amber.ui.utils.DisplayInformation
 import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
@@ -92,6 +93,9 @@ object UploadAudioScreenTestTags {
   const val MICROPHONE_SETTINGS_TEXT_SECOND = "upload_audio_microphone_settings_text_second"
   const val MICROPHONE_SETTINGS_CLOSE = "upload_audio_microphone_settings_close"
   const val MICROPHONE_SETTINGS_ACTION = "upload_audio_microphone_settings_action"
+  const val RECORDING_INFO = "upload_audio_recording_info"
+  const val RECORDED_INFO = "upload_audio_recorded_info"
+  const val RECORDING_ERROR = "upload_audio_recording_error"
 }
 
 /**
@@ -233,6 +237,39 @@ fun UploadAudioScreen(
                     onDelete = viewModel::deleteRecording,
                     onStop = viewModel::stopListening,
                 )
+          }
+
+          // Tells the user what is happening and what to do next
+          when (uiState.recordingState) {
+            AudioRecordingState.RECORDING ->
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING_INFO),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences =
+                        listOf(
+                            stringResource(R.string.uploadAudioRecordingInfoFirst),
+                            stringResource(R.string.uploadAudioRecordingInfoSecond),
+                        ),
+                )
+            // If the recording ended by itself, what happened replaces the "recorded" message
+            AudioRecordingState.RECORDED -> {
+              val errorRes = uiState.recordingErrorRes
+              if (errorRes != null) {
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING_ERROR),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences = listOf(stringResource(errorRes)),
+                    color = MaterialTheme.colorScheme.error,
+                )
+              } else {
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDED_INFO),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences = listOf(stringResource(R.string.uploadAudioRecordedInfo)),
+                )
+              }
+            }
+            else -> Unit
           }
 
           // Display the Description field

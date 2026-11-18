@@ -12,6 +12,7 @@ import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
+import com.github.se.amber.ui.patient.seeMedias.medias.SeeGeneralMediasUIState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -79,7 +80,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
     assertEquals(profile, state.patientProfile)
     assertNull(state.errorMsgRes)
   }
@@ -90,27 +91,26 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
     assertEquals(circle, state.careCircle)
   }
 
   @Test
-  fun `keeps all the media and only the pictures separately`() {
+  fun `keeps only the pictures in repository order`() {
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns
         flowOf(listOf(picture1, audio, picture2, text))
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertEquals(listOf(picture1, audio, picture2, text), state.allMediaItems)
-    assertEquals(listOf(picture1, picture2), state.allPictures)
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
+    assertEquals(listOf(picture1, picture2), state.items)
   }
 
   @Test
   fun `state is Empty when there is no media`() {
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Empty
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Empty
     assertEquals(profile, state.patientProfile)
     assertEquals(circle, state.careCircle)
     assertNull(state.errorMsgRes)
@@ -122,7 +122,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Empty)
   }
 
   @Test
@@ -131,7 +131,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Loading)
   }
 
   @Test
@@ -139,22 +139,22 @@ class SeePicturesViewModelTest {
     val media = MutableStateFlow<List<MediaItem>>(emptyList())
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns media
     val viewModel = createViewModel()
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Empty)
 
     media.value = listOf(picture1)
     assertEquals(
         listOf(picture1),
-        (viewModel.uiState.value as SeePicturesUIState.Content).allPictures,
+        (viewModel.uiState.value as SeeGeneralMediasUIState.Content).items,
     )
 
     media.value = listOf(picture1, picture2)
     assertEquals(
         listOf(picture1, picture2),
-        (viewModel.uiState.value as SeePicturesUIState.Content).allPictures,
+        (viewModel.uiState.value as SeeGeneralMediasUIState.Content).items,
     )
 
     media.value = emptyList()
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Empty)
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -167,7 +167,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorNoProfile, state.errorMsgRes)
   }
 
@@ -177,7 +177,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorLoadProfile, state.errorMsgRes)
   }
 
@@ -188,7 +188,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorNoCircle, state.errorMsgRes)
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
@@ -201,7 +201,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorNoCircle, state.errorMsgRes)
   }
 
@@ -212,7 +212,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorLoadCircle, state.errorMsgRes)
     coVerify(exactly = 0) { mediaRepository.observeApprovedMedia(any()) }
   }
@@ -224,7 +224,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorLoadMedia, state.errorMsgRes)
   }
 
@@ -235,7 +235,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Empty)
     coVerify { circleRepository.getCircle("circle1") }
   }
 
@@ -253,8 +253,8 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertEquals(listOf(picture1), state.allPictures)
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
+    assertEquals(listOf(picture1), state.items)
     assertEquals(R.string.seePicturesErrorLoadMedia, state.errorMsgRes)
   }
 
@@ -268,7 +268,7 @@ class SeePicturesViewModelTest {
 
     val viewModel = createViewModel()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Empty
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Empty
     assertEquals(R.string.seePicturesErrorLoadMedia, state.errorMsgRes)
   }
 
@@ -282,14 +282,14 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
     assertEquals(
         R.string.seePicturesErrorLoadMedia,
-        (viewModel.uiState.value as SeePicturesUIState.Content).errorMsgRes,
+        (viewModel.uiState.value as SeeGeneralMediasUIState.Content).errorMsgRes,
     )
 
     viewModel.clearErrorMsg()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
     assertNull(state.errorMsgRes)
-    assertEquals(listOf(picture1), state.allPictures)
+    assertEquals(listOf(picture1), state.items)
   }
 
   @Test
@@ -302,12 +302,12 @@ class SeePicturesViewModelTest {
     val viewModel = createViewModel()
     assertEquals(
         R.string.seePicturesErrorLoadMedia,
-        (viewModel.uiState.value as SeePicturesUIState.Empty).errorMsgRes,
+        (viewModel.uiState.value as SeeGeneralMediasUIState.Empty).errorMsgRes,
     )
 
     viewModel.clearErrorMsg()
 
-    assertNull((viewModel.uiState.value as SeePicturesUIState.Empty).errorMsgRes)
+    assertNull((viewModel.uiState.value as SeeGeneralMediasUIState.Empty).errorMsgRes)
   }
 
   @Test
@@ -317,7 +317,7 @@ class SeePicturesViewModelTest {
 
     viewModel.clearErrorMsg()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.BlockingError
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.BlockingError
     assertEquals(R.string.seePicturesErrorNoProfile, state.errorMsgRes)
   }
 
@@ -329,40 +329,40 @@ class SeePicturesViewModelTest {
   fun `retry reloads everything after a failure`() {
     coEvery { profileRepository.getCurrentProfile() } returns Result.failure(Exception("boom"))
     val viewModel = createViewModel()
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.BlockingError)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.BlockingError)
 
     coEvery { profileRepository.getCurrentProfile() } returns Result.success(profile)
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
     viewModel.retry()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
     assertEquals(circle, state.careCircle)
-    assertEquals(listOf(picture1), state.allPictures)
+    assertEquals(listOf(picture1), state.items)
   }
 
   @Test
   fun `retry goes back to Loading while reloading`() {
     val viewModel = createViewModel()
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Empty)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Empty)
 
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
     viewModel.retry()
 
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Loading)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Loading)
   }
 
   @Test
   fun `refreshUIState keeps the current content while reloading`() {
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flowOf(listOf(picture1))
     val viewModel = createViewModel()
-    assertTrue(viewModel.uiState.value is SeePicturesUIState.Content)
+    assertTrue(viewModel.uiState.value is SeeGeneralMediasUIState.Content)
 
     coEvery { mediaRepository.observeApprovedMedia("circle1") } returns flow { awaitCancellation() }
     viewModel.refreshUIState()
 
     // no flash of the loading screen: the old content is still displayed
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertEquals(listOf(picture1), state.allPictures)
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
+    assertEquals(listOf(picture1), state.items)
   }
 
   @Test
@@ -374,8 +374,8 @@ class SeePicturesViewModelTest {
         flowOf(listOf(picture1, picture2))
     viewModel.refreshUIState()
 
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertEquals(listOf(picture1, picture2), state.allPictures)
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
+    assertEquals(listOf(picture1, picture2), state.items)
   }
 
   @Test
@@ -389,7 +389,7 @@ class SeePicturesViewModelTest {
     viewModel.retry()
 
     oldMedia.value = listOf(picture1, audio) // must be ignored
-    val state = viewModel.uiState.value as SeePicturesUIState.Content
-    assertEquals(listOf(picture2), state.allPictures)
+    val state = viewModel.uiState.value as SeeGeneralMediasUIState.Content
+    assertEquals(listOf(picture2), state.items)
   }
 }

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
@@ -56,7 +57,12 @@ class FakeAppointmentRepository(private val zone: ZoneId = ZoneOffset.UTC) : App
 
   /**
    * Watches the appointments of [circleId] that overlap the [days] days from [firstDay] in [zone],
-   * sorted by start.
+   * sorted by start. Like the real repository, it emits only when this list changes, not when
+   * another circle does.
+   *
+   * The ids aren't checked, as in the writes. An invalid circle id gives an empty list, not
+   * [AppointmentError.InvalidCircleId]. The flow never ends with
+   * [AppointmentError.PermissionDenied] either.
    *
    * @return the live list, every appointment synced.
    */
@@ -66,14 +72,16 @@ class FakeAppointmentRepository(private val zone: ZoneId = ZoneOffset.UTC) : App
       days: Int,
   ): Flow<List<Synced<Appointment>>> {
     val window = dayWindow(firstDay, days, zone)
-    return circles.map { all ->
-      all[circleId]
-          .orEmpty()
-          .values
-          .filter { it.overlaps(window) }
-          .sortedWith(compareBy({ it.startAt }, { it.id }))
-          .map { Synced(it, isSynced = true) }
-    }
+    return circles
+        .map { all ->
+          all[circleId]
+              .orEmpty()
+              .values
+              .filter { it.overlaps(window) }
+              .sortedWith(compareBy({ it.startAt }, { it.id }))
+              .map { Synced(it, isSynced = true) }
+        }
+        .distinctUntilChanged()
   }
 
   /** @return "appointment-1", then "appointment-2", and so on. */

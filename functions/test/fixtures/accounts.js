@@ -1,5 +1,6 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const {state, storedBucket} = require("../support/fakes");
 
@@ -22,10 +23,20 @@ function storedMedia(id, overrides = {}) {
   };
 }
 
+/** personPhotos on the shared circle. "aunt" has no account. */
+const SHARED_PHOTOS = {
+  gone: "careCircles/shared/people/gone/portrait.jpg",
+  other: "careCircles/shared/people/other/portrait.jpg",
+  aunt: "careCircles/shared/people/aunt/portrait.jpg",
+};
+
+/** A file in gone's photo folder that personPhotos does not list. */
+const GONE_LEFTOVER_PHOTO = "careCircles/shared/people/gone/leftover.jpg";
+
 /**
  * Fills the in-memory Firestore, the buckets and Auth for deleteAccount. "gone" is deleted; "other"
  * and "patient" stay. "shared" is the circle of all three, "alone" has only "gone", and
- * "unrelated" only "other".
+ * "unrelated" only "other". "aunt" has no account; their photo stays when "gone" is deleted.
  */
 function setupAccounts() {
   state.store = new Map(Object.entries({
@@ -38,6 +49,7 @@ function setupAccounts() {
       createdBy: "gone",
       storageBucket: BUCKET,
       nicknames: {gone: {other: "Bob"}, other: {gone: "Al", patient: "Mum"}, patient: {gone: "Son"}},
+      personPhotos: {...SHARED_PHOTOS},
     },
     "careCircles/shared/media/own-photo": storedMedia("own-photo", {authorId: "gone"}),
     "careCircles/shared/media/own-memo": storedMedia("own-memo", {
@@ -76,6 +88,10 @@ function setupAccounts() {
       "careCircles/shared/media/own-photo.jpg",
       "careCircles/shared/media/own-memo.m4a",
       "careCircles/shared/media/tagged.jpg",
+      SHARED_PHOTOS.gone,
+      GONE_LEFTOVER_PHOTO,
+      SHARED_PHOTOS.other,
+      SHARED_PHOTOS.aunt,
     ])],
     [EMPTY_BUCKET, new Set(["careCircles/alone/media/photo.jpg"])],
     ["amber-other", new Set(["careCircles/unrelated/media/photo.jpg"])],
@@ -94,4 +110,13 @@ function deleteCircleBeforeWriting(documentPath, circlePath) {
   };
 }
 
-module.exports = {BUCKET, EMPTY_BUCKET, deleteCircleBeforeWriting, freshAuth, storedMedia, setupAccounts};
+module.exports = {
+  BUCKET,
+  EMPTY_BUCKET,
+  GONE_LEFTOVER_PHOTO,
+  SHARED_PHOTOS,
+  deleteCircleBeforeWriting,
+  freshAuth,
+  storedMedia,
+  setupAccounts,
+};
