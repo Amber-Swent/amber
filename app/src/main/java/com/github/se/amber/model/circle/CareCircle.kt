@@ -27,8 +27,10 @@ typealias ViewerNicknames = Map<String, Map<String, String>>
  * - people: one entry added, changed or removed at a time, never the whole map, so concurrent edits
  *   by two members don't overwrite each other's entries.
  * - nicknames: each member edits only their own entry (keyed by their uid).
- * - personPhotos: members change one entry at a time. The key is the writer's uid or a key of
- *   [people]; the value is a path in that person's folder.
+ * - personPhotos: person id or uid -> full Storage path of that person's profile picture,
+ *   careCircles/{id}/people/{personId}/{photoId}.jpg. Members change one entry at a time. The key
+ *   is the writer's uid or a key of [people]. Removing a person from [people] must remove their
+ *   entry in the same write: afterwards the rules refuse it.
  * - places: by caregivers only, one entry added, changed or removed at a time, like people.
  *
  * Read: after login, get careCircles/{id} for each id in UserProfile.circleIds, then keep a

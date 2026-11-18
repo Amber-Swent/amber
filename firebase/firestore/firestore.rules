@@ -5,7 +5,6 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Yuhan YANG, with assistance from Cursor.
-// Modified by Alaabrine, with assistance from Cursor (Grok).
 rules_version = '2';
 
 service cloud.firestore {
@@ -93,43 +92,49 @@ service cloud.firestore {
         && userDoc(request.auth.uid).circleIds.hasAny(resource.data.circleIds);
     }
 
-    // One personPhotos entry per write. A missing field counts as {}. The key is the writer's
-    // uid or a key of people before this write, so a same-write edit of people cannot authorize
-    // a new key. A kept value is that key's photo path. Rules v2 cannot index a Set, so the
-    // folder is taken from the single new value; a new path that copies another entry has no
-    // new value and is refused. Removing the one allowed key is allowed. An unchanged map,
-    // including {} added beside a name, people, nicknames, or places edit, stays valid.
+    // A personPhotos write changes nothing, or exactly one entry. A missing field counts as {},
+    // so adding {} beside a name, people, nicknames, or places edit stays valid.
     function personPhotosChangeIsValid(circleId) {
       let before = resource.data.get('personPhotos', {});
       let after = request.resource.data.get('personPhotos', {});
       return before == after || onePersonPhotoEntryChanged(circleId, before, after);
     }
 
+    // The one changed key is added, replaced, or removed. Removing it is allowed. A kept value
+    // must be that key's own photo path; a path copied from another entry has no new value.
     function onePersonPhotoEntryChanged(circleId, before, after) {
       let affected = after.diff(before).affectedKeys();
       let removed = after.diff(before).removedKeys();
       let newValues = after.values().removeAll(before.values());
       return affected.size() == 1
-        && (
-          (removed.size() == 1 && personPhotoKeyAllowed(affected))
-          || (removed.size() == 0 && personPhotoValueIsOwnPath(circleId, affected, newValues))
-        );
+        && personPhotoKeyAllowed(affected)
+        && (removed.size() == 1 || personPhotoValueIsOwnPath(circleId, affected, newValues));
     }
 
+    // The changed key is the writer's uid, or a key of people before this write, so a same-write
+    // edit of people cannot authorize it. keys() is a List; union() is Set-only, so a people-key
+    // removal is allowed when adding the key does not grow that set.
     function personPhotoKeyAllowed(affected) {
-      // keys() is a List. union() exists only on Set, so a people-key removal
-      // would otherwise fail closed and a member could not clear that photo.
       let peopleKeys = resource.data.get('people', {}).keys().toSet();
       return affected.hasOnly([request.auth.uid])
         || peopleKeys.union(affected).size() == peopleKeys.size();
     }
 
+    // The value that stays is a single new string. Copying a path already stored for someone
+    // else leaves no new value, and is refused.
     function personPhotoValueIsOwnPath(circleId, affected, newValues) {
       return newValues.size() == 1
         && newValues[0] is string
         && personPhotoPathMatches(circleId, affected, newValues[0]);
     }
 
+    // Ids must not contain '_': MediaFileCache turns '/' into '_' and relies on ids having none.
+    function idsWithoutUnderscore(circleId, personId) {
+      return !circleId.matches('.*_.*')
+        && !personId.matches('.*_.*');
+    }
+
+    // careCircles/{circleId}/people/{that key}/{photoId}.jpg, and the folder is the changed key.
     function personPhotoPathMatches(circleId, affected, path) {
       let parts = path.split('/');
       return parts.size() == 5
@@ -137,9 +142,7 @@ service cloud.firestore {
         && parts[1] == circleId
         && parts[2] == 'people'
         && parts[4].matches('[^_]+\\.jpg')
-        && !circleId.matches('.*_.*')
-        && !parts[3].matches('.*_.*')
-        && (parts[3] == request.auth.uid || parts[3] in resource.data.get('people', {}))
+        && idsWithoutUnderscore(circleId, parts[3])
         && affected.hasOnly([parts[3]]);
     }
 

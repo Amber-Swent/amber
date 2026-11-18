@@ -243,6 +243,7 @@ function storedBucket(name) {
     // A prefix removes only paths that start with it. No prefix, with force, clears the bucket.
     deleteFiles: async ({force, prefix}) => {
       if (prefix) {
+        failIfAsked("deleteFiles", prefix);
         if (!state.buckets.has(name)) throw notFound();
         const files = state.buckets.get(name);
         for (const filePath of [...files]) {

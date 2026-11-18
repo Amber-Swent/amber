@@ -4,7 +4,6 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Yuhan YANG, with assistance from Cursor.
-// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.firestore
 
@@ -504,6 +503,9 @@ class FirestoreSecurityRulesTest {
     assertTrue(db.rulesFor("pat").canUpdateCircle(ownAndAunt, ownAndAuntLater))
     assertTrue(db.rulesFor("pat").canUpdateCircle(ownAndAuntLater, auntOnly))
     assertTrue(db.rulesFor("pat").canUpdateCircle(auntOnly, circle))
+    // pat may not clear care's photo: care is a member, not pat, and not in people.
+    val caresPhoto = circle.copy(personPhotos = mapOf("care" to photo("care")))
+    assertFalse(db.rulesFor("pat").canUpdateCircle(caresPhoto, circle))
     assertTrue(
         db.rulesFor("care")
             .canUpdateCircle(circle, circle.copy(personPhotos = mapOf("care" to photo("care")))),
@@ -534,6 +536,35 @@ class FirestoreSecurityRulesTest {
                 circle,
                 circle.copy(
                     personPhotos = mapOf("care" to "careCircles/$circleId/media/portrait.jpg"),
+                ),
+            ),
+    )
+    // Five parts whose folder is not people, a path in another circle, and an extra segment.
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    personPhotos = mapOf("care" to "careCircles/$circleId/media/care/portrait.jpg"),
+                ),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    personPhotos = mapOf("care" to "careCircles/other/people/care/portrait.jpg"),
+                ),
+            ),
+    )
+    assertFalse(
+        db.rulesFor("care")
+            .canUpdateCircle(
+                circle,
+                circle.copy(
+                    personPhotos =
+                        mapOf("care" to "careCircles/$circleId/people/care/extra/portrait.jpg"),
                 ),
             ),
     )
@@ -600,6 +631,7 @@ class FirestoreSecurityRulesTest {
 
     val created =
         CareCircle(id = "c2", memberIds = listOf("care"), createdBy = "care", createdAt = 1L)
+    // CareCircle.personPhotos defaults to {}, which is what onboarding writes.
     assertTrue(db.rulesFor("care").canCreateCircle(created))
     assertFalse(
         db.rulesFor("care")

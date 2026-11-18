@@ -308,6 +308,7 @@ test("deleteAccount finishes the job when retried after any partial failure", as
     ["the other members' stories", "update", "careCircles/shared/stories/other-story"],
     ["the remaining media", "update", "careCircles/shared/media/restricted"],
     ["an appointment", "update", "careCircles/shared/appointments/doctor"],
+    ["the photo folder", "deleteFiles", "careCircles/shared/people/gone/"],
     ["leaving the shared circle", "update", "careCircles/shared"],
     ["the bucket", "deleteBucket", EMPTY_BUCKET],
     ["the last member's circle", "recursiveDelete", "careCircles/alone"],
@@ -332,6 +333,10 @@ test("deleteAccount finishes the job when retried after any partial failure", as
       assertNoReferenceTo("gone");
       assert.equal(state.buckets.has(EMPTY_BUCKET), false);
       assert.equal(state.buckets.get(BUCKET).has("careCircles/shared/media/own-photo.jpg"), false);
+      assert.equal(state.buckets.get(BUCKET).has(SHARED_PHOTOS.gone), false);
+      assert.equal(state.buckets.get(BUCKET).has(GONE_LEFTOVER_PHOTO), false);
+      assert.equal(state.buckets.get(BUCKET).has(SHARED_PHOTOS.other), true);
+      assert.equal(state.buckets.get(BUCKET).has(SHARED_PHOTOS.aunt), true);
       assert.deepEqual(state.store.get("careCircles/shared/stories/other-story").mediaIds, ["tagged"]);
     });
   }
