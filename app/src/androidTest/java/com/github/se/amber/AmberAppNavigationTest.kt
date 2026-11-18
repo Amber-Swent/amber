@@ -9,6 +9,8 @@
 
 package com.github.se.amber
 
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -18,6 +20,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.ComposeNavigator
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.platform.app.InstrumentationRegistry
@@ -130,9 +133,26 @@ class AmberAppNavigationTest {
     composeRule.waitForIdle()
   }
 
-  /** Programmatically moves to [route] (used to reach a nested screen before clicking). */
+  /**
+   * Programmatically moves to [route] (used to reach a nested screen before clicking).
+   *
+   * The navigation is posted to the next loop turn. On a cold emulator the current entry can still
+   * be below [Lifecycle.State.CREATED], and navigating in that same turn makes Navigation destroy
+   * the new entry before it is created.
+   */
   private fun goTo(route: String) {
-    composeRule.runOnUiThread { navController.navigate(route) }
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentBackStackEntry
+          ?.lifecycle
+          ?.currentState
+          ?.isAtLeast(Lifecycle.State.STARTED) == true
+    }
+    composeRule.runOnUiThread {
+      Handler(Looper.getMainLooper()).post { navController.navigate(route) }
+    }
+    composeRule.waitUntil(timeoutMillis = 5_000) {
+      navController.currentDestination?.route == route
+    }
     composeRule.waitForIdle()
   }
 
