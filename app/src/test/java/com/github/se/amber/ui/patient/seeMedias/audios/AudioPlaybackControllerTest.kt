@@ -251,19 +251,18 @@ class AudioPlaybackControllerTest {
   @Test
   fun another_player_file_resets_active_card_and_restart_does_nothing() {
     val otherFile = File("other-screen.m4a")
-    // Unchanged
     coEvery { mediaRepository.getFile(circle, audio) } returns File("audio.m4a")
     val controller = createController()
     controller.onPlayPause(audio)
 
     runBlocking { audioPlayer.play(File("other-screen.m4a")) }
-    audioPlayer.seekTo(2_000L) // Add this line
+    audioPlayer.seekTo(2_000L)
 
     controller.onRestart(audio)
 
     assertTrue(controller.playbackStates.value[audio.id] is AudioPlaybackState.Idle)
     assertEquals(otherFile, audioPlayer.state.value.file)
-    assertEquals(2_000L, audioPlayer.state.value.positionMs) // Add this line
+    assertEquals(2_000L, audioPlayer.state.value.positionMs)
   }
 
   @Test
