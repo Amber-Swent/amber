@@ -6,7 +6,10 @@
 
 package com.github.se.amber.ui.caregiver.parameters.createInvitation
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.GroupAdd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -26,10 +30,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
 import com.github.se.amber.data.invitation.InvitationStatus
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
+import com.github.se.amber.ui.caregiver.DisplayCaregiverIconButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.BottomNavigationMenu
 import com.github.se.amber.ui.navigation.BottomNavigationMenuTestTags
@@ -71,6 +79,8 @@ object CreateInvitationTestTags {
 
   // one per invitation, its text starting with the code
   fun codeRow(code: String) = "create_invitation_code_row_$code"
+
+  fun copyCode(code: String) = "create_invitation_copy_$code"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +93,23 @@ fun CreateInvitationScreen(
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val locale = LocalConfiguration.current.locales[0]
   val colors = MaterialTheme.colorScheme
+  val context = LocalContext.current
+  val resources = LocalResources.current
+  val codeToCopy = uiState.codeToCopy
+  val copiedMessageRes = uiState.copiedMessageRes
+  LaunchedEffect(codeToCopy, copiedMessageRes) {
+    if (codeToCopy == null || copiedMessageRes == null) return@LaunchedEffect
+    context
+        .getSystemService(ClipboardManager::class.java)
+        ?.setPrimaryClip(
+            ClipData.newPlainText(
+                resources.getString(R.string.createInvitationCopyCode, codeToCopy),
+                codeToCopy,
+            ),
+        )
+    Toast.makeText(context, resources.getString(copiedMessageRes), Toast.LENGTH_SHORT).show()
+    viewModel.clearCopiedCode()
+  }
   Scaffold(
       topBar = {
         TopAppBar(
@@ -195,19 +222,34 @@ fun CreateInvitationScreen(
                 textAlign = TextAlign.Center,
             )
             uiState.invitations.forEach { invitation ->
-              Text(
-                  text =
-                      stringResource(
-                          R.string.createInvitationListRow,
-                          invitation.code,
-                          formatCreatedAt(invitation.createdAt, locale),
-                          stringResource(invitation.status.labelRes()),
-                      ),
-                  modifier = Modifier.testTag(CreateInvitationTestTags.codeRow(invitation.code)),
-                  color = colors.onBackground,
-                  style = MaterialTheme.typography.bodyMedium,
-                  textAlign = TextAlign.Center,
-              )
+              Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
+                  verticalAlignment = Alignment.CenterVertically,
+              ) {
+                Text(
+                    text =
+                        stringResource(
+                            R.string.createInvitationListRow,
+                            invitation.code,
+                            formatCreatedAt(invitation.createdAt, locale),
+                            stringResource(invitation.status.labelRes()),
+                        ),
+                    modifier =
+                        Modifier.weight(WEIGHT_ONE)
+                            .testTag(CreateInvitationTestTags.codeRow(invitation.code)),
+                    color = colors.onBackground,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                )
+                DisplayCaregiverIconButton(
+                    icon = Icons.Outlined.ContentCopy,
+                    description =
+                        stringResource(R.string.createInvitationCopyCode, invitation.code),
+                    onClick = { viewModel.copyCode(invitation.code) },
+                    testTag = CreateInvitationTestTags.copyCode(invitation.code),
+                )
+              }
             }
           }
         }

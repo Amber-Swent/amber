@@ -5,7 +5,9 @@
 
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
+import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -43,6 +45,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 /**
  * Tests what [CreateInvitationScreen] draws and which actions a click performs.
@@ -213,6 +216,59 @@ class CreateInvitationScreenTest {
                 string(R.string.createInvitationStatusExpired),
             ),
         )
+  }
+
+  @Test
+  fun copyButtonCopiesThatRowAndShowsTheMessage() {
+    val createdAt = 1_700_000_000_000L
+    val state =
+        MutableStateFlow(
+            CreateInvitationUIState(
+                invitations =
+                    listOf(
+                        InvitationSummary(
+                            code = "FIRST123",
+                            createdAt = createdAt,
+                            expiresAt = createdAt + 86_400_000L,
+                            status = InvitationStatus.ACTIVE,
+                        ),
+                        InvitationSummary(
+                            code = "SECOND12",
+                            createdAt = createdAt,
+                            expiresAt = createdAt + 86_400_000L,
+                            status = InvitationStatus.USED,
+                        ),
+                    ),
+            ),
+        )
+    val viewModel =
+        mockk<CreateInvitationViewModel>(relaxed = true) {
+          every { uiState } returns state
+          every { copyCode(any()) } answers
+              {
+                val code = args[0] as String
+                state.value =
+                    state.value.copy(
+                        codeToCopy = code,
+                        copiedMessageRes = R.string.createInvitationCodeCopied,
+                    )
+              }
+        }
+    setScreen(viewModel)
+    ShadowToast.reset()
+
+    composeTestRule.onNodeWithTag(CreateInvitationTestTags.copyCode("FIRST123")).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(CreateInvitationTestTags.copyCode("SECOND12"))
+        .assertContentDescriptionEquals(string(R.string.createInvitationCopyCode, "SECOND12"))
+        .performClick()
+    composeTestRule.waitForIdle()
+
+    val clipboard =
+        ApplicationProvider.getApplicationContext<Context>()
+            .getSystemService(ClipboardManager::class.java)
+    assertEquals("SECOND12", clipboard?.primaryClip?.getItemAt(0)?.text?.toString())
+    assertEquals(string(R.string.createInvitationCodeCopied), ShadowToast.getTextOfLatestToast())
   }
 
   @Test

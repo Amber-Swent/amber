@@ -412,6 +412,26 @@ class CreateInvitationViewModelTest {
         assertNull(viewModel.uiState.value.errorMsgRes)
       }
 
+  @Test
+  fun copyCodeExposesTheCodeAndTheMessageUntilCleared() =
+      runTest(dispatcher) {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.copyCode("SECOND12")
+
+        assertEquals("SECOND12", viewModel.uiState.value.codeToCopy)
+        assertEquals(
+            R.string.createInvitationCodeCopied,
+            viewModel.uiState.value.copiedMessageRes,
+        )
+
+        viewModel.clearCopiedCode()
+
+        assertNull(viewModel.uiState.value.codeToCopy)
+        assertNull(viewModel.uiState.value.copiedMessageRes)
+      }
+
   private fun viewModel() =
       CreateInvitationViewModel(
           profileRepository = profiles,
