@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 private const val TAG = "SignOutViewModel"
 
 /**
- * UI state for the shared sign-out button and [SignOutScreen].
+ * UI state of [SignOutScreen].
  *
  * @param isSigningOut Whether a sign-out request is currently in progress.
  * @param signedOut Whether the user has successfully signed out.
@@ -36,8 +36,7 @@ data class SignOutUIState(
 )
 
 /**
- * ViewModel that owns the shared sign-out action used by [SignOutButton] (and therefore by
- * [SignOutScreen] and onboarding flows that reuse the helper).
+ * ViewModel that owns the sign-out action used by [SignOutScreen].
  *
  * @param authRepository Read after a failed sign-out, to tell a session that is already gone from
  *   one that is still open.

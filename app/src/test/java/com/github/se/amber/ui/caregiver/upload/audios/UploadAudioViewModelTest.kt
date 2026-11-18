@@ -1,4 +1,6 @@
-// Written by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.caregiver.upload.audios
 
@@ -6,6 +8,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.audio.AudioRecorder
@@ -41,6 +45,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -72,6 +77,7 @@ class UploadAudioViewModelTest {
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private val activeCircleRepo = mockk<ActiveCircleRepository>()
   private lateinit var placeRepo: PlaceSearchRepository
   private lateinit var recorder: FakeAudioRecorder
   private lateinit var player: FakeAudioPlayer
@@ -83,6 +89,10 @@ class UploadAudioViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
+    every { activeCircleRepo.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     placeRepo = mockk()
     recorder = FakeAudioRecorder(tempFolder.newFolder())
     player = FakeAudioPlayer()
@@ -109,6 +119,7 @@ class UploadAudioViewModelTest {
           authRepo = authRepo,
           profileRepo = profileRepo,
           circleRepo = circleRepo,
+          activeCircleRepo = activeCircleRepo,
           placeRepo = placeRepo,
           cleanupScope = CoroutineScope(testDispatcher),
           recorder = recorder,
@@ -185,6 +196,150 @@ class UploadAudioViewModelTest {
         MemoryDate(LocalDate.now().year),
         createViewModel().uiState.value.common.date,
     )
+  }
+
+  // ---------- microphone popups ----------
+
+  @Test
+  fun initialState_hasNoMicrophoneConsentOpen() {
+    assertFalse(createViewModel().uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun initialState_hasNoMicrophoneSettingsOpen() {
+    assertFalse(createViewModel().uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillAskOpensTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillAskDoesNotOpenTheSettings() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillNotAskOpensTheSettings() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = false)
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun recordClickWhenAndroidWillNotAskDoesNotOpenTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = false)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun recordClickWhenGrantedStartsRecording() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = true, androidWillAsk = false)
+    assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun recordClickWhenGrantedDoesNotOpenTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = true, androidWillAsk = true)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun dismissMicrophoneConsentClosesTheConsent() {
+    val vm = createViewModel()
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    vm.dismissMicrophoneConsent()
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+  }
+
+  @Test
+  fun dismissMicrophoneSettingsClosesTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+    vm.dismissMicrophoneSettings()
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneAllowedStartsRecording() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = true, canAskAgain = false)
+    assertEquals(AudioRecordingState.RECORDING, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun microphoneAllowedDoesNotOpenTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = true, canAskAgain = false)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneRefusedOnceDoesNotOpenTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneRefusedOnceDoesNotStartRecording() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+    assertEquals(AudioRecordingState.IDLE, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun microphoneRefusedTwiceOpensTheSettings() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+  }
+
+  @Test
+  fun microphoneRefusedTwiceDoesNotStartRecording() {
+    val vm = createViewModel()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+    assertEquals(0, recorder.startCalls)
+  }
+
+  @Test
+  fun twoConsecutiveMicrophoneRefusalsOpenSettingsOnlyAfterSecondRefusal() {
+    val vm = createViewModel()
+
+    // First request: the consent popup should open
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+
+    // User confirms, then refuses Android's permission request once
+    vm.dismissMicrophoneConsent()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = true)
+
+    // Amber should not show the settings popup yet
+    assertFalse(vm.uiState.value.isMicrophoneSettingsOpen)
+
+    // Second request: the consent popup should still open
+    vm.onRecordClick(granted = false, androidWillAsk = true)
+    assertTrue(vm.uiState.value.isMicrophoneConsentOpen)
+
+    // User confirms, then refuses Android's permission request again
+    vm.dismissMicrophoneConsent()
+    vm.onMicrophonePermissionResult(granted = false, canAskAgain = false)
+
+    // Now Amber should display the settings popup instead
+    assertTrue(vm.uiState.value.isMicrophoneSettingsOpen)
+    assertFalse(vm.uiState.value.isMicrophoneConsentOpen)
+
+    // Recording must never have started
+    assertEquals(0, recorder.startCalls)
   }
 
   // ---------- startRecording ----------
@@ -415,6 +570,14 @@ class UploadAudioViewModelTest {
   }
 
   @Test
+  fun stopTappedWhileALimitSaveIsRunningStillTellsTheMaximumLengthWasReached() {
+    val (vm, slow) = savingAfterALimit()
+    vm.stopRecording()
+    slow.stopGate.complete(Unit)
+    assertEquals(R.string.uploadAudioErrorMaxLength, vm.uiState.value.recordingErrorRes)
+  }
+
+  @Test
   fun stopRecordingWithoutRecordingDoesNothing() {
     createViewModel().stopRecording()
     assertEquals(0, recorder.stopCalls)
@@ -446,6 +609,60 @@ class UploadAudioViewModelTest {
     vm.startRecording()
     recorder.reachLimit()
     assertEquals(AudioRecordingState.RECORDED, vm.uiState.value.recordingState)
+  }
+
+  @Test
+  fun recorderStoppingByItself_TellsTheUserTheMaximumLengthWasReached() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertEquals(R.string.uploadAudioErrorMaxLength, vm.uiState.value.recordingErrorRes)
+  }
+
+  @Test
+  fun recorderStoppingByItselfDoesNotShowAToast() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertNull(vm.uiState.value.common.errorMsgRes)
+  }
+
+  @Test
+  fun userStoppingTheRecordingDoesNotTellTheMaximumLengthWasReached() {
+    val vm = createViewModel()
+    vm.startRecording()
+    vm.stopRecording()
+    assertNull(vm.uiState.value.recordingErrorRes)
+  }
+
+  @Test
+  fun aFailedSaveAfterTheLimitShowsTheStopErrorInsteadOfTheMaximumLength() {
+    recorder.stopError = IllegalStateException("too short")
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertEquals(
+        UploadAudioViewModelErrorMessage.COULD_NOT_STOP_RECORDING.messageRes,
+        vm.uiState.value.common.errorMsgRes,
+    )
+  }
+
+  @Test
+  fun aFailedSaveAfterTheLimitDoesNotShowTheMaximumLengthText() {
+    recorder.stopError = IllegalStateException("too short")
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    assertNull(vm.uiState.value.recordingErrorRes)
+  }
+
+  @Test
+  fun deletingTheRecordingRemovesTheMaximumLengthText() {
+    val vm = createViewModel()
+    vm.startRecording()
+    recorder.reachLimit()
+    vm.deleteRecording()
+    assertNull(vm.uiState.value.recordingErrorRes)
   }
 
   @Test

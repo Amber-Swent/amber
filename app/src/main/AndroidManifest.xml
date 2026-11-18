@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- AudioRecorder; the screen asks for it at runtime before recording -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- FusedLocationUpdatesRepository, while the memories map is open; asked at runtime -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".AmberApplication"
@@ -45,6 +48,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Google Maps key of the memories map, set in app/build.gradle.kts -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}" />
 
         <!-- WorkManager is set up by AmberApplication instead, on first use -->
         <provider

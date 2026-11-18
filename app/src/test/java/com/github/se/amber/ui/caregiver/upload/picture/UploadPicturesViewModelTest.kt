@@ -3,6 +3,7 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver.upload.picture
 
@@ -11,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.media.picture.CapturedPictureSource
@@ -44,6 +46,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -73,6 +76,7 @@ class UploadPictureViewModelTest {
   private lateinit var authRepo: AuthRepository
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private val activeCircleRepo = mockk<ActiveCircleRepository>()
   private lateinit var pictureReader: SelectedPictureReader
   private lateinit var capturedPictureSource: CapturedPictureSource
   private lateinit var placeRepo: PlaceSearchRepository
@@ -95,6 +99,10 @@ class UploadPictureViewModelTest {
     authRepo = mockk()
     profileRepo = mockk()
     circleRepo = mockk()
+    every { activeCircleRepo.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     pictureReader = mockk()
     capturedPictureSource = mockk(relaxUnitFun = true)
     placeRepo = mockk()
@@ -121,6 +129,7 @@ class UploadPictureViewModelTest {
           authRepo = authRepo,
           profileRepo = profileRepo,
           circleRepo = circleRepo,
+          activeCircleRepo = activeCircleRepo,
           pictureReader = pictureReader,
           capturedPictureSource = capturedPictureSource,
           placeRepo = placeRepo,

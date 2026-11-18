@@ -2,11 +2,13 @@
 // Modified by Alaabrine, with assistance from Cursor.
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
 
 package com.github.se.amber.ui.caregiver
 
 import android.util.Log
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
@@ -19,6 +21,8 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -45,6 +49,7 @@ class CaregiverHomeViewModelTest {
 
   private lateinit var profileRepo: ProfileRepository
   private lateinit var circleRepo: CareCircleRepository
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
 
   private val caregiver =
       UserProfile(uid = "cg1", role = Role.CAREGIVER, circleIds = listOf("circle1"))
@@ -55,6 +60,10 @@ class CaregiverHomeViewModelTest {
   fun setup() {
     profileRepo = mockk()
     circleRepo = mockk()
+    every { activeCircleRepository.activeCircleId(any(), any()) } answers
+        {
+          flowOf(secondArg<List<String>>().firstOrNull { it.isNotBlank() })
+        }
     mockkStatic(Log::class)
     every { Log.e(any(), any(), any()) } returns 0
   }
@@ -62,7 +71,7 @@ class CaregiverHomeViewModelTest {
   @After fun tearDown() = unmockkAll()
 
   // The ViewModel loads in init, so stubs must be set before creating it.
-  private fun createVm() = CaregiverHomeViewModel(profileRepo, circleRepo)
+  private fun createVm() = CaregiverHomeViewModel(profileRepo, circleRepo, activeCircleRepository)
 
   @Test
   fun load_success_fillsCaregiverCircleAndPatient() {
@@ -77,6 +86,47 @@ class CaregiverHomeViewModelTest {
     assertEquals(patient, state.patient)
     assertEquals(Role.PATIENT, state.patient.role)
     assertNull(state.errorMsgRes)
+  }
+
+  @Test
+  fun load_usesActiveCircleWhenItIsNotFirst() {
+    val activeCircle = CareCircle(id = "circle2", patientId = "p2")
+    val activePatient = UserProfile(uid = "p2", role = Role.PATIENT)
+    coEvery { profileRepo.getCurrentProfile() } returns
+        Result.success(caregiver.copy(circleIds = listOf("circle1", "circle2")))
+    every { activeCircleRepository.activeCircleId("cg1", listOf("circle1", "circle2")) } returns
+        flowOf("circle2")
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(activeCircle)
+    coEvery { profileRepo.getProfile("p2") } returns Result.success(activePatient)
+
+    val state = createVm().uiState.value
+
+    assertEquals(activeCircle, state.careCircle)
+    assertEquals(activePatient, state.patient)
+  }
+
+  @Test
+  fun activeCircleChange_replacesTheDisplayedPatient() {
+    val caregiverWithTwoCircles = caregiver.copy(circleIds = listOf("circle1", "circle2"))
+    val activeCircleId = MutableStateFlow<String?>("circle1")
+    val secondCircle = CareCircle(id = "circle2", patientId = "p2")
+    val secondPatient = UserProfile(uid = "p2", role = Role.PATIENT)
+    coEvery { profileRepo.getCurrentProfile() } returns Result.success(caregiverWithTwoCircles)
+    every {
+      activeCircleRepository.activeCircleId("cg1", caregiverWithTwoCircles.circleIds)
+    } returns activeCircleId
+    coEvery { circleRepo.getCircle("circle1") } returns Result.success(circle)
+    coEvery { circleRepo.getCircle("circle2") } returns Result.success(secondCircle)
+    coEvery { profileRepo.getProfile("p1") } returns Result.success(patient)
+    coEvery { profileRepo.getProfile("p2") } returns Result.success(secondPatient)
+
+    val viewModel = createVm()
+    assertEquals(patient, viewModel.uiState.value.patient)
+
+    activeCircleId.value = "circle2"
+
+    assertEquals(secondCircle, viewModel.uiState.value.careCircle)
+    assertEquals(secondPatient, viewModel.uiState.value.patient)
   }
 
   @Test

@@ -21,15 +21,15 @@
     <string name="screenTitleCaregiverUploadPicture">Ajouter une photo</string>
     <string name="screenTitleCaregiverUploadAudio">Ajouter un audio</string>
     <string name="screenTitleCaregiverParameters">Paramètres</string>
-    <string name="screenTitleCaregiverSignOut">Déconnexion</string>
+    <string name="screenTitleSignOut">Déconnexion</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Créer un code d\'invitation</string>
-    <string name="screenTitleCaregiverDeleteAccount">Supprimer son compte</string>
+    <string name="screenTitleDeleteAccount">Supprimer son compte</string>
+    <string name="screenTitleCaregiverChangeCareCircle">Changer de cercle de soins</string>
     <string name="screenTitlePatientHome">Accueil</string>
     <string name="screenTitlePatientSeeMedias">Voir les médias</string>
     <string name="screenTitlePatientSeePictures">Voir les photos</string>
     <string name="screenTitlePatientSeeAudios">Voir les audios</string>
     <string name="screenTitlePatientParameters">Paramètres</string>
-    <string name="screenTitlePatientSignOut">Déconnexion</string>
 
     <!-- EmailSignIn -->
     <string name="signInWelcome">Bienvenue sur Amber</string>
@@ -55,6 +55,10 @@
 
     <!-- AmberHeader -->
     <string name="amberHeaderLogo">Logo d\'Amber</string>
+
+    <!-- DisplayInformation -->
+    <string name="displayInformationIconDefaultDescription">Information</string>
+
 
     <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
     <string name="inputErrorBlank">Veuillez remplir ce champ</string>
@@ -145,15 +149,24 @@
     <!-- CaregiverParameter -->
     <string name="caregiverParameterTitle">Paramètres</string>
     <string name="caregiverParameterCreateCareCircle">Créer un nouveau cercle de soins</string>
+    <string name="caregiverParameterSwitchCareCircle">Changer de cercle de soins</string>
     <string name="caregiverParameterCreateInvitation">Créer une invitation</string>
     <string name="caregiverParameterEnterInvitation">Saisir une invitation</string>
     <string name="caregiverParameterSignOut">Se déconnecter</string>
     <string name="caregiverParameterInvitationHint">Pour ajouter quelqu\'un à votre cercle, appuyez sur «&#160;%1$s&#160;» et envoyez-lui le code.</string>
     <string name="caregiverParameterDeleteAccount">Supprimer son compte</string>
 
+    <!-- ChangeCareCircle -->
+    <string name="changeCareCircleTitle">Changer de cercle de soins</string>
+    <string name="changeCareCircleCurrent">Cercle de soins actuel&#160;:</string>
+    <string name="changeCareCircleAll">Tous les cercles de soins&#160;:</string>
+    <string name="changeCareCircleNone">Aucun cercle de soins actif</string>
+    <string name="changeCareCircleEmpty">Vous n\'êtes lié à aucun cercle de soins.\nVous pouvez en créer un depuis %1$s &gt; %2$s, ou en rejoindre un depuis %1$s &gt; %3$s.</string>
+
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Supprimer son compte</string>
-    <string name="deleteAccountExplanation">La suppression est définitive. Vos contenus importés et vos histoires sont supprimés pour toute la famille, y compris des histoires des autres personnes. Les photos de vous importées par d\'autres personnes restent, même si vous y figurez. Vous êtes également retiré des rendez-vous.</string>
+    <string name="deleteAccountCaregiverExplanation">La suppression est définitive.\nVos contenus importés et vos histoires sont supprimés pour toute la famille, y compris des histoires des autres personnes. Les photos de vous importées par d\'autres personnes restent, même si vous y figurez. Vous êtes également retiré des rendez-vous.</string>
+    <string name="deleteAccountPatientExplanation">La suppression est définitive. Vous ne pourrez pas récupérer votre compte.\nTout ce que vous avez ajouté sera supprimé.</string>
     <string name="deleteAccountProgress">Suppression de votre compte en cours. Cela peut prendre quelques minutes.</string>
     <string name="deleteAccountCleanupLabel">Terminer la suppression</string>
     <string name="deleteAccountCheckingLabel">Vérification de vos familles…</string>
@@ -276,6 +289,17 @@
     <string name="uploadAudioErrorStartRecording">Impossible de démarrer l\'enregistrement</string>
     <string name="uploadAudioErrorStopRecording">Impossible de conserver l\'enregistrement</string>
     <string name="uploadAudioErrorPlayRecording">Impossible de lire l\'enregistrement</string>
+    <string name="uploadAudioMicrophoneTitle">Utilisation du micro</string>
+    <string name="uploadAudioMicrophoneUnderstood">J\'ai compris</string>
+    <string name="uploadAudioMicrophoneConsentTextFirst">Pour enregistrer un audio, Amber a besoin d\'accéder à votre micro.</string>
+    <string name="uploadAudioMicrophoneConsentTextSecond">Il n\'est utilisé que pendant l\'enregistrement, après votre appui sur le bouton d\'enregistrement.</string>
+    <string name="uploadAudioMicrophoneSettingsTextFirst">Vous avez refusé l\'accès au micro deux fois&#160;: Amber ne peut plus vous le demander.</string>
+    <string name="uploadAudioMicrophoneSettingsTextSecond">Pour enregistrer un audio, activez le micro pour Amber dans les paramètres de votre téléphone.</string>
+    <string name="uploadAudioErrorMaxLength">Durée maximale d\'enregistrement atteinte. Nous avons été forcé de couper votre audio, mais il est conservé</string>
+    <string name="uploadAudioInfoIcon">Information</string>
+    <string name="uploadAudioRecordingInfoFirst">Votre histoire est en cours d\'enregistrement</string>
+    <string name="uploadAudioRecordingInfoSecond">Appuyez sur le carré pour terminer l\'enregistrement</string>
+    <string name="uploadAudioRecordedInfo">Votre audio est enregistré&#160;!</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Fermer</string>
@@ -336,6 +360,7 @@
     <!-- PatientParameter -->
     <string name="patientParameterTitle">Paramètres</string>
     <string name="patientParameterSignOut">Se déconnecter</string>
+    <string name="patientParameterDeleteAccount">Supprimer votre compte</string>
 
     <!-- SeeMedias -->
     <string name="seeMediasTitle">Voir les médias</string>
@@ -384,4 +409,9 @@
     <string name="audioPlaybackLoading">Chargement</string>
     <string name="audioPlaybackRetry">Réessayer</string>
     <string name="audioPlaybackError">Cet audio n\'a pas pu être lu.</string>
+    <!-- MediaMap -->
+    <string name="mediaMapErrorNoProfile">Aucun profil trouvé.</string>
+    <string name="mediaMapErrorLoadProfile">Impossible de charger le profil.</string>
+    <string name="mediaMapErrorNoCircle">Aucun cercle de soins trouvé.</string>
+    <string name="mediaMapErrorLoadMedia">Impossible de charger les souvenirs de la carte.</string>
 </resources>

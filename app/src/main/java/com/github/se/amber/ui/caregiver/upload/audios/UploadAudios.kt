@@ -9,6 +9,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -67,6 +68,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.MAX_CHAR_DESCRIPTION
 import com.github.se.amber.ui.theme.MAX_LINE_DESCRIPTION
 import com.github.se.amber.ui.theme.TEXT_FIELD_BIG
+import com.github.se.amber.ui.utils.DisplayInformation
 import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
@@ -79,6 +81,21 @@ object UploadAudioScreenTestTags {
   const val LISTENING = "upload_audio_listening"
   const val SELECT_DATE = "upload_audio_selected_date"
   const val UPLOAD_BUTTON = "upload_audio_button"
+  const val MICROPHONE_CONSENT_DIALOG = "upload_audio_microphone_consent_dialog"
+  const val MICROPHONE_CONSENT_TITLE = "upload_audio_microphone_consent_title"
+  const val MICROPHONE_CONSENT_TEXT_FIRST = "upload_audio_microphone_consent_text_first"
+  const val MICROPHONE_CONSENT_TEXT_SECOND = "upload_audio_microphone_consent_text_second"
+  const val MICROPHONE_CONSENT_CLOSE = "upload_audio_microphone_consent_close"
+  const val MICROPHONE_CONSENT_ACTION = "upload_audio_microphone_consent_action"
+  const val MICROPHONE_SETTINGS_DIALOG = "upload_audio_microphone_settings_dialog"
+  const val MICROPHONE_SETTINGS_TITLE = "upload_audio_microphone_settings_title"
+  const val MICROPHONE_SETTINGS_TEXT_FIRST = "upload_audio_microphone_settings_text_first"
+  const val MICROPHONE_SETTINGS_TEXT_SECOND = "upload_audio_microphone_settings_text_second"
+  const val MICROPHONE_SETTINGS_CLOSE = "upload_audio_microphone_settings_close"
+  const val MICROPHONE_SETTINGS_ACTION = "upload_audio_microphone_settings_action"
+  const val RECORDING_INFO = "upload_audio_recording_info"
+  const val RECORDED_INFO = "upload_audio_recorded_info"
+  const val RECORDING_ERROR = "upload_audio_recording_error"
 }
 
 /**
@@ -109,21 +126,24 @@ fun UploadAudioScreen(
   // Configuration-aware resources, so the toast follows the app language
   val resources = LocalResources.current
 
-  // Recording starts only once the microphone is allowed. The popup is shown on each click while
-  // it is not (Android stops showing it by itself after the user refuses twice).
+  val activity = LocalActivity.current
+  // Recording starts only once the microphone is allowed. Before Android's popup, a popup explains
+  // why the microphone is needed. Android stops showing its own popup after the user refuses
+  // twice: the ViewModel then only opens a popup pointing to the phone's settings.
   val micLauncher =
       rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) viewModel.startRecording()
+        // The microphone is allowed: if it is taken back, Android starts again from "never asked"
+        if (granted) context.clearMicrophoneAsked()
+        // Once asked, "no rationale" means Android will not show its popup anymore
+        viewModel.onMicrophonePermissionResult(granted, context.androidWillAskMicrophone(activity))
       }
   val onRecordClick = {
     val granted =
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
-    if (granted) {
-      viewModel.startRecording()
-    } else {
-      micLauncher.launch(Manifest.permission.RECORD_AUDIO)
-    }
+    // Microphone already allowed (e.g. via the phone's settings): reset the "already asked" flag
+    if (granted) context.clearMicrophoneAsked()
+    viewModel.onRecordClick(granted, context.androidWillAskMicrophone(activity))
   }
 
   // Android silences the microphone of an app that is no longer visible: the recording would go on,
@@ -219,6 +239,39 @@ fun UploadAudioScreen(
                 )
           }
 
+          // Tells the user what is happening and what to do next
+          when (uiState.recordingState) {
+            AudioRecordingState.RECORDING ->
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING_INFO),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences =
+                        listOf(
+                            stringResource(R.string.uploadAudioRecordingInfoFirst),
+                            stringResource(R.string.uploadAudioRecordingInfoSecond),
+                        ),
+                )
+            // If the recording ended by itself, what happened replaces the "recorded" message
+            AudioRecordingState.RECORDED -> {
+              val errorRes = uiState.recordingErrorRes
+              if (errorRes != null) {
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDING_ERROR),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences = listOf(stringResource(errorRes)),
+                    color = MaterialTheme.colorScheme.error,
+                )
+              } else {
+                DisplayInformation(
+                    modifier = Modifier.testTag(UploadAudioScreenTestTags.RECORDED_INFO),
+                    contentDescription = stringResource(R.string.uploadAudioInfoIcon),
+                    sentences = listOf(stringResource(R.string.uploadAudioRecordedInfo)),
+                )
+              }
+            }
+            else -> Unit
+          }
+
           // Display the Description field
           DisplayTextField(
               modifier = Modifier.height(TEXT_FIELD_BIG),
@@ -271,6 +324,21 @@ fun UploadAudioScreen(
             widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,
         )
       },
+  )
+
+  MicrophoneConsentDialog(
+      isOpen = uiState.isMicrophoneConsentOpen,
+      onDismiss = viewModel::dismissMicrophoneConsent,
+      onAction = {
+        viewModel.dismissMicrophoneConsent()
+        micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        context.markMicrophoneAsked()
+      },
+  )
+
+  MicrophoneSettingsDialog(
+      isOpen = uiState.isMicrophoneSettingsOpen,
+      onDismiss = viewModel::dismissMicrophoneSettings,
   )
 
   AddPersonDialog(

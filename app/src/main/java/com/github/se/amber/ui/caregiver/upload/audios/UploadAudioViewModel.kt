@@ -1,11 +1,14 @@
 // Written by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
-// Modified by Lou-Anne Maier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by MeiliV, with assistance from OpenAI Codex.
+
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.circle.CareCircleRepositoryProvider
 import com.github.se.amber.data.location.PlaceSearchRepository
@@ -70,6 +73,12 @@ enum class UploadAudioViewModelErrorMessage(@param:StringRes val messageRes: Int
  * @param recordingState Whether the audio is not yet recorded, being recorded, recorded, or being
  *   listened to.
  * @param playedFraction How much of the audio has been heard while listening, from 0 to 1.
+ * @param isMicrophoneConsentOpen Whether the popup explaining why the microphone is needed is
+ *   shown. It comes before the Android permission popup.
+ * @param isMicrophoneSettingsOpen Whether the popup telling the user to allow the microphone in the
+ *   phone's settings is shown, because Android no longer asks.
+ * @param recordingErrorRes The text shown under the recording, as a string resource, e.g. when the
+ *   recorder stopped at its maximum length; null when there is nothing to tell.
  */
 data class UploadAudioUIState(
     override val common: CommonMediaUIState = CommonMediaUIState(),
@@ -78,6 +87,9 @@ data class UploadAudioUIState(
     val waveform: List<Float> = emptyList(),
     val recordingState: AudioRecordingState = AudioRecordingState.IDLE,
     val playedFraction: Float = NO_PLAYED_FRACTION,
+    val isMicrophoneConsentOpen: Boolean = false,
+    val isMicrophoneSettingsOpen: Boolean = false,
+    @param:StringRes val recordingErrorRes: Int? = null,
 ) : MediaUIState<UploadAudioUIState> {
   override val canUpload: Boolean
     get() = audioFile != null && recordingState == AudioRecordingState.RECORDED && common.canUpload
@@ -103,6 +115,7 @@ class UploadAudioViewModel(
     authRepo: AuthRepository = AuthRepositoryProvider.repository,
     profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,
     circleRepo: CareCircleRepository = CareCircleRepositoryProvider.default.repository,
+    activeCircleRepo: ActiveCircleRepository = ActiveCircleRepositoryProvider.default.repository,
     placeRepo: PlaceSearchRepository = PlaceSearchRepositoryProvider.default.repository,
     cleanupScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val recorder: AudioRecorder = AudioRecorderProvider.recorder,
@@ -117,6 +130,7 @@ class UploadAudioViewModel(
         authRepo = authRepo,
         profileRepo = profileRepo,
         circleRepo = circleRepo,
+        activeCircleRepo = activeCircleRepo,
         placeRepo = placeRepo,
         cleanupScope = cleanupScope,
     ) {
@@ -203,6 +217,46 @@ class UploadAudioViewModel(
           waveform = state.waveform,
       )
 
+  /**
+   * Handles a tap on the record button. If the microphone is allowed, recording starts. Otherwise,
+   * if Android will show its popup, the popup explaining why the microphone is needed opens first;
+   * if Android will not (it was refused twice), only the popup pointing to the phone's settings
+   * opens.
+   *
+   * @param granted Whether the microphone is already allowed.
+   * @param androidWillAsk Whether Android would still show its permission popup.
+   */
+  fun onRecordClick(granted: Boolean = false, androidWillAsk: Boolean = true) {
+    when {
+      granted -> startRecording()
+      androidWillAsk -> _uiState.update { it.copy(isMicrophoneConsentOpen = true) }
+      else -> _uiState.update { it.copy(isMicrophoneSettingsOpen = true) }
+    }
+  }
+
+  /** Closes the popup that explains why the microphone is needed. */
+  fun dismissMicrophoneConsent() {
+    _uiState.update { it.copy(isMicrophoneConsentOpen = false) }
+  }
+
+  /** Closes the popup telling the user to allow the microphone in the phone's settings. */
+  fun dismissMicrophoneSettings() {
+    _uiState.update { it.copy(isMicrophoneSettingsOpen = false) }
+  }
+
+  /**
+   * Handles the answer of the Android microphone popup. Recording starts if the microphone was
+   * allowed. If it was refused and Android will not ask again (it was refused twice), the popup
+   * telling the user to go to the phone's settings is opened.
+   *
+   * @param granted Whether the user allowed the microphone.
+   * @param canAskAgain Whether Android would still show its popup; only used when not [granted].
+   */
+  fun onMicrophonePermissionResult(granted: Boolean = false, canAskAgain: Boolean = true) {
+    if (granted) startRecording()
+    else if (!canAskAgain) _uiState.update { it.copy(isMicrophoneSettingsOpen = true) }
+  }
+
   /** Starts recording; [UploadAudioUIState.waveform] then grows with the microphone level. */
   fun startRecording() {
     if (_uiState.value.recordingState != AudioRecordingState.IDLE) return
@@ -223,7 +277,11 @@ class UploadAudioViewModel(
         return@launch
       }
       _uiState.update {
-        it.copy(recordingState = AudioRecordingState.RECORDING, waveform = emptyList())
+        it.copy(
+            recordingState = AudioRecordingState.RECORDING,
+            waveform = emptyList(),
+            recordingErrorRes = null,
+        )
       }
       // The level is read on a timer, not collected: amplitude is a StateFlow, which doesn't emit
       // twice the same level, so the waveform would freeze during a silence
@@ -239,7 +297,7 @@ class UploadAudioViewModel(
       // the recorder stops by itself at its limits: keep what was recorded
       recorder.isRecording.first { !it }
       amplitudeJob?.cancel()
-      saveRecordingOnce()
+      saveRecordingOnce(reachedLimit = true)
     }
   }
 
@@ -255,14 +313,22 @@ class UploadAudioViewModel(
    * Starts saving the recording, unless it is already being saved, whether the recorder stopped at
    * a limit or the user tapped stop meanwhile. It runs in its own task, so stopping the
    * [recordingJob] doesn't cancel it.
+   *
+   * @param reachedLimit Whether the recorder stopped by itself at its time or size limit, so the
+   *   user is told why the recording ended.
    */
-  private fun saveRecordingOnce() {
+  private fun saveRecordingOnce(reachedLimit: Boolean = false) {
     if (stoppingJob?.isActive == true) return
-    stoppingJob = viewModelScope.launch { saveRecording() }
+    stoppingJob = viewModelScope.launch { saveRecording(reachedLimit) }
   }
 
-  /** Takes the finished recording from the recorder and puts it in the state. */
-  private suspend fun saveRecording() {
+  /**
+   * Takes the finished recording from the recorder and puts it in the state.
+   *
+   * @param reachedLimit Whether the recorder stopped by itself at a limit; the text under the
+   *   recording then tells the user once the recording is kept.
+   */
+  private suspend fun saveRecording(reachedLimit: Boolean = false) {
     try {
       val audio = recorder.stop()
       _uiState.update {
@@ -271,6 +337,7 @@ class UploadAudioViewModel(
             durationMs = audio.durationMs,
             waveform = audio.waveform,
             recordingState = AudioRecordingState.RECORDED,
+            recordingErrorRes = if (reachedLimit) R.string.uploadAudioErrorMaxLength else null,
         )
       }
     } catch (e: CancellationException) {
@@ -340,6 +407,7 @@ class UploadAudioViewModel(
           waveform = emptyList(),
           recordingState = AudioRecordingState.IDLE,
           playedFraction = NO_PLAYED_FRACTION,
+          recordingErrorRes = null,
       )
     }
   }
