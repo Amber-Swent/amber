@@ -64,7 +64,7 @@ class CreateInvitationViewModel(
 
   init {
     invitationsJob = viewModelScope.launch {
-      prepareCircles()
+      loadActiveCircle()
       val circleId = _uiState.value.selectedCircleId ?: return@launch
       fetchInvitations(circleId)
     }
@@ -77,7 +77,7 @@ class CreateInvitationViewModel(
       try {
         invitationsJob?.cancel()
         if (_uiState.value.selectedCircleId == null) {
-          prepareCircles()
+          loadActiveCircle()
         }
         val circleId = _uiState.value.selectedCircleId ?: return@launch
         when (val result = creationRepository.createInvitation(circleId)) {
@@ -101,7 +101,7 @@ class CreateInvitationViewModel(
     }
   }
 
-  private suspend fun prepareCircles() {
+  private suspend fun loadActiveCircle() {
     val profile = readProfile() ?: return
     val circleIds = profile.circleIds.filter { it.isNotBlank() }
     val selected = activeCircleRepository.activeCircleId(profile.uid, circleIds).first()
@@ -119,11 +119,9 @@ class CreateInvitationViewModel(
     lookupRepository
         .getInvitations(circleId)
         .onSuccess { invitations ->
-          if (_uiState.value.selectedCircleId != circleId) return@onSuccess
           _uiState.update { it.copy(invitations = invitations, errorMsgRes = null) }
         }
         .onFailure { error ->
-          if (_uiState.value.selectedCircleId != circleId) return@onFailure
           Log.e(TAG, "Failed to load invitations", error)
           _uiState.update { it.copy(errorMsgRes = errorMsgRes) }
         }
