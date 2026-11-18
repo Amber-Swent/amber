@@ -88,5 +88,6 @@ class SeeAudiosViewModel(
 
   override fun onCleared() {
     playback.release()
+    super.onCleared() // NOSONAR: the parent may add cleanup here later
   }
 }

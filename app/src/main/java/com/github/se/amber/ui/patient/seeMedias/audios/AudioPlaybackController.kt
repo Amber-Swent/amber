@@ -155,6 +155,12 @@ class AudioPlaybackController(
     activeFile?.let(audioPlayer::stop)
   }
 
+  /**
+   * Updates the playback state of one audio card while preserving the states of other cards.
+   *
+   * @param id ID of the audio card to update.
+   * @param state new playback state to expose for that card.
+   */
   private fun setPlaybackState(id: String, state: AudioPlaybackState) {
     _playbackStates.value += (id to state)
   }

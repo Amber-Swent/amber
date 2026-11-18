@@ -118,6 +118,8 @@ class SeeGeneralMediasTest {
    * @param onErrorShown called once the non-blocking error was shown in a Toast.
    * @param onBackClick called when the top navigation action is selected.
    * @param onTabSelected called when a bottom navigation tab is selected.
+   * @param titleRes string resource of the title, to check a title with a placeholder.
+   * @param titleArgs format arguments of the title string, empty for a plain title.
    */
   private fun setContent(
       state: SeeGeneralMediasUIState<MediaItem.Audio> = SeeGeneralMediasUIState.Loading,
@@ -125,6 +127,8 @@ class SeeGeneralMediasTest {
       onErrorShown: () -> Unit = {},
       onBackClick: () -> Unit = {},
       onTabSelected: (Tab) -> Unit = {},
+      titleRes: Int = R.string.seeAudiosTitle,
+      titleArgs: List<Any> = emptyList(),
   ) {
     uiState.value = state
     composeTestRule.setContent {
@@ -132,11 +136,12 @@ class SeeGeneralMediasTest {
         AmberAppTheme(dynamicColor = false) {
           SeeGeneralMedias(
               uiState = uiState.value,
-              config = config,
+              config = config.copy(titleRes = titleRes),
               onRetry = onRetry,
               onErrorShown = onErrorShown,
               onBackClick = onBackClick,
               onTabSelected = onTabSelected,
+              titleArgs = titleArgs,
           ) { item, itemCircle, modifier ->
             receivedCircle = itemCircle
             Text(text = "item ${item.id}", modifier = modifier.testTag(Tags.item(item.id)))
@@ -162,6 +167,29 @@ class SeeGeneralMediasTest {
     composeTestRule
         .onNodeWithTag(BottomNavigationMenuTestTags.BOTTOM_NAVIGATION_MENU)
         .assertIsDisplayed()
+  }
+
+  @Test
+  fun title_includes_the_supplied_name() {
+    setContent(
+        titleRes = R.string.patientHomeGreeting,
+        titleArgs = listOf("Alice"),
+    )
+
+    composeTestRule
+        .onNodeWithTag(Tags.TITLE)
+        .assertTextEquals(string(R.string.patientHomeGreeting, "Alice"))
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun title_includes_the_supplied_name_in_french() {
+    setContent(
+        titleRes = R.string.patientHomeGreeting,
+        titleArgs = listOf("Alice"),
+    )
+
+    composeTestRule.onNodeWithTag(Tags.TITLE).assertTextEquals("Bonjour Alice\u00A0!")
   }
 
   @Test
