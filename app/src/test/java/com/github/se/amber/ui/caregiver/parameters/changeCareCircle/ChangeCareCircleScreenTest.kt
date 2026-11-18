@@ -14,14 +14,25 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
 import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
 import io.mockk.spyk
+import io.mockk.unmockkObject
 import io.mockk.verify
 import java.util.Locale
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,6 +43,31 @@ import org.robolectric.shadows.ShadowToast
 @RunWith(RobolectricTestRunner::class)
 class ChangeCareCircleScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  private val profileRepository = mockk<ProfileRepository>()
+  private val circleRepository = mockk<CareCircleRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
+
+  @Before
+  fun setUp() {
+    mockkObject(
+        ProfileRepositoryProvider.default,
+        CareCircleRepositoryProvider.default,
+        ActiveCircleRepositoryProvider.default,
+    )
+    every { ProfileRepositoryProvider.default.repository } returns profileRepository
+    every { CareCircleRepositoryProvider.default.repository } returns circleRepository
+    every { ActiveCircleRepositoryProvider.default.repository } returns activeCircleRepository
+  }
+
+  @After
+  fun tearDown() {
+    unmockkObject(
+        ProfileRepositoryProvider.default,
+        CareCircleRepositoryProvider.default,
+        ActiveCircleRepositoryProvider.default,
+    )
+  }
 
   private fun showScreen(
       state: ChangeCareCircleUIState = ChangeCareCircleUIState(),
