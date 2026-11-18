@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload
 
@@ -74,6 +75,7 @@ class UploadTranslationTest {
     composeTestRule.onNodeWithTag(UploadTestTags.TITLE).assertTextEquals("Ajouter un média")
     composeTestRule.onNodeWithText("Ajouter une photo").assertIsDisplayed()
     composeTestRule.onNodeWithText("Ajouter un audio").assertIsDisplayed()
+    composeTestRule.onNodeWithText("Ajouter un texte").assertIsDisplayed()
 
     composeTestRule.runOnIdle { viewModel.setErrorMsg(R.string.uploadMediaErrorUploadFailed) }
     composeTestRule.waitForIdle()

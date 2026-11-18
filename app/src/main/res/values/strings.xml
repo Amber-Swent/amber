@@ -21,9 +21,10 @@
     <string name="screenTitleCreateCareCircle">Create a CareCircle</string>
     <string name="screenTitleEnterInvitation">Enter an invitation</string>
     <string name="screenTitleCaregiverHome">Home</string>
-    <string name="screenTitleCaregiverUpload">Upload Pictures or Audios</string>
+    <string name="screenTitleCaregiverUpload">Upload Pictures, Audios or Texts</string>
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
+    <string name="screenTitleCaregiverUploadText">Upload Text</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
     <string name="screenTitleSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
@@ -256,6 +257,8 @@
     <string name="uploadChoosePictureIcon">Picture</string>
     <string name="uploadChooseAudio">Upload Audio</string>
     <string name="uploadChooseAudioIcon">Audio</string>
+    <string name="uploadChooseText">Upload Text</string>
+    <string name="uploadChooseTextIcon">Text</string>
 
     <!-- UploadPicture -->
     <string name="uploadPictureTitle">Upload Picture</string>
@@ -298,6 +301,16 @@
     <string name="uploadAudioRecordingInfoFirst">Your story is being recorded</string>
     <string name="uploadAudioRecordingInfoSecond">Click on the square to finish the record</string>
     <string name="uploadAudioRecordedInfo">Your audio is recorded!</string>
+
+    <!-- UploadText -->
+    <string name="uploadTextTitle">Upload Text</string>
+    <string name="uploadTextTitleLabel">Title</string>
+    <string name="uploadTextTitlePlaceholder">Enter a title for the story.</string>
+    <string name="uploadTextTitleEmpty">Title cannot be empty</string>
+    <string name="uploadTextDescriptionLabel">Description</string>
+    <string name="uploadTextDescriptionPlaceholder">Enter a description of the story.</string>
+    <string name="uploadTextDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadTextUpload">Upload Text</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>
