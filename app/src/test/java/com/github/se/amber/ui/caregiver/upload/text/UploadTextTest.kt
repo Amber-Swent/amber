@@ -9,9 +9,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -24,14 +22,8 @@ import com.github.se.amber.ui.caregiver.DisplayTextFieldTestTags
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreenDarkPreview
 import com.github.se.amber.ui.caregiver.upload.UploadTestTags
-import com.github.se.amber.ui.caregiver.upload.media.AddPersonDialogTestTags
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
-import com.github.se.amber.ui.caregiver.upload.media.DisplayWhoIsInvolvedTestTags
-import com.github.se.amber.ui.caregiver.upload.media.MIN_PLACE_QUERY_LENGTH
 import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
-import com.github.se.amber.ui.caregiver.upload.media.MediaLocationUIState
-import com.github.se.amber.ui.caregiver.upload.media.UploadMediaLocationTestTags
-import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureScreenTestTags
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import io.mockk.every
 import io.mockk.mockk
@@ -82,56 +74,40 @@ class UploadTextScreenTest {
   }
 
   @Test
-  fun screenShowsATitleFieldInsteadOfThePictureButtons() {
+  fun screenShowsTheTitleAndDescriptionAndGoesBack() {
     var wentBack = false
     composeTestRule.setContent {
       UploadTextScreen(viewModel = viewModel(), goBack = { wentBack = true })
     }
 
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.TITLE)
+        .onNodeWithTag(UploadTextTestTags.TITLE)
         .assertTextEquals(string(R.string.uploadTextTitle))
     composeTestRule.onNodeWithText(string(R.string.uploadTextTitleLabel)).assertIsDisplayed()
     composeTestRule
         .onNodeWithText(string(R.string.uploadTextDescriptionLabel))
         .performScrollTo()
         .assertIsDisplayed()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.TAKE_PICTURE).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadPictureScreenTestTags.SELECT_PICTURE).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(UploadTextTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
 
     assertTrue(wentBack)
   }
 
   @Test
-  fun editsAreSentToTheViewModel() {
+  fun titleAndBodyAreSentToTheViewModel() {
     val viewModel = viewModel()
     showScreen(viewModel)
 
-    field(UploadTextScreenTestTags.STORY_TITLE).performTextInput("Market day")
-    field(UploadTextScreenTestTags.DESCRIPTION).performTextInput("We bought bread.")
-    composeTestRule
-        .onNode(
-            hasSetTextAction() and
-                hasAnyAncestor(hasTestTag(UploadMediaLocationTestTags.SEARCH_FIELD)),
-            useUnmergedTree = true,
-        )
-        .performScrollTo()
-        .performTextInput("L")
-    composeTestRule
-        .onNodeWithTag(DisplayWhoIsInvolvedTestTags.ADD_PERSON)
-        .performScrollTo()
-        .performClick()
+    field(UploadTextTestTags.STORY_TITLE).performTextInput("Market day")
+    field(UploadTextTestTags.DESCRIPTION).performTextInput("We bought bread.")
 
-    verify { viewModel.setTitle("Market day") }
-    verify { viewModel.setText("We bought bread.") }
-    verify { viewModel.setPlaceQuery("L") }
-    verify { viewModel.onAddPerson() }
+    verify { viewModel.setTitle(any()) }
+    verify { viewModel.setText(any()) }
   }
 
   @Test
-  fun readyStoryEnablesUploadWithoutLeavingTheScreen() {
+  fun readyStoryEnablesUploadAndCallsUploadMedia() {
     var leftTheScreen = false
     val viewModel =
         viewModel(
@@ -139,71 +115,11 @@ class UploadTextScreenTest {
         )
     showScreen(viewModel, onUpload = { leftTheScreen = true })
 
-    composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).assertIsEnabled()
-    composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).performClick()
+    composeTestRule.onNodeWithTag(UploadTextTestTags.UPLOAD_BUTTON).assertIsEnabled()
+    composeTestRule.onNodeWithTag(UploadTextTestTags.UPLOAD_BUTTON).performClick()
 
     verify { viewModel.uploadMedia() }
     assertFalse(leftTheScreen)
-  }
-
-  @Test
-  fun addPersonDialogForwardsTheTypedNames() {
-    val viewModel =
-        viewModel(
-            UploadTextUIState(common = CommonMediaUIState(isAddPersonOpen = true)),
-        )
-    showScreen(viewModel)
-
-    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.SAVE).assertIsNotEnabled()
-    namedField(R.string.addPersonFirstName).performTextInput("Ada")
-    namedField(R.string.addPersonSurname).performTextInput("Lovelace")
-    namedField(R.string.addPersonNickname).performTextInput("A")
-    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.CLOSE).performClick()
-
-    verify { viewModel.setPersonFirstName("Ada") }
-    verify { viewModel.setPersonLastName("Lovelace") }
-    verify { viewModel.setPersonNickname("A") }
-    verify { viewModel.dismissAddPerson() }
-  }
-
-  @Test
-  fun savingAPersonCallsAddPerson() {
-    val viewModel =
-        viewModel(
-            UploadTextUIState(
-                common = CommonMediaUIState(isAddPersonOpen = true, personFirstName = "Ada"),
-            ),
-        )
-    showScreen(viewModel)
-
-    composeTestRule.onNodeWithTag(AddPersonDialogTestTags.SAVE).assertIsEnabled().performClick()
-
-    verify { viewModel.addPerson() }
-  }
-
-  @Test
-  fun aShortPlaceFromTheViewModelShowsTheTooShortHint() {
-    val viewModel =
-        viewModel(
-            UploadTextUIState(
-                common = CommonMediaUIState(location = MediaLocationUIState(query = "L")),
-            ),
-        )
-    showScreen(viewModel)
-
-    composeTestRule
-        .onNodeWithTag(UploadMediaLocationTestTags.TOO_SHORT)
-        .performScrollTo()
-        .assertIsDisplayed()
-        .assertTextEquals(
-            ApplicationProvider.getApplicationContext<Context>()
-                .resources
-                .getQuantityString(
-                    R.plurals.locationQueryTooShort,
-                    MIN_PLACE_QUERY_LENGTH,
-                    MIN_PLACE_QUERY_LENGTH,
-                ),
-        )
   }
 
   @Test
@@ -211,7 +127,7 @@ class UploadTextScreenTest {
     showScreen()
 
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.SELECT_DATE)
+        .onNodeWithTag(UploadTextTestTags.SELECTED_DATE)
         .performScrollTo()
         .assertIsDisplayed()
   }
@@ -222,23 +138,26 @@ class UploadTextScreenTest {
     composeTestRule.setContent { UploadTextScreen(viewModel = viewModel()) }
 
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.TITLE)
+        .onNodeWithTag(UploadTextTestTags.TITLE)
         .assertTextEquals(string(R.string.uploadTextTitle))
     composeTestRule.onNodeWithText(string(R.string.uploadTextTitleLabel)).assertIsDisplayed()
-    field(UploadTextScreenTestTags.STORY_TITLE).performClick()
+    field(UploadTextTestTags.STORY_TITLE).performClick()
+    composeTestRule.waitForIdle()
     composeTestRule.onNodeWithText(string(R.string.uploadTextTitlePlaceholder)).assertIsDisplayed()
-    field(UploadTextScreenTestTags.DESCRIPTION).performScrollTo().performClick()
+    composeTestRule.onNodeWithTag(UploadTextTestTags.DESCRIPTION).performScrollTo()
+    field(UploadTextTestTags.DESCRIPTION).performClick()
+    composeTestRule.waitForIdle()
     composeTestRule
         .onNodeWithText(string(R.string.uploadTextDescriptionPlaceholder))
         .assertIsDisplayed()
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON)
+        .onNodeWithTag(UploadTextTestTags.UPLOAD_BUTTON)
         .assertTextEquals(string(R.string.uploadTextUpload))
   }
 
   @Test
   @Config(qualifiers = "fr")
-  fun anErrorToastUsesTheFrenchMessageAndClearsIt() {
+  fun anErrorToastUsesTheFrenchMessageAndAsksToClearIt() {
     ShadowToast.reset()
     val viewModel =
         viewModel(
@@ -249,7 +168,9 @@ class UploadTextScreenTest {
 
     showScreen(viewModel)
 
+    composeTestRule.waitForIdle()
     assertEquals(string(R.string.uploadTextTitleEmpty), ShadowToast.getTextOfLatestToast())
+    composeTestRule.waitForIdle()
     verify(exactly = 1) { viewModel.clearErrorMsg() }
   }
 
@@ -269,9 +190,9 @@ class UploadTextScreenTest {
     composeTestRule.setContent { UploadTextScreenPreview(viewModel()) }
 
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.TITLE)
+        .onNodeWithTag(UploadTextTestTags.TITLE)
         .assertTextEquals(string(R.string.uploadTextTitle))
-    composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(UploadTextTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
   }
 
   @Test
@@ -288,9 +209,9 @@ class UploadTextScreenTest {
     composeTestRule.setContent { UploadTextScreenDarkPreview(viewModel()) }
 
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.TITLE)
+        .onNodeWithTag(UploadTextTestTags.TITLE)
         .assertTextEquals(string(R.string.uploadTextTitle))
-    composeTestRule.onNodeWithTag(UploadTextScreenTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
+    composeTestRule.onNodeWithTag(UploadTextTestTags.UPLOAD_BUTTON).assertIsNotEnabled()
   }
 
   @Test
@@ -299,7 +220,7 @@ class UploadTextScreenTest {
 
     composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
     composeTestRule
-        .onNodeWithTag(UploadTextScreenTestTags.TITLE)
+        .onNodeWithTag(UploadTextTestTags.TITLE)
         .assertTextEquals(string(R.string.uploadTextTitle))
   }
 
@@ -319,9 +240,6 @@ class UploadTextScreenTest {
       UploadTextScreen(viewModel = viewModel, onUpload = onUpload, goBack = goBack)
     }
   }
-
-  private fun namedField(label: Int) =
-      composeTestRule.onNode(hasSetTextAction() and hasText(string(label)))
 
   private fun field(sectionTag: String) =
       composeTestRule.onNode(

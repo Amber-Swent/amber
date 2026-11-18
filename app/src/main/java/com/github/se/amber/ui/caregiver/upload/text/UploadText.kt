@@ -59,12 +59,12 @@ import com.github.se.amber.ui.utils.asString
 import java.time.LocalDate
 
 /** Test tags used by the caregiver Upload Text screen. */
-object UploadTextScreenTestTags {
+object UploadTextTestTags {
   const val TITLE = "upload_text_title"
   const val STORY_TITLE = "upload_text_story_title"
   const val DESCRIPTION = "upload_text_description"
-  const val SELECT_DATE = "upload_text_selected_date"
-  const val UPLOAD_BUTTON = "upload_text_button"
+  const val SELECTED_DATE = "upload_text_selected_date"
+  const val UPLOAD_BUTTON = "upload_text_upload_button"
 }
 
 /**
@@ -115,7 +115,7 @@ fun UploadTextScreen(
               Column(modifier = Modifier.fillMaxWidth().padding(CAREGIVER_PADDING_SMALL)) {
                 TopNavigationMenu(Modifier, TopNavigationAction.CANCEL, goBack)
                 DisplayCaregiverTitle(
-                    Modifier.testTag(UploadTextScreenTestTags.TITLE),
+                    Modifier.testTag(UploadTextTestTags.TITLE),
                     stringResource(R.string.uploadTextTitle),
                 )
               }
@@ -133,7 +133,7 @@ fun UploadTextScreen(
                     .imePadding(),
             verticalArrangement = Arrangement.spacedBy(CAREGIVER_PADDING_SMALL),
         ) {
-          Column(Modifier.testTag(UploadTextScreenTestTags.STORY_TITLE)) {
+          Column(Modifier.testTag(UploadTextTestTags.STORY_TITLE)) {
             DisplayTextField(
                 modifier = Modifier.height(TEXT_FIELD_DEFAULT),
                 value = uiState.title,
@@ -148,7 +148,7 @@ fun UploadTextScreen(
 
           // Labeled "Description" like the audio screen. The value is the story body (`text`),
           // not MediaItem.description, which stays empty for a text story.
-          Column(Modifier.testTag(UploadTextScreenTestTags.DESCRIPTION)) {
+          Column(Modifier.testTag(UploadTextTestTags.DESCRIPTION)) {
             DisplayTextField(
                 modifier = Modifier.height(TEXT_FIELD_BIG),
                 value = uiState.text,
@@ -169,7 +169,7 @@ fun UploadTextScreen(
           )
 
           DisplayScrollableDatePicker(
-              modifier = Modifier.testTag(UploadTextScreenTestTags.SELECT_DATE),
+              modifier = Modifier.testTag(UploadTextTestTags.SELECTED_DATE),
               initialDate = uiState.common.date ?: MemoryDate(LocalDate.now().year),
               onDateSelected = viewModel::setDate,
           )
@@ -181,7 +181,7 @@ fun UploadTextScreen(
             modifier =
                 Modifier.navigationBarsPadding()
                     .padding(CAREGIVER_PADDING_MEDIUM)
-                    .testTag(UploadTextScreenTestTags.UPLOAD_BUTTON),
+                    .testTag(UploadTextTestTags.UPLOAD_BUTTON),
             enabled = uiState.canUpload,
             text = stringResource(R.string.uploadTextUpload),
             widthPercentage = CAREGIVER_BUTTON_WIDTH_ENORMOUS,

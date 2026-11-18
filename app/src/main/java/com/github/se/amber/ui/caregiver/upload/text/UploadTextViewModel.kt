@@ -63,7 +63,7 @@ data class UploadTextUIState(
  * @param placeRepo The repository used to find real places from what the user types.
  * @param cleanupScope Where a canceled upload finishes its cleanup.
  */
-class UploadTextViewModel(
+open class UploadTextViewModel(
     mediaRepo: MediaRepository = MediaRepositoryProvider.repository,
     authRepo: AuthRepository = AuthRepositoryProvider.repository,
     profileRepo: ProfileRepository = ProfileRepositoryProvider.default.repository,

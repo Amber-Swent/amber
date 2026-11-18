@@ -45,6 +45,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
+private const val NAVIGATION_TIMEOUT_MS = 5_000L
+
 /**
  * Instrumented tests for the navigation wiring of [AmberApp].
  *
@@ -141,7 +143,7 @@ class AmberAppNavigationTest {
    * the new entry before it is created.
    */
   private fun goTo(route: String) {
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentBackStackEntry
           ?.lifecycle
           ?.currentState
@@ -150,7 +152,10 @@ class AmberAppNavigationTest {
     composeRule.runOnUiThread {
       Handler(Looper.getMainLooper()).post { navController.navigate(route) }
     }
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(
+        conditionDescription = "navigated to $route",
+        timeoutMillis = NAVIGATION_TIMEOUT_MS,
+    ) {
       navController.currentDestination?.route == route
     }
     composeRule.waitForIdle()
@@ -159,7 +164,7 @@ class AmberAppNavigationTest {
   private fun click(tag: String) {
     // The screen can still be composing after a navigation, so the click target is not there yet.
     // During the screen transition both screens show their own bottom bar, so wait for exactly one.
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       try {
         composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().size == 1
       } catch (_: IllegalStateException) {
@@ -180,7 +185,7 @@ class AmberAppNavigationTest {
   }
 
   private fun waitForRoute(expected: String) {
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentDestination?.route == expected
     }
     assertRoute(expected)
@@ -437,7 +442,7 @@ class AmberAppNavigationTest {
 
     click(Tags.SIGN_OUT_CONFIRM)
 
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentDestination?.route == AuthScreen.Auth.route
     }
 
@@ -583,7 +588,7 @@ class AmberAppNavigationTest {
 
     click(Tags.SIGN_OUT_CONFIRM)
 
-    composeRule.waitUntil(timeoutMillis = 5_000) {
+    composeRule.waitUntil(timeoutMillis = NAVIGATION_TIMEOUT_MS) {
       navController.currentDestination?.route == AuthScreen.Auth.route
     }
 
