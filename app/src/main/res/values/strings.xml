@@ -194,6 +194,8 @@
     <string name="createInvitationUsage">This code can only be used once.\nIt\'s active 30 days after its creation.</string>
     <string name="createInvitationListHeader">Code | Creation Time | Status</string>
     <string name="createInvitationListRow">%1$s | %2$s | %3$s</string>
+    <string name="createInvitationCopyCode">Copy code %1$s</string>
+    <string name="createInvitationCodeCopied">Code copied</string>
     <string name="createInvitationStatusActive">ACTIVE</string>
     <string name="createInvitationStatusExpired">EXPIRED</string>
     <string name="createInvitationStatusUsed">USED</string>

@@ -40,6 +40,9 @@ private const val TAG = "CreateInvitationViewModel"
  * @property errorMsgRes the error to show, as a string resource, or null for none.
  * @property selectedCircleId the active circle new invitations are created for.
  * @property isCreating whether an invitation is being created.
+ * @property codeToCopy the invitation code to place on the clipboard, or null when none is pending.
+ * @property copiedMessageRes the message to show after that code is copied, or null when none is
+ *   pending.
  */
 data class CreateInvitationUIState(
     val generatedCode: String? = null,
@@ -47,6 +50,8 @@ data class CreateInvitationUIState(
     @param:StringRes val errorMsgRes: Int? = null,
     val selectedCircleId: String? = null,
     val isCreating: Boolean = false,
+    val codeToCopy: String? = null,
+    @param:StringRes val copiedMessageRes: Int? = null,
 )
 
 class CreateInvitationViewModel(
@@ -68,6 +73,18 @@ class CreateInvitationViewModel(
       val circleId = _uiState.value.selectedCircleId ?: return@launch
       fetchInvitations(circleId)
     }
+  }
+
+  /** Asks the screen to copy [code] and show the copied message. */
+  fun copyCode(code: String) {
+    _uiState.update {
+      it.copy(codeToCopy = code, copiedMessageRes = R.string.createInvitationCodeCopied)
+    }
+  }
+
+  /** Clears a copy request after the screen has copied the code and shown the message. */
+  fun clearCopiedCode() {
+    _uiState.update { it.copy(codeToCopy = null, copiedMessageRes = null) }
   }
 
   fun createInvitation() {
