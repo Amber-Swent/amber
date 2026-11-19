@@ -2,6 +2,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.upload.media
 
@@ -373,6 +374,14 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
   }
 
   /**
+   * Whether [uploadMedia] requires a non-blank [CommonMediaUIState.description]. Picture and audio
+   * keep the default. A text story stores its body in its own state and leaves the shared
+   * description empty, so its ViewModel returns false.
+   */
+  protected open val requiresCommonDescription: Boolean
+    get() = true
+
+  /**
    * Checks the part of the state that depends on the kind of media (e.g. a picture was selected).
    * Run by [uploadMedia] after the care circle is known and before the common fields are checked.
    *
@@ -589,7 +598,7 @@ abstract class MediaViewModel<S : MediaUIState<S>>(
       authorId == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.UNVERIFIED.messageRes)
       circle == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.STILL_LOADING.messageRes)
       contentError != null -> UploadCheck.Blocked(contentError)
-      !InputValidation.DESCRIPTION.isValid(state.common.description) ->
+      requiresCommonDescription && !InputValidation.DESCRIPTION.isValid(state.common.description) ->
           UploadCheck.Blocked(MediaViewModelErrorMessage.DESCRIPTION_EMPTY.messageRes)
       date == null -> UploadCheck.Blocked(MediaViewModelErrorMessage.SELECT_DATE.messageRes)
       !state.common.location.hasValidPlace ->
