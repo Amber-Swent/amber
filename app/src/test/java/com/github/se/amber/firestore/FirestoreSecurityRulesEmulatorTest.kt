@@ -505,20 +505,12 @@ class FirestoreSecurityRulesEmulatorTest {
             ),
         ),
     )
-    val appointment =
-        mapOf(
-            "id" to "a1",
-            "title" to "Doctor",
-            "notes" to "",
-            "startAt" to now,
-            "attendeeIds" to emptyList<String>(),
-            "createdBy" to care,
-            "createdAt" to now,
-        )
-    fs.assertFails(pat, fs.set("careCircles/$circleId/appointments/a1", appointment))
-    fs.assertSucceeds(care, fs.set("careCircles/$circleId/appointments/a1", appointment))
-    fs.assertFails(pat, fs.delete("careCircles/$circleId/appointments/a1"))
-    fs.assertSucceeds(care, fs.delete("careCircles/$circleId/appointments/a1"))
+    // Every member writes appointments: each one may delete what the other created
+    val appointmentPath = "careCircles/$circleId/appointments/a1"
+    fs.assertSucceeds(care, fs.set(appointmentPath, appointment("a1", care)))
+    fs.assertSucceeds(pat, fs.delete(appointmentPath))
+    fs.assertSucceeds(pat, fs.set(appointmentPath, appointment("a1", pat)))
+    fs.assertSucceeds(care, fs.delete(appointmentPath))
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
   }
 
@@ -618,6 +610,80 @@ class FirestoreSecurityRulesEmulatorTest {
         other,
         fs.set("users/$other", user(other, "CAREGIVER", listOf(circleId), "Renamed")),
     )
+  }
+
+  /** The writes behind AppointmentRepository: the fields it sets, and only those. */
+  @Test
+  fun appointments_savedByTheWriter_withValidFields_enforcedByEmulator() {
+    val circleId = "c-appointments"
+    val care = "care"
+    val care2 = "care2"
+    val pat = "pat"
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, care, listOf(care, care2, pat), patientId = pat),
+    )
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$care2", user(care2, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    val path = "careCircles/$circleId/appointments"
+    val created = appointment("a1", care)
+
+    fs.assertSucceeds(care, fs.set("$path/a1", created))
+    // created as someone else, or with an end before its start
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care2)))
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("lastEndAt" to START - 1)))
+    // a field Appointment doesn't have, an empty title, an attendee who isn't a member
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("color" to "red")))
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("title" to "")))
+    fs.assertFails(
+        care,
+        fs.set("$path/a2", appointment("a2", care) + ("attendeeIds" to listOf("eve"))),
+    )
+    // the checks of validationError(): a blank title, no start, a duration out of 1..1440
+    val other = appointment("a2", care)
+    fs.assertFails(care, fs.set("$path/a2", other + ("title" to "  ")))
+    fs.assertFails(care, fs.set("$path/a2", other + ("startAt" to 0L) + ("lastEndAt" to HOUR)))
+    fs.assertFails(
+        care,
+        fs.set("$path/a2", other + ("durationMinutes" to 0) + ("lastEndAt" to START)),
+    )
+    // lastEndAt must be the end the app computes, 60 minutes after the start when no duration
+    fs.assertFails(care, fs.set("$path/a2", other + ("lastEndAt" to START + 2 * HOUR)))
+    fs.assertSucceeds(
+        care,
+        fs.set("$path/a3", appointment("a3", care) + ("durationMinutes" to null)),
+    )
+    // fields the app couldn't read back
+    fs.assertFails(care, fs.set("$path/a2", other + ("notes" to 3L)))
+    fs.assertFails(care, fs.set("$path/a2", other + ("location" to mapOf("city" to "Bern"))))
+    fs.assertSucceeds(
+        care,
+        fs.set(
+            "$path/a4",
+            appointment("a4", care) + ("location" to mapOf("lat" to 46.5, "lng" to 6.6)),
+        ),
+    )
+    // the patient may create one too
+    fs.assertSucceeds(pat, fs.set("$path/a2", appointment("a2", pat)))
+
+    // Any member may edit it, as the last editor: the fields the repository's update() writes
+    val edit = mapOf("title" to "Dentist", "updatedBy" to care2, "updatedAt" to START)
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("updatedBy" to care)))
+    // but not who created it or when
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("createdBy" to care2)))
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("createdAt" to 1L)))
+    // and an edit keeps a start and an end the calendar's query can use
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("startAt" to "10:00")))
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("lastEndAt" to START - 1)))
+    // a new duration needs the new end too
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("durationMinutes" to 30)))
+    fs.assertSucceeds(
+        care2,
+        fs.patch("$path/a1", edit + ("durationMinutes" to 30) + ("lastEndAt" to START + HOUR / 2)),
+    )
+    fs.assertSucceeds(care2, fs.patch("$path/a1", edit))
+    fs.assertSucceeds(pat, fs.patch("$path/a1", edit + ("updatedBy" to pat)))
   }
 
   /** The reads behind CareCircleRepository.getCircle(circleId). */
@@ -785,6 +851,12 @@ class FirestoreSecurityRulesEmulatorTest {
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
 
+    /** The start of the appointments of these tests, in epoch milliseconds. */
+    private const val START = 1_800_000_000_000L
+
+    /** One hour, in milliseconds. */
+    private const val HOUR = 60 * 60_000L
+
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long
       get() = System.currentTimeMillis()
@@ -876,6 +948,26 @@ class FirestoreSecurityRulesEmulatorTest {
             "authorizedIds" to emptyList<String>(),
             "status" to "APPROVED",
             "text" to "Hello",
+        )
+
+    /**
+     * @return a valid appointment [id], created and last saved by [savedBy], with the fields
+     *   AppointmentRepository writes.
+     */
+    private fun appointment(id: String, savedBy: String) =
+        mapOf(
+            "id" to id,
+            "title" to "Doctor",
+            "notes" to "",
+            "startAt" to START,
+            "durationMinutes" to 60,
+            "location" to null,
+            "attendeeIds" to listOf(savedBy),
+            "lastEndAt" to START + 60 * 60_000L,
+            "createdBy" to savedBy,
+            "createdAt" to START - 1,
+            "updatedBy" to savedBy,
+            "updatedAt" to START - 1,
         )
 
     private fun media(id: String, authorId: String, storagePath: String) =

@@ -75,16 +75,6 @@ class FirebaseAppointmentRepositoryReadTest {
           lastEndAt = dayStart + 1.hours.inWholeMilliseconds,
       )
 
-  // Starts right at the end of the day, so it is not part of it.
-  private val tomorrow =
-      Appointment(
-          id = "tomorrow",
-          title = "Hairdresser",
-          startAt = dayEnd,
-          durationMinutes = 60,
-          lastEndAt = dayEnd + 1.hours.inWholeMilliseconds,
-      )
-
   private lateinit var firestore: FirebaseFirestore
   private lateinit var appointments: CollectionReference
   private lateinit var repository: FirebaseAppointmentRepository
@@ -110,7 +100,7 @@ class FirebaseAppointmentRepositoryReadTest {
 
   @Test
   fun observeAppointmentsListsTheDaySortedByStart() = runTest {
-    val listener = stubNotOverQuery()
+    val listener = stubWindowQuery()
     val lists = mutableListOf<List<Synced<Appointment>>>()
     backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
       repository.observeAppointments(circleId, day, days = 1).toList(lists)
@@ -123,7 +113,6 @@ class FirebaseAppointmentRepositoryReadTest {
             document(physio, pending = true),
             unreadableDocument(),
             document(checkUp),
-            document(tomorrow),
         ),
         null,
     )
@@ -149,7 +138,7 @@ class FirebaseAppointmentRepositoryReadTest {
     assertTrue(noDay.exceptionOrNull() is IllegalArgumentException)
     verify(exactly = 0) { firestore.collection(any()) }
 
-    val listener = stubNotOverQuery()
+    val listener = stubWindowQuery()
     val denied =
         async(UnconfinedTestDispatcher(testScheduler)) {
           runCatching { repository.observeAppointments(circleId, day, days = 1).collect() }
@@ -164,16 +153,19 @@ class FirebaseAppointmentRepositoryReadTest {
   }
 
   /**
-   * Stubs the query `lastEndAt > dayStart`. Only the call with INCLUDE is stubbed, so the sync flag
-   * must be asked for.
+   * Stubs the query of the day: `lastEndAt > dayStart` and `startAt < dayEnd`. Only that query is
+   * stubbed, so both ends of the window must be sent to the server. Only the call with INCLUDE is
+   * stubbed, so the sync flag must be asked for.
    *
    * @return the slot that receives the snapshot listener.
    */
-  private fun stubNotOverQuery(): CapturingSlot<EventListener<QuerySnapshot>> {
+  private fun stubWindowQuery(): CapturingSlot<EventListener<QuerySnapshot>> {
     val listener = slot<EventListener<QuerySnapshot>>()
     val notOver = mockk<Query>()
+    val ofTheDay = mockk<Query>()
     every { appointments.whereGreaterThan("lastEndAt", dayStart) } returns notOver
-    every { notOver.addSnapshotListener(MetadataChanges.INCLUDE, capture(listener)) } returns
+    every { notOver.whereLessThan("startAt", dayEnd) } returns ofTheDay
+    every { ofTheDay.addSnapshotListener(MetadataChanges.INCLUDE, capture(listener)) } returns
         mockk<ListenerRegistration>(relaxed = true)
     return listener
   }

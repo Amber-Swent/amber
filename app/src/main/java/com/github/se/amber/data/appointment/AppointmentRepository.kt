@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.Flow
  * Every failed [Result] contains an [AppointmentError]. Cancellation is rethrown.
  *
  * [observeAppointments] reads them, one day or several days at a time.
+ *
+ * [hasUnsyncedWrites] tells whether some changes are still waiting to be sent, for example before
+ * signing out.
  */
 interface AppointmentRepository {
 
@@ -86,8 +89,8 @@ interface AppointmentRepository {
    * values actually saved, so the caller should use it instead of its own copy.
    *
    * The attendees must be members of the circle. The repository doesn't check it, since that would
-   * need the circle and the network. The security rules don't check it yet. They might check it on
-   * the server later. A refusal would then be reported in [writeFailures].
+   * need the circle and the network. The security rules check it on the server. A refusal is then
+   * reported in [writeFailures] as [AppointmentError.PermissionDenied].
    *
    * Fails right away, without writing anything, with:
    * - [AppointmentError.InvalidCircleId] or [AppointmentError.InvalidAppointmentId] for an invalid
@@ -158,6 +161,23 @@ interface AppointmentRepository {
    * a restart. If the server refuses it then, nothing is reported.
    */
   val writeFailures: Flow<AppointmentWriteFailure>
+
+  /**
+   * Tells whether this phone still has changes the server hasn't received. Call it before signing
+   * out. The changes not sent yet would otherwise be sent later with the next user's account, and
+   * the server would refuse them without a word.
+   *
+   * It covers every pending Firestore write of the app, not only appointments. The check can't tell
+   * them apart, so true doesn't mean an appointment is waiting.
+   *
+   * It waits up to 2 seconds for the server to receive every write. Offline, a waiting write is
+   * only reported once these 2 seconds are over. If the wait fails, for example because the user
+   * changed meanwhile, it returns true too, since nothing confirms the writes were received.
+   *
+   * @return false only if the server received every write within 2 seconds. True if the time ran
+   *   out or the wait failed.
+   */
+  suspend fun hasUnsyncedWrites(): Boolean
 }
 
 /** The kinds of writes [AppointmentRepository] makes. */
@@ -225,9 +245,7 @@ sealed class AppointmentError(message: String, cause: Throwable? = null) :
   /** Nobody is signed in. */
   class NotAuthenticated : AppointmentError("No user is signed in")
 
-  /**
-   * The security rules refused the write. For example, the user isn't a caregiver of this circle.
-   */
+  /** The security rules refused the write. For example, the user isn't a member of this circle. */
   class PermissionDenied : AppointmentError("You do not have permission to change this appointment")
 
   /** Any other failure. [source] is the original exception, kept as the cause. */

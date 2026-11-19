@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty and assisted by Github Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.authorization
 
@@ -35,9 +36,12 @@ object RoleAccess {
   fun canCreateInvitation(profile: UserProfile, careCircle: CareCircle): Boolean =
       canManagePlaces(profile, careCircle)
 
-  /** Appointments are maintained only by caregivers who belong to the relevant circle. */
+  /**
+   * Appointments are shared, so every member, the patient included, may create, edit or delete
+   * them.
+   */
   fun canManageAppointment(profile: UserProfile, careCircle: CareCircle): Boolean =
-      canManagePlaces(profile, careCircle)
+      canViewCareCircle(profile, careCircle)
 
   /** Every member may add a memory to their circle. */
   fun canCreateMedia(profile: UserProfile, careCircle: CareCircle): Boolean =

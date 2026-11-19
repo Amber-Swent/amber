@@ -1,6 +1,7 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const {state, storedBucket} = require("../support/fakes");
 
 const BUCKET = "amber-family-test";
@@ -64,8 +65,13 @@ function setupAccounts() {
       createdBy: "other",
       mediaIds: ["own-photo", "tagged", "own-memo", "own-text"],
     },
-    "careCircles/shared/appointments/doctor": {createdBy: "gone", attendeeIds: ["gone", "other"]},
-    "careCircles/shared/appointments/physio": {createdBy: "other", attendeeIds: ["other"]},
+    "careCircles/shared/appointments/doctor": {
+      createdBy: "gone",
+      updatedBy: "gone",
+      attendeeIds: ["gone", "other"],
+    },
+    "careCircles/shared/appointments/dentist": {createdBy: "other", updatedBy: "gone", attendeeIds: ["gone"]},
+    "careCircles/shared/appointments/physio": {createdBy: "other", updatedBy: "other", attendeeIds: ["other"]},
     "careCircles/alone": {memberIds: ["gone"], patientId: "", createdBy: "gone", storageBucket: EMPTY_BUCKET},
     "careCircles/alone/media/photo": storedMedia("photo", {
       authorId: "gone",

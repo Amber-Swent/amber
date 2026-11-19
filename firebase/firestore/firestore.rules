@@ -190,6 +190,55 @@ service cloud.firestore {
       ]);
     }
 
+    // An appointment as it is stored after a create or an edit: only the fields of Appointment,
+    // saved by the signed-in user. It must pass the same checks as validationError() in the app.
+    // The attendees must be members of the circle. A field the app can't read would make the
+    // appointment disappear for the whole circle, so each one has the type the app expects.
+    function isValidAppointment(circleId, appointmentId) {
+      let data = request.resource.data;
+      return data.id == appointmentId
+        && data.keys().hasOnly([
+          'id', 'title', 'notes', 'startAt', 'durationMinutes', 'location', 'attendeeIds',
+          'lastEndAt', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+        ])
+        && data.title is string
+        && data.title.trim().size() > 0
+        && data.notes is string
+        && hasValidAppointmentTime(data)
+        && isValidLocation(data.get('location', null))
+        && data.updatedBy == request.auth.uid
+        && data.updatedAt is int
+        && data.attendeeIds is list
+        && data.attendeeIds.hasOnly(circleDoc(circleId).memberIds);
+    }
+
+    // The start is set, the duration is unknown or between 1 minute and 1 day, and lastEndAt is
+    // the end the app computes: the start plus the duration, or plus 60 minutes when it is
+    // unknown. The calendar's query trusts lastEndAt, so a wrong one would show the appointment on
+    // days it doesn't cover. Repeating appointments will be implemented later, with a lastEndAt at
+    // the end of their last occurrence. This check will then have to change.
+    function hasValidAppointmentTime(data) {
+      let minutes = data.get('durationMinutes', null);
+      return data.startAt is int
+        && data.startAt > 0
+        && data.lastEndAt is int
+        && ((minutes == null && data.lastEndAt == data.startAt + 60 * 60000)
+          || (minutes is int
+            && minutes >= 1
+            && minutes <= 24 * 60
+            && data.lastEndAt == data.startAt + minutes * 60000));
+    }
+
+    // Null, or a GeoLocation: only lat, lng and placeName, each unset or of its type.
+    function isValidLocation(location) {
+      return location == null
+        || (location is map
+          && location.keys().hasOnly(['lat', 'lng', 'placeName'])
+          && (location.get('lat', null) == null || location.lat is number)
+          && (location.get('lng', null) == null || location.lng is number)
+          && (location.get('placeName', null) == null || location.placeName is string));
+    }
+
     match /users/{uid} {
       allow read: if isSelf(uid) || sharesCircleWith();
 
@@ -286,14 +335,17 @@ service cloud.firestore {
         allow read: if isMember(circleId);
 
         allow create: if canWriteTo(circleId)
-          && isCaregiver()
-          && request.resource.data.id == appointmentId;
+          && isValidAppointment(circleId, appointmentId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt is int;
 
+        // Every member may edit any appointment, but nobody may change who created it or when
         allow update: if canWriteTo(circleId)
-          && isCaregiver()
-          && request.resource.data.id == appointmentId;
+          && isValidAppointment(circleId, appointmentId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
 
-        allow delete: if canWriteTo(circleId) && isCaregiver();
+        allow delete: if canWriteTo(circleId);
       }
     }
 

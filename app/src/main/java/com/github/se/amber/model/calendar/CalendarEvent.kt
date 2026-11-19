@@ -16,9 +16,9 @@ const val MAX_DURATION_MINUTES = 24 * 60
  * It holds everything the calendar shows. A screen can draw any event from this interface alone.
  * The fields used only for storage stay in the implementing class.
  *
- * An appointment implements it. Other kinds of events might implement it later, such as each
- * occurrence of a repeating appointment. The helpers in CalendarStatus.kt work the same way for all
- * of them.
+ * An appointment implements it. Each occurrence of a repeating appointment will implement it too,
+ * once they are implemented. Other kinds of events might implement it later. The helpers in
+ * CalendarStatus.kt work the same way for all of them.
  *
  * An interface can't hold values, so each implementing class declares these fields itself. Computed
  * values are extension functions, not properties. Firestore stores every public getter of a class,

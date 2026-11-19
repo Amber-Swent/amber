@@ -36,6 +36,9 @@ class FakeAppointmentRepository(private val zone: ZoneId = ZoneOffset.UTC) : App
   /** When not null, every write fails with this error and changes nothing. */
   var failWith: AppointmentError? = null
 
+  /** What [hasUnsyncedWrites] returns. Every write of the fake is synced at once unless set. */
+  var unsyncedWrites = false
+
   // By circle id, then by appointment id, in the order they were first added.
   private val circles = MutableStateFlow<Map<String, Map<String, Appointment>>>(emptyMap())
   private val failures =
@@ -139,6 +142,9 @@ class FakeAppointmentRepository(private val zone: ZoneId = ZoneOffset.UTC) : App
     circles.update { all -> all + (circleId to all[circleId].orEmpty().minus(appointmentId)) }
     return Result.success(Unit)
   }
+
+  /** @return [unsyncedWrites]. */
+  override suspend fun hasUnsyncedWrites(): Boolean = unsyncedWrites
 
   /** Adds or replaces [appointment] in [circleId], keeping its place if it was already there. */
   private fun save(circleId: String, appointment: Appointment) {

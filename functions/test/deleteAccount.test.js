@@ -1,6 +1,7 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {callableModule, resetState, state, storedFirestore} = require("./support/fakes");
@@ -172,7 +173,7 @@ test("deleteAccount removes a caregiver from a circle that stays, with their nic
   assert.deepEqual(circle.nicknames, {other: {patient: "Mum"}, patient: {}});
 });
 
-test("deleteAccount deletes a caregiver's media with their files, and their stories", async () => {
+test("deleteAccount deletes a caregiver's media with their files, stories and appointments", async () => {
   setupAccounts();
 
   const stored = await deleteTheSharedCaregiver();
@@ -187,6 +188,7 @@ test("deleteAccount deletes a caregiver's media with their files, and their stor
   ]));
   assert.equal(stored("stories/own-story"), undefined);
   assert.deepEqual(stored("stories/other-story").mediaIds, ["tagged"]);
+  assert.equal(stored("appointments/doctor"), undefined);
 });
 
 test("deleteAccount deletes a member's photo files and drops only their personPhotos key", async () => {
@@ -232,7 +234,7 @@ test("deleteAccount removes a caregiver from the others' media and appointments"
 
   assert.deepEqual(stored("media/tagged").shownIds, ["patient"]);
   assert.deepEqual(stored("media/two-allowed").authorizedIds, ["patient"]);
-  assert.deepEqual(stored("appointments/doctor"), {createdBy: "", attendeeIds: ["other"]});
+  assert.deepEqual(stored("appointments/dentist"), {createdBy: "other", updatedBy: "", attendeeIds: []});
 });
 
 test("deleteAccount keeps a media restricted to the deleted user visible to its author only", async () => {
@@ -307,7 +309,8 @@ test("deleteAccount finishes the job when retried after any partial failure", as
     ["the media documents", "delete", "careCircles/shared/media/own-photo"],
     ["the other members' stories", "update", "careCircles/shared/stories/other-story"],
     ["the remaining media", "update", "careCircles/shared/media/restricted"],
-    ["an appointment", "update", "careCircles/shared/appointments/doctor"],
+    ["an appointment", "delete", "careCircles/shared/appointments/doctor"],
+    ["the remaining appointments", "update", "careCircles/shared/appointments/dentist"],
     ["the photo folder", "deleteFiles", "careCircles/shared/people/gone/"],
     ["leaving the shared circle", "update", "careCircles/shared"],
     ["the bucket", "deleteBucket", EMPTY_BUCKET],
