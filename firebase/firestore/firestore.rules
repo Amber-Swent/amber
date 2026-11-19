@@ -186,7 +186,7 @@ service cloud.firestore {
     // time never change, so no edit can approve a media or leave its file without a document.
     function onlyEditableMediaFieldsChanged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        'description', 'date', 'location', 'shownIds', 'authorizedIds', 'text', 'transcript'
+        'description', 'date', 'location', 'shownIds', 'authorizedIds', 'text', 'title', 'transcript'
       ]);
     }
 

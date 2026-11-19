@@ -46,7 +46,6 @@ sealed interface MediaItem {
   val authorizedIds: List<String>
   val status: MediaStatus
 
-  // TODO: add a title to MediaItem.Text in a future PR.
   data class Text(
       override val id: String = "",
       override val authorId: String = "",
@@ -58,6 +57,7 @@ sealed interface MediaItem {
       override val shownIds: List<String> = emptyList(),
       override val authorizedIds: List<String> = emptyList(),
       override val status: MediaStatus = MediaStatus.APPROVED,
+      val title: String = "",
       val text: String = "",
   ) : MediaItem
 

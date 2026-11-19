@@ -206,6 +206,8 @@ class FirestoreSecurityRulesTest {
         )
     )
     assertFalse(rules.onlyEditableMediaFieldsChanged(picture, picture.copy(authorId = "u2")))
+    val story = MediaItem.Text(id = "m1", authorId = "u1", createdAt = 1L, text = "Hi")
+    assertTrue(rules.onlyEditableMediaFieldsChanged(story, story.copy(title = "A visit")))
     // a picture turned into a text would leave its file without a document
     assertFalse(
         rules.onlyEditableMediaFieldsChanged(
@@ -1188,7 +1190,16 @@ private class FirestoreSecurityRules(
     val old = before.toMap() + ("id" to before.id)
     val new = after.toMap() + ("id" to after.id)
     val editable =
-        setOf("description", "date", "location", "shownIds", "authorizedIds", "text", "transcript")
+        setOf(
+            "description",
+            "date",
+            "location",
+            "shownIds",
+            "authorizedIds",
+            "text",
+            "title",
+            "transcript",
+        )
     return (old.keys + new.keys).filter { old[it] != new[it] }.all { it in editable }
   }
 

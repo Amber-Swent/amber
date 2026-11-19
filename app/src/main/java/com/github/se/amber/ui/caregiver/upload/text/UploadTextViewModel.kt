@@ -31,7 +31,8 @@ import kotlinx.coroutines.SupervisorJob
 /**
  * UI state of the text upload screen.
  *
- * @property title the story title typed by the caregiver. [MediaItem.Text] has no title yet.
+ * @property title the story title typed by the caregiver. It is [MediaItem.Text.title]. This screen
+ *   does not save it yet.
  * @property text the story body typed in the description box. This is [MediaItem.Text.text].
  * @property common the date, place and people shared with the other upload screens. A text story
  *   keeps [CommonMediaUIState.description] empty.
@@ -84,8 +85,8 @@ open class UploadTextViewModel(
         cleanupScope = cleanupScope,
     ) {
 
-  // FIXME: MediaItem.Text needs a title parameter. Save this field there once that parameter
-  // exists.
+  // FIXME: Save this field in MediaItem.Text.title. The parameter exists; this screen does not
+  // write it yet.
   /** Stores [title] as the story title. */
   fun setTitle(title: String) {
     // Todo: save the title in the UI state
