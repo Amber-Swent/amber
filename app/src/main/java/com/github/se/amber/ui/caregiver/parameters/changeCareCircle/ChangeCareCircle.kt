@@ -47,6 +47,7 @@ import com.github.se.amber.ui.theme.CAREGIVER_PADDING_MEDIUM
 import com.github.se.amber.ui.theme.CAREGIVER_PADDING_SMALL
 import com.github.se.amber.ui.theme.DIVIDER_THICKNESS
 import com.github.se.amber.ui.theme.ROUND_CORNER
+import com.github.se.amber.ui.utils.DisplayInformation
 import com.github.se.amber.ui.utils.selectableChipColors
 
 /** Tags for the change care circle screen. */
@@ -54,6 +55,7 @@ object ChangeCareCircleTestTags {
   const val TITLE = "change_care_circle_title"
   const val CURRENT_CIRCLE = "change_care_circle_current"
   const val CIRCLE_LIST = "change_care_circle_list"
+  const val INFORMATION = "change_care_circle_information"
   const val EMPTY_MESSAGE = "change_care_circle_empty_message"
   const val LOADING_INDICATOR = "change_care_circle_loading_indicator"
   const val ERROR_MESSAGE = "change_care_circle_error_message"
@@ -232,12 +234,15 @@ fun ChangeCareCircleScreen(
                 )
               }
             }
+            DisplayInformation(
+                modifier = Modifier.testTag(ChangeCareCircleTestTags.INFORMATION),
+                contentDescription = stringResource(R.string.changeCareCircleInfoIcon),
+                sentences = listOf(stringResource(R.string.changeCareCircleInfo)),
+            )
           }
         }
       }
     }
-    // TODO display message info: the helper function needed is currently under review so it cannot
-    // be used now.
   }
 }
 

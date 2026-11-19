@@ -10,7 +10,9 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
@@ -222,6 +224,46 @@ class ChangeCareCircleScreenTest {
   }
 
   @Test
+  fun readyStateShowsSwitchInstructionsAndInformationIcon() {
+    showScreen(
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.READY,
+            circles = listOf(ChangeCareCircleChoice("first", "Family")),
+        )
+    )
+
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.INFORMATION).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(context.getString(R.string.changeCareCircleInfo))
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithContentDescription(context.getString(R.string.changeCareCircleInfoIcon))
+        .assertIsDisplayed()
+  }
+
+  @Test
+  fun loadingStateDoesNotShowSwitchInstructions() {
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.LOADING))
+
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.INFORMATION).assertDoesNotExist()
+  }
+
+  @Test
+  fun emptyStateDoesNotShowSwitchInstructions() {
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY))
+
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.INFORMATION).assertDoesNotExist()
+  }
+
+  @Test
+  fun errorStateDoesNotShowSwitchInstructions() {
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.ERROR))
+
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.INFORMATION).assertDoesNotExist()
+  }
+
+  @Test
   fun readyStateWithoutMatchingActiveCircleShowsFallback() {
     showScreen(
         ChangeCareCircleUIState(
@@ -337,6 +379,16 @@ class ChangeCareCircleScreenTest {
     composeTestRule
         .onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE)
         .assertTextEquals(emptyMessage(contextFor("fr")))
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun switchInstructionsAreDisplayedInFrench() {
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.READY))
+
+    composeTestRule
+        .onNodeWithText(contextFor("fr").getString(R.string.changeCareCircleInfo))
+        .assertIsDisplayed()
   }
 
   @Test
