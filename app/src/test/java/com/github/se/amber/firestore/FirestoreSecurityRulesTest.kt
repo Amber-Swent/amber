@@ -716,9 +716,10 @@ class FirestoreSecurityRulesTest {
     assertTrue(db.rulesFor("pat").canDeleteStory("c1"))
 
     assertTrue(db.rulesFor("care").canCreateAppointment("c1", "a1", storedAppointment("care")))
-    assertFalse(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
+    assertTrue(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
     assertTrue(db.rulesFor("care").canDeleteAppointment("c1"))
-    assertFalse(db.rulesFor("pat").canDeleteAppointment("c1"))
+    assertTrue(db.rulesFor("pat").canDeleteAppointment("c1"))
+    assertFalse(db.rulesFor("outsider").canDeleteAppointment("c1"))
   }
 
   @Test
@@ -832,12 +833,16 @@ class FirestoreSecurityRulesTest {
     assertFalse(care.canCreateAppointment("c1", "a1", created + ("color" to "red")))
     assertFalse(care.canCreateAppointment("c1", "a1", created + ("title" to "")))
     assertFalse(care.canCreateAppointment("c1", "a1", created + ("attendeeIds" to listOf("eve"))))
-    // the patient is still refused, even for their own appointment
-    assertFalse(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
+    // the patient may create one too
+    assertTrue(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
 
-    // Any caregiver may edit it, as the last editor
+    // Any member may edit it, as the last editor
     val edited = created + ("title" to "Dentist") + ("updatedBy" to "care2")
     assertTrue(care2.canUpdateAppointment("c1", "a1", created, edited))
+    assertTrue(
+        db.rulesFor("pat")
+            .canUpdateAppointment("c1", "a1", created, edited + ("updatedBy" to "pat"))
+    )
     assertFalse(care2.canUpdateAppointment("c1", "a1", created, created + ("title" to "Dentist")))
     // but not who created it or when
     assertFalse(care2.canUpdateAppointment("c1", "a1", created, edited + ("createdBy" to "care2")))
@@ -1193,12 +1198,11 @@ private class FirestoreSecurityRules(
       resource: Map<String, Any?>,
   ): Boolean =
       canWriteTo(circleId) &&
-          isCaregiver() &&
           isValidAppointment(circleId, appointmentId, resource) &&
           resource["createdBy"] == authUid &&
           resource["createdAt"] is Long
 
-  // Every caregiver may edit any appointment, but not who created it or when.
+  // Every member may edit any appointment, but not who created it or when.
   fun canUpdateAppointment(
       circleId: String,
       appointmentId: String,
@@ -1206,12 +1210,11 @@ private class FirestoreSecurityRules(
       after: Map<String, Any?>,
   ): Boolean =
       canWriteTo(circleId) &&
-          isCaregiver() &&
           isValidAppointment(circleId, appointmentId, after) &&
           after["createdBy"] == before["createdBy"] &&
           after["createdAt"] == before["createdAt"]
 
-  fun canDeleteAppointment(circleId: String): Boolean = canWriteTo(circleId) && isCaregiver()
+  fun canDeleteAppointment(circleId: String): Boolean = canWriteTo(circleId)
 
   fun canGetInvitation(): Boolean = isSignedIn()
 

@@ -308,19 +308,17 @@ service cloud.firestore {
         allow read: if isMember(circleId);
 
         allow create: if canWriteTo(circleId)
-          && isCaregiver()
           && isValidAppointment(circleId, appointmentId)
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.createdAt is int;
 
-        // Every caregiver may edit any appointment, but nobody may change who created it or when
+        // Every member may edit any appointment, but nobody may change who created it or when
         allow update: if canWriteTo(circleId)
-          && isCaregiver()
           && isValidAppointment(circleId, appointmentId)
           && request.resource.data.createdBy == resource.data.createdBy
           && request.resource.data.createdAt == resource.data.createdAt;
 
-        allow delete: if canWriteTo(circleId) && isCaregiver();
+        allow delete: if canWriteTo(circleId);
       }
     }
 

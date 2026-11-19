@@ -505,13 +505,12 @@ class FirestoreSecurityRulesEmulatorTest {
             ),
         ),
     )
-    fs.assertFails(pat, fs.set("careCircles/$circleId/appointments/a1", appointment("a1", pat)))
-    fs.assertSucceeds(
-        care,
-        fs.set("careCircles/$circleId/appointments/a1", appointment("a1", care)),
-    )
-    fs.assertFails(pat, fs.delete("careCircles/$circleId/appointments/a1"))
-    fs.assertSucceeds(care, fs.delete("careCircles/$circleId/appointments/a1"))
+    // Every member writes appointments: each one may delete what the other created
+    val appointmentPath = "careCircles/$circleId/appointments/a1"
+    fs.assertSucceeds(care, fs.set(appointmentPath, appointment("a1", care)))
+    fs.assertSucceeds(pat, fs.delete(appointmentPath))
+    fs.assertSucceeds(pat, fs.set(appointmentPath, appointment("a1", pat)))
+    fs.assertSucceeds(care, fs.delete(appointmentPath))
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
   }
 
@@ -641,10 +640,10 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set("$path/a2", appointment("a2", care) + ("attendeeIds" to listOf("eve"))),
     )
-    // the patient is still refused, even for their own appointment
-    fs.assertFails(pat, fs.set("$path/a2", appointment("a2", pat)))
+    // the patient may create one too
+    fs.assertSucceeds(pat, fs.set("$path/a2", appointment("a2", pat)))
 
-    // Any caregiver may edit it, as the last editor: the fields the repository's update() writes
+    // Any member may edit it, as the last editor: the fields the repository's update() writes
     val edit = mapOf("title" to "Dentist", "updatedBy" to care2, "updatedAt" to START)
     fs.assertFails(care2, fs.patch("$path/a1", edit + ("updatedBy" to care)))
     // but not who created it or when
@@ -654,6 +653,7 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(care2, fs.patch("$path/a1", edit + ("startAt" to "10:00")))
     fs.assertFails(care2, fs.patch("$path/a1", edit + ("lastEndAt" to START - 1)))
     fs.assertSucceeds(care2, fs.patch("$path/a1", edit))
+    fs.assertSucceeds(pat, fs.patch("$path/a1", edit + ("updatedBy" to pat)))
   }
 
   /** The reads behind CareCircleRepository.getCircle(circleId). */

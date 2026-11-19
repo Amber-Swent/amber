@@ -9,22 +9,22 @@ import com.github.se.amber.model.location.GeoLocation
  * An appointment of the patient (doctor, physio, hairdresser...), shown to them so they know what
  * is planned and who will come along. Stored at careCircles/{circleId}/appointments/{id}.
  *
- * Written: created and edited by caregivers only, for now (subject to change). Every caregiver of
- * the circle can edit or delete any appointment, not only its creator. Created once with set().
- * Later edits update only the editable fields. A cancelled appointment is deleted. [location] is
- * picked from CareCircle.places (a copy, so later edits to the place don't change it) or entered
- * for a one-off place. The repository fills in [lastEndAt] and the update fields itself. On create,
- * it also fills in the creator fields. It never trusts the values it is given for them.
+ * Written: created, edited and deleted by every member of the circle, the patient included. Each
+ * member can edit or delete any appointment, not only its creator. Created once with set(). Later
+ * edits update only the editable fields. A cancelled appointment is deleted. [location] is picked
+ * from CareCircle.places (a copy, so later edits to the place don't change it) or entered for a
+ * one-off place. The repository fills in [lastEndAt] and the update fields itself. On create, it
+ * also fills in the creator fields. It never trusts the values it is given for them.
  *
  * Read: the calendar queries the appointments of a window of days (lastEndAt > its start and
- * startAt < its end) and keeps a snapshot listener, so changes made by caregivers show up live. An
- * appointment that started before the window and isn't over is listed too.
+ * startAt < its end) and keeps a snapshot listener, so changes made by other members show up live.
+ * An appointment that started before the window and isn't over is listed too.
  *
  * Status: planned, soon, ongoing and passed are computed on the phone with the helpers of
  * CalendarStatus.kt, such as `statusAt`. They are never stored.
  *
- * Rules: readable by every member of the circle (CareCircle.memberIds); writable only by members
- * whose UserProfile.role is CAREGIVER. On every save, the rules check that:
+ * Rules: readable and writable by every member of the circle (CareCircle.memberIds). On every save,
+ * the rules check that:
  * - the document holds only the fields of this class, and [id] is the document id;
  * - [title] isn't empty;
  * - [startAt], [lastEndAt] and [updatedAt] are numbers, and [lastEndAt] isn't before [startAt];
@@ -49,7 +49,7 @@ import com.github.se.amber.model.location.GeoLocation
  */
 data class Appointment(
     // Shown on the calendar. Each field is described in CalendarEvent; only what is specific to
-    // appointments is noted here. Caregivers edit these.
+    // appointments is noted here. Members edit these.
 
     // What it is
     override val id: String = "", // the document id
@@ -73,8 +73,8 @@ data class Appointment(
 
     // Record keeping. Set by the repository: the created fields on create, the updated fields on
     // every save. Times are in epoch milliseconds.
-    val createdBy: String = "", // the caregiver who created it
+    val createdBy: String = "", // the member who created it
     val createdAt: Long = 0L,
-    val updatedBy: String = "", // the last caregiver who saved it; "" once their account is deleted
+    val updatedBy: String = "", // the last member who saved it; "" once their account is deleted
     val updatedAt: Long = 0L,
 ) : CalendarEvent

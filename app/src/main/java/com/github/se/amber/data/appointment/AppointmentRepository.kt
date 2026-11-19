@@ -243,9 +243,7 @@ sealed class AppointmentError(message: String, cause: Throwable? = null) :
   /** Nobody is signed in. */
   class NotAuthenticated : AppointmentError("No user is signed in")
 
-  /**
-   * The security rules refused the write. For example, the user isn't a caregiver of this circle.
-   */
+  /** The security rules refused the write. For example, the user isn't a member of this circle. */
   class PermissionDenied : AppointmentError("You do not have permission to change this appointment")
 
   /** Any other failure. [source] is the original exception, kept as the cause. */
