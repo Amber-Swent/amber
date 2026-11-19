@@ -191,9 +191,9 @@ service cloud.firestore {
     }
 
     // An appointment as it is stored after a create or an edit: only the fields of Appointment,
-    // saved by the signed-in user. An edit writes startAt and lastEndAt too, so they are checked on
-    // both. A lastEndAt that isn't a number, or before the start, would drop the appointment out of
-    // the calendar's query. The attendees must be members of the circle.
+    // saved by the signed-in user. It must pass the same checks as validationError() in the app.
+    // The attendees must be members of the circle. A field the app can't read would make the
+    // appointment disappear for the whole circle, so each one has the type the app expects.
     function isValidAppointment(circleId, appointmentId) {
       let data = request.resource.data;
       return data.id == appointmentId
@@ -202,14 +202,41 @@ service cloud.firestore {
           'lastEndAt', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
         ])
         && data.title is string
-        && data.title.size() > 0
-        && data.startAt is int
-        && data.lastEndAt is int
-        && data.lastEndAt >= data.startAt
+        && data.title.trim().size() > 0
+        && data.notes is string
+        && hasValidAppointmentTime(data)
+        && isValidLocation(data.get('location', null))
         && data.updatedBy == request.auth.uid
         && data.updatedAt is int
         && data.attendeeIds is list
         && data.attendeeIds.hasOnly(circleDoc(circleId).memberIds);
+    }
+
+    // The start is set, the duration is unknown or between 1 minute and 1 day, and lastEndAt is
+    // the end the app computes: the start plus the duration, or plus 60 minutes when it is
+    // unknown. The calendar's query trusts lastEndAt, so a wrong one would show the appointment on
+    // days it doesn't cover. Repeating appointments will be implemented later, with a lastEndAt at
+    // the end of their last occurrence. This check will then have to change.
+    function hasValidAppointmentTime(data) {
+      let minutes = data.get('durationMinutes', null);
+      return data.startAt is int
+        && data.startAt > 0
+        && data.lastEndAt is int
+        && ((minutes == null && data.lastEndAt == data.startAt + 60 * 60000)
+          || (minutes is int
+            && minutes >= 1
+            && minutes <= 24 * 60
+            && data.lastEndAt == data.startAt + minutes * 60000));
+    }
+
+    // Null, or a GeoLocation: only lat, lng and placeName, each unset or of its type.
+    function isValidLocation(location) {
+      return location == null
+        || (location is map
+          && location.keys().hasOnly(['lat', 'lng', 'placeName'])
+          && (location.get('lat', null) == null || location.lat is number)
+          && (location.get('lng', null) == null || location.lng is number)
+          && (location.get('placeName', null) == null || location.placeName is string));
     }
 
     match /users/{uid} {

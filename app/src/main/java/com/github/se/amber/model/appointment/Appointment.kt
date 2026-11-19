@@ -26,8 +26,10 @@ import com.github.se.amber.model.location.GeoLocation
  * Rules: readable and writable by every member of the circle (CareCircle.memberIds). On every save,
  * the rules check that:
  * - the document holds only the fields of this class, and [id] is the document id;
- * - [title] isn't empty;
- * - [startAt], [lastEndAt] and [updatedAt] are numbers, and [lastEndAt] isn't before [startAt];
+ * - it passes the checks of `validationError`: [title] isn't blank, [startAt] is set, and
+ *   [durationMinutes] is null or between 1 and 1440;
+ * - [lastEndAt] is [startAt] plus [durationMinutes], or plus 60 minutes when it is null;
+ * - every field has the type this class expects, so the app can read it back;
  * - [updatedBy] is the user saving it;
  * - every attendee is a member of the circle.
  *
@@ -40,7 +42,7 @@ import com.github.se.amber.model.location.GeoLocation
  * Planned, not handled yet:
  * - reminders: a notification on the patient's phone before [startAt], scheduled locally so it
  *   works offline. Would add a field such as `reminderMinutesBefore: List<Int>`.
- * - recurrence (e.g. weekly physio): would add a recurrence rule field; for now each occurrence is
+ * - recurrence (e.g. weekly physio): will add a recurrence rule field; for now each occurrence is
  *   its own appointment.
  *
  * New fields must get a default value, so documents written before they existed can still be read.
@@ -67,8 +69,8 @@ data class Appointment(
     // Stored for queries. Set by the repository.
 
     // End time of the appointment, in epoch milliseconds. The "not over yet" query filters on it.
-    // Repeating appointments might be added later. For one of them, it would be the end of its last
-    // occurrence. That is why it is stored, and why it is named lastEndAt rather than endAt.
+    // Repeating appointments will be implemented later. For one of them, it will be the end of its
+    // last occurrence. That is why it is stored, and why it is named lastEndAt rather than endAt.
     val lastEndAt: Long = 0L,
 
     // Record keeping. Set by the repository: the created fields on create, the updated fields on

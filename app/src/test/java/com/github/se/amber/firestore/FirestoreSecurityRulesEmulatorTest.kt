@@ -640,6 +640,30 @@ class FirestoreSecurityRulesEmulatorTest {
         care,
         fs.set("$path/a2", appointment("a2", care) + ("attendeeIds" to listOf("eve"))),
     )
+    // the checks of validationError(): a blank title, no start, a duration out of 1..1440
+    val other = appointment("a2", care)
+    fs.assertFails(care, fs.set("$path/a2", other + ("title" to "  ")))
+    fs.assertFails(care, fs.set("$path/a2", other + ("startAt" to 0L) + ("lastEndAt" to HOUR)))
+    fs.assertFails(
+        care,
+        fs.set("$path/a2", other + ("durationMinutes" to 0) + ("lastEndAt" to START)),
+    )
+    // lastEndAt must be the end the app computes, 60 minutes after the start when no duration
+    fs.assertFails(care, fs.set("$path/a2", other + ("lastEndAt" to START + 2 * HOUR)))
+    fs.assertSucceeds(
+        care,
+        fs.set("$path/a3", appointment("a3", care) + ("durationMinutes" to null)),
+    )
+    // fields the app couldn't read back
+    fs.assertFails(care, fs.set("$path/a2", other + ("notes" to 3L)))
+    fs.assertFails(care, fs.set("$path/a2", other + ("location" to mapOf("city" to "Bern"))))
+    fs.assertSucceeds(
+        care,
+        fs.set(
+            "$path/a4",
+            appointment("a4", care) + ("location" to mapOf("lat" to 46.5, "lng" to 6.6)),
+        ),
+    )
     // the patient may create one too
     fs.assertSucceeds(pat, fs.set("$path/a2", appointment("a2", pat)))
 
@@ -652,6 +676,12 @@ class FirestoreSecurityRulesEmulatorTest {
     // and an edit keeps a start and an end the calendar's query can use
     fs.assertFails(care2, fs.patch("$path/a1", edit + ("startAt" to "10:00")))
     fs.assertFails(care2, fs.patch("$path/a1", edit + ("lastEndAt" to START - 1)))
+    // a new duration needs the new end too
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("durationMinutes" to 30)))
+    fs.assertSucceeds(
+        care2,
+        fs.patch("$path/a1", edit + ("durationMinutes" to 30) + ("lastEndAt" to START + HOUR / 2)),
+    )
     fs.assertSucceeds(care2, fs.patch("$path/a1", edit))
     fs.assertSucceeds(pat, fs.patch("$path/a1", edit + ("updatedBy" to pat)))
   }
@@ -823,6 +853,9 @@ class FirestoreSecurityRulesEmulatorTest {
 
     /** The start of the appointments of these tests, in epoch milliseconds. */
     private const val START = 1_800_000_000_000L
+
+    /** One hour, in milliseconds. */
+    private const val HOUR = 60 * 60_000L
 
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long

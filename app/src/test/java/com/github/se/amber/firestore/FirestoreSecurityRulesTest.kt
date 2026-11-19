@@ -833,6 +833,32 @@ class FirestoreSecurityRulesTest {
     assertFalse(care.canCreateAppointment("c1", "a1", created + ("color" to "red")))
     assertFalse(care.canCreateAppointment("c1", "a1", created + ("title" to "")))
     assertFalse(care.canCreateAppointment("c1", "a1", created + ("attendeeIds" to listOf("eve"))))
+    // the checks of validationError(): a blank title, no start, a duration out of 1..1440
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("title" to "  ")))
+    assertFalse(
+        care.canCreateAppointment("c1", "a1", created + ("startAt" to 0L) + ("lastEndAt" to HOUR))
+    )
+    assertFalse(care.canCreateAppointment("c1", "a1", timed(created, durationMinutes = 0)))
+    assertFalse(
+        care.canCreateAppointment("c1", "a1", timed(created, durationMinutes = 24 * 60 + 1))
+    )
+    // an unknown duration lasts 60 minutes, and lastEndAt must be the end the app computes
+    assertTrue(care.canCreateAppointment("c1", "a1", timed(created, durationMinutes = null)))
+    assertTrue(care.canCreateAppointment("c1", "a1", timed(created, durationMinutes = 24 * 60)))
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("lastEndAt" to START + 2 * HOUR)))
+    // fields the app couldn't read back
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("notes" to 3L)))
+    assertFalse(care.canCreateAppointment("c1", "a1", created + ("location" to "Lausanne")))
+    assertFalse(
+        care.canCreateAppointment("c1", "a1", created + ("location" to mapOf("city" to "Bern")))
+    )
+    assertTrue(
+        care.canCreateAppointment(
+            "c1",
+            "a1",
+            created + ("location" to mapOf("lat" to 46.5, "lng" to 6.6, "placeName" to null)),
+        )
+    )
     // the patient may create one too
     assertTrue(db.rulesFor("pat").canCreateAppointment("c1", "a1", storedAppointment("pat")))
 
@@ -875,9 +901,18 @@ class FirestoreSecurityRulesTest {
           )
       ) as Map<String, Any?>
 
+  /** @return [appointment] with [durationMinutes], and the lastEndAt the repository computes. */
+  private fun timed(appointment: Map<String, Any?>, durationMinutes: Int?): Map<String, Any?> =
+      appointment +
+          ("durationMinutes" to durationMinutes) +
+          ("lastEndAt" to START + (durationMinutes ?: 60) * 60_000L)
+
   private companion object {
     /** The start of the appointments of these tests, in epoch milliseconds. */
     const val START = 1_800_000_000_000L
+
+    /** One hour, in milliseconds. */
+    const val HOUR = 60 * 60_000L
   }
 }
 
@@ -1171,25 +1206,51 @@ private class FirestoreSecurityRules(
   fun canDeleteStory(circleId: String): Boolean = canWriteTo(circleId)
 
   // An appointment as it is stored after the write: only the fields of Appointment, saved by the
-  // signed-in user, with a start and an end that keep it in the calendar's query, and members as
-  // attendees. Longs stand for the rules' ints.
+  // signed-in user, with the checks of validationError(), a lastEndAt equal to the end the app
+  // computes, fields of the types the app reads, and members as attendees. Longs stand for the
+  // rules' ints.
   fun isValidAppointment(
       circleId: String,
       appointmentId: String,
       data: Map<String, Any?>,
   ): Boolean {
     val title = data["title"] as? String ?: return false
-    val startAt = data["startAt"] as? Long ?: return false
-    val lastEndAt = data["lastEndAt"] as? Long ?: return false
     val attendeeIds = data["attendeeIds"] as? List<*> ?: return false
     val memberIds = lookup.circle(circleId)?.memberIds ?: return false
     return data["id"] == appointmentId &&
         APPOINTMENT_FIELDS.containsAll(data.keys) &&
-        title.isNotEmpty() &&
-        lastEndAt >= startAt &&
+        title.isNotBlank() &&
+        data["notes"] is String &&
+        hasValidAppointmentTime(data) &&
+        isValidLocation(data["location"]) &&
         data["updatedBy"] == authUid &&
         data["updatedAt"] is Long &&
         memberIds.containsAll(attendeeIds)
+  }
+
+  // The start is set, the duration is unknown or between 1 minute and 1 day, and lastEndAt is the
+  // start plus the duration, or plus 60 minutes when it is unknown.
+  private fun hasValidAppointmentTime(data: Map<String, Any?>): Boolean {
+    val startAt = data["startAt"] as? Long ?: return false
+    val lastEndAt = data["lastEndAt"] as? Long ?: return false
+    val duration =
+        when (val value = data["durationMinutes"]) {
+          null -> 60L
+          is Int,
+          is Long -> (value as Number).toLong().takeIf { it in 1L..24 * 60L } ?: return false
+          else -> return false
+        }
+    return startAt > 0 && lastEndAt == startAt + duration * 60_000L
+  }
+
+  // Null, or a GeoLocation: only lat, lng and placeName, each unset or of its type.
+  private fun isValidLocation(location: Any?): Boolean {
+    if (location == null) return true
+    val map = location as? Map<*, *> ?: return false
+    return setOf("lat", "lng", "placeName").containsAll(map.keys) &&
+        (map["lat"] == null || map["lat"] is Number) &&
+        (map["lng"] == null || map["lng"] is Number) &&
+        (map["placeName"] == null || map["placeName"] is String)
   }
 
   fun canCreateAppointment(

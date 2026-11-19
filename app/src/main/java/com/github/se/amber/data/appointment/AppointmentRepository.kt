@@ -167,13 +167,15 @@ interface AppointmentRepository {
    * out. The changes not sent yet would otherwise be sent later with the next user's account, and
    * the server would refuse them without a word.
    *
-   * It covers every change of the app saved this way, not only appointments. The check can't tell
-   * them apart.
+   * It covers every pending Firestore write of the app, not only appointments. The check can't tell
+   * them apart, so true doesn't mean an appointment is waiting.
    *
-   * It waits a little for the changes to be sent, then gives up. Offline, it returns true as soon
-   * as a change is waiting.
+   * It waits up to 2 seconds for the server to receive every write. Offline, a waiting write is
+   * only reported once these 2 seconds are over. If the wait fails, for example because the user
+   * changed meanwhile, it returns true too, since nothing confirms the writes were received.
    *
-   * @return true if some changes are not sent yet, false if the server has them all.
+   * @return false only if the server received every write within 2 seconds. True if the time ran
+   *   out or the wait failed.
    */
   suspend fun hasUnsyncedWrites(): Boolean
 }
