@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor Agent.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -581,11 +582,20 @@ class MediaRepositoryFirebase(
 
     /**
      * The fields of a media document its author may change, the same as in the security rules
-     * (`onlyEditableMediaFieldsChanged`). A type only has some of them: `text` for a text,
-     * `transcript` for an audio.
+     * (`onlyEditableMediaFieldsChanged`). A type only has some of them: `title` and `text` for a
+     * text, `transcript` for an audio.
      */
     val EDITABLE_FIELDS =
-        setOf("description", "date", "location", "shownIds", "authorizedIds", "text", "transcript")
+        setOf(
+            "description",
+            "date",
+            "location",
+            "shownIds",
+            "authorizedIds",
+            "text",
+            "title",
+            "transcript",
+        )
 
     /** Firestore errors a send can't get past by trying again: the user isn't allowed. */
     val PERMANENT_FIRESTORE_CODES =

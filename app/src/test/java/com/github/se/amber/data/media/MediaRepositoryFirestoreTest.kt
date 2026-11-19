@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor Agent.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.data.media
 
@@ -362,7 +363,7 @@ class MediaRepositoryFirestoreTest {
 
     assertEquals("Edited", written.captured["text"])
     assertEquals(
-        setOf("description", "date", "location", "shownIds", "authorizedIds", "text"),
+        setOf("description", "date", "location", "shownIds", "authorizedIds", "text", "title"),
         written.captured.keys,
     )
   }
