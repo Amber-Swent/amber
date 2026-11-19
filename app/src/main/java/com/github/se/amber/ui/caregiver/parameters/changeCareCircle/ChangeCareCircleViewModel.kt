@@ -140,13 +140,11 @@ class ChangeCareCircleViewModel(
     loadJob = viewModelScope.launch {
       try {
         val profile =
-            (profileRepository ?: ProfileRepositoryProvider.default.repository)
-                .getCurrentProfile()
-                .getOrElse { error ->
-                  Log.e(TAG, "Error fetching profile", error)
-                  setBlockingErrorMsg(R.string.changeCareCircleErrorLoadProfile)
-                  return@launch
-                }
+            profileRepository.getCurrentProfile().getOrElse { error ->
+              Log.e(TAG, "Error fetching profile", error)
+              setBlockingErrorMsg(R.string.changeCareCircleErrorLoadProfile)
+              return@launch
+            }
         if (profile == null || profile.uid.isBlank()) {
           setBlockingErrorMsg(R.string.changeCareCircleErrorLoadProfile)
           return@launch
@@ -156,7 +154,7 @@ class ChangeCareCircleViewModel(
           _uiState.value = ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY)
           return@launch
         }
-        val repository = circleRepository ?: CareCircleRepositoryProvider.default.repository
+        val repository = circleRepository
         val circles = ids.map { id ->
           val circle =
               repository.getCircle(id).getOrElse { error ->
@@ -167,17 +165,15 @@ class ChangeCareCircleViewModel(
           ChangeCareCircleChoice(id = id, name = circle.name)
         }
         caregiverUid = profile.uid
-        (activeCircleRepository ?: ActiveCircleRepositoryProvider.default.repository)
-            .activeCircleId(profile.uid, ids)
-            .collect { activeId ->
-              _uiState.update { current ->
-                current.copy(
-                    status = ChangeCareCircleStatus.READY,
-                    circles = circles,
-                    activeCircleId = activeId,
-                )
-              }
-            }
+        activeCircleRepository.activeCircleId(profile.uid, ids).collect { activeId ->
+          _uiState.update { current ->
+            current.copy(
+                status = ChangeCareCircleStatus.READY,
+                circles = circles,
+                activeCircleId = activeId,
+            )
+          }
+        }
       } catch (error: CancellationException) {
         throw error
       } catch (error: Exception) {
@@ -209,8 +205,7 @@ class ChangeCareCircleViewModel(
         return
     selectionJob = viewModelScope.launch {
       try {
-        (activeCircleRepository ?: ActiveCircleRepositoryProvider.default.repository)
-            .setActiveCircle(uid, circleId)
+        activeCircleRepository.setActiveCircle(uid, circleId)
         _uiState.update { current ->
           if (
               current.status == ChangeCareCircleStatus.READY &&
