@@ -154,10 +154,9 @@ class ChangeCareCircleViewModel(
           _uiState.value = ChangeCareCircleUIState(status = ChangeCareCircleStatus.EMPTY)
           return@launch
         }
-        val repository = circleRepository
         val circles = ids.map { id ->
           val circle =
-              repository.getCircle(id).getOrElse { error ->
+              circleRepository.getCircle(id).getOrElse { error ->
                 Log.e(TAG, "Error fetching care circle", error)
                 setBlockingErrorMsg(R.string.changeCareCircleErrorLoadCircle)
                 return@launch
