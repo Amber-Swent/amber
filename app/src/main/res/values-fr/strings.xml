@@ -163,6 +163,10 @@
     <string name="changeCareCircleAll">Tous les cercles de soins&#160;:</string>
     <string name="changeCareCircleNone">Aucun cercle de soins actif</string>
     <string name="changeCareCircleEmpty">Vous n\'êtes lié à aucun cercle de soins.\nVous pouvez en créer un depuis %1$s &gt; %2$s, ou en rejoindre un depuis %1$s &gt; %3$s.</string>
+    <string name="changeCareCircleErrorLoadProfile">Impossible de charger votre profil.</string>
+    <string name="changeCareCircleErrorLoadCircle">Impossible de charger vos cercles de soins.</string>
+    <string name="changeCareCircleErrorChange">Impossible de changer de cercle de soins actif. Réessayez.</string>
+    <string name="changeCareCircleRetry">Réessayer</string>
 
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Supprimer son compte</string>

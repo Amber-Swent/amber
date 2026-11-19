@@ -1,6 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 
-package com.github.se.amber.ui.onboarding.changeCareCircle
+package com.github.se.amber.ui.caregiver.parameters.changeCareCircle
 
 import android.content.Context
 import android.content.res.Configuration
@@ -14,20 +14,60 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.se.amber.R
+import com.github.se.amber.data.circle.ActiveCircleRepository
+import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
+import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.profile.ProfileRepository
+import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.ui.navigation.TopNavigationMenuTestTags
 import com.github.se.amber.ui.theme.AmberAppTheme
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.spyk
+import io.mockk.unmockkObject
+import io.mockk.verify
 import java.util.Locale
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
 class ChangeCareCircleScreenTest {
   @get:Rule val composeTestRule = createComposeRule()
+
+  private val profileRepository = mockk<ProfileRepository>()
+  private val circleRepository = mockk<CareCircleRepository>()
+  private val activeCircleRepository = mockk<ActiveCircleRepository>()
+
+  @Before
+  fun setUp() {
+    mockkObject(
+        ProfileRepositoryProvider.default,
+        CareCircleRepositoryProvider.default,
+        ActiveCircleRepositoryProvider.default,
+    )
+    every { ProfileRepositoryProvider.default.repository } returns profileRepository
+    every { CareCircleRepositoryProvider.default.repository } returns circleRepository
+    every { ActiveCircleRepositoryProvider.default.repository } returns activeCircleRepository
+  }
+
+  @After
+  fun tearDown() {
+    unmockkObject(
+        ProfileRepositoryProvider.default,
+        CareCircleRepositoryProvider.default,
+        ActiveCircleRepositoryProvider.default,
+    )
+  }
 
   private fun showScreen(
       state: ChangeCareCircleUIState = ChangeCareCircleUIState(),
@@ -73,13 +113,76 @@ class ChangeCareCircleScreenTest {
   }
 
   @Test
-  fun defaultViewModelShowsLoadingState() {
-    composeTestRule.setContent { AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen() } }
+  fun blockingErrorShowsMessageAndRetryButton() {
+    showScreen(
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.ERROR,
+            errorMsgRes = R.string.changeCareCircleErrorLoadProfile,
+        )
+    )
 
-    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.LOADING_INDICATOR).assertIsDisplayed()
-    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.EMPTY_MESSAGE).assertDoesNotExist()
-    composeTestRule.onNodeWithTag(TopNavigationMenuTestTags.BACK_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.LOADING_INDICATOR).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithTag(ChangeCareCircleTestTags.ERROR_MESSAGE)
+        .assertTextEquals(
+            ApplicationProvider.getApplicationContext<Context>()
+                .getString(R.string.changeCareCircleErrorLoadProfile)
+        )
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.RETRY_BUTTON).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.RETRY_BUTTON).assertHasClickAction()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.CIRCLE_LIST).assertDoesNotExist()
+  }
+
+  @Test
+  fun blockingErrorWithoutResourceShowsCircleError() {
+    showScreen(ChangeCareCircleUIState(status = ChangeCareCircleStatus.ERROR))
+
+    composeTestRule
+        .onNodeWithTag(ChangeCareCircleTestTags.ERROR_MESSAGE)
+        .assertTextEquals(
+            ApplicationProvider.getApplicationContext<Context>()
+                .getString(R.string.changeCareCircleErrorLoadCircle)
+        )
+  }
+
+  @Test
+  fun selectionErrorShowsToastInReadyState() {
+    showScreen(
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.READY,
+            circles = listOf(ChangeCareCircleChoice("first", "Family")),
+            activeCircleId = "first",
+            errorMsgRes = R.string.changeCareCircleErrorChange,
+        )
+    )
+
+    composeTestRule.waitForIdle()
+    assertEquals(
+        ApplicationProvider.getApplicationContext<Context>()
+            .getString(R.string.changeCareCircleErrorChange),
+        ShadowToast.getTextOfLatestToast(),
+    )
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.circleChoice("first")).assertIsSelected()
+  }
+
+  @Test
+  fun retryButtonCallsViewModelLoad() {
+    val viewModel =
+        spyk(
+            ChangeCareCircleViewModel(
+                ChangeCareCircleUIState(
+                    status = ChangeCareCircleStatus.ERROR,
+                    errorMsgRes = R.string.changeCareCircleErrorLoadCircle,
+                )
+            )
+        )
+    every { viewModel.loadCareCircles() } returns Unit
+    composeTestRule.setContent {
+      AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = viewModel) }
+    }
+
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.RETRY_BUTTON).performClick()
+
+    verify(exactly = 1) { viewModel.loadCareCircles() }
   }
 
   @Test
@@ -201,6 +304,29 @@ class ChangeCareCircleScreenTest {
     composeTestRule.setContent { ChangeCareCircleScreenPreview() }
 
     composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.circleChoice("two")).assertIsSelected()
+  }
+
+  @Test
+  fun errorPreviewRendersRetryButton() {
+    composeTestRule.setContent { ChangeCareCircleErrorScreenPreview() }
+
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.ERROR_MESSAGE).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(ChangeCareCircleTestTags.RETRY_BUTTON).assertIsDisplayed()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun blockingErrorUsesFrenchText() {
+    showScreen(
+        ChangeCareCircleUIState(
+            status = ChangeCareCircleStatus.ERROR,
+            errorMsgRes = R.string.changeCareCircleErrorLoadProfile,
+        )
+    )
+
+    composeTestRule
+        .onNodeWithTag(ChangeCareCircleTestTags.ERROR_MESSAGE)
+        .assertTextEquals(contextFor("fr").getString(R.string.changeCareCircleErrorLoadProfile))
   }
 
   @Test

@@ -37,6 +37,7 @@ import com.github.se.amber.ui.authentication.signIn.EmailSignInScreen
 import com.github.se.amber.ui.authentication.signOut.SignOutScreen
 import com.github.se.amber.ui.caregiver.CaregiverHomeScreen
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParameterScreen
+import com.github.se.amber.ui.caregiver.parameters.changeCareCircle.ChangeCareCircleScreen
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationScreen
 import com.github.se.amber.ui.caregiver.upload.UploadScreen
 import com.github.se.amber.ui.caregiver.upload.audios.UploadAudioScreen
@@ -52,7 +53,6 @@ import com.github.se.amber.ui.navigation.PatientScreen
 import com.github.se.amber.ui.navigation.TransitionScreen
 import com.github.se.amber.ui.navigation.graphForRole
 import com.github.se.amber.ui.navigation.startDestinationForAuthState
-import com.github.se.amber.ui.onboarding.changeCareCircle.ChangeCareCircleScreen
 import com.github.se.amber.ui.onboarding.choice.CaregiverChoiceScreen
 import com.github.se.amber.ui.onboarding.createCareCircle.CreateCareCircleScreen
 import com.github.se.amber.ui.onboarding.createProfile.CreateProfileScreen

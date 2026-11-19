@@ -1,7 +1,8 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 
-package com.github.se.amber.ui.onboarding.changeCareCircle
+package com.github.se.amber.ui.caregiver.parameters.changeCareCircle
 
+import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,10 +23,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.se.amber.R
+import com.github.se.amber.ui.caregiver.DisplayCaregiverButton
 import com.github.se.amber.ui.caregiver.DisplayCaregiverTitle
 import com.github.se.amber.ui.navigation.TopNavigationAction
 import com.github.se.amber.ui.navigation.TopNavigationMenu
@@ -51,6 +56,8 @@ object ChangeCareCircleTestTags {
   const val CIRCLE_LIST = "change_care_circle_list"
   const val EMPTY_MESSAGE = "change_care_circle_empty_message"
   const val LOADING_INDICATOR = "change_care_circle_loading_indicator"
+  const val ERROR_MESSAGE = "change_care_circle_error_message"
+  const val RETRY_BUTTON = "change_care_circle_retry_button"
 
   /**
    * Builds the test tag for a care circle chip.
@@ -68,7 +75,7 @@ object ChangeCareCircleTestTags {
  * centered indicator; empty shows a centered message without circle details; ready shows the active
  * circle name and one chip per available circle. If the active ID matches no circle, the
  * current-circle value uses a localized fallback and no chip is selected. Chip clicks call
- * [ChangeCareCircleViewModel.changeActiveCareCircle], whose persistence is still pending.
+ * [ChangeCareCircleViewModel.changeActiveCareCircle].
  *
  * @param viewModel Provides the screen state and receives chip selections.
  * @param onBackClick Called when the top-bar back button is pressed.
@@ -81,6 +88,17 @@ fun ChangeCareCircleScreen(
 ) {
   val uiState by viewModel.uiState.collectAsStateWithLifecycle()
   val activeCircleName = uiState.circles.firstOrNull { it.id == uiState.activeCircleId }?.name
+  val context = LocalContext.current
+  val resources = LocalResources.current
+
+  LaunchedEffect(uiState.errorMsgRes, uiState.status) {
+    if (uiState.status == ChangeCareCircleStatus.READY) {
+      uiState.errorMsgRes?.let { errorMsgRes ->
+        Toast.makeText(context, resources.getString(errorMsgRes), Toast.LENGTH_SHORT).show()
+        viewModel.clearErrorMsg()
+      }
+    }
+  }
 
   Scaffold(
       topBar = {
@@ -130,6 +148,34 @@ fun ChangeCareCircleScreen(
                 textAlign = TextAlign.Center,
             )
           }
+        }
+      }
+
+      // Display an error message and a Retry button
+      ChangeCareCircleStatus.ERROR -> {
+        Column(
+            modifier =
+                Modifier.fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(CAREGIVER_PADDING_MEDIUM)
+                    .verticalScroll(rememberScrollState()),
+            verticalArrangement =
+                Arrangement.spacedBy(CAREGIVER_PADDING_SMALL, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+          Text(
+              text =
+                  stringResource(uiState.errorMsgRes ?: R.string.changeCareCircleErrorLoadCircle),
+              modifier = Modifier.testTag(ChangeCareCircleTestTags.ERROR_MESSAGE),
+              color = MaterialTheme.colorScheme.error,
+              style = MaterialTheme.typography.titleMedium,
+              textAlign = TextAlign.Center,
+          )
+          DisplayCaregiverButton(
+              text = stringResource(R.string.changeCareCircleRetry),
+              onClick = viewModel::loadCareCircles,
+              buttonTestTag = ChangeCareCircleTestTags.RETRY_BUTTON,
+          )
         }
       }
       ChangeCareCircleStatus.READY -> {
@@ -215,6 +261,15 @@ internal fun ChangeCareCircleEmptyScreenPreview() {
   AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
 }
 
+@Preview(name = "error", showBackground = true, showSystemUi = true)
+@Composable
+internal fun ChangeCareCircleErrorScreenPreview() {
+  val previewViewModel = remember {
+    ChangeCareCircleViewModel(ChangeCareCircleUIState(status = ChangeCareCircleStatus.ERROR))
+  }
+  AmberAppTheme(dynamicColor = false) { ChangeCareCircleScreen(viewModel = previewViewModel) }
+}
+
 @Preview(name = "care circles", showBackground = true, showSystemUi = true)
 @Composable
 internal fun ChangeCareCircleScreenPreview() {
@@ -227,7 +282,7 @@ internal fun ChangeCareCircleScreenPreview() {
                     ChangeCareCircleChoice("one", "Cira's circle"),
                     ChangeCareCircleChoice("two", "Eloise's circle"),
                     ChangeCareCircleChoice("three", "Flora's circle"),
-                    ChangeCareCircleChoice("four", "Natsu's circle"),
+                    ChangeCareCircleChoice("four", "Naya's circle"),
                 ),
             activeCircleId = "two",
         )
