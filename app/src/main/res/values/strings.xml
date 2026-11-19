@@ -162,6 +162,8 @@
     <string name="changeCareCircleCurrent">Current care circle:</string>
     <string name="changeCareCircleAll">All care circles:</string>
     <string name="changeCareCircleNone">No active care circle</string>
+    <string name="changeCareCircleInfoIcon">Information</string>
+    <string name="changeCareCircleInfo">Click on any circle in the list to switch to that Care Circle.</string>
     <string name="changeCareCircleEmpty">You are not linked to any care circle.\nYou can create one from %1$s &gt; %2$s, or join one from %1$s &gt; %3$s.</string>
     <string name="changeCareCircleErrorLoadProfile">Could not load your profile.</string>
     <string name="changeCareCircleErrorLoadCircle">Could not load your care circles.</string>
