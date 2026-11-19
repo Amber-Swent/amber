@@ -489,6 +489,28 @@ class PatientUtilsTest {
     assertEquals(1, iconClicks)
   }
 
+  // ---------- Outlined button ----------
+
+  private fun assertOutlinedButtonWorks(dark: Boolean) {
+    var clicks = 0
+    composeTestRule.setContent {
+      AmberAppTheme(darkTheme = dark) {
+        DisplayPatientButton(text = "Go", outlined = true, onClick = { clicks++ })
+      }
+    }
+
+    composeTestRule
+        .onNodeWithTag(PatientUtilsTestTags.BUTTON)
+        .assertIsDisplayed()
+        .assertTextEquals("Go")
+        .performClick()
+    assertEquals(1, clicks)
+  }
+
+  @Test fun outlinedButton_light_isDisplayedAndClickable() = assertOutlinedButtonWorks(dark = false)
+
+  @Test fun outlinedButton_dark_isDisplayedAndClickable() = assertOutlinedButtonWorks(dark = true)
+
   // ---------- DisplayPatientCircularIconButton ----------
 
   @Test

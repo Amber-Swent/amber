@@ -51,10 +51,15 @@ class MediaCardViewModelTest {
   private val authorProfile = userProfile("author", "Alice")
   private val currentProfile = userProfile("me", "Patient", listOf("circle1"))
 
-  private fun userProfile(uid: String, firstName: String, circleIds: List<String> = emptyList()) =
+  private fun userProfile(
+      uid: String,
+      firstName: String,
+      circleIds: List<String> = emptyList(),
+      nickname: String? = null,
+  ) =
       UserProfile(
           uid = uid,
-          person = Person(id = uid, firstName = firstName),
+          person = Person(id = uid, firstName = firstName, nickname = nickname),
           circleIds = circleIds,
       )
 
@@ -94,8 +99,8 @@ class MediaCardViewModelTest {
   fun initialState_isLoadingWithEmptyData() {
     val state = viewModel.uiState.value
 
-    assertEquals("", state.addedByNickname)
-    assertTrue(state.relatedNicknames.isEmpty())
+    assertEquals("", state.addedByName)
+    assertTrue(state.relatedPersons.isEmpty())
     assertTrue(state.isLoading)
     assertNull(state.errorMsgRes)
   }
@@ -125,24 +130,44 @@ class MediaCardViewModelTest {
     viewModel.load(media())
 
     val state = viewModel.uiState.value
-    assertEquals("Alice", state.addedByNickname)
+    assertEquals("Alice", state.addedByName)
     assertFalse(state.isLoading)
-    assertTrue(state.relatedNicknames.isEmpty())
+    assertTrue(state.relatedPersons.isEmpty())
     assertNull(state.errorMsgRes)
     coVerify(exactly = 0) { profileRepository.getCurrentProfile() }
     coVerify(exactly = 0) { circleRepository.getCircle(any()) }
   }
 
   @Test
-  fun load_withShownIds_resolvesNicknamesFromCircle() {
+  fun load_authorWithNickname_usesNickname() {
+    coEvery { profileRepository.getProfile("author") } returns
+        Result.success(userProfile("author", "Alice", nickname = "Lili"))
+
+    viewModel.load(media())
+
+    assertEquals("Lili", viewModel.uiState.value.addedByName)
+  }
+
+  @Test
+  fun load_authorWithBlankNickname_usesFirstName() {
+    coEvery { profileRepository.getProfile("author") } returns
+        Result.success(userProfile("author", "Alice", nickname = "  "))
+
+    viewModel.load(media())
+
+    assertEquals("Alice", viewModel.uiState.value.addedByName)
+  }
+
+  @Test
+  fun load_withShownIds_resolvesRelatedPersonsFromCircle() {
     coEvery { circleRepository.getCircle("circle1") } returns
         Result.success(circleWith("p1" to "Bob", "p2" to "Carol"))
 
     viewModel.load(media(shownIds = listOf("p1", "p2")))
 
     val state = viewModel.uiState.value
-    assertEquals("Alice", state.addedByNickname)
-    assertEquals(listOf("Bob", "Carol"), state.relatedNicknames)
+    assertEquals("Alice", state.addedByName)
+    assertEquals(listOf("Bob", "Carol"), state.relatedPersons.map { it.firstName })
     assertFalse(state.isLoading)
     assertNull(state.errorMsgRes)
   }
@@ -156,7 +181,10 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1", "member")))
 
-    assertEquals(listOf("Bob", "Dave"), viewModel.uiState.value.relatedNicknames)
+    val persons = viewModel.uiState.value.relatedPersons
+    assertEquals(listOf("Bob", "Dave"), persons.map { it.firstName })
+    // the ids are what the button passes to the navigation callback
+    assertEquals(listOf("p1", "member"), persons.map { it.id })
   }
 
   @Test
@@ -166,7 +194,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("ghost", "missing")))
 
-    assertTrue(viewModel.uiState.value.relatedNicknames.isEmpty())
+    assertTrue(viewModel.uiState.value.relatedPersons.isEmpty())
     assertNull(viewModel.uiState.value.errorMsgRes)
     assertFalse(viewModel.uiState.value.isLoading)
   }
@@ -180,7 +208,7 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(shownIds = listOf("p1")))
 
-    assertEquals(listOf("Bob"), viewModel.uiState.value.relatedNicknames)
+    assertEquals(listOf("Bob"), viewModel.uiState.value.relatedPersons.map { it.firstName })
     coVerify(exactly = 0) { circleRepository.getCircle("circle2") }
   }
 
@@ -196,7 +224,7 @@ class MediaCardViewModelTest {
     assertFalse(state.isLoading)
     assertNotNull(state.errorMsgRes)
     assertEquals(R.string.mediaCardErrorLoadAuthor, state.errorMsgRes)
-    assertEquals("", state.addedByNickname)
+    assertEquals("", state.addedByName)
   }
 
   @Test
@@ -217,7 +245,7 @@ class MediaCardViewModelTest {
 
     val state = viewModel.uiState.value
     assertEquals(R.string.mediaCardErrorLoadProfile, state.errorMsgRes)
-    assertEquals("Alice", state.addedByNickname)
+    assertEquals("Alice", state.addedByName)
     assertFalse(state.isLoading)
   }
 
@@ -249,8 +277,8 @@ class MediaCardViewModelTest {
 
     val state = viewModel.uiState.value
     assertEquals(R.string.mediaCardErrorLoadCircle, state.errorMsgRes)
-    assertEquals("Alice", state.addedByNickname)
-    assertTrue(state.relatedNicknames.isEmpty())
+    assertEquals("Alice", state.addedByName)
+    assertTrue(state.relatedPersons.isEmpty())
   }
 
   // ---------- clearErrorMsg ----------
@@ -273,7 +301,7 @@ class MediaCardViewModelTest {
 
     viewModel.clearErrorMsg()
 
-    assertEquals("Alice", viewModel.uiState.value.addedByNickname)
+    assertEquals("Alice", viewModel.uiState.value.addedByName)
     assertFalse(viewModel.uiState.value.isLoading)
   }
 
@@ -289,7 +317,7 @@ class MediaCardViewModelTest {
     viewModel.load(media())
 
     assertNull(viewModel.uiState.value.errorMsgRes)
-    assertEquals("Alice", viewModel.uiState.value.addedByNickname)
+    assertEquals("Alice", viewModel.uiState.value.addedByName)
   }
 
   @Test
@@ -304,12 +332,12 @@ class MediaCardViewModelTest {
     viewModel.load(media())
 
     assertTrue(viewModel.uiState.value.isLoading)
-    assertEquals("", viewModel.uiState.value.addedByNickname)
+    assertEquals("", viewModel.uiState.value.addedByName)
 
     gate.complete(Unit)
 
     assertFalse(viewModel.uiState.value.isLoading)
-    assertEquals("Alice", viewModel.uiState.value.addedByNickname)
+    assertEquals("Alice", viewModel.uiState.value.addedByName)
   }
 
   @Test
@@ -325,11 +353,11 @@ class MediaCardViewModelTest {
 
     viewModel.load(media(id = "m1", authorId = "author")) // suspended on the gate
     viewModel.load(media(id = "m2", authorId = "author2")) // cancels the first, completes now
-    assertEquals("Zoe", viewModel.uiState.value.addedByNickname)
+    assertEquals("Zoe", viewModel.uiState.value.addedByName)
 
     gate.complete(Unit) // the cancelled first load must not overwrite the state
 
-    assertEquals("Zoe", viewModel.uiState.value.addedByNickname)
+    assertEquals("Zoe", viewModel.uiState.value.addedByName)
     assertFalse(viewModel.uiState.value.isLoading)
   }
 }
