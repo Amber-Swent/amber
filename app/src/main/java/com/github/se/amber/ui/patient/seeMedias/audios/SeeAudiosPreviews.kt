@@ -1,5 +1,6 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
 // Modified by MeiliV, with assistance from OpenAI Codex.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.patient.seeMedias.audios
 
@@ -20,6 +21,7 @@ import com.github.se.amber.data.media.audio.AudioState
 import com.github.se.amber.data.media.audio.WAVEFORM_BARS
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.media.CircleMedia
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaRepository
@@ -109,6 +111,18 @@ private class PreviewCircles(private val circle: CareCircle) : CareCircleReposit
 
   override suspend fun addPerson(circleId: String, person: Person): Result<Person> =
       error("Preview does not add people")
+
+  override fun observePlaces(circleId: String): Flow<List<Place>> =
+      flowOf(circle.places.values.toList())
+
+  override suspend fun addPlace(circleId: String, place: Place): Result<Place> =
+      error("Preview does not add places")
+
+  override suspend fun updatePlace(circleId: String, place: Place): Result<Place> =
+      error("Preview does not edit places")
+
+  override suspend fun deletePlace(circleId: String, placeId: String): Result<Unit> =
+      error("Preview does not delete places")
 }
 
 private class SeeAudiosPreviewOwner(state: PreviewAudioState) :
