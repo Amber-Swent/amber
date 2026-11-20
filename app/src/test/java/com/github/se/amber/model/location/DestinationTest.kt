@@ -2,7 +2,6 @@
 
 package com.github.se.amber.model.location
 
-import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.location.TestPlaces.GENEVA
 import com.github.se.amber.model.location.TestPlaces.JUST_INSIDE_SAME_PLACE_RADIUS
 import com.github.se.amber.model.location.TestPlaces.LAUSANNE
@@ -21,8 +20,6 @@ class DestinationTest {
 
   private val home = Place(id = "home", name = "home", location = LAUSANNE)
   private val doctor = Place(id = "doctor", name = "Doctor", location = GENEVA)
-  private val physio =
-      Appointment(id = "a1", title = "Physio", location = LAUSANNE.movedNorth(farAway))
 
   /** One pin per place, newest first, each with one picture. */
   private fun pins(vararg places: GeoLocation): List<MediaMarker> =
@@ -33,10 +30,10 @@ class DestinationTest {
           .toMediaMarkers()
 
   @Test
-  fun listsSavedPlacesByNameThenTheAppointmentThenMemories() {
+  fun listsSavedPlacesByNameThenMemories() {
     val market = GENEVA.movedNorth(farAway).copy(placeName = "Market")
 
-    val result = destinations(listOf(home, doctor), physio, pins(market))
+    val result = destinations(listOf(home, doctor), pins(market))
 
     assertEquals(
         listOf(
@@ -53,13 +50,6 @@ class DestinationTest {
                 "home",
                 LAUSANNE.latitude,
                 LAUSANNE.longitude,
-            ),
-            Destination(
-                "a1",
-                DestinationKind.APPOINTMENT,
-                "Physio",
-                physio.location?.latitude ?: error("no point"),
-                physio.location?.longitude ?: error("no point"),
             ),
         ),
         result.dropLast(1),
@@ -79,7 +69,6 @@ class DestinationTest {
     val result =
         destinations(
             places = listOf(home, home.copy(id = "old", name = "Old flat", location = namedOnly)),
-            nextAppointment = physio.copy(location = namedOnly),
             memories = pins(nearHome, unnamed),
         )
 
@@ -93,7 +82,7 @@ class DestinationTest {
           GENEVA.movedNorth(farAway * step).copy(placeName = "Place $step")
         }
 
-    val result = destinations(emptyList(), null, pins(*places.toTypedArray()))
+    val result = destinations(emptyList(), pins(*places.toTypedArray()))
 
     assertEquals(places.take(MAX_MEMORY_DESTINATIONS).map { it.placeName }, result.map { it.name })
   }

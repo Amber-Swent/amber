@@ -2,12 +2,9 @@
 
 package com.github.se.amber.model.location
 
-import com.github.se.amber.model.appointment.Appointment
-
 /** Where a destination comes from, so the screen can show a fitting icon. */
 enum class DestinationKind {
   SAVED_PLACE,
-  APPOINTMENT,
   MEMORY,
   SEARCH,
 }
@@ -16,10 +13,10 @@ enum class DestinationKind {
  * A place the patient can be walked to, as "Go somewhere" lists it. Built on the phone, never
  * stored.
  *
- * @param id the id of what it comes from: the place, the appointment or the memories' pin. Unique
- *   for its [kind] only; a search result has an empty id.
- * @param name what the button says: the place's name, the appointment's title, or the place name of
- *   the memories or the search result.
+ * @param id the id of what it comes from: the saved place or the memories' pin. Unique for its
+ *   [kind] only; a search result has an empty id.
+ * @param name what the button says: the saved place's name, or the place name of the memories or
+ *   the search result.
  * @param lat latitude of the point the patient is walked to.
  * @param lng longitude of that point.
  */
@@ -38,42 +35,29 @@ data class Destination(
 const val MAX_MEMORY_DESTINATIONS = 5
 
 /**
- * The destinations to offer, in this order: the saved [places] by name, the [nextAppointment], then
- * up to [MAX_MEMORY_DESTINATIONS] places from [memories], newest first.
+ * The destinations to offer, in this order: the saved [places] by name, then up to
+ * [MAX_MEMORY_DESTINATIONS] places from [memories], newest first.
  *
  * Left out: whatever has no real point (see [GeoLocation.pointOrNull]), memories without a place
- * name, and memories within [SAME_PLACE_RADIUS_METERS] of a saved place or of the appointment, so
- * the same pharmacy isn't offered twice.
+ * name, and memories within [SAME_PLACE_RADIUS_METERS] of a saved place, so the same pharmacy isn't
+ * offered twice.
  *
  * @param memories the pins of the memories map, newest first, as MediaLocationRepository gives
  *   them.
  */
-fun destinations(
-    places: List<Place>,
-    nextAppointment: Appointment?,
-    memories: List<MediaMarker>,
-): List<Destination> {
+fun destinations(places: List<Place>, memories: List<MediaMarker>): List<Destination> {
   val saved =
       places
           .sortedBy { it.name.lowercase() }
           .mapNotNull { it.location.toDestination(it.id, DestinationKind.SAVED_PLACE, it.name) }
-  val appointment =
-      nextAppointment
-          ?.location
-          ?.toDestination(
-              nextAppointment.id,
-              DestinationKind.APPOINTMENT,
-              nextAppointment.title,
-          )
-  val taken = saved + listOfNotNull(appointment)
   val fromMemories =
       memories
-          .filter { pin -> !pin.placeName.isNullOrBlank() && taken.none { it.isNear(pin) } }
+          .filter { pin -> !pin.placeName.isNullOrBlank() && saved.none { it.isNear(pin) } }
           .take(MAX_MEMORY_DESTINATIONS)
           .map { pin ->
             Destination(pin.id, DestinationKind.MEMORY, pin.placeName.orEmpty(), pin.lat, pin.lng)
           }
-  return taken + fromMemories
+  return saved + fromMemories
 }
 
 /** A place found by the address search, or null if it has no real point or no name to show. */
