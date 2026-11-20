@@ -428,4 +428,13 @@
     <string name="mediaMapErrorLoadProfile">Failed to load the profile.</string>
     <string name="mediaMapErrorNoCircle">No care circle found.</string>
     <string name="mediaMapErrorLoadMedia">Failed to load the memories of the map.</string>
+
+    <!-- Saved places (caregiver): errors -->
+    <string name="savedPlacesErrorNoProfile">No profile found.</string>
+    <string name="savedPlacesErrorLoadProfile">Failed to load the profile.</string>
+    <string name="savedPlacesErrorNoCircle">No care circle found.</string>
+    <string name="savedPlacesErrorLoad">Failed to load the saved places.</string>
+    <string name="savedPlacesErrorSave">Failed to save the place.</string>
+    <string name="savedPlacesErrorDelete">Failed to delete the place.</string>
+    <string name="savedPlacesErrorSearch">Couldn\'t search for the address. Check your connection.</string>
 </resources>
