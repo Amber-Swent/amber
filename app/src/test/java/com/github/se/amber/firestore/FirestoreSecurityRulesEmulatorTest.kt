@@ -11,6 +11,7 @@ package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
 import com.github.se.amber.emulator.FirestoreEmulatorClient
+import com.github.se.amber.model.location.MAX_LATITUDE
 import java.net.HttpURLConnection
 import java.net.URL
 import org.junit.Assert.assertEquals
@@ -847,6 +848,59 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(pat, writePhotos(emptyMap()))
   }
 
+  @Test
+  fun places_caregiverChangesOneValidPlacePerWrite_enforcedByEmulator() {
+    val circleId = "c-places"
+    val care = "care"
+    val pat = "pat"
+    val circlePath = "careCircles/$circleId"
+    val home = place("home", "Home")
+    val pharmacy = place("pharmacy", "Pharmacy")
+    fun writePlaces(places: Map<String, Any?>) = fs.patch(circlePath, mapOf("places" to places))
+
+    fs.adminSet(circlePath, circle(circleId, care, listOf(care, pat), patientId = pat))
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+
+    // The patient can read places but never change them.
+    fs.assertFails(pat, writePlaces(mapOf("home" to home)))
+    fs.assertSucceeds(pat, fs.get(circlePath))
+    // A caregiver adds, renames, and removes one place at a time.
+    fs.assertSucceeds(care, writePlaces(mapOf("home" to home)))
+    fs.assertSucceeds(care, writePlaces(mapOf("home" to home + ("name" to "My home"))))
+    fs.assertSucceeds(care, writePlaces(emptyMap()))
+    // Two places in one write.
+    fs.assertFails(care, writePlaces(mapOf("home" to home, "pharmacy" to pharmacy)))
+    // Stored under another place's id.
+    fs.assertFails(care, writePlaces(mapOf("pharmacy" to home)))
+    // A blank name, an unknown field, or a missing field.
+    fs.assertFails(care, writePlaces(mapOf("home" to home + ("name" to "  "))))
+    fs.assertFails(care, writePlaces(mapOf("home" to home + ("photo" to "x"))))
+    fs.assertFails(care, writePlaces(mapOf("home" to home - "location")))
+    // No real point: a name only, a latitude out of range, or a coordinate that is not a number.
+    fs.assertFails(
+        care,
+        writePlaces(mapOf("home" to home + ("location" to mapOf("placeName" to "Home")))),
+    )
+    fs.assertFails(
+        care,
+        writePlaces(
+            mapOf("home" to home + ("location" to mapOf("lat" to MAX_LATITUDE + 1, "lng" to LNG)))
+        ),
+    )
+    fs.assertFails(
+        care,
+        writePlaces(mapOf("home" to home + ("location" to mapOf("lat" to "$LAT", "lng" to LNG)))),
+    )
+    // Without a place name, as for "I'm here now".
+    fs.assertSucceeds(
+        care,
+        writePlaces(
+            mapOf("home" to home + ("location" to mapOf("lat" to LAT, "lng" to LNG))),
+        ),
+    )
+  }
+
   companion object {
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
@@ -912,6 +966,18 @@ class FirestoreSecurityRulesEmulatorTest {
             "places" to emptyMap<String, Any>(),
             "createdBy" to createdBy,
             "createdAt" to 1L,
+        )
+
+    /** The point of the places of these tests, in Lausanne. */
+    private const val LAT = 46.52
+    private const val LNG = 6.63
+
+    /** A valid saved place [id], as CareCircleRepository writes it. */
+    private fun place(id: String, name: String) =
+        mapOf(
+            "id" to id,
+            "name" to name,
+            "location" to mapOf("lat" to LAT, "lng" to LNG, "placeName" to "Lausanne"),
         )
 
     /** Extracts invitation codes from a `runQuery` response body. */
