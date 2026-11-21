@@ -4,6 +4,11 @@ package com.github.se.amber.ui.calendar
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -157,5 +162,25 @@ class CalendarTest {
   fun previewDisplaysTheCalendar() {
     composeTestRule.setContent { CalendarPreview() }
     composeTestRule.onNodeWithTag(CALENDAR).assertIsDisplayed()
+  }
+
+  // ---------- modifier ----------
+
+  @Test
+  fun appliesTheModifierGivenToTheCalendar() {
+    val viewModel = CalendarViewModel(november)
+    composeTestRule.setContent {
+      AmberAppTheme {
+        Calendar(
+            modifier = Modifier.testTag(MODIFIER),
+            viewModel = viewModel,
+        )
+      }
+    }
+    composeTestRule.onNodeWithTag(MODIFIER).assertIsDisplayed()
+  }
+
+  private companion object {
+    const val MODIFIER = "calendar_test_modifier"
   }
 }
