@@ -157,7 +157,7 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data)
              .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places', 'personPhotos'])
         && onlyOwnNicknameChanged()
-        && placesChangedOnlyByCaregiver()
+        && placesChangeIsValid()
         && personPhotosChangeIsValid(circleId);
     }
 
@@ -167,9 +167,48 @@ service cloud.firestore {
              .affectedKeys().hasOnly([request.auth.uid]);
     }
 
-    function placesChangedOnlyByCaregiver() {
-      return request.resource.data.places == resource.data.places
-        || isCaregiver();
+    // Only caregivers change places, one place per write: added, edited or removed. A missing
+    // field counts as {}, like personPhotos.
+    function placesChangeIsValid() {
+      let before = resource.data.get('places', {});
+      let after = request.resource.data.get('places', {});
+      return before == after
+        || (isCaregiver() && onePlaceChanged(before, after));
+    }
+
+    // A removal leaves no new value. An added or edited place is the one new value, and it must
+    // be stored under its own id.
+    function onePlaceChanged(before, after) {
+      let affected = after.diff(before).affectedKeys();
+      let removed = after.diff(before).removedKeys();
+      let newValues = after.values().removeAll(before.values());
+      return affected.size() == 1
+        && (removed.size() == 1
+          || (newValues.size() == 1 && isValidPlace(affected, newValues[0])));
+    }
+
+    // The fields of Place: a name to show, and a real point the patient can be walked to. Must
+    // agree with Place.isValidToSave() in the app.
+    function isValidPlace(affected, place) {
+      return place is map
+        && place.keys().hasOnly(['id', 'name', 'location'])
+        && place.id is string
+        && affected.hasOnly([place.id])
+        && place.name is string
+        && place.name.trim().size() > 0
+        && isValidPoint(place.location);
+    }
+
+    // (0, 0) is where a lost position lands, so it is no real point.
+    function isValidPoint(location) {
+      return location is map
+        && location.keys().hasOnly(['lat', 'lng', 'placeName'])
+        && location.lat is number
+        && location.lat >= -90 && location.lat <= 90
+        && location.lng is number
+        && location.lng >= -180 && location.lng <= 180
+        && !(location.lat == 0 && location.lng == 0)
+        && (location.get('placeName', null) == null || location.placeName is string);
     }
 
     // A text has no file: its storagePath must be empty. Any other media's file is in the

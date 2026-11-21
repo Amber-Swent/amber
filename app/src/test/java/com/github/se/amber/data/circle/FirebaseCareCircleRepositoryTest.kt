@@ -4,21 +4,32 @@
 package com.github.se.amber.data.circle
 
 import com.github.se.amber.model.circle.CareCircle
+import com.github.se.amber.model.location.GeoLocation
+import com.github.se.amber.model.location.Place
+import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.user.Person
 import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.EventListener
 import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.ListenerRegistration
 import io.mockk.CapturingSlot
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -384,6 +395,147 @@ class FirebaseCareCircleRepositoryTest {
   private fun stubPersonWriteFailure(error: Exception) {
     every { circles.document() } returns mockk { every { id } returns "person-789" }
     every { circleDocument.update(any<FieldPath>(), any()) } returns Tasks.forException(error)
+  }
+
+  @Test
+  fun addPlace_writesOneEntryUnderPlacesWithoutWaitingForTheServer() = runTest {
+    val writtenField = slot<FieldPath>()
+    val writtenPlace = slot<Place>()
+    every { circles.document() } returns mockk { every { id } returns "place-1" }
+    // The server never answers, as offline: the place must still be saved
+    every { circleDocument.update(capture(writtenField), capture(writtenPlace)) } returns
+        TaskCompletionSource<Void>().task
+
+    val saved = repository.addPlace(circleId, home.copy(id = "caller-id", name = "  Home  "))
+
+    assertEquals(home.copy(id = "place-1"), saved.getOrThrow())
+    assertEquals(FieldPath.of("places", "place-1"), writtenField.captured)
+    assertEquals(home.copy(id = "place-1"), writtenPlace.captured)
+    verify(exactly = 0) { circleDocument.set(any()) }
+  }
+
+  @Test
+  fun placeWrites_rejectInvalidInputWithoutWriting() = runTest {
+    every { circles.document() } returns mockk { every { id } returns "place-1" }
+
+    assertFailure<CareCircleError.InvalidCircleId>(repository.addPlace(" ", home))
+    assertFailure<CareCircleError.InvalidCircleId>(repository.updatePlace("a/b", home))
+    assertFailure<CareCircleError.InvalidCircleId>(repository.deletePlace("", home.id))
+    assertFailure<CareCircleError.InvalidPlace>(
+        repository.addPlace(circleId, home.copy(name = " "))
+    )
+    // A place known only by its name can't be walked to
+    assertFailure<CareCircleError.InvalidPlace>(
+        repository.updatePlace(circleId, home.copy(location = GeoLocation(placeName = "Home")))
+    )
+    assertFailure<CareCircleError.InvalidPlaceId>(
+        repository.updatePlace(circleId, home.copy(id = ""))
+    )
+    assertFailure<CareCircleError.InvalidPlaceId>(repository.deletePlace(circleId, "a/b"))
+    verify(exactly = 0) { circleDocument.update(any<FieldPath>(), any()) }
+  }
+
+  @Test
+  fun updatePlace_writesThePlaceUnderItsOwnIdWithTrimmedName() = runTest {
+    val writtenField = slot<FieldPath>()
+    val writtenPlace = slot<Place>()
+    every { circleDocument.update(capture(writtenField), capture(writtenPlace)) } returns
+        TaskCompletionSource<Void>().task
+
+    val saved = repository.updatePlace(circleId, home.copy(name = " My home "))
+
+    assertEquals(home.copy(name = "My home"), saved.getOrThrow())
+    assertEquals(FieldPath.of("places", home.id), writtenField.captured)
+    assertEquals(saved.getOrThrow(), writtenPlace.captured)
+  }
+
+  @Test
+  fun deletePlace_removesOneEntryWithoutWaitingForTheServer() = runTest {
+    every { circleDocument.update(any<FieldPath>(), any()) } returns
+        TaskCompletionSource<Void>().task
+
+    assertTrue(repository.deletePlace(circleId, home.id).isSuccess)
+
+    verify { circleDocument.update(FieldPath.of("places", home.id), FieldValue.delete()) }
+  }
+
+  @Test
+  fun placeWrites_wrapAWriteThatCannotStart() = runTest {
+    val source = IllegalStateException("Firestore was terminated")
+    every { circleDocument.update(any<FieldPath>(), any()) } throws source
+
+    val result = repository.deletePlace(circleId, home.id)
+
+    assertSame(source, (result.exceptionOrNull() as CareCircleError.Unknown).source)
+  }
+
+  @Test
+  fun observePlaces_emitsEachChangeWithIdsFromKeysAndStopsListening() = runTest {
+    val listener = slot<EventListener<DocumentSnapshot>>()
+    val registration = mockk<ListenerRegistration>(relaxed = true)
+    every { circleDocument.addSnapshotListener(capture(listener)) } returns registration
+    val emitted = mutableListOf<List<Place>>()
+    val collecting =
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+          repository.observePlaces(circleId).toList(emitted)
+        }
+
+    // Stored under "home" with a stale id field: the key wins
+    listener.captured.onEvent(placesSnapshot(mapOf(home.id to home.copy(id = "stale"))), null)
+    runCurrent()
+    listener.captured.onEvent(placesSnapshot(emptyMap()), null)
+    runCurrent()
+    // The circle no longer exists: no places
+    listener.captured.onEvent(placesSnapshot(mapOf(home.id to home)), null)
+    runCurrent()
+    listener.captured.onEvent(
+        mockk { every { toObject(CareCircle::class.java) } returns null },
+        null,
+    )
+    runCurrent()
+    collecting.cancel()
+
+    assertEquals(listOf(listOf(home), emptyList(), listOf(home), emptyList()), emitted)
+    verify { registration.remove() }
+  }
+
+  @Test
+  fun observePlaces_endsWithCareCircleErrors() = runTest {
+    val listener = slot<EventListener<DocumentSnapshot>>()
+    every { circleDocument.addSnapshotListener(capture(listener)) } returns mockk(relaxed = true)
+    val unreadable = mockk<DocumentSnapshot>()
+    val source = RuntimeException("bad field")
+    every { unreadable.toObject(CareCircle::class.java) } throws source
+
+    // How the flow ends once the listener gets this event
+    fun endingAfter(event: () -> Unit): Throwable? {
+      var ending: Throwable? = null
+      backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+        ending = runCatching { repository.observePlaces(circleId).toList() }.exceptionOrNull()
+      }
+      event()
+      runCurrent()
+      return ending
+    }
+
+    val denied =
+        FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
+    assertSame(
+        CareCircleError.PermissionDenied,
+        endingAfter { listener.captured.onEvent(null, denied) },
+    )
+    val unknown = endingAfter { listener.captured.onEvent(unreadable, null) }
+    assertSame(source, (unknown as CareCircleError.Unknown).source)
+    assertSame(
+        CareCircleError.InvalidCircleId,
+        runCatching { repository.observePlaces(" ").toList() }.exceptionOrNull(),
+    )
+  }
+
+  private val home = Place(id = "home", name = "Home", location = LAUSANNE)
+
+  private fun placesSnapshot(places: Map<String, Place>): DocumentSnapshot = mockk {
+    every { toObject(CareCircle::class.java) } returns circle.copy(places = places)
   }
 
   private inline fun <reified T : Throwable> assertFailure(result: Result<*>) {

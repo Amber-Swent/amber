@@ -7,10 +7,13 @@
 
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.circle.isValidToSave
 import com.github.se.amber.data.media.toMap
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.circle.Invitation
+import com.github.se.amber.model.location.MAX_LATITUDE
+import com.github.se.amber.model.location.MAX_LONGITUDE
 import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.media.MediaItem
 import com.github.se.amber.model.media.MediaStatus
@@ -19,6 +22,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.google.firebase.firestore.util.CustomClassMapper
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -131,25 +135,48 @@ class FirestoreSecurityRulesTest {
   }
 
   @Test
-  fun placesChangedOnlyByCaregiver_defersToMockedRole() {
-    val caregiverLookup =
-        MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.CAREGIVER) })
-    val patientLookup = MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.PATIENT) })
-    val before = emptyMap<String, Any>()
-    val after = mapOf("home" to "Home")
+  fun placesChangeIsValid_caregiverChangesOneValidPlacePerWrite() {
+    val caregiver =
+        FirestoreSecurityRules(
+            authUid = "c",
+            lookup = MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.CAREGIVER) }),
+        )
+    val patient =
+        FirestoreSecurityRules(
+            authUid = "p",
+            lookup = MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.PATIENT) }),
+        )
+    val home = SavedPlaceCases.HOME
+    val pharmacy = home.copy(id = "pharmacy", name = "Pharmacy")
+    val none = emptyMap<String, Place>()
+    val withHome = mapOf("home" to home)
 
+    assertTrue(patient.placesChangeIsValid(withHome, withHome))
+    assertFalse(patient.placesChangeIsValid(none, withHome))
+    assertTrue(caregiver.placesChangeIsValid(none, withHome))
     assertTrue(
-        FirestoreSecurityRules(authUid = "c", lookup = caregiverLookup)
-            .placesChangedOnlyByCaregiver(before, after),
+        caregiver.placesChangeIsValid(withHome, mapOf("home" to home.copy(name = "My home")))
     )
-    assertFalse(
-        FirestoreSecurityRules(authUid = "p", lookup = patientLookup)
-            .placesChangedOnlyByCaregiver(before, after),
-    )
-    assertTrue(
-        FirestoreSecurityRules(authUid = "p", lookup = patientLookup)
-            .placesChangedOnlyByCaregiver(before, before),
-    )
+    assertTrue(caregiver.placesChangeIsValid(withHome, none))
+    assertFalse(caregiver.placesChangeIsValid(none, withHome + ("pharmacy" to pharmacy)))
+    assertFalse(caregiver.placesChangeIsValid(none, mapOf("pharmacy" to home)))
+  }
+
+  @Test
+  fun placesChangeIsValid_agreesWithTheAppOnEveryPlace() {
+    val caregiver =
+        FirestoreSecurityRules(
+            authUid = "c",
+            lookup = MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.CAREGIVER) }),
+        )
+
+    for ((case, place) in SavedPlaceCases.ALL) {
+      assertEquals(
+          case,
+          place.isValidToSave(),
+          caregiver.placesChangeIsValid(emptyMap(), mapOf(place.id to place)),
+      )
+    }
   }
 
   @Test
@@ -438,7 +465,7 @@ class FirestoreSecurityRulesTest {
     val nicknameEdit = joined.copy(nicknames = mapOf("pat" to mapOf("care" to "Dad")))
     assertTrue(db.rulesFor("pat").canUpdateCircle(joined, nicknameEdit))
 
-    val placesEdit = joined.copy(places = mapOf("home" to Place(id = "home", name = "Home")))
+    val placesEdit = joined.copy(places = mapOf(SavedPlaceCases.HOME.id to SavedPlaceCases.HOME))
     assertFalse(db.rulesFor("pat").canUpdateCircle(joined, placesEdit))
     assertTrue(db.rulesFor("care").canUpdateCircle(joined, placesEdit))
     assertFalse(db.rulesFor("care").canDeleteCircle())
@@ -1055,8 +1082,22 @@ private class FirestoreSecurityRules(
     return affected == setOf(uid)
   }
 
-  fun placesChangedOnlyByCaregiver(before: Map<*, *>, after: Map<*, *>): Boolean =
-      before == after || isCaregiver()
+  // Only caregivers change places, one place per write. An added or edited place is stored under
+  // its own id, with a name and a real point, not (0, 0).
+  fun placesChangeIsValid(before: Map<String, Place>, after: Map<String, Place>): Boolean {
+    if (before == after) return true
+    if (!isCaregiver()) return false
+    val affected = (before.keys + after.keys).filter { key -> before[key] != after[key] }
+    val key = affected.singleOrNull() ?: return false
+    val place = after[key] ?: return true
+    val lat = place.location.lat ?: return false
+    val lng = place.location.lng ?: return false
+    return place.id == key &&
+        place.name.isNotBlank() &&
+        lat in -MAX_LATITUDE..MAX_LATITUDE &&
+        lng in -MAX_LONGITUDE..MAX_LONGITUDE &&
+        !(lat == 0.0 && lng == 0.0)
+  }
 
   // One personPhotos entry per write. The key is read directly: the writer's uid, or a key of
   // people on the document before this write. A kept value is that key's photo path. A new path
@@ -1109,7 +1150,7 @@ private class FirestoreSecurityRules(
     val affected = affectedCircleKeys(before, after)
     return affected.all { it in setOf("name", "people", "nicknames", "places", "personPhotos") } &&
         onlyOwnNicknameChanged(before.nicknames, after.nicknames) &&
-        placesChangedOnlyByCaregiver(before.places, after.places) &&
+        placesChangeIsValid(before.places, after.places) &&
         personPhotosChangeIsValid(circleId, before, after)
   }
 

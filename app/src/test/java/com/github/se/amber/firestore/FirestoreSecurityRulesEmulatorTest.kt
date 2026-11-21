@@ -9,6 +9,7 @@
 
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.circle.isValidToSave
 import com.github.se.amber.data.invitation.universalInvitationPayload
 import com.github.se.amber.emulator.FirestoreEmulatorClient
 import java.net.HttpURLConnection
@@ -847,7 +848,54 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(pat, writePhotos(emptyMap()))
   }
 
+  @Test
+  fun places_caregiverChangesOneValidPlacePerWrite_enforcedByEmulator() {
+    val circleId = "c-places"
+    val care = "care"
+    val pat = "pat"
+    val circlePath = "careCircles/$circleId"
+    val home = SavedPlaceCases.toFields(SavedPlaceCases.HOME)
+    val pharmacy = home + mapOf("id" to "pharmacy", "name" to "Pharmacy")
+    fun writePlaces(places: Map<String, Any?>) = fs.patch(circlePath, mapOf("places" to places))
+
+    fs.adminSet(circlePath, circle(circleId, care, listOf(care, pat), patientId = pat))
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+
+    // The patient can read places but never change them.
+    fs.assertFails(pat, writePlaces(mapOf("home" to home)))
+    fs.assertSucceeds(pat, fs.get(circlePath))
+    // A caregiver adds, renames, and removes one place at a time.
+    fs.assertSucceeds(care, writePlaces(mapOf("home" to home)))
+    fs.assertSucceeds(care, writePlaces(mapOf("home" to home + ("name" to "My home"))))
+    fs.assertSucceeds(care, writePlaces(emptyMap()))
+    // Two places in one write.
+    fs.assertFails(care, writePlaces(mapOf("home" to home, "pharmacy" to pharmacy)))
+    // Stored under another place's id.
+    fs.assertFails(care, writePlaces(mapOf("pharmacy" to home)))
+    // An unknown field, a missing field, or a coordinate that is not a number: the app never
+    // writes these, so they are not in SavedPlaceCases.
+    fs.assertFails(care, writePlaces(mapOf("home" to home + ("photo" to "x"))))
+    fs.assertFails(care, writePlaces(mapOf("home" to home - "location")))
+    val textLatitude =
+        mapOf(
+            "lat" to "${SavedPlaceCases.HOME.location.lat}",
+            "lng" to SavedPlaceCases.HOME.location.lng,
+        )
+    fs.assertFails(care, writePlaces(mapOf("home" to home + ("location" to textLatitude))))
+
+    // The rules save exactly the places the app would save.
+    for ((case, place) in SavedPlaceCases.ALL) {
+      val code = writePlaces(mapOf(place.id to SavedPlaceCases.toFields(place)))(care)
+      assertEquals(case, place.isValidToSave(), code in HTTP_SUCCESS)
+      fs.assertSucceeds(care, writePlaces(emptyMap()))
+    }
+  }
+
   companion object {
+    /** The HTTP codes of a write the rules allowed. */
+    private val HTTP_SUCCESS = 200..299
+
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
 

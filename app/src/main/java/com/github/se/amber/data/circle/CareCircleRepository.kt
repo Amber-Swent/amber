@@ -55,5 +55,9 @@ sealed class CareCircleError(message: String) : Exception(message) {
 
   data object InvalidPersonName : CareCircleError("A first name is required")
 
+  data object InvalidPlace : CareCircleError("A place needs a name and a point on the map")
+
+  data object InvalidPlaceId : CareCircleError("A valid place ID is required")
+
   data class Unknown(val source: Throwable) : CareCircleError("The care circle operation failed")
 }
