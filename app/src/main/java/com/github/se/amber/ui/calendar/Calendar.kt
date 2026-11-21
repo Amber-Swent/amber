@@ -118,7 +118,7 @@ fun Calendar(
 
 /** Month and year at the top left, the previous and next month arrows at the top right. */
 @Composable
-private fun CalendarHeader(
+internal fun CalendarHeader(
     month: YearMonth = YearMonth.now(),
     locale: Locale = Locale.getDefault(),
     onPreviousMonth: () -> Unit = {},
@@ -166,7 +166,7 @@ private fun CalendarHeader(
 
 /** The names of the days of the week, starting with the first day of the week of [locale]. */
 @Composable
-private fun CalendarWeekdays(locale: Locale = Locale.getDefault()) {
+internal fun CalendarWeekdays(locale: Locale = Locale.getDefault()) {
   val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
 
   Row(modifier = Modifier.fillMaxWidth()) {
@@ -184,7 +184,7 @@ private fun CalendarWeekdays(locale: Locale = Locale.getDefault()) {
 
 /** Every day of [month], one row per week. A day is clickable: [onDayClick] gets its date. */
 @Composable
-private fun CalendarDays(
+internal fun CalendarDays(
     month: YearMonth = YearMonth.now(),
     locale: Locale = Locale.getDefault(),
     onDayClick: (LocalDate) -> Unit = {},
@@ -221,7 +221,7 @@ private fun CalendarDays(
 
 /** A clickable day number. The click flash is round. */
 @Composable
-private fun CalendarDay(
+internal fun CalendarDay(
     day: Int = 1,
     onClick: () -> Unit = {},
 ) {
@@ -246,6 +246,6 @@ private fun CalendarDay(
 /** Preview of the calendar on the current month. */
 @Preview(showBackground = true)
 @Composable
-private fun CalendarPreview() {
+internal fun CalendarPreview() {
   AmberAppTheme { Calendar() }
 }

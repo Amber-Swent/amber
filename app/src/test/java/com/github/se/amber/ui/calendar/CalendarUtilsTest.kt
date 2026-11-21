@@ -53,4 +53,24 @@ class CalendarUtilsTest {
     // February 2027 has 28 days and starts on a Monday.
     assertEquals(28, calendarCells(YearMonth.of(2027, 2), DayOfWeek.MONDAY).size)
   }
+
+  // ---------- default parameters ----------
+
+  @Test
+  fun defaultMonthIsTheCurrentMonth() {
+    assertEquals(
+        calendarCells(YearMonth.now(), DayOfWeek.SUNDAY),
+        calendarCells(firstDayOfWeek = DayOfWeek.SUNDAY),
+    )
+  }
+
+  @Test
+  fun defaultFirstDayOfWeekIsMonday() {
+    assertEquals(calendarCells(november, DayOfWeek.MONDAY), calendarCells(november))
+  }
+
+  @Test
+  fun withoutParametersUsesBothDefaults() {
+    assertEquals(calendarCells(YearMonth.now(), DayOfWeek.MONDAY), calendarCells())
+  }
 }
