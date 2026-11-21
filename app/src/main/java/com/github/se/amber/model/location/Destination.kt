@@ -52,11 +52,13 @@ fun destinations(places: List<Place>, memories: List<MediaMarker>): List<Destina
           .mapNotNull { it.location.toDestination(it.id, DestinationKind.SAVED_PLACE, it.name) }
   val fromMemories =
       memories
-          .filter { pin -> !pin.placeName.isNullOrBlank() && saved.none { it.isNear(pin) } }
-          .take(MAX_MEMORY_DESTINATIONS)
-          .map { pin ->
-            Destination(pin.id, DestinationKind.MEMORY, pin.placeName.orEmpty(), pin.lat, pin.lng)
+          .mapNotNull { pin ->
+            pin.placeName
+                ?.takeIf { it.isNotBlank() }
+                ?.let { Destination(pin.id, DestinationKind.MEMORY, it, pin.lat, pin.lng) }
           }
+          .filter { memory -> saved.none { it.isNear(memory) } }
+          .take(MAX_MEMORY_DESTINATIONS)
   return saved + fromMemories
 }
 
@@ -70,5 +72,5 @@ private fun GeoLocation.toDestination(
     name: String,
 ): Destination? = pointOrNull()?.let { (lat, lng) -> Destination(id, kind, name, lat, lng) }
 
-private fun Destination.isNear(pin: MediaMarker): Boolean =
-    distanceMeters(lat, lng, pin.lat, pin.lng) <= SAME_PLACE_RADIUS_METERS
+private fun Destination.isNear(other: Destination): Boolean =
+    distanceMeters(lat, lng, other.lat, other.lng) <= SAME_PLACE_RADIUS_METERS

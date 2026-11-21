@@ -5,12 +5,11 @@ package com.github.se.amber.ui.caregiver.parameters.savedPlaces
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.CareCircleError
-import com.github.se.amber.data.circle.CareCircleRepository
+import com.github.se.amber.data.circle.SavedPlacesRepository
 import com.github.se.amber.data.location.FakeLocationUpdatesRepository
 import com.github.se.amber.data.location.LocationUpdate
 import com.github.se.amber.data.location.PlaceSearchRepository
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.location.TestPlaces.GENEVA
@@ -18,7 +17,6 @@ import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.location.TestPositions.APPROXIMATE_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.GPS_ACCURACY_METERS
 import com.github.se.amber.model.location.TestPositions.LAUSANNE_FLON
-import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import io.mockk.coEvery
@@ -48,17 +46,11 @@ import org.junit.Test
 class SavedPlacesViewModelTest {
 
   /** Keeps the places of each circle in memory. [failWith] makes every write fail with it. */
-  private class FakePlacesRepository : CareCircleRepository {
+  private class FakePlacesRepository : SavedPlacesRepository {
     val places = MutableStateFlow<Map<String, List<Place>>>(emptyMap())
     val feedFailure = MutableStateFlow<Throwable?>(null)
     var failWith: CareCircleError? = null
     private var lastId = 0
-
-    override fun newId() = "id${++lastId}"
-
-    override suspend fun getCircle(circleId: String) = Result.success(CareCircle(id = circleId))
-
-    override suspend fun addPerson(circleId: String, person: Person) = Result.success(person)
 
     override fun observePlaces(circleId: String): Flow<List<Place>> =
         merge(
@@ -67,7 +59,7 @@ class SavedPlacesViewModelTest {
         )
 
     override suspend fun addPlace(circleId: String, place: Place) =
-        save(circleId, place.copy(id = newId()))
+        save(circleId, place.copy(id = "id${++lastId}"))
 
     override suspend fun updatePlace(circleId: String, place: Place) = save(circleId, place)
 
@@ -120,7 +112,8 @@ class SavedPlacesViewModelTest {
 
   private val caregiver =
       UserProfile(uid = "care", role = Role.CAREGIVER, circleIds = listOf("circle1", "circle2"))
-  private val pharmacy = Place(id = "pharmacy", name = "pharmacy", location = GENEVA)
+  /** Not capitalized, unlike [home], so a list by name must ignore case to show it first. */
+  private val bakery = Place(id = "bakery", name = "bakery", location = GENEVA)
   private val home = Place(id = "home", name = "Home", location = LAUSANNE)
   private val preciseHere = LAUSANNE_FLON.copy(accuracyMeters = GPS_ACCURACY_METERS)
 
@@ -128,7 +121,7 @@ class SavedPlacesViewModelTest {
   fun setUp() {
     Dispatchers.setMain(dispatcher)
     coEvery { profiles.getCurrentProfile() } returns Result.success(caregiver)
-    circles.places.value = mapOf("circle1" to listOf(pharmacy, home))
+    circles.places.value = mapOf("circle1" to listOf(bakery, home))
   }
 
   @After
@@ -146,7 +139,7 @@ class SavedPlacesViewModelTest {
   fun showsActiveCirclePlacesByNameAndFollowsCircleSwitch() =
       runTest(dispatcher) {
         val viewModel = createViewModel()
-        assertEquals(listOf(home, pharmacy), viewModel.content.places)
+        assertEquals(listOf(bakery, home), viewModel.content.places)
 
         activeCircle.activeId.emit("circle2")
         assertEquals(emptyList<Place>(), viewModel.content.places)
@@ -173,10 +166,15 @@ class SavedPlacesViewModelTest {
 
         coEvery { profiles.getCurrentProfile() } returns Result.success(caregiver)
         activeCircle.activeId.emit(null)
+        val noCircle = createViewModel()
         assertEquals(
             SavedPlacesUIState.BlockingError(R.string.savedPlacesErrorNoCircle),
-            createViewModel().uiState.value,
+            noCircle.uiState.value,
         )
+        // With no circle there is nowhere to save: nothing is written
+        val before = circles.places.value
+        noCircle.addPlace("Café", GENEVA)
+        assertEquals(before, circles.places.value)
       }
 
   @Test
@@ -191,7 +189,7 @@ class SavedPlacesViewModelTest {
 
         circles.feedFailure.value = null
         viewModel.retry()
-        assertEquals(listOf(home, pharmacy), viewModel.content.places)
+        assertEquals(listOf(bakery, home), viewModel.content.places)
       }
 
   @Test
@@ -202,12 +200,12 @@ class SavedPlacesViewModelTest {
         // Twice, so a failure after a retry still reaches the user
         repeat(2) {
           circles.feedFailure.value = CareCircleError.Network
-          assertEquals(listOf(home, pharmacy), viewModel.content.places)
+          assertEquals(listOf(bakery, home), viewModel.content.places)
           assertEquals(R.string.savedPlacesErrorLoad, viewModel.content.errorMsgRes)
           viewModel.clearErrorMsg()
           circles.feedFailure.value = null
           viewModel.retry()
-          assertEquals(listOf(home, pharmacy), viewModel.content.places)
+          assertEquals(listOf(bakery, home), viewModel.content.places)
         }
       }
 
@@ -223,7 +221,7 @@ class SavedPlacesViewModelTest {
         viewModel.renamePlace(home, "My home")
         assertEquals(LAUSANNE, viewModel.content.places.first { it.id == home.id }.location)
 
-        viewModel.deletePlace(pharmacy.id)
+        viewModel.deletePlace(bakery.id)
         assertEquals(listOf("Café", "My home"), viewModel.content.places.map { it.name })
       }
 
@@ -233,14 +231,17 @@ class SavedPlacesViewModelTest {
         val viewModel = createViewModel()
         circles.failWith = CareCircleError.InvalidPlace
 
-        viewModel.addPlace(" ", GENEVA)
-        assertEquals(R.string.savedPlacesErrorSave, viewModel.content.errorMsgRes)
-        viewModel.clearErrorMsg()
+        // The same failure twice in a row is said twice
+        repeat(2) {
+          viewModel.addPlace(" ", GENEVA)
+          assertEquals(R.string.savedPlacesErrorSave, viewModel.content.errorMsgRes)
+          viewModel.clearErrorMsg()
+        }
         viewModel.renamePlace(home, " ")
         assertEquals(R.string.savedPlacesErrorSave, viewModel.content.errorMsgRes)
         viewModel.deletePlace(home.id)
         assertEquals(R.string.savedPlacesErrorDelete, viewModel.content.errorMsgRes)
-        assertEquals(listOf(home, pharmacy), viewModel.content.places)
+        assertEquals(listOf(bakery, home), viewModel.content.places)
       }
 
   @Test

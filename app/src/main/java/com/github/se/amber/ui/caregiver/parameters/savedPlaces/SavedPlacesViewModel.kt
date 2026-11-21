@@ -9,8 +9,8 @@ import androidx.lifecycle.viewModelScope
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
 import com.github.se.amber.data.circle.ActiveCircleRepositoryProvider
-import com.github.se.amber.data.circle.CareCircleRepository
-import com.github.se.amber.data.circle.CareCircleRepositoryProvider
+import com.github.se.amber.data.circle.SavedPlacesRepository
+import com.github.se.amber.data.circle.SavedPlacesRepositoryProvider
 import com.github.se.amber.data.location.LocationUpdate
 import com.github.se.amber.data.location.LocationUpdatesRepository
 import com.github.se.amber.data.location.LocationUpdatesRepositoryProvider
@@ -31,7 +31,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -98,13 +99,13 @@ internal const val HERE_TIMEOUT_MILLIS = 30_000L
  * found by address or where they stand, renaming and deleting one. Switching the active circle
  * shows the places of the new one.
  *
- * Writes don't wait for the server (see [CareCircleRepository.addPlace]), so there is no saving
+ * Writes don't wait for the server (see [SavedPlacesRepository.addPlace]), so there is no saving
  * state: a place shows up in the list at once.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SavedPlacesViewModel(
-    private val circleRepository: CareCircleRepository =
-        CareCircleRepositoryProvider.default.repository,
+    private val placesRepository: SavedPlacesRepository =
+        SavedPlacesRepositoryProvider.default.repository,
     private val profileRepository: ProfileRepository = ProfileRepositoryProvider.default.repository,
     private val activeCircleRepository: ActiveCircleRepository =
         ActiveCircleRepositoryProvider.default.repository,
@@ -229,19 +230,19 @@ class SavedPlacesViewModel(
   /** Saves a new place named [name] at [location], found by the search or by "I'm here now". */
   fun addPlace(name: String, location: GeoLocation) =
       write(R.string.savedPlacesErrorSave) { circleId ->
-        circleRepository.addPlace(circleId, Place(name = name, location = location))
+        placesRepository.addPlace(circleId, Place(name = name, location = location))
       }
 
   /** Gives [place] the new name [name]. Its location stays. */
   fun renamePlace(place: Place, name: String) =
       write(R.string.savedPlacesErrorSave) { circleId ->
-        circleRepository.updatePlace(circleId, place.copy(name = name))
+        placesRepository.updatePlace(circleId, place.copy(name = name))
       }
 
   /** Deletes the place [placeId]. The screen asks "Are you sure?" before calling it. */
   fun deletePlace(placeId: String) =
       write(R.string.savedPlacesErrorDelete) { circleId ->
-        circleRepository.deletePlace(circleId, placeId)
+        placesRepository.deletePlace(circleId, placeId)
       }
 
   private fun write(@StringRes failureMsgRes: Int, save: suspend (String) -> Result<*>) {
@@ -272,7 +273,8 @@ class SavedPlacesViewModel(
                       ?.let { HereState.Found(GeoLocation(lat = it.lat, lng = it.lng)) }
             }
           }
-          .first { it != null } ?: HereState.NotFound
+          .filterNotNull()
+          .firstOrNull() ?: HereState.NotFound
 
   /** Loads the profile, then follows the active circle and its places. */
   private fun load() {
@@ -309,7 +311,7 @@ class SavedPlacesViewModel(
    */
   private fun placesOf(circleId: String): Flow<Loaded> {
     var shown = false
-    return circleRepository
+    return placesRepository
         .observePlaces(circleId)
         .map<List<Place>, Loaded> { places ->
           shown = true

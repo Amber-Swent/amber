@@ -19,7 +19,8 @@ class DestinationTest {
   private val farAway = SAME_PLACE_RADIUS_METERS * 4
 
   private val home = Place(id = "home", name = "home", location = LAUSANNE)
-  private val doctor = Place(id = "doctor", name = "Doctor", location = GENEVA)
+  /** Capitalized, unlike [home]: the order must ignore case. */
+  private val pharmacy = Place(id = "pharmacy", name = "Pharmacy", location = GENEVA)
 
   /** One pin per place, newest first, each with one picture. */
   private fun pins(vararg places: GeoLocation): List<MediaMarker> =
@@ -33,23 +34,23 @@ class DestinationTest {
   fun listsSavedPlacesByNameThenMemories() {
     val market = GENEVA.movedNorth(farAway).copy(placeName = "Market")
 
-    val result = destinations(listOf(home, doctor), pins(market))
+    val result = destinations(listOf(pharmacy, home), pins(market))
 
     assertEquals(
         listOf(
-            Destination(
-                "doctor",
-                DestinationKind.SAVED_PLACE,
-                "Doctor",
-                GENEVA.latitude,
-                GENEVA.longitude,
-            ),
             Destination(
                 "home",
                 DestinationKind.SAVED_PLACE,
                 "home",
                 LAUSANNE.latitude,
                 LAUSANNE.longitude,
+            ),
+            Destination(
+                "pharmacy",
+                DestinationKind.SAVED_PLACE,
+                "Pharmacy",
+                GENEVA.latitude,
+                GENEVA.longitude,
             ),
         ),
         result.dropLast(1),
@@ -65,11 +66,13 @@ class DestinationTest {
     val namedOnly = GeoLocation(placeName = "Grandma's house")
     val nearHome = LAUSANNE.movedNorth(JUST_INSIDE_SAME_PLACE_RADIUS).copy(placeName = "Flon")
     val unnamed = GENEVA.movedNorth(farAway).copy(placeName = null)
+    // Pins never get a blank name from media, but the list doesn't count on it
+    val blankName = pins(GENEVA.movedNorth(-farAway)).map { it.copy(placeName = " ") }
 
     val result =
         destinations(
             places = listOf(home, home.copy(id = "old", name = "Old flat", location = namedOnly)),
-            memories = pins(nearHome, unnamed),
+            memories = pins(nearHome, unnamed) + blankName,
         )
 
     assertEquals(listOf("home"), result.map { it.name })
