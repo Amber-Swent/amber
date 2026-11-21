@@ -27,7 +27,6 @@ import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthUser
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.media.MediaRepository
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
@@ -38,9 +37,7 @@ import com.github.se.amber.ui.caregiver.upload.pictures.UploadPictureViewModel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Rule
@@ -210,17 +207,6 @@ class AddPersonDialogTest {
             circle = circle.copy(people = circle.people + (saved.id to saved))
             return Result.success(saved)
           }
-
-          override fun observePlaces(circleId: String): Flow<List<Place>> = emptyFlow()
-
-          override suspend fun addPlace(circleId: String, place: Place): Result<Place> =
-              Result.success(place)
-
-          override suspend fun updatePlace(circleId: String, place: Place): Result<Place> =
-              Result.success(place)
-
-          override suspend fun deletePlace(circleId: String, placeId: String): Result<Unit> =
-              Result.success(Unit)
         }
     viewModel =
         UploadPictureViewModel(

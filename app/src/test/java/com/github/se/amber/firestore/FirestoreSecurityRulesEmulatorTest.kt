@@ -9,9 +9,9 @@
 
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.circle.isValidToSave
 import com.github.se.amber.data.invitation.universalInvitationPayload
 import com.github.se.amber.emulator.FirestoreEmulatorClient
-import com.github.se.amber.model.location.MAX_LATITUDE
 import java.net.HttpURLConnection
 import java.net.URL
 import org.junit.Assert.assertEquals
@@ -854,8 +854,8 @@ class FirestoreSecurityRulesEmulatorTest {
     val care = "care"
     val pat = "pat"
     val circlePath = "careCircles/$circleId"
-    val home = place("home", "Home")
-    val pharmacy = place("pharmacy", "Pharmacy")
+    val home = SavedPlaceCases.toFields(SavedPlaceCases.HOME)
+    val pharmacy = home + mapOf("id" to "pharmacy", "name" to "Pharmacy")
     fun writePlaces(places: Map<String, Any?>) = fs.patch(circlePath, mapOf("places" to places))
 
     fs.adminSet(circlePath, circle(circleId, care, listOf(care, pat), patientId = pat))
@@ -873,32 +873,23 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(care, writePlaces(mapOf("home" to home, "pharmacy" to pharmacy)))
     // Stored under another place's id.
     fs.assertFails(care, writePlaces(mapOf("pharmacy" to home)))
-    // A blank name, an unknown field, or a missing field.
-    fs.assertFails(care, writePlaces(mapOf("home" to home + ("name" to "  "))))
+    // An unknown field, a missing field, or a coordinate that is not a number: the app never
+    // writes these, so they are not in SavedPlaceCases.
     fs.assertFails(care, writePlaces(mapOf("home" to home + ("photo" to "x"))))
     fs.assertFails(care, writePlaces(mapOf("home" to home - "location")))
-    // No real point: a name only, a latitude out of range, or a coordinate that is not a number.
-    fs.assertFails(
-        care,
-        writePlaces(mapOf("home" to home + ("location" to mapOf("placeName" to "Home")))),
-    )
-    fs.assertFails(
-        care,
-        writePlaces(
-            mapOf("home" to home + ("location" to mapOf("lat" to MAX_LATITUDE + 1, "lng" to LNG)))
-        ),
-    )
-    fs.assertFails(
-        care,
-        writePlaces(mapOf("home" to home + ("location" to mapOf("lat" to "$LAT", "lng" to LNG)))),
-    )
-    // Without a place name, as for "I'm here now".
-    fs.assertSucceeds(
-        care,
-        writePlaces(
-            mapOf("home" to home + ("location" to mapOf("lat" to LAT, "lng" to LNG))),
-        ),
-    )
+    val textLatitude =
+        mapOf(
+            "lat" to "${SavedPlaceCases.HOME.location.lat}",
+            "lng" to SavedPlaceCases.HOME.location.lng,
+        )
+    fs.assertFails(care, writePlaces(mapOf("home" to home + ("location" to textLatitude))))
+
+    // The rules save exactly the places the app would save.
+    for ((case, place) in SavedPlaceCases.ALL) {
+      val code = writePlaces(mapOf(place.id to SavedPlaceCases.toFields(place)))(care)
+      assertEquals(case, place.isValidToSave(), code in 200..299)
+      fs.assertSucceeds(care, writePlaces(emptyMap()))
+    }
   }
 
   companion object {
@@ -966,18 +957,6 @@ class FirestoreSecurityRulesEmulatorTest {
             "places" to emptyMap<String, Any>(),
             "createdBy" to createdBy,
             "createdAt" to 1L,
-        )
-
-    /** The point of the places of these tests, in Lausanne. */
-    private const val LAT = 46.52
-    private const val LNG = 6.63
-
-    /** A valid saved place [id], as CareCircleRepository writes it. */
-    private fun place(id: String, name: String) =
-        mapOf(
-            "id" to id,
-            "name" to name,
-            "location" to mapOf("lat" to LAT, "lng" to LNG, "placeName" to "Lausanne"),
         )
 
     /** Extracts invitation codes from a `runQuery` response body. */
