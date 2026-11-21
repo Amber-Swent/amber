@@ -431,4 +431,7 @@
     <string name="mediaMapErrorLoadProfile">Impossible de charger le profil.</string>
     <string name="mediaMapErrorNoCircle">Aucun cercle de soins trouvé.</string>
     <string name="mediaMapErrorLoadMedia">Impossible de charger les souvenirs de la carte.</string>
+    <!-- Calendar -->
+    <string name="calendarPreviousMonth">Mois précédent</string>
+    <string name="calendarNextMonth">Mois suivant</string>
 </resources>
