@@ -45,29 +45,30 @@ class RouteFileTest {
   }
 
   @Test
-  fun aBrokenOrUnreadableFileReadsAsNoneAndAFailedSaveSaysSo() = runBlocking {
-    val stored = File(tempFolder.root, LAST_ROUTE_FILE_NAME)
-    stored.writeText("""{"destination": {"lat": ${CATHEDRAL.lat}}""")
-    assertNull(routeFile(stored).load())
-    // Can't be read at all
-    assertNull(routeFile(tempFolder.newFolder("unreadable")).load())
+  fun aBrokenOrUnreadableFileReadsAsNoneAnUnknownManeuverAsUnknownAndAFailedSaveSaysSo() =
+      runBlocking {
+        val stored = File(tempFolder.root, LAST_ROUTE_FILE_NAME)
+        stored.writeText("""{"destination": {"lat": ${CATHEDRAL.lat}}""")
+        assertNull(routeFile(stored).load())
+        // Can't be read at all
+        assertNull(routeFile(tempFolder.newFolder("unreadable")).load())
 
-    // A maneuver this version doesn't know, e.g. from a newer one: the rest of the route still
-    // works
-    routeFile(stored).save(FLON_TO_CATHEDRAL)
-    val turn = FLON_TO_CATHEDRAL.steps.last().maneuver.name
-    stored.writeText(stored.readText().replace("\"$turn\"", "\"JUMP\""))
-    assertEquals(
-        Maneuver.UNKNOWN,
-        routeFile(stored).load()?.steps?.last()?.maneuver,
-    )
+        // A maneuver this version doesn't know, e.g. from a newer one: the rest of the route still
+        // works
+        routeFile(stored).save(FLON_TO_CATHEDRAL)
+        val turn = FLON_TO_CATHEDRAL.steps.last().maneuver.name
+        stored.writeText(stored.readText().replace("\"$turn\"", "\"JUMP\""))
+        assertEquals(
+            Maneuver.UNKNOWN,
+            routeFile(stored).load()?.steps?.last()?.maneuver,
+        )
 
-    // A folder where the file should go: it can't be replaced
-    val blocked = tempFolder.newFolder("blocked")
-    File(blocked, "inside").writeText("x")
-    assertThrows(IllegalStateException::class.java) {
-      runBlocking { routeFile(blocked).save(FLON_TO_CATHEDRAL) }
-    }
-    assertFalse(File(tempFolder.root, "blocked.tmp").exists())
-  }
+        // A folder where the file should go: it can't be replaced
+        val blocked = tempFolder.newFolder("blocked")
+        File(blocked, "inside").writeText("x")
+        assertThrows(IllegalStateException::class.java) {
+          runBlocking { routeFile(blocked).save(FLON_TO_CATHEDRAL) }
+        }
+        assertFalse(File(tempFolder.root, "blocked.tmp").exists())
+      }
 }
