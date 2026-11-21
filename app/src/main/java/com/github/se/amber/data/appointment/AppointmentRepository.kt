@@ -2,12 +2,14 @@
 
 package com.github.se.amber.data.appointment
 
+import com.github.se.amber.data.Synced
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.appointment.AppointmentValidationError
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Creates, edits and deletes the appointments of a care circle, stored at
+ * Creates, edits, deletes and watches the appointments of a care circle, stored at
  * careCircles/{circleId}/appointments/{id}.
  *
  * Writes don't wait for the server. Each write is saved on the phone first, and the call then
@@ -20,14 +22,56 @@ import kotlinx.coroutines.flow.Flow
  *
  * Every failed [Result] contains an [AppointmentError]. Cancellation is rethrown.
  *
- * Reading appointments is not part of this interface yet. It might be added later.
+ * [observeAppointments] reads them, one day or several days at a time.
+ *
+ * [hasUnsyncedWrites] tells whether some changes are still waiting to be sent, for example before
+ * signing out.
  */
 interface AppointmentRepository {
+
+  /**
+   * Watches the appointments of the circle [circleId] that happen, at least in part, during the
+   * [days] days that start with [firstDay]. Emits the list at once, then again on every change,
+   * until the collector stops.
+   *
+   * [firstDay] is included. The window runs from midnight at the start of [firstDay] to midnight at
+   * the end of its last day, in the phone's time zone. For example, a [firstDay] of Monday 17
+   * November with 7 [days] covers Monday 17 to Sunday 23 November, both included.
+   *
+   * An appointment that started the day before and isn't over yet is listed too. The list is sorted
+   * by [Appointment.startAt], soonest first.
+   *
+   * The list holds every status: an appointment earlier today is listed as well as an ongoing one.
+   * Use `statusAt` to tell them apart.
+   *
+   * Each appointment comes with [Synced.isSynced]. It is false while the appointment has a write
+   * the server hasn't confirmed yet. A write made on this phone shows up at once, even offline.
+   *
+   * The flow ends with an [AppointmentError]:
+   * - [AppointmentError.InvalidCircleId] right away, for an invalid id, as in [addAppointment];
+   * - [AppointmentError.PermissionDenied] when the user can't read the circle, for example after
+   *   leaving it.
+   *
+   * Going offline doesn't end it. The list then comes from what this phone has already loaded.
+   *
+   * @param circleId the id of the care circle.
+   * @param firstDay the first day of the window. It is included.
+   * @param days how many days the window holds. It must be at least 1.
+   * @return the live list, which ends with an [AppointmentError].
+   * @throws IllegalArgumentException if [days] is 0 or less. That is a bug in the caller.
+   */
+  fun observeAppointments(
+      circleId: String,
+      firstDay: LocalDate,
+      days: Int,
+  ): Flow<List<Synced<Appointment>>>
 
   /**
    * Generates a new appointment id on the phone, without writing anything. It works offline.
    *
    * Pass it as [Appointment.id] to [addAppointment]. The id doesn't depend on the circle.
+   *
+   * @return a new random id, not used by any appointment yet.
    */
   fun newId(): String
 
@@ -45,8 +89,8 @@ interface AppointmentRepository {
    * values actually saved, so the caller should use it instead of its own copy.
    *
    * The attendees must be members of the circle. The repository doesn't check it, since that would
-   * need the circle and the network. The security rules don't check it yet. They might check it on
-   * the server later. A refusal would then be reported in [writeFailures].
+   * need the circle and the network. The security rules check it on the server. A refusal is then
+   * reported in [writeFailures] as [AppointmentError.PermissionDenied].
    *
    * Fails right away, without writing anything, with:
    * - [AppointmentError.InvalidCircleId] or [AppointmentError.InvalidAppointmentId] for an invalid
@@ -57,6 +101,10 @@ interface AppointmentRepository {
    *
    * Call it once per appointment. To change an appointment after it is saved, use
    * [updateAppointment].
+   *
+   * @param circleId the id of the care circle the appointment belongs to.
+   * @param appointment the new appointment, with an id from [newId].
+   * @return the appointment as saved on the phone, or a failure with an [AppointmentError].
    */
   suspend fun addAppointment(circleId: String, appointment: Appointment): Result<Appointment>
 
@@ -76,6 +124,10 @@ interface AppointmentRepository {
    * refuses the edit. It is reported in [writeFailures] as [AppointmentError.NotFound].
    *
    * Fails right away, without writing anything, for the same reasons as [addAppointment].
+   *
+   * @param circleId the id of the care circle the appointment belongs to.
+   * @param appointment the appointment with its new values. Its id says which one to change.
+   * @return the appointment as saved on the phone, or a failure with an [AppointmentError].
    */
   suspend fun updateAppointment(circleId: String, appointment: Appointment): Result<Appointment>
 
@@ -88,6 +140,11 @@ interface AppointmentRepository {
    * - [AppointmentError.InvalidCircleId] or [AppointmentError.InvalidAppointmentId] for an invalid
    *   id, as in [addAppointment];
    * - [AppointmentError.NotAuthenticated] when nobody is signed in.
+   *
+   * @param circleId the id of the care circle the appointment belongs to.
+   * @param appointmentId the id of the appointment to delete.
+   * @return success once the deletion is saved on the phone, or a failure with an
+   *   [AppointmentError].
    */
   suspend fun deleteAppointment(circleId: String, appointmentId: String): Result<Unit>
 
@@ -104,6 +161,23 @@ interface AppointmentRepository {
    * a restart. If the server refuses it then, nothing is reported.
    */
   val writeFailures: Flow<AppointmentWriteFailure>
+
+  /**
+   * Tells whether this phone still has changes the server hasn't received. Call it before signing
+   * out. The changes not sent yet would otherwise be sent later with the next user's account, and
+   * the server would refuse them without a word.
+   *
+   * It covers every pending Firestore write of the app, not only appointments. The check can't tell
+   * them apart, so true doesn't mean an appointment is waiting.
+   *
+   * It waits up to 2 seconds for the server to receive every write. Offline, a waiting write is
+   * only reported once these 2 seconds are over. If the wait fails, for example because the user
+   * changed meanwhile, it returns true too, since nothing confirms the writes were received.
+   *
+   * @return false only if the server received every write within 2 seconds. True if the time ran
+   *   out or the wait failed.
+   */
+  suspend fun hasUnsyncedWrites(): Boolean
 }
 
 /** The kinds of writes [AppointmentRepository] makes. */
@@ -171,9 +245,7 @@ sealed class AppointmentError(message: String, cause: Throwable? = null) :
   /** Nobody is signed in. */
   class NotAuthenticated : AppointmentError("No user is signed in")
 
-  /**
-   * The security rules refused the write. For example, the user isn't a caregiver of this circle.
-   */
+  /** The security rules refused the write. For example, the user isn't a member of this circle. */
   class PermissionDenied : AppointmentError("You do not have permission to change this appointment")
 
   /** Any other failure. [source] is the original exception, kept as the cause. */

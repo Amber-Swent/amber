@@ -1,4 +1,5 @@
 // Written by Neha Chakraborty and assisted by Github Copilot.
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.authorization
 
@@ -62,7 +63,11 @@ class RoleAccessTest {
   fun patientMemberCannotManageCareCircleResources() {
     assertFalse(RoleAccess.canManagePlaces(patient, careCircle))
     assertFalse(RoleAccess.canCreateInvitation(patient, careCircle))
-    assertFalse(RoleAccess.canManageAppointment(patient, careCircle))
+  }
+
+  @Test
+  fun patientMemberCanManageAppointments() {
+    assertTrue(RoleAccess.canManageAppointment(patient, careCircle))
   }
 
   @Test

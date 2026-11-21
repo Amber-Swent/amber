@@ -21,19 +21,20 @@
     <string name="screenTitleCreateCareCircle">Create a CareCircle</string>
     <string name="screenTitleEnterInvitation">Enter an invitation</string>
     <string name="screenTitleCaregiverHome">Home</string>
-    <string name="screenTitleCaregiverUpload">Upload Pictures or Audios</string>
+    <string name="screenTitleCaregiverUpload">Upload Pictures, Audios or Texts</string>
     <string name="screenTitleCaregiverUploadPicture">Upload Picture</string>
     <string name="screenTitleCaregiverUploadAudio">Upload Audio</string>
+    <string name="screenTitleCaregiverUploadText">Upload Text</string>
     <string name="screenTitleCaregiverParameters">Parameters</string>
-    <string name="screenTitleCaregiverSignOut">Sign out</string>
+    <string name="screenTitleSignOut">Sign out</string>
     <string name="screenTitleCaregiverCreateInvitationCode">Create an invitation code</string>
-    <string name="screenTitleCaregiverDeleteAccount">Delete account</string>
+    <string name="screenTitleDeleteAccount">Delete account</string>
+    <string name="screenTitleCaregiverChangeCareCircle">Switch Care Circle</string>
     <string name="screenTitlePatientHome">Home</string>
     <string name="screenTitlePatientSeeMedias">See Medias</string>
     <string name="screenTitlePatientSeePictures">See Pictures</string>
     <string name="screenTitlePatientSeeAudios">See Audios</string>
     <string name="screenTitlePatientParameters">Parameters</string>
-    <string name="screenTitlePatientSignOut">Sign out</string>
 
     <!-- EmailSignIn -->
     <string name="signInWelcome">Welcome to Amber</string>
@@ -59,6 +60,9 @@
 
     <!-- AmberHeader -->
     <string name="amberHeaderLogo">Amber logo</string>
+
+    <!-- DisplayInformation: default description of its information icon (ui/utils/InformationUtils.kt) -->
+    <string name ="displayInformationIconDefaultDescription">Information</string>
 
     <!-- InputErrors: messages under text fields, from InputValidation (ui/utils/InputValidationErrorText.kt) -->
     <string name="inputErrorBlank">Please fill this out</string>
@@ -146,15 +150,28 @@
     <!-- CaregiverParameter -->
     <string name="caregiverParameterTitle">Parameters</string>
     <string name="caregiverParameterCreateCareCircle">Create a new care circle</string>
+    <string name="caregiverParameterSwitchCareCircle">Switch Care Circle</string>
     <string name="caregiverParameterCreateInvitation">Create Invitation</string>
     <string name="caregiverParameterEnterInvitation">Enter Invitation</string>
     <string name="caregiverParameterSignOut">Sign out</string>
     <string name="caregiverParameterInvitationHint">To add someone to your circle, tap %1$s and send them the code.</string>
     <string name="caregiverParameterDeleteAccount">Delete account</string>
 
+    <!-- ChangeCareCircle -->
+    <string name="changeCareCircleTitle">Switch Care Circle</string>
+    <string name="changeCareCircleCurrent">Current care circle:</string>
+    <string name="changeCareCircleAll">All care circles:</string>
+    <string name="changeCareCircleNone">No active care circle</string>
+    <string name="changeCareCircleEmpty">You are not linked to any care circle.\nYou can create one from %1$s &gt; %2$s, or join one from %1$s &gt; %3$s.</string>
+    <string name="changeCareCircleErrorLoadProfile">Could not load your profile.</string>
+    <string name="changeCareCircleErrorLoadCircle">Could not load your care circles.</string>
+    <string name="changeCareCircleErrorChange">Could not change the active care circle. Try again.</string>
+    <string name="changeCareCircleRetry">Retry</string>
+
     <!-- DeleteAccount -->
     <string name="deleteAccountTitle">Delete account</string>
-    <string name="deleteAccountExplanation">Deletion is permanent. Everything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
+    <string name="deleteAccountCaregiverExplanation">Deletion is permanent.\nEverything you uploaded and your stories are deleted for the whole family, including from other people\'s stories. What others uploaded stays, even if you\'re in it. You\'re also removed from appointments.</string>
+    <string name="deleteAccountPatientExplanation">Deletion is permanent. You won\'t be able to recover your account.\nEverything you uploaded will be deleted.</string>
     <string name="deleteAccountProgress">Deleting your account. This may take a few minutes.</string>
     <string name="deleteAccountCleanupLabel">Finish deleting</string>
     <string name="deleteAccountCheckingLabel">Checking your families…</string>
@@ -244,6 +261,8 @@
     <string name="uploadChoosePictureIcon">Picture</string>
     <string name="uploadChooseAudio">Upload Audio</string>
     <string name="uploadChooseAudioIcon">Audio</string>
+    <string name="uploadChooseText">Upload Text</string>
+    <string name="uploadChooseTextIcon">Text</string>
 
     <!-- UploadPicture -->
     <string name="uploadPictureTitle">Upload Picture</string>
@@ -281,6 +300,21 @@
     <string name="uploadAudioMicrophoneConsentTextSecond">It is only used while you are recording, after you tap the record button.</string>
     <string name="uploadAudioMicrophoneSettingsTextFirst">You have declined microphone access twice, so Amber can no longer ask for it.</string>
     <string name="uploadAudioMicrophoneSettingsTextSecond">To record an audio, turn on the microphone for Amber in your phone\'s settings.</string>
+    <string name="uploadAudioErrorMaxLength">Maximum recording length reached. We were forced to cut your audio, but it has been kept.</string>
+    <string name="uploadAudioInfoIcon">Information</string>
+    <string name="uploadAudioRecordingInfoFirst">Your story is being recorded</string>
+    <string name="uploadAudioRecordingInfoSecond">Click on the square to finish the record</string>
+    <string name="uploadAudioRecordedInfo">Your audio is recorded!</string>
+
+    <!-- UploadText -->
+    <string name="uploadTextTitle">Upload Text</string>
+    <string name="uploadTextTitleLabel">Title</string>
+    <string name="uploadTextTitlePlaceholder">Enter a title for the story.</string>
+    <string name="uploadTextTitleEmpty">Title cannot be empty</string>
+    <string name="uploadTextDescriptionLabel">Description</string>
+    <string name="uploadTextDescriptionPlaceholder">Enter a description of the story.</string>
+    <string name="uploadTextDescriptionEmpty">Description cannot be empty</string>
+    <string name="uploadTextUpload">Upload Text</string>
 
     <!-- PopupDialog: shared by the add-person and date picker dialogs (ui/utils/PopupDialog.kt) -->
     <string name="popupDialogClose">Close</string>
@@ -340,6 +374,7 @@
     <!-- PatientParameter -->
     <string name="patientParameterTitle">Parameters</string>
     <string name="patientParameterSignOut">Sign out</string>
+    <string name="patientParameterDeleteAccount">Delete account</string>
 
     <!-- SeeMedias -->
     <string name="seeMediasTitle">See Medias</string>

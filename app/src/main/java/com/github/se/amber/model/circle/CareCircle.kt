@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code and GitHub
 // Copilot.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 
 package com.github.se.amber.model.circle
 
@@ -26,14 +27,18 @@ typealias ViewerNicknames = Map<String, Map<String, String>>
  * - people: one entry added, changed or removed at a time, never the whole map, so concurrent edits
  *   by two members don't overwrite each other's entries.
  * - nicknames: each member edits only their own entry (keyed by their uid).
+ * - personPhotos: person id or uid -> full Storage path of that person's profile picture,
+ *   careCircles/{id}/people/{personId}/{photoId}.jpg. Members change one entry at a time. The key
+ *   is the writer's uid or a key of [people]. Removing a person from [people] must remove their
+ *   entry in the same write: afterwards the rules refuse it.
  * - places: by caregivers only, one entry added, changed or removed at a time, like people.
  *
  * Read: after login, get careCircles/{id} for each id in UserProfile.circleIds, then keep a
  * snapshot listener on the circle being viewed so the people list updates live.
  *
  * Rules: [memberIds] is the source of truth for membership. Members may only change `name`,
- * `people` and their own entry in `nicknames`, and caregivers (UserProfile.role) also `places`;
- * `patientId` is set once, when the patient's phone is linked.
+ * `people`, their own entry in `nicknames`, and one entry of `personPhotos`; caregivers
+ * (UserProfile.role) also `places`; `patientId` is set once, when the patient's phone is linked.
  */
 data class CareCircle(
     val id: String = "", // circleId = document id
@@ -44,6 +49,8 @@ data class CareCircle(
     val memberIds: List<String> = emptyList(),
     val people: Map<String, Person> = emptyMap(), // personId -> Person without an account
     val nicknames: ViewerNicknames = emptyMap(),
+    // person id or uid -> storage path. A missing Firestore field decodes as an empty map.
+    val personPhotos: Map<String, String> = emptyMap(),
     // placeId -> place the patient often goes to; can be set up before the patient joins
     val places: Map<String, Place> = emptyMap(),
     val createdBy: String = "", // uid of the caregiver who created the circle

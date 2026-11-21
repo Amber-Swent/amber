@@ -1,5 +1,7 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const { getAuth } = require("firebase-admin/auth");
 const { HttpsError, onCall } = require("firebase-functions/v2/https");
 const { deleteDocuments } = require("./batches");
@@ -89,11 +91,16 @@ async function deleteAuthUser(uid) {
  *    b. Delete their media with its files, and their stories. Their media is removed from the
  *       other stories first: its ids are only known while its documents exist. The files go
  *       before their documents, the only record of where they are.
- *    c. Remove them from what stays: the other media and the appointments.
- *    d. Only then remove them from memberIds. A retry finds the circles to clean through
+ *    c. Remove them from what stays: the other media, and the appointments they didn't create.
+ *       The appointments they created are deleted, like their media.
+ *    d. If others stay, delete their photo folder, including files personPhotos no longer lists.
+ *       The folder goes before the circle document. Alone in the circle, the whole bucket is
+ *       about to go, so the folder is left for that.
+ *    e. Only then remove them from memberIds, and their personPhotos key when the field is
+ *       present. An absent field stays absent. A retry finds the circles to clean through
  *       memberIds: had they left a circle first and a later step failed, the retry would never
  *       come back to it.
- *    e. If they were its last member, delete the bucket, then the circle. The bucket goes first,
+ *    f. If they were its last member, delete the bucket, then the circle. The bucket goes first,
  *       as its name would be lost with the circle.
  * 4. Delete the profile, then the Auth user.
  * @param {CallableRequest} request needs a recent sign-in, see requireRecentSignIn

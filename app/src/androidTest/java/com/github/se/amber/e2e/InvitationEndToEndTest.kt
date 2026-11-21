@@ -13,7 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.se.amber.AmberApp
 import com.github.se.amber.R
 import com.github.se.amber.ui.authentication.signIn.EmailSignInTestTags
-import com.github.se.amber.ui.authentication.signOut.SignOutButtonTestTags
+import com.github.se.amber.ui.authentication.signOut.SignOutTestTags
 import com.github.se.amber.ui.caregiver.CaregiverHomeTestTags
 import com.github.se.amber.ui.caregiver.DisplayCaregiverButtonTestTags
 import com.github.se.amber.ui.caregiver.parameters.CaregiverParametersTestTags
@@ -108,7 +108,7 @@ class InvitationEndToEndTest {
     steps.click(BottomNavigationMenuTestTags.tabTag(CaregiverTab.Setting))
     steps.waitFor(CaregiverParametersTestTags.TITLE)
     steps.click(CaregiverParametersTestTags.SIGN_OUT_BUTTON)
-    steps.click(SignOutButtonTestTags.BUTTON)
+    steps.click(SignOutTestTags.BUTTON)
     steps.waitFor(EmailSignInTestTags.GOOGLE_BUTTON)
 
     signInWithGoogle("bob-$runId@amber.test", "Bob")

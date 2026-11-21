@@ -92,6 +92,60 @@ service cloud.firestore {
         && userDoc(request.auth.uid).circleIds.hasAny(resource.data.circleIds);
     }
 
+    // A personPhotos write changes nothing, or exactly one entry. A missing field counts as {},
+    // so adding {} beside a name, people, nicknames, or places edit stays valid.
+    function personPhotosChangeIsValid(circleId) {
+      let before = resource.data.get('personPhotos', {});
+      let after = request.resource.data.get('personPhotos', {});
+      return before == after || onePersonPhotoEntryChanged(circleId, before, after);
+    }
+
+    // The one changed key is added, replaced, or removed. Removing it is allowed. A kept value
+    // must be that key's own photo path; a path copied from another entry has no new value.
+    function onePersonPhotoEntryChanged(circleId, before, after) {
+      let affected = after.diff(before).affectedKeys();
+      let removed = after.diff(before).removedKeys();
+      let newValues = after.values().removeAll(before.values());
+      return affected.size() == 1
+        && personPhotoKeyAllowed(affected)
+        && (removed.size() == 1 || personPhotoValueIsOwnPath(circleId, affected, newValues));
+    }
+
+    // The changed key is the writer's uid, or a key of people before this write, so a same-write
+    // edit of people cannot authorize it. keys() is a List; union() is Set-only, so a people-key
+    // removal is allowed when adding the key does not grow that set.
+    function personPhotoKeyAllowed(affected) {
+      let peopleKeys = resource.data.get('people', {}).keys().toSet();
+      return affected.hasOnly([request.auth.uid])
+        || peopleKeys.union(affected).size() == peopleKeys.size();
+    }
+
+    // The value that stays is a single new string. Copying a path already stored for someone
+    // else leaves no new value, and is refused.
+    function personPhotoValueIsOwnPath(circleId, affected, newValues) {
+      return newValues.size() == 1
+        && newValues[0] is string
+        && personPhotoPathMatches(circleId, affected, newValues[0]);
+    }
+
+    // Ids must not contain '_': MediaFileCache turns '/' into '_' and relies on ids having none.
+    function idsWithoutUnderscore(circleId, personId) {
+      return !circleId.matches('.*_.*')
+        && !personId.matches('.*_.*');
+    }
+
+    // careCircles/{circleId}/people/{that key}/{photoId}.jpg, and the folder is the changed key.
+    function personPhotoPathMatches(circleId, affected, path) {
+      let parts = path.split('/');
+      return parts.size() == 5
+        && parts[0] == 'careCircles'
+        && parts[1] == circleId
+        && parts[2] == 'people'
+        && parts[4].matches('[^_]+\\.jpg')
+        && idsWithoutUnderscore(circleId, parts[3])
+        && affected.hasOnly([parts[3]]);
+    }
+
     // Membership / invite redeem is backend-only (Admin SDK / Cloud Functions).
     function memberCircleFieldEdit(circleId) {
       return canWriteTo(circleId)
@@ -101,9 +155,10 @@ service cloud.firestore {
         && request.resource.data.memberIds == resource.data.memberIds
         && request.resource.data.patientId == resource.data.patientId
         && request.resource.data.diff(resource.data)
-             .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places'])
+             .affectedKeys().hasOnly(['name', 'people', 'nicknames', 'places', 'personPhotos'])
         && onlyOwnNicknameChanged()
-        && placesChangedOnlyByCaregiver();
+        && placesChangedOnlyByCaregiver()
+        && personPhotosChangeIsValid(circleId);
     }
 
     function onlyOwnNicknameChanged() {
@@ -133,6 +188,55 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'description', 'date', 'location', 'shownIds', 'authorizedIds', 'text', 'transcript'
       ]);
+    }
+
+    // An appointment as it is stored after a create or an edit: only the fields of Appointment,
+    // saved by the signed-in user. It must pass the same checks as validationError() in the app.
+    // The attendees must be members of the circle. A field the app can't read would make the
+    // appointment disappear for the whole circle, so each one has the type the app expects.
+    function isValidAppointment(circleId, appointmentId) {
+      let data = request.resource.data;
+      return data.id == appointmentId
+        && data.keys().hasOnly([
+          'id', 'title', 'notes', 'startAt', 'durationMinutes', 'location', 'attendeeIds',
+          'lastEndAt', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt'
+        ])
+        && data.title is string
+        && data.title.trim().size() > 0
+        && data.notes is string
+        && hasValidAppointmentTime(data)
+        && isValidLocation(data.get('location', null))
+        && data.updatedBy == request.auth.uid
+        && data.updatedAt is int
+        && data.attendeeIds is list
+        && data.attendeeIds.hasOnly(circleDoc(circleId).memberIds);
+    }
+
+    // The start is set, the duration is unknown or between 1 minute and 1 day, and lastEndAt is
+    // the end the app computes: the start plus the duration, or plus 60 minutes when it is
+    // unknown. The calendar's query trusts lastEndAt, so a wrong one would show the appointment on
+    // days it doesn't cover. Repeating appointments will be implemented later, with a lastEndAt at
+    // the end of their last occurrence. This check will then have to change.
+    function hasValidAppointmentTime(data) {
+      let minutes = data.get('durationMinutes', null);
+      return data.startAt is int
+        && data.startAt > 0
+        && data.lastEndAt is int
+        && ((minutes == null && data.lastEndAt == data.startAt + 60 * 60000)
+          || (minutes is int
+            && minutes >= 1
+            && minutes <= 24 * 60
+            && data.lastEndAt == data.startAt + minutes * 60000));
+    }
+
+    // Null, or a GeoLocation: only lat, lng and placeName, each unset or of its type.
+    function isValidLocation(location) {
+      return location == null
+        || (location is map
+          && location.keys().hasOnly(['lat', 'lng', 'placeName'])
+          && (location.get('lat', null) == null || location.lat is number)
+          && (location.get('lng', null) == null || location.lng is number)
+          && (location.get('placeName', null) == null || location.placeName is string));
     }
 
     match /users/{uid} {
@@ -194,6 +298,8 @@ service cloud.firestore {
         && request.resource.data.patientId == ''
         // the bucket is assigned by the backend only: the app writes it empty
         && request.resource.data.get('storageBucket', '') == ''
+        // photos are added after create; a missing or empty map keeps existing creates working
+        && request.resource.data.get('personPhotos', {}) == {}
         && request.resource.data.createdAt is int;
 
       allow update: if memberCircleFieldEdit(circleId);
@@ -229,14 +335,17 @@ service cloud.firestore {
         allow read: if isMember(circleId);
 
         allow create: if canWriteTo(circleId)
-          && isCaregiver()
-          && request.resource.data.id == appointmentId;
+          && isValidAppointment(circleId, appointmentId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt is int;
 
+        // Every member may edit any appointment, but nobody may change who created it or when
         allow update: if canWriteTo(circleId)
-          && isCaregiver()
-          && request.resource.data.id == appointmentId;
+          && isValidAppointment(circleId, appointmentId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
 
-        allow delete: if canWriteTo(circleId) && isCaregiver();
+        allow delete: if canWriteTo(circleId);
       }
     }
 

@@ -1,5 +1,6 @@
 // Written by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 // Modify by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.model.media
 
@@ -45,6 +46,7 @@ sealed interface MediaItem {
   val authorizedIds: List<String>
   val status: MediaStatus
 
+  // TODO: add a title to MediaItem.Text in a future PR.
   data class Text(
       override val id: String = "",
       override val authorId: String = "",

@@ -1,6 +1,7 @@
 // Written by GitHub Copilot.
 // Modified by Neha Chakraborty and Copilot, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
 const assert = require("node:assert/strict");
 const Module = require("node:module");
 const path = require("node:path");
@@ -239,7 +240,17 @@ function storedBucket(name) {
         if (!state.buckets.get(name)?.delete(filePath) && !ignoreNotFound) throw notFound();
       },
     }),
-    deleteFiles: async ({force}) => {
+    // A prefix removes only paths that start with it. No prefix, with force, clears the bucket.
+    deleteFiles: async ({force, prefix}) => {
+      if (prefix) {
+        failIfAsked("deleteFiles", prefix);
+        if (!state.buckets.has(name)) throw notFound();
+        const files = state.buckets.get(name);
+        for (const filePath of [...files]) {
+          if (filePath.startsWith(prefix)) files.delete(filePath);
+        }
+        return;
+      }
       assert.equal(force, true);
       if (!state.buckets.has(name)) throw notFound();
       state.buckets.get(name).clear();

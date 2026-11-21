@@ -1,4 +1,5 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.accountDeletion
 
@@ -21,7 +22,6 @@ import com.github.se.amber.data.profile.ProfileRepositoryProvider
 import com.github.se.amber.model.authentication.AuthRepository
 import com.github.se.amber.model.authentication.AuthRepositoryProvider
 import com.github.se.amber.model.authentication.ReauthenticationError
-import com.github.se.amber.model.user.Role
 import com.github.se.amber.ui.utils.UiText
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import kotlinx.coroutines.CancellationException
@@ -107,7 +107,6 @@ class DeleteAccountViewModel(
         val profile =
             profileRepository.getCurrentProfile().getOrThrow()
                 ?: error("The caregiver profile is unavailable")
-        check(profile.role == Role.CAREGIVER) { "Only caregivers can use this screen" }
         val warnings = mutableListOf<UiText.Resource>()
         for (circleId in profile.circleIds) {
           val circle = circleRepository.getCircle(circleId).getOrThrow()

@@ -2,13 +2,12 @@
 // Modified by Yuhan YANG, with assistance from Cursor.
 // Modified by MeiliV, with assistance from OpenAI Codex
 // Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
+// Modified by Yuhan YANG, with assistance from Cursor.
 
 package com.github.se.amber.ui.caregiver.parameters.createIntivation
 
 import com.github.se.amber.R
 import com.github.se.amber.data.circle.ActiveCircleRepository
-import com.github.se.amber.data.circle.CareCircleError
-import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.invitation.InvitationCreationRepository
 import com.github.se.amber.data.invitation.InvitationCreationResult
 import com.github.se.amber.data.invitation.InvitationLookupRepository
@@ -16,15 +15,13 @@ import com.github.se.amber.data.invitation.InvitationStatus
 import com.github.se.amber.data.invitation.InvitationSummary
 import com.github.se.amber.data.profile.ProfileReadError
 import com.github.se.amber.data.profile.ProfileRepository
-import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
-import com.github.se.amber.ui.caregiver.parameters.createInvitation.CareCircleChoice
 import com.github.se.amber.ui.caregiver.parameters.createInvitation.CreateInvitationViewModel
 import io.mockk.every
 import io.mockk.mockk
-import java.util.concurrent.CancellationException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,15 +45,13 @@ import org.junit.Test
 /**
  * Tests [CreateInvitationViewModel] with in-memory repositories.
  *
- * Covers circle selection, invitation loading, creation failures, a second click while a creation
- * is still running, a stale circle lookup, and an unexpected creation exception. No test talks to
- * Firebase.
+ * Covers the active circle, invitation loading, creation failures, a second click while a creation
+ * is still running, and an unexpected creation exception. No test talks to Firebase.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CreateInvitationViewModelTest {
   private val dispatcher = StandardTestDispatcher()
   private lateinit var profiles: FakeProfileRepository
-  private lateinit var circles: FakeCircleRepository
   private lateinit var lookup: FakeLookupRepository
   private lateinit var creation: FakeCreationRepository
   private val activeCircleRepository = mockk<ActiveCircleRepository>()
@@ -65,7 +60,6 @@ class CreateInvitationViewModelTest {
   fun setUp() {
     Dispatchers.setMain(dispatcher)
     profiles = FakeProfileRepository(Result.success(profile("circle-1")))
-    circles = FakeCircleRepository(mapOf("circle-1" to circle("circle-1", "Arthur's family")))
     lookup = FakeLookupRepository()
     creation = FakeCreationRepository()
     every { activeCircleRepository.activeCircleId(any(), any()) } answers
@@ -91,7 +85,7 @@ class CreateInvitationViewModelTest {
             R.string.createInvitationErrorNoCircle,
             viewModel.uiState.value.errorMsgRes,
         )
-        assertEquals(emptyList<CareCircleChoice>(), viewModel.uiState.value.circles)
+        assertNull(viewModel.uiState.value.selectedCircleId)
         assertEquals(emptyList<String>(), lookup.requestedCircleIds)
         assertEquals(emptyList<String>(), creation.requestedCircleIds)
       }
@@ -118,10 +112,6 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals(
-            listOf(CareCircleChoice("circle-1", "Arthur's family")),
-            viewModel.uiState.value.circles,
-        )
         assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
         assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
       }
@@ -134,10 +124,6 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals(
-            listOf(CareCircleChoice("circle-1", "Arthur's family")),
-            viewModel.uiState.value.circles,
-        )
         assertNull(viewModel.uiState.value.selectedCircleId)
         assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
         assertTrue(lookup.requestedCircleIds.isEmpty())
@@ -206,7 +192,7 @@ class CreateInvitationViewModelTest {
       }
 
   @Test
-  fun loadsCircleNameAndInvitations() =
+  fun loadsTheActiveCircleInvitations() =
       runTest(dispatcher) {
         val stored = invitation("OLD12345")
         lookup.results = mapOf("circle-1" to Result.success(listOf(stored)))
@@ -214,10 +200,6 @@ class CreateInvitationViewModelTest {
         val viewModel = viewModel()
         advanceUntilIdle()
 
-        assertEquals(
-            listOf(CareCircleChoice("circle-1", "Arthur's family")),
-            viewModel.uiState.value.circles,
-        )
         assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
         assertEquals(listOf(stored), viewModel.uiState.value.invitations)
         assertNull(viewModel.uiState.value.errorMsgRes)
@@ -228,13 +210,6 @@ class CreateInvitationViewModelTest {
   fun startsWithTheActiveCircleWhenItIsSecond() =
       runTest(dispatcher) {
         profiles.result = Result.success(profile("circle-1", "circle-2"))
-        circles =
-            FakeCircleRepository(
-                mapOf(
-                    "circle-1" to circle("circle-1", "Arthur's family"),
-                    "circle-2" to circle("circle-2", "Bea's family"),
-                )
-            )
         every {
           activeCircleRepository.activeCircleId("caregiver-1", listOf("circle-1", "circle-2"))
         } returns flowOf("circle-2")
@@ -244,93 +219,6 @@ class CreateInvitationViewModelTest {
 
         assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
         assertEquals(listOf("circle-2"), lookup.requestedCircleIds)
-      }
-
-  @Test
-  fun unavailableOrBlankCircleNameUsesTheCircleId() =
-      runTest(dispatcher) {
-        circles = FakeCircleRepository(mapOf("circle-1" to circle("circle-1", "  ")))
-        val blankName = viewModel()
-        advanceUntilIdle()
-        assertEquals(
-            listOf(CareCircleChoice("circle-1", "circle-1")),
-            blankName.uiState.value.circles,
-        )
-
-        circles = FakeCircleRepository(emptyMap())
-        val missingCircle = viewModel()
-        advanceUntilIdle()
-        assertEquals(
-            listOf(CareCircleChoice("circle-1", "circle-1")),
-            missingCircle.uiState.value.circles,
-        )
-      }
-
-  @Test
-  fun severalCirclesStartOnTheFirstUntilTheUserSwitches() =
-      runTest(dispatcher) {
-        profiles.result = Result.success(profile("circle-1", "circle-2"))
-        circles =
-            FakeCircleRepository(
-                mapOf(
-                    "circle-1" to circle("circle-1", "Arthur's family"),
-                    "circle-2" to circle("circle-2", "Bea's family"),
-                ),
-            )
-        val first = invitation("FIRST111")
-        val second = invitation("SECOND22")
-        lookup.results =
-            mapOf(
-                "circle-1" to Result.success(listOf(first)),
-                "circle-2" to Result.success(listOf(second)),
-            )
-        val viewModel = viewModel()
-        advanceUntilIdle()
-        creation.result = InvitationCreationResult.Created("AB12CD34")
-        viewModel.createInvitation()
-        advanceUntilIdle()
-
-        viewModel.selectCircle("circle-2")
-        advanceUntilIdle()
-
-        assertEquals(
-            listOf(
-                CareCircleChoice("circle-1", "Arthur's family"),
-                CareCircleChoice("circle-2", "Bea's family"),
-            ),
-            viewModel.uiState.value.circles,
-        )
-        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
-        assertEquals(listOf(second), viewModel.uiState.value.invitations)
-        assertNull(viewModel.uiState.value.generatedCode)
-        assertEquals(listOf("circle-1", "circle-1", "circle-2"), lookup.requestedCircleIds)
-      }
-
-  @Test
-  fun unknownCircleSelectionIsIgnored() =
-      runTest(dispatcher) {
-        lookup.results = mapOf("circle-1" to Result.success(listOf(invitation("OLD12345"))))
-        val viewModel = viewModel()
-        advanceUntilIdle()
-
-        viewModel.selectCircle("missing")
-        advanceUntilIdle()
-
-        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
-        assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
-      }
-
-  @Test
-  fun selectingTheCurrentCircleDoesNotReloadInvitations() =
-      runTest(dispatcher) {
-        val viewModel = viewModel()
-        advanceUntilIdle()
-
-        viewModel.selectCircle("circle-1")
-        advanceUntilIdle()
-
-        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
-        assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
       }
 
   @Test
@@ -436,16 +324,8 @@ class CreateInvitationViewModelTest {
       }
 
   @Test
-  fun secondCreateAndCircleSwitchWhileRunningAreIgnored() =
+  fun secondCreateWhileRunningIsIgnored() =
       runTest(dispatcher) {
-        profiles.result = Result.success(profile("circle-1", "circle-2"))
-        circles =
-            FakeCircleRepository(
-                mapOf(
-                    "circle-1" to circle("circle-1", "Arthur's family"),
-                    "circle-2" to circle("circle-2", "Bea's family"),
-                ),
-            )
         val viewModel = viewModel()
         advanceUntilIdle()
         creation.pause = true
@@ -453,7 +333,6 @@ class CreateInvitationViewModelTest {
         viewModel.createInvitation()
         runCurrent()
         viewModel.createInvitation()
-        viewModel.selectCircle("circle-2")
         runCurrent()
 
         assertEquals(listOf("circle-1"), creation.requestedCircleIds)
@@ -466,75 +345,6 @@ class CreateInvitationViewModelTest {
         assertEquals(listOf("circle-1"), creation.requestedCircleIds)
         assertEquals("AB12CD34", viewModel.uiState.value.generatedCode)
         assertTrue(!viewModel.uiState.value.isCreating)
-      }
-
-  @Test
-  fun staleCircleLookupDoesNotReplaceTheSelectedList() =
-      runTest(dispatcher) {
-        profiles.result = Result.success(profile("circle-1", "circle-2"))
-        circles =
-            FakeCircleRepository(
-                mapOf(
-                    "circle-1" to circle("circle-1", "Arthur's family"),
-                    "circle-2" to circle("circle-2", "Bea's family"),
-                ),
-            )
-        val first = invitation("FIRST111")
-        val second = invitation("SECOND22")
-        lookup.results =
-            mapOf(
-                "circle-1" to Result.success(listOf(first)),
-                "circle-2" to Result.success(listOf(second)),
-            )
-        val circleA = CompletableDeferred<Unit>()
-        lookup.gates["circle-1"] = circleA
-        lookup.ignoreCancellationFor += "circle-1"
-
-        val viewModel = viewModel()
-        advanceUntilIdle()
-        viewModel.selectCircle("circle-2")
-        advanceUntilIdle()
-
-        assertEquals(listOf(second), viewModel.uiState.value.invitations)
-
-        circleA.complete(Unit)
-        advanceUntilIdle()
-
-        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
-        assertEquals(listOf(second), viewModel.uiState.value.invitations)
-      }
-
-  @Test
-  fun staleCircleLookupFailureDoesNotShowAnErrorForTheNewCircle() =
-      runTest(dispatcher) {
-        profiles.result = Result.success(profile("circle-1", "circle-2"))
-        circles =
-            FakeCircleRepository(
-                mapOf(
-                    "circle-1" to circle("circle-1", "Arthur's family"),
-                    "circle-2" to circle("circle-2", "Bea's family"),
-                )
-            )
-        val second = invitation("SECOND22")
-        lookup.results =
-            mapOf(
-                "circle-1" to Result.failure(IllegalStateException("stale failure")),
-                "circle-2" to Result.success(listOf(second)),
-            )
-        val circleA = CompletableDeferred<Unit>()
-        lookup.gates["circle-1"] = circleA
-        lookup.ignoreCancellationFor += "circle-1"
-
-        val viewModel = viewModel()
-        advanceUntilIdle()
-        viewModel.selectCircle("circle-2")
-        advanceUntilIdle()
-        circleA.complete(Unit)
-        advanceUntilIdle()
-
-        assertEquals("circle-2", viewModel.uiState.value.selectedCircleId)
-        assertEquals(listOf(second), viewModel.uiState.value.invitations)
-        assertNull(viewModel.uiState.value.errorMsgRes)
       }
 
   @Test
@@ -566,12 +376,47 @@ class CreateInvitationViewModelTest {
         assertTrue(!viewModel.uiState.value.isCreating)
       }
 
+  @Test
+  fun createWithoutACircleDoesNotCallTheServer() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.selectedCircleId)
+        assertEquals(R.string.createInvitationErrorNoCircle, viewModel.uiState.value.errorMsgRes)
+        assertEquals(emptyList<String>(), creation.requestedCircleIds)
+        assertTrue(!viewModel.uiState.value.isCreating)
+      }
+
+  @Test
+  fun createLoadsACircleThatAppearsAfterTheScreenOpened() =
+      runTest(dispatcher) {
+        profiles.result = Result.success(profile())
+        val viewModel = viewModel()
+        advanceUntilIdle()
+        profiles.result = Result.success(profile("circle-1"))
+        lookup.results = mapOf("circle-1" to Result.success(emptyList()))
+        creation.result = InvitationCreationResult.Created("AB12CD34")
+
+        viewModel.createInvitation()
+        advanceUntilIdle()
+
+        assertEquals("circle-1", viewModel.uiState.value.selectedCircleId)
+        assertEquals("AB12CD34", viewModel.uiState.value.generatedCode)
+        assertEquals(listOf("circle-1"), creation.requestedCircleIds)
+        assertEquals(listOf("circle-1"), lookup.requestedCircleIds)
+        assertNull(viewModel.uiState.value.errorMsgRes)
+      }
+
   private fun viewModel() =
       CreateInvitationViewModel(
           profileRepository = profiles,
           creationRepository = creation,
           lookupRepository = lookup,
-          circleRepository = circles,
           activeCircleRepository = activeCircleRepository,
       )
 
@@ -582,8 +427,6 @@ class CreateInvitationViewModelTest {
           person = Person(id = "caregiver-1", firstName = "Ada"),
           circleIds = circleIds.toList(),
       )
-
-  private fun circle(id: String, name: String) = CareCircle(id = id, name = name)
 
   private fun invitation(code: String) =
       InvitationSummary(
@@ -603,22 +446,6 @@ private class FakeProfileRepository(var result: Result<UserProfile?>) : ProfileR
   override suspend fun getCurrentProfile(): Result<UserProfile?> = result
 
   override suspend fun getProfile(uid: String): Result<UserProfile?> = result
-}
-
-private class FakeCircleRepository(private val circles: Map<String, CareCircle>) :
-    CareCircleRepository {
-
-  override fun newId(): String {
-    error("Not used by invitation test")
-  }
-
-  override suspend fun getCircle(circleId: String): Result<CareCircle> {
-    val circle = circles[circleId] ?: return Result.failure(CareCircleError.NotFound)
-    return Result.success(circle)
-  }
-
-  override suspend fun addPerson(circleId: String, person: Person): Result<Person> =
-      error("Not used by invitation test")
 }
 
 private class FakeLookupRepository : InvitationLookupRepository {

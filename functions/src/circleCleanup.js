@@ -1,5 +1,7 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const { FieldValue } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
 const { deleteDocuments, writeInBatches } = require("./batches");
@@ -68,21 +70,27 @@ async function removeFromRemainingMedia(uid, circleRef) {
 }
 
 /**
- * Removes the user from the attendees of a circle's appointments. The appointments they created
- * stay for the others, with an empty creator.
+ * Deletes the appointments the user created in a circle. Removes the user from the attendees of the
+ * others, and empties their last editor where it was the user.
  * @param {string} uid the user being deleted
  * @param {DocumentReference} circleRef the circle to clean up
  */
 async function removeFromAppointments(uid, circleRef) {
   const appointments = circleRef.collection("appointments");
-  const [attending, created] = await Promise.all([
-    appointments.where("attendeeIds", "array-contains", uid).get(),
+  const [created, attending, updated] = await Promise.all([
     appointments.where("createdBy", "==", uid).get(),
+    appointments.where("attendeeIds", "array-contains", uid).get(),
+    appointments.where("updatedBy", "==", uid).get(),
   ]);
-  await writeInBatches(attending.docs, (batch, appointment) =>
+  await deleteDocuments(created.docs);
+  // An update of a deleted appointment would fail, so only the others are updated
+  const createdIds = new Set(created.docs.map((appointment) => appointment.id));
+  const others = (snapshot) =>
+    snapshot.docs.filter((appointment) => !createdIds.has(appointment.id));
+  await writeInBatches(others(attending), (batch, appointment) =>
     batch.update(appointment.ref, { attendeeIds: FieldValue.arrayRemove(uid) }));
-  await writeInBatches(created.docs, (batch, appointment) =>
-    batch.update(appointment.ref, { createdBy: "" }));
+  await writeInBatches(others(updated), (batch, appointment) =>
+    batch.update(appointment.ref, { updatedBy: "" }));
 }
 
 /**
@@ -103,9 +111,23 @@ function nicknamesWithout(uid, nicknames) {
 }
 
 /**
- * Removes the user from a circle's members, nicknames, patient and creator, and the circle from
- * their profile, in one transaction. Leaves both as they are if they are its last member: the
- * circle is then deleted as a whole, see forgetCircle.
+ * Removes the user's key from a circle's personPhotos. Every other person's photo stays, including
+ * a person who has no account.
+ * @param {string} uid the user being deleted
+ * @param {Object<string, string>} personPhotos person id to storage path
+ * @returns {Object<string, string>} the photos without the user
+ */
+function personPhotosWithout(uid, personPhotos) {
+  return Object.fromEntries(
+    Object.entries(personPhotos).filter(([personId]) => personId !== uid),
+  );
+}
+
+/**
+ * Removes the user from a circle's members, nicknames, personPhotos, patient and creator, and the
+ * circle from their profile, in one transaction. Leaves both as they are if they are its last
+ * member: the circle is then deleted as a whole, see forgetCircle. An absent personPhotos field
+ * stays absent.
  *
  * The profile must only list circles the app can read, ones that exist and list the user: the
  * deletion screen reads every circle of the profile before letting the user retry.
@@ -131,6 +153,9 @@ async function leaveCircle(uid, circleRef) {
     transaction.update(circleRef, {
       memberIds: FieldValue.arrayRemove(uid),
       ...(circle.nicknames ? { nicknames: nicknamesWithout(uid, circle.nicknames) } : {}),
+      ...(circle.personPhotos
+        ? { personPhotos: personPhotosWithout(uid, circle.personPhotos) }
+        : {}),
       ...(circle.patientId === uid ? { patientId: "" } : {}),
       ...(circle.createdBy === uid ? { createdBy: "" } : {}),
     });
@@ -179,6 +204,24 @@ async function refreshBucketRules(circleId, bucketName) {
 }
 
 /**
+ * Deletes careCircles/{circleId}/people/{uid}/ when others stay in the circle. The whole prefix
+ * goes, including files personPhotos no longer lists. Not another member's folder, not a person
+ * without an account, and not media. A missing prefix deletes nothing. Does nothing when
+ * usesStorage is false: the emulator has no bucket, and this would reach real Cloud Storage.
+ * @param {string} uid the user being deleted
+ * @param {string} circleId the circle that stays
+ * @param {string | undefined} bucketName the circle's storageBucket
+ */
+async function deletePhotoFolder(uid, circleId, bucketName) {
+  if (!usesStorage(bucketName)) {
+    return;
+  }
+  await getStorage().bucket(bucketName).deleteFiles({
+    prefix: `careCircles/${circleId}/people/${uid}/`,
+  });
+}
+
+/**
  * Removes every trace of the user from one circle, and deletes the circle with its bucket if they
  * were its last member. Step 3 of deleteAccount, which explains the order.
  * @param {string} uid the user being deleted
@@ -187,13 +230,18 @@ async function refreshBucketRules(circleId, bucketName) {
 async function removeFromCircle(uid, circleSnapshot) {
   const circleRef = circleSnapshot.ref;
   const bucketName = circleSnapshot.get("storageBucket");
+  const othersStay = circleSnapshot.get("memberIds").length > 1;
   // Alone in the circle, the whole bucket is about to go
-  if (circleSnapshot.get("memberIds").length > 1) {
+  if (othersStay) {
     await refreshBucketRules(circleRef.id, bucketName);
   }
   await deleteAuthoredMedia(uid, circleRef, bucketName);
   await removeFromRemainingMedia(uid, circleRef);
   await removeFromAppointments(uid, circleRef);
+  // The folder goes before leaveCircle drops their personPhotos entry
+  if (othersStay) {
+    await deletePhotoFolder(uid, circleRef.id, bucketName);
+  }
   if (await leaveCircle(uid, circleRef)) {
     await deleteBucket(bucketName);
     // Before the circle goes: a profile listing a deleted circle would block the deletion screen,

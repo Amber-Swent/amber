@@ -5,13 +5,14 @@
 // Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 // Modified by Alaabrine, with assistance from Cursor (Grok).
 // Modified by Yuhan YANG, with assistance from Cursor.
+// Modified by Alaabrine, with assistance from Cursor Agent.
 
 package com.github.se.amber.firestore
 
 import com.github.se.amber.data.invitation.universalInvitationPayload
+import com.github.se.amber.emulator.FirestoreEmulatorClient
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Base64
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -504,20 +505,12 @@ class FirestoreSecurityRulesEmulatorTest {
             ),
         ),
     )
-    val appointment =
-        mapOf(
-            "id" to "a1",
-            "title" to "Doctor",
-            "notes" to "",
-            "startAt" to now,
-            "attendeeIds" to emptyList<String>(),
-            "createdBy" to care,
-            "createdAt" to now,
-        )
-    fs.assertFails(pat, fs.set("careCircles/$circleId/appointments/a1", appointment))
-    fs.assertSucceeds(care, fs.set("careCircles/$circleId/appointments/a1", appointment))
-    fs.assertFails(pat, fs.delete("careCircles/$circleId/appointments/a1"))
-    fs.assertSucceeds(care, fs.delete("careCircles/$circleId/appointments/a1"))
+    // Every member writes appointments: each one may delete what the other created
+    val appointmentPath = "careCircles/$circleId/appointments/a1"
+    fs.assertSucceeds(care, fs.set(appointmentPath, appointment("a1", care)))
+    fs.assertSucceeds(pat, fs.delete(appointmentPath))
+    fs.assertSucceeds(pat, fs.set(appointmentPath, appointment("a1", pat)))
+    fs.assertSucceeds(care, fs.delete(appointmentPath))
     fs.assertSucceeds(pat, fs.delete("$mediaCol/m1"))
   }
 
@@ -619,6 +612,80 @@ class FirestoreSecurityRulesEmulatorTest {
     )
   }
 
+  /** The writes behind AppointmentRepository: the fields it sets, and only those. */
+  @Test
+  fun appointments_savedByTheWriter_withValidFields_enforcedByEmulator() {
+    val circleId = "c-appointments"
+    val care = "care"
+    val care2 = "care2"
+    val pat = "pat"
+    fs.adminSet(
+        "careCircles/$circleId",
+        circle(circleId, care, listOf(care, care2, pat), patientId = pat),
+    )
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$care2", user(care2, "CAREGIVER", listOf(circleId), "Bob"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    val path = "careCircles/$circleId/appointments"
+    val created = appointment("a1", care)
+
+    fs.assertSucceeds(care, fs.set("$path/a1", created))
+    // created as someone else, or with an end before its start
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care2)))
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("lastEndAt" to START - 1)))
+    // a field Appointment doesn't have, an empty title, an attendee who isn't a member
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("color" to "red")))
+    fs.assertFails(care, fs.set("$path/a2", appointment("a2", care) + ("title" to "")))
+    fs.assertFails(
+        care,
+        fs.set("$path/a2", appointment("a2", care) + ("attendeeIds" to listOf("eve"))),
+    )
+    // the checks of validationError(): a blank title, no start, a duration out of 1..1440
+    val other = appointment("a2", care)
+    fs.assertFails(care, fs.set("$path/a2", other + ("title" to "  ")))
+    fs.assertFails(care, fs.set("$path/a2", other + ("startAt" to 0L) + ("lastEndAt" to HOUR)))
+    fs.assertFails(
+        care,
+        fs.set("$path/a2", other + ("durationMinutes" to 0) + ("lastEndAt" to START)),
+    )
+    // lastEndAt must be the end the app computes, 60 minutes after the start when no duration
+    fs.assertFails(care, fs.set("$path/a2", other + ("lastEndAt" to START + 2 * HOUR)))
+    fs.assertSucceeds(
+        care,
+        fs.set("$path/a3", appointment("a3", care) + ("durationMinutes" to null)),
+    )
+    // fields the app couldn't read back
+    fs.assertFails(care, fs.set("$path/a2", other + ("notes" to 3L)))
+    fs.assertFails(care, fs.set("$path/a2", other + ("location" to mapOf("city" to "Bern"))))
+    fs.assertSucceeds(
+        care,
+        fs.set(
+            "$path/a4",
+            appointment("a4", care) + ("location" to mapOf("lat" to 46.5, "lng" to 6.6)),
+        ),
+    )
+    // the patient may create one too
+    fs.assertSucceeds(pat, fs.set("$path/a2", appointment("a2", pat)))
+
+    // Any member may edit it, as the last editor: the fields the repository's update() writes
+    val edit = mapOf("title" to "Dentist", "updatedBy" to care2, "updatedAt" to START)
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("updatedBy" to care)))
+    // but not who created it or when
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("createdBy" to care2)))
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("createdAt" to 1L)))
+    // and an edit keeps a start and an end the calendar's query can use
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("startAt" to "10:00")))
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("lastEndAt" to START - 1)))
+    // a new duration needs the new end too
+    fs.assertFails(care2, fs.patch("$path/a1", edit + ("durationMinutes" to 30)))
+    fs.assertSucceeds(
+        care2,
+        fs.patch("$path/a1", edit + ("durationMinutes" to 30) + ("lastEndAt" to START + HOUR / 2)),
+    )
+    fs.assertSucceeds(care2, fs.patch("$path/a1", edit))
+    fs.assertSucceeds(pat, fs.patch("$path/a1", edit + ("updatedBy" to pat)))
+  }
+
   /** The reads behind CareCircleRepository.getCircle(circleId). */
   @Test
   fun careCircleRead_allowsOnlySignedInMembersOfExistingCircle_enforcedByEmulator() {
@@ -642,9 +709,153 @@ class FirestoreSecurityRulesEmulatorTest {
     fs.assertFails(care, fs.get("careCircles/c-missing"))
   }
 
+  @Test
+  fun personPhotos_oneOwnOrRecordedPersonEntry_enforcedByEmulator() {
+    val circleId = "c-photos"
+    val care = "care"
+    val pat = "pat"
+    val aunt = "aunt"
+    val stranger = "stranger"
+    val circlePath = "careCircles/$circleId"
+    fun photo(personId: String, photoId: String = "portrait") =
+        "careCircles/$circleId/people/$personId/$photoId.jpg"
+    fun writePhotos(photos: Map<String, String>) =
+        fs.patch(circlePath, mapOf("personPhotos" to photos))
+
+    val people = mapOf("aunt" to mapOf("id" to aunt, "firstName" to "Aunt"))
+    val seeded = circle(circleId, care, listOf(care, pat), patientId = pat) + ("people" to people)
+    fs.adminSet(circlePath, seeded)
+    fs.adminSet("users/$care", user(care, "CAREGIVER", listOf(circleId), "Ada"))
+    fs.adminSet("users/$pat", user(pat, "PATIENT", listOf(circleId), "Pat"))
+    fs.adminSet("users/$stranger", user(stranger, "CAREGIVER", emptyList(), "Eve"))
+
+    val none = emptyMap<String, String>()
+    val own = mapOf(pat to photo(pat))
+    val ownLater = mapOf(pat to photo(pat, "later"))
+    val ownAndAunt = mapOf(pat to photo(pat, "later"), aunt to photo(aunt))
+    val ownAndAuntLater = mapOf(pat to photo(pat, "later"), aunt to photo(aunt, "later"))
+    val auntOnly = mapOf(aunt to photo(aunt, "later"))
+    // A missing personPhotos field is {}, so writing {} changes nothing the rules care about.
+    fs.assertSucceeds(pat, writePhotos(none))
+    // Another member's uid: pat is not the writer, and not a key of people.
+    fs.assertFails(care, writePhotos(mapOf(pat to photo(pat))))
+    // A key that is neither the writer nor recorded in people.
+    fs.assertFails(care, writePhotos(mapOf("nobody" to photo("nobody"))))
+    // Two keys in one write.
+    fs.assertFails(care, writePhotos(mapOf(care to photo(care), aunt to photo(aunt))))
+    // The folder must be the changed key, not someone else's.
+    fs.assertFails(care, writePhotos(mapOf(care to photo(aunt))))
+    // Four parts: rejected by parts.size() == 5, not by the folder name.
+    fs.assertFails(care, writePhotos(mapOf(care to "careCircles/$circleId/media/portrait.jpg")))
+    // Five parts whose folder is not people: parts[2] == 'people'.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/media/$care/portrait.jpg")),
+    )
+    // A path in another circle: parts[1] == circleId.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/other/people/$care/portrait.jpg")),
+    )
+    // An extra segment.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/extra/portrait.jpg")),
+    )
+    // The value has to be a string path.
+    fs.assertFails(care, fs.patch(circlePath, mapOf("personPhotos" to mapOf(care to 1))))
+    // Not a JPEG, and not a name containing '_'.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/portrait.png")),
+    )
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(care to "careCircles/$circleId/people/$care/my_photo.jpg")),
+    )
+    // Adding a person and their photo together: the key is not in people yet.
+    fs.assertFails(
+        care,
+        fs.patch(
+            circlePath,
+            mapOf(
+                "people" to (people + ("newborn" to mapOf("id" to "newborn", "firstName" to "Bo"))),
+                "personPhotos" to mapOf("newborn" to photo("newborn")),
+            ),
+        ),
+    )
+    // A stranger is not a member.
+    fs.assertFails(stranger, writePhotos(mapOf(stranger to photo(stranger))))
+
+    // pat sets their own photo, replaces it, then adds, replaces, and removes aunt's.
+    fs.assertSucceeds(pat, writePhotos(own))
+    fs.assertSucceeds(pat, writePhotos(ownLater))
+    fs.assertSucceeds(pat, writePhotos(ownAndAunt))
+    fs.assertSucceeds(pat, writePhotos(ownAndAuntLater))
+    fs.assertSucceeds(pat, writePhotos(auntOnly))
+    // care may set their own photo beside aunt's.
+    fs.assertSucceeds(care, writePhotos(mapOf(aunt to photo(aunt, "later"), care to photo(care))))
+    fs.adminSet(
+        circlePath,
+        seeded + ("personPhotos" to mapOf(aunt to photo(care, "later"), care to photo(care))),
+    )
+    // A replacement that copies a path already stored for someone else.
+    fs.assertFails(
+        care,
+        writePhotos(mapOf(aunt to photo(care, "later"), care to photo(care, "later"))),
+    )
+    // A person id that contains '_' cannot be a folder name.
+    fs.adminSet(
+        circlePath,
+        seeded + ("people" to mapOf("au_nt" to mapOf("id" to "au_nt", "firstName" to "Ann"))),
+    )
+    fs.assertFails(care, writePhotos(mapOf("au_nt" to photo("au_nt"))))
+
+    // Onboarding writes the CareCircle data class, so personPhotos is {} rather than absent.
+    fs.assertSucceeds(
+        care,
+        fs.set(
+            "careCircles/c-empty",
+            circle("c-empty", care, listOf(care), patientId = "") +
+                ("personPhotos" to emptyMap<String, String>()),
+        ),
+    )
+    // A create that already points at a photo is refused.
+    fs.assertFails(
+        care,
+        fs.set(
+            "careCircles/c-born",
+            circle("c-born", care, listOf(care), patientId = "") +
+                ("personPhotos" to mapOf(care to "careCircles/c-born/people/$care/portrait.jpg")),
+        ),
+    )
+    // A user being deleted may not change personPhotos.
+    fs.adminSet(
+        "users/$care",
+        user(care, "CAREGIVER", listOf(circleId), "Ada") + ("deletionRequested" to true),
+    )
+    fs.adminSet(circlePath, seeded + ("personPhotos" to mapOf(care to photo(care))))
+    fs.assertFails(care, writePhotos(mapOf(care to photo(care, "later"))))
+    // pat may clear aunt's photo: aunt is a key of people. care's deletion flag does not apply.
+    fs.adminSet(
+        circlePath,
+        seeded + ("personPhotos" to mapOf(aunt to photo(aunt), care to photo(care))),
+    )
+    fs.assertSucceeds(pat, writePhotos(mapOf(care to photo(care))))
+    // pat may not clear care's photo: care is a member, not pat, and not in people.
+    fs.adminSet(circlePath, seeded + ("personPhotos" to mapOf(care to photo(care))))
+    fs.assertFails(pat, writePhotos(emptyMap()))
+  }
+
   companion object {
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
+
+    /** The start of the appointments of these tests, in epoch milliseconds. */
+    private const val START = 1_800_000_000_000L
+
+    /** One hour, in milliseconds. */
+    private const val HOUR = 60 * 60_000L
 
     /** Wall-clock millis so invite expiry compares correctly to emulator `request.time`. */
     private val now: Long
@@ -739,6 +950,26 @@ class FirestoreSecurityRulesEmulatorTest {
             "text" to "Hello",
         )
 
+    /**
+     * @return a valid appointment [id], created and last saved by [savedBy], with the fields
+     *   AppointmentRepository writes.
+     */
+    private fun appointment(id: String, savedBy: String) =
+        mapOf(
+            "id" to id,
+            "title" to "Doctor",
+            "notes" to "",
+            "startAt" to START,
+            "durationMinutes" to 60,
+            "location" to null,
+            "attendeeIds" to listOf(savedBy),
+            "lastEndAt" to START + 60 * 60_000L,
+            "createdBy" to savedBy,
+            "createdAt" to START - 1,
+            "updatedBy" to savedBy,
+            "updatedAt" to START - 1,
+        )
+
     private fun media(id: String, authorId: String, storagePath: String) =
         mapOf(
             "id" to id,
@@ -753,226 +984,5 @@ class FirestoreSecurityRulesEmulatorTest {
             "width" to 1,
             "height" to 1,
         )
-  }
-}
-
-/** Minimal Firestore emulator REST client with per-request auth uid. */
-private class FirestoreEmulatorClient(
-    private val projectId: String = "amber-34abf",
-    private val host: String =
-        System.getenv("FIRESTORE_EMULATOR_HOST")?.let { "http://$it" } ?: "http://127.0.0.1:8080",
-) {
-  fun clear() {
-    val code =
-        request(
-            "DELETE",
-            "$host/emulator/v1/projects/$projectId/databases/(default)/documents",
-            token = null,
-        )
-    assertTrue("Emulator clear failed with HTTP $code", code in 200..299)
-  }
-
-  fun adminSet(path: String, fields: Map<String, Any?>): Int =
-      commitAs("owner", setWrite(path, fields))
-
-  /** Admin read that returns HTTP status and raw JSON body (bypasses security rules). */
-  fun adminGet(path: String): Pair<Int, String> =
-      requestWithBody("GET", docUrl(path), token = "owner")
-
-  fun set(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
-    commitAs(bearer(uid), setWrite(path, fields))
-  }
-
-  fun patch(path: String, fields: Map<String, Any?>): (String?) -> Int = { uid ->
-    commitAs(
-        bearer(uid),
-        mapOf(
-            "update" to mapOf("name" to docName(path), "fields" to encodeFields(fields)),
-            "updateMask" to mapOf("fieldPaths" to fields.keys.toList()),
-        ),
-    )
-  }
-
-  fun get(path: String): (String?) -> Int = { uid ->
-    request("GET", docUrl(path), token = bearer(uid))
-  }
-
-  fun list(collectionId: String): (String?) -> Int = { uid ->
-    request("GET", docUrl(collectionId), token = bearer(uid))
-  }
-
-  fun listInvitations(createdBy: String, circleId: String): (String?) -> Int = { uid ->
-    queryInvitations(uid, createdBy, circleId).first
-  }
-
-  /** Runs the repository's `createdBy` + `circleId` query and returns HTTP status and JSON body. */
-  fun queryInvitations(uid: String?, createdBy: String, circleId: String): Pair<Int, String> =
-      requestWithBody(
-          "POST",
-          "$host/v1/projects/$projectId/databases/(default)/documents:runQuery",
-          token = bearer(uid),
-          body =
-              mapOf(
-                  "structuredQuery" to
-                      mapOf(
-                          "from" to listOf(mapOf("collectionId" to "invitations")),
-                          "where" to
-                              mapOf(
-                                  "compositeFilter" to
-                                      mapOf(
-                                          "op" to "AND",
-                                          "filters" to
-                                              listOf(
-                                                  mapOf(
-                                                      "fieldFilter" to
-                                                          mapOf(
-                                                              "field" to
-                                                                  mapOf("fieldPath" to "createdBy"),
-                                                              "op" to "EQUAL",
-                                                              "value" to
-                                                                  mapOf("stringValue" to createdBy),
-                                                          ),
-                                                  ),
-                                                  mapOf(
-                                                      "fieldFilter" to
-                                                          mapOf(
-                                                              "field" to
-                                                                  mapOf("fieldPath" to "circleId"),
-                                                              "op" to "EQUAL",
-                                                              "value" to
-                                                                  mapOf("stringValue" to circleId),
-                                                          ),
-                                                  ),
-                                              ),
-                                      ),
-                              ),
-                      ),
-              ),
-      )
-
-  fun delete(path: String): (String?) -> Int = { uid ->
-    commitAs(bearer(uid), mapOf("delete" to docName(path)))
-  }
-
-  fun setWrite(path: String, fields: Map<String, Any?>): Map<String, Any?> =
-      mapOf("update" to mapOf("name" to docName(path), "fields" to encodeFields(fields)))
-
-  fun commit(vararg writes: Map<String, Any?>): (String?) -> Int = { uid ->
-    commitAs(bearer(uid), *writes)
-  }
-
-  private fun commitAs(token: String?, vararg writes: Map<String, Any?>): Int =
-      request(
-          "POST",
-          "$host/v1/projects/$projectId/databases/(default)/documents:commit",
-          token = token,
-          body = mapOf("writes" to writes.toList()),
-      )
-
-  fun assertSucceeds(uid: String?, op: (String?) -> Int) {
-    val code = op(uid)
-    assertTrue("Expected success for uid=$uid but HTTP $code", code in 200..299)
-  }
-
-  fun assertSucceeds(op: () -> Int) {
-    val code = op()
-    assertTrue("Expected success but HTTP $code", code in 200..299)
-  }
-
-  fun assertFails(uid: String?, op: (String?) -> Int) {
-    assertEquals("Expected PERMISSION_DENIED for uid=$uid", 403, op(uid))
-  }
-
-  private fun docUrl(path: String) =
-      "$host/v1/projects/$projectId/databases/(default)/documents/$path"
-
-  private fun docName(path: String) = "projects/$projectId/databases/(default)/documents/$path"
-
-  private fun bearer(uid: String?): String? {
-    if (uid == null) return null
-    val header =
-        Base64.getUrlEncoder()
-            .withoutPadding()
-            .encodeToString("""{"alg":"none","typ":"JWT"}""".toByteArray())
-    val payload =
-        Base64.getUrlEncoder()
-            .withoutPadding()
-            .encodeToString(
-                """{"iss":"https://securetoken.google.com/$projectId","aud":"$projectId","iat":1700000000,"exp":1800000000,"sub":"$uid","user_id":"$uid","firebase":{"sign_in_provider":"custom"}}"""
-                    .toByteArray(),
-            )
-    return "$header.$payload."
-  }
-
-  private fun request(
-      method: String,
-      url: String,
-      token: String?,
-      body: Map<String, Any?>? = null,
-  ): Int = requestWithBody(method, url, token, body).first
-
-  private fun requestWithBody(
-      method: String,
-      url: String,
-      token: String?,
-      body: Map<String, Any?>? = null,
-  ): Pair<Int, String> {
-    val connection = URL(url).openConnection() as HttpURLConnection
-    connection.requestMethod = method
-    connection.connectTimeout = REQUEST_TIMEOUT_MS
-    connection.readTimeout = REQUEST_TIMEOUT_MS
-    if (token != null) connection.setRequestProperty("Authorization", "Bearer $token")
-    if (body != null) {
-      connection.doOutput = true
-      connection.setRequestProperty("Content-Type", "application/json")
-      connection.outputStream.use { it.write(jsonEncode(body).toByteArray()) }
-    }
-    return try {
-      val code = connection.responseCode
-      val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-      val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-      code to text
-    } finally {
-      connection.disconnect()
-    }
-  }
-
-  @Suppress("UNCHECKED_CAST")
-  private fun encodeFields(fields: Map<String, Any?>): Map<String, Any?> =
-      fields.mapValues { (_, value) ->
-        encodeValue(value)
-      }
-
-  @Suppress("UNCHECKED_CAST")
-  private fun encodeValue(value: Any?): Map<String, Any?> =
-      when (value) {
-        null -> mapOf("nullValue" to null)
-        is String -> mapOf("stringValue" to value)
-        is Boolean -> mapOf("booleanValue" to value)
-        is Int -> mapOf("integerValue" to value.toString())
-        is Long -> mapOf("integerValue" to value.toString())
-        is Double -> mapOf("doubleValue" to value)
-        is List<*> -> mapOf("arrayValue" to mapOf("values" to value.map { encodeValue(it) }))
-        is Map<*, *> ->
-            mapOf(
-                "mapValue" to mapOf("fields" to encodeFields(value as Map<String, Any?>)),
-            )
-        else -> error("Unsupported Firestore value: ${value::class} = $value")
-      }
-
-  private fun jsonEncode(value: Any?): String =
-      when (value) {
-        null -> "null"
-        is String -> "\"${value.replace("\"", "\\\"")}\""
-        is Number,
-        is Boolean -> value.toString()
-        is Map<*, *> ->
-            value.entries.joinToString(",", "{", "}") { (k, v) -> "\"$k\":${jsonEncode(v)}" }
-        is List<*> -> value.joinToString(",", "[", "]") { jsonEncode(it) }
-        else -> error("Cannot JSON-encode ${value::class}")
-      }
-
-  private companion object {
-    const val REQUEST_TIMEOUT_MS = 5_000
   }
 }

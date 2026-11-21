@@ -1,5 +1,7 @@
 // Written by Neha Chakraborty, with assistance from
 // Claude (Anthropic) via Claude Code.
+// Modified by Alaabrine, with assistance from Cursor (Grok).
+// Modified by Viktor Jurczenko, with assistance from Claude (Anthropic) via Claude Code.
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {callableModule, resetState, state, storedFirestore} = require("./support/fakes");
@@ -7,6 +9,8 @@ const {assertNoReferenceTo, expectHttpsError} = require("./support/assertions");
 const {
   BUCKET,
   EMPTY_BUCKET,
+  GONE_LEFTOVER_PHOTO,
+  SHARED_PHOTOS,
   deleteCircleBeforeWriting,
   freshAuth,
   setupAccounts,
@@ -104,8 +108,8 @@ test("deleteAccount refreshes the Storage rules of the buckets it goes through",
 
     // not the bucket of the circle they are alone in: it is deleted anyway
     assert.deepEqual(released, [BUCKET]);
-    // all 3 files of the shared bucket are still there
-    assert.deepEqual(filesWhenReleased, [3]);
+    // rules refresh runs before any file is deleted, so the photo files are still counted
+    assert.deepEqual(filesWhenReleased, [7]);
   });
 
   await t.test("without letting a failure stop the deletion", async () => {
@@ -169,7 +173,7 @@ test("deleteAccount removes a caregiver from a circle that stays, with their nic
   assert.deepEqual(circle.nicknames, {other: {patient: "Mum"}, patient: {}});
 });
 
-test("deleteAccount deletes a caregiver's media with their files, and their stories", async () => {
+test("deleteAccount deletes a caregiver's media with their files, stories and appointments", async () => {
   setupAccounts();
 
   const stored = await deleteTheSharedCaregiver();
@@ -177,9 +181,50 @@ test("deleteAccount deletes a caregiver's media with their files, and their stor
   assert.equal(stored("media/own-photo"), undefined);
   assert.equal(stored("media/own-memo"), undefined);
   assert.equal(stored("media/own-text"), undefined);
-  assert.deepEqual(state.buckets.get(BUCKET), new Set(["careCircles/shared/media/tagged.jpg"]));
+  assert.deepEqual(state.buckets.get(BUCKET), new Set([
+    "careCircles/shared/media/tagged.jpg",
+    SHARED_PHOTOS.other,
+    SHARED_PHOTOS.aunt,
+  ]));
   assert.equal(stored("stories/own-story"), undefined);
   assert.deepEqual(stored("stories/other-story").mediaIds, ["tagged"]);
+  assert.equal(stored("appointments/doctor"), undefined);
+});
+
+test("deleteAccount deletes a member's photo files and drops only their personPhotos key", async () => {
+  setupAccounts();
+
+  await deleteTheSharedCaregiver();
+
+  assert.deepEqual(state.store.get("careCircles/shared").personPhotos, {
+    other: SHARED_PHOTOS.other,
+    aunt: SHARED_PHOTOS.aunt,
+  });
+  const files = state.buckets.get(BUCKET);
+  assert.equal(files.has(SHARED_PHOTOS.gone), false);
+  assert.equal(files.has(GONE_LEFTOVER_PHOTO), false);
+  assert.equal(files.has(SHARED_PHOTOS.other), true);
+  assert.equal(files.has(SHARED_PHOTOS.aunt), true);
+  assert.equal(files.has("careCircles/shared/media/tagged.jpg"), true);
+});
+
+test("deleteAccount in the emulator drops the personPhotos key and keeps the photo files", async (t) => {
+  setupAccounts();
+  process.env.FUNCTIONS_EMULATOR = "true";
+  t.after(() => delete process.env.FUNCTIONS_EMULATOR);
+  const {deleteAccount} = callableModule({firestore: storedFirestore()});
+
+  await deleteAccount({auth: freshAuth(), data: {}});
+
+  assert.deepEqual(state.store.get("careCircles/shared").personPhotos, {
+    other: SHARED_PHOTOS.other,
+    aunt: SHARED_PHOTOS.aunt,
+  });
+  const files = state.buckets.get(BUCKET);
+  assert.equal(files.has(SHARED_PHOTOS.gone), true);
+  assert.equal(files.has(GONE_LEFTOVER_PHOTO), true);
+  assert.equal(files.has(SHARED_PHOTOS.other), true);
+  assert.equal(files.has(SHARED_PHOTOS.aunt), true);
 });
 
 test("deleteAccount removes a caregiver from the others' media and appointments", async () => {
@@ -189,7 +234,7 @@ test("deleteAccount removes a caregiver from the others' media and appointments"
 
   assert.deepEqual(stored("media/tagged").shownIds, ["patient"]);
   assert.deepEqual(stored("media/two-allowed").authorizedIds, ["patient"]);
-  assert.deepEqual(stored("appointments/doctor"), {createdBy: "", attendeeIds: ["other"]});
+  assert.deepEqual(stored("appointments/dentist"), {createdBy: "other", updatedBy: "", attendeeIds: []});
 });
 
 test("deleteAccount keeps a media restricted to the deleted user visible to its author only", async () => {
@@ -254,7 +299,7 @@ test("deleteAccount doesn't touch buckets in the emulator", async (t) => {
 
   assert.equal(state.store.has("careCircles/alone"), false);
   assert.equal(state.buckets.has(EMPTY_BUCKET), true);
-  assert.equal(state.buckets.get(BUCKET).size, 3);
+  assert.equal(state.buckets.get(BUCKET).size, 7);
   assert.equal(rulesReleases, 0);
 });
 
@@ -264,7 +309,9 @@ test("deleteAccount finishes the job when retried after any partial failure", as
     ["the media documents", "delete", "careCircles/shared/media/own-photo"],
     ["the other members' stories", "update", "careCircles/shared/stories/other-story"],
     ["the remaining media", "update", "careCircles/shared/media/restricted"],
-    ["an appointment", "update", "careCircles/shared/appointments/doctor"],
+    ["an appointment", "delete", "careCircles/shared/appointments/doctor"],
+    ["the remaining appointments", "update", "careCircles/shared/appointments/dentist"],
+    ["the photo folder", "deleteFiles", "careCircles/shared/people/gone/"],
     ["leaving the shared circle", "update", "careCircles/shared"],
     ["the bucket", "deleteBucket", EMPTY_BUCKET],
     ["the last member's circle", "recursiveDelete", "careCircles/alone"],
@@ -289,6 +336,10 @@ test("deleteAccount finishes the job when retried after any partial failure", as
       assertNoReferenceTo("gone");
       assert.equal(state.buckets.has(EMPTY_BUCKET), false);
       assert.equal(state.buckets.get(BUCKET).has("careCircles/shared/media/own-photo.jpg"), false);
+      assert.equal(state.buckets.get(BUCKET).has(SHARED_PHOTOS.gone), false);
+      assert.equal(state.buckets.get(BUCKET).has(GONE_LEFTOVER_PHOTO), false);
+      assert.equal(state.buckets.get(BUCKET).has(SHARED_PHOTOS.other), true);
+      assert.equal(state.buckets.get(BUCKET).has(SHARED_PHOTOS.aunt), true);
       assert.deepEqual(state.store.get("careCircles/shared/stories/other-story").mediaIds, ["tagged"]);
     });
   }

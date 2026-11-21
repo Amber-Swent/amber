@@ -3,9 +3,13 @@
 package com.github.se.amber.ui.caregiver.upload.audios
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.lifecycle.Lifecycle
 import com.github.se.amber.R
+import com.github.se.amber.model.media.AudioRecordingState
 import com.github.se.amber.ui.caregiver.upload.media.CommonMediaUIState
 import com.github.se.amber.ui.caregiver.upload.media.MediaEvent
 import io.mockk.every
@@ -50,6 +54,91 @@ class UploadAudioTest {
   private fun launchScreen(onUpload: () -> Unit = {}) {
     composeTestRule.setContent { UploadAudioScreen(viewModel = viewModel, onUpload = onUpload) }
     composeTestRule.waitForIdle()
+  }
+
+  // ---------- information under the recorder ----------
+
+  private fun showRecordingState(recordingState: AudioRecordingState) {
+    every { viewModel.uiState } returns
+        MutableStateFlow(UploadAudioUIState(recordingState = recordingState))
+    launchScreen()
+  }
+
+  @Test
+  fun recordingInfo_isDisplayedWhileRecording() {
+    showRecordingState(AudioRecordingState.RECORDING)
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_INFO).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioRecordingInfoFirst))
+        .assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioRecordingInfoSecond))
+        .assertIsDisplayed()
+
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDED_INFO).assertDoesNotExist()
+  }
+
+  @Test
+  fun recordingInfo_All_areHiddenBeforeRecording() {
+    showRecordingState(AudioRecordingState.IDLE)
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_INFO).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDED_INFO).assertDoesNotExist()
+  }
+
+  @Test
+  fun recordedInfo_isDisplayedOnceRecorded() {
+    showRecordingState(AudioRecordingState.RECORDED)
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDED_INFO).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioRecordedInfo))
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_INFO).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun recordedInfoIsShownInFrench() {
+    showRecordingState(AudioRecordingState.RECORDED)
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioRecordedInfo))
+        .assertIsDisplayed()
+  }
+
+  private fun showMaximumLengthReached(errorRes: Int? = R.string.uploadAudioErrorMaxLength) {
+    every { viewModel.uiState } returns
+        MutableStateFlow(
+            UploadAudioUIState(
+                recordingState = AudioRecordingState.RECORDED,
+                recordingErrorRes = errorRes,
+            )
+        )
+    launchScreen()
+  }
+
+  @Test
+  fun recordingError_isDisplayedWhenTheMaximumLengthWasReached() {
+    showMaximumLengthReached()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_ERROR).assertIsDisplayed()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioErrorMaxLength))
+        .assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_INFO).assertDoesNotExist()
+  }
+
+  @Test
+  fun recordedInfo_isDisplayedWhenThereIsNoRecordingError() {
+    showMaximumLengthReached(errorRes = null)
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDED_INFO).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(UploadAudioScreenTestTags.RECORDING_ERROR).assertDoesNotExist()
+  }
+
+  @Test
+  @Config(qualifiers = "fr")
+  fun recordingErrorIsShownInFrench() {
+    showMaximumLengthReached()
+    composeTestRule
+        .onNodeWithText(composeTestRule.activity.getString(R.string.uploadAudioErrorMaxLength))
+        .assertIsDisplayed()
   }
 
   // ---------- app in the background ----------

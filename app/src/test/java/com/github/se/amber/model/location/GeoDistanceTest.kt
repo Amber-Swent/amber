@@ -2,44 +2,82 @@
 
 package com.github.se.amber.model.location
 
-import com.github.se.amber.model.location.TestPlaces.GENEVA
 import com.github.se.amber.model.location.TestPlaces.HALF_EARTH_CIRCUMFERENCE_METERS
-import com.github.se.amber.model.location.TestPlaces.LAUSANNE
-import com.github.se.amber.model.location.TestPlaces.latitude
-import com.github.se.amber.model.location.TestPlaces.longitude
-import com.github.se.amber.model.location.TestPlaces.movedNorth
+import com.github.se.amber.model.location.TestPositions.EXACT_TOLERANCE_METERS
+import com.github.se.amber.model.location.TestPositions.FLON_TO_CORNAVIN_METERS
+import com.github.se.amber.model.location.TestPositions.GENEVA_CORNAVIN
+import com.github.se.amber.model.location.TestPositions.LAUSANNE_FLON
+import com.github.se.amber.model.location.TestPositions.MAX_DISTANCE_ERROR
+import com.github.se.amber.model.location.TestPositions.movedNorth
+import com.github.se.amber.model.location.TestPositions.pinAt
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class GeoDistanceTest {
 
-  /** The straight-line distance between Lausanne Flon and Geneva Cornavin, from a map. */
-  private val flonToCornavinMeters = 50_900.0
+  private val here = LAUSANNE_FLON
+  private val radius = NEARBY_RADIUS_METERS
+  private val halfRadius = radius / 2
+  private val justInsideRadius = radius * 0.9
+  private val justOutsideRadius = radius * 1.1
 
-  /** The largest error of the distance on a sphere, as a fraction of the distance (0.5%). */
-  private val maxDistanceError = 0.005
-
-  /** Tolerance for distances that are exact on a sphere, in meters. */
-  private val exactTolerance = 1e-6
-
-  private fun distance(from: GeoLocation, to: GeoLocation) =
-      distanceMeters(from.latitude, from.longitude, to.latitude, to.longitude)
+  private fun distance(from: DevicePosition, to: DevicePosition) =
+      distanceMeters(from.lat, from.lng, to.lat, to.lng)
 
   @Test
   fun distanceIsTheRealDistanceBetweenTwoPointsInBothDirectionsUpToOppositePoints() {
-    val lausanneToGeneva = distance(LAUSANNE, GENEVA)
+    val lausanneToGeneva = distance(LAUSANNE_FLON, GENEVA_CORNAVIN)
 
-    assertEquals(flonToCornavinMeters, lausanneToGeneva, flonToCornavinMeters * maxDistanceError)
-    assertEquals(lausanneToGeneva, distance(GENEVA, LAUSANNE), exactTolerance)
-    assertEquals(0.0, distance(LAUSANNE, LAUSANNE), exactTolerance)
     assertEquals(
-        SAME_PLACE_RADIUS_METERS,
-        distance(LAUSANNE, LAUSANNE.movedNorth(SAME_PLACE_RADIUS_METERS)),
-        exactTolerance,
+        FLON_TO_CORNAVIN_METERS,
+        lausanneToGeneva,
+        FLON_TO_CORNAVIN_METERS * MAX_DISTANCE_ERROR,
     )
+    assertEquals(lausanneToGeneva, distance(GENEVA_CORNAVIN, LAUSANNE_FLON), EXACT_TOLERANCE_METERS)
+    assertEquals(0.0, distance(here, here), EXACT_TOLERANCE_METERS)
+    assertEquals(radius, distance(here, here.movedNorth(radius)), EXACT_TOLERANCE_METERS)
 
-    val onEquator = GeoLocation(lat = 0.0, lng = 0.0)
-    val opposite = GeoLocation(lat = 0.0, lng = MAX_LONGITUDE)
-    assertEquals(HALF_EARTH_CIRCUMFERENCE_METERS, distance(onEquator, opposite), exactTolerance)
+    val onEquator = DevicePosition(lat = 0.0, lng = 0.0)
+    val opposite = DevicePosition(lat = 0.0, lng = MAX_LONGITUDE)
+    assertEquals(
+        HALF_EARTH_CIRCUMFERENCE_METERS,
+        distance(onEquator, opposite),
+        EXACT_TOLERANCE_METERS,
+    )
+  }
+
+  @Test
+  fun pinsWithinTheRadiusAreNearYouNearestFirstTheFirstOneBetweenEquals() {
+    val atHalfRadius = pinAt(here.movedNorth(halfRadius), id = "north")
+    val southAtHalfRadius = pinAt(here.movedNorth(-halfRadius), id = "south")
+    val justInside = pinAt(here.movedNorth(-justInsideRadius))
+    val justOutside = pinAt(here.movedNorth(justOutsideRadius))
+
+    assertEquals(
+        listOf(atHalfRadius, justInside),
+        listOf(justOutside, justInside, atHalfRadius).nearby(here),
+    )
+    assertEquals(
+        listOf(atHalfRadius, southAtHalfRadius),
+        listOf(atHalfRadius, southAtHalfRadius).nearby(here),
+    )
+    assertEquals(
+        listOf(southAtHalfRadius, atHalfRadius),
+        listOf(southAtHalfRadius, atHalfRadius).nearby(here),
+    )
+    assertEquals(emptyList<MediaMarker>(), emptyList<MediaMarker>().nearby(here))
+  }
+
+  @Test
+  fun aPinNearBeforeStaysNearUpToTheExitMarginOneNotNearBeforeDoesnt() {
+    val inExitMargin = pinAt(here.movedNorth(radius + NEARBY_EXIT_MARGIN_METERS / 2))
+    val pastExitMargin = pinAt(here.movedNorth(radius + NEARBY_EXIT_MARGIN_METERS * 2))
+    val nearBefore = setOf(inExitMargin.id, pastExitMargin.id)
+
+    assertEquals(emptyList<MediaMarker>(), listOf(inExitMargin).nearby(here))
+    assertEquals(
+        listOf(inExitMargin),
+        listOf(inExitMargin, pastExitMargin).nearby(here, nearBefore),
+    )
   }
 }
