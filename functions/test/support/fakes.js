@@ -306,7 +306,10 @@ function callableModule({firestore = recordingFirestore()} = {}) {
       return {getSecurityRules: () => state.securityRules};
     }
     if (request === "firebase-functions/params") {
-      return {defineString: () => ({value: () => state.bucketLocation})};
+      return {
+        defineString: () => ({value: () => state.bucketLocation}),
+        defineSecret: () => ({value: () => "test-routes-key"}),
+      };
     }
     if (request === "firebase-functions/v2/https") {
       // the handler comes last, after the options if there are any

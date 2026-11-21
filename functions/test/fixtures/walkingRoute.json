@@ -1,0 +1,23 @@
+{
+  "distanceMeters": 520,
+  "durationSeconds": 410,
+  "points": [
+    {"lat": 46.520856, "lng": 6.630127},
+    {"lat": 46.5215, "lng": 6.6331},
+    {"lat": 46.522778, "lng": 6.635556}
+  ],
+  "steps": [
+    {
+      "maneuver": "DEPART",
+      "distanceMeters": 300,
+      "start": {"lat": 46.520856, "lng": 6.630127},
+      "end": {"lat": 46.5215, "lng": 6.6331}
+    },
+    {
+      "maneuver": "TURN_LEFT",
+      "distanceMeters": 220,
+      "start": {"lat": 46.5215, "lng": 6.6331},
+      "end": {"lat": 46.522778, "lng": 6.635556}
+    }
+  ]
+}

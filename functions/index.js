@@ -6,5 +6,6 @@
 const { deleteAccount } = require("./src/deleteAccount");
 const { provisionCareCircleBucket } = require("./src/provisionCareCircleBucket");
 const { redeemInvitation } = require("./src/redeemInvitation");
+const { getWalkingRoute } = require("./src/walkingRoute");
 
-module.exports = { deleteAccount, provisionCareCircleBucket, redeemInvitation };
+module.exports = { deleteAccount, getWalkingRoute, provisionCareCircleBucket, redeemInvitation };
