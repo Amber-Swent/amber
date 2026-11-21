@@ -1,9 +1,11 @@
 // Written by Alaabrine, with assistance from Cursor.
+// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.data.account
 
 import coil3.ImageLoader
 import coil3.memory.MemoryCache
+import com.github.se.amber.data.directions.LAST_ROUTE_FILE_NAME
 import com.github.se.amber.data.media.image.MediaImageMemory
 import com.github.se.amber.model.media.MediaRepository
 import io.mockk.coEvery
@@ -34,6 +36,7 @@ class DeviceLocalPhoneTest {
   private lateinit var otherFile: File
   private lateinit var recorded: File
   private lateinit var pickedMemo: File
+  private lateinit var lastRoute: File
   private lateinit var phone: DeviceLocalPhone
   private val calls = mutableListOf<String>()
 
@@ -57,6 +60,7 @@ class DeviceLocalPhoneTest {
           parentFile!!.mkdirs()
           writeText("memo")
         }
+    lastRoute = File(cacheDir, LAST_ROUTE_FILE_NAME).apply { writeText("{}") }
     phone =
         DeviceLocalPhone(
             mediaRepository,
@@ -71,7 +75,8 @@ class DeviceLocalPhoneTest {
     var filesStillThere = false
     every { memoryCache.clear() } answers
         {
-          filesStillThere = listOf(picked, captured, recorded, pickedMemo).all { it.exists() }
+          filesStillThere =
+              listOf(picked, captured, recorded, pickedMemo, lastRoute).all { it.exists() }
           calls += "clearMemory"
         }
 
@@ -82,6 +87,7 @@ class DeviceLocalPhoneTest {
     assertFalse(captured.parentFile!!.exists())
     assertFalse(recorded.exists())
     assertFalse(pickedMemo.exists())
+    assertFalse(lastRoute.exists())
     assertTrue(otherFile.exists())
     assertEquals(listOf("clearMedia", "clearMemory"), calls)
   }

@@ -256,6 +256,9 @@ configurations
     .configureEach { exclude(group = "com.google.protobuf", module = "protobuf-lite") }
 
 tasks.withType<Test> {
+  // FirebaseRouteRepositoryTest reads the function's answer from functions/, so the tests run again
+  // when it changes
+  inputs.file(rootProject.file("functions/test/fixtures/walkingRoute.json"))
   // Configure Jacoco for each tests
   configure<JacocoTaskExtension> {
     isIncludeNoLocationClasses = true
