@@ -7,10 +7,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.github.se.amber.ui.calendar.DisplayCalendarTestTags.CALENDAR
-import com.github.se.amber.ui.calendar.DisplayCalendarTestTags.MONTH_TITLE
-import com.github.se.amber.ui.calendar.DisplayCalendarTestTags.NEXT_MONTH_BUTTON
-import com.github.se.amber.ui.calendar.DisplayCalendarTestTags.PREVIOUS_MONTH_BUTTON
+import com.github.se.amber.ui.calendar.CalendarTestTags.CALENDAR
+import com.github.se.amber.ui.calendar.CalendarTestTags.MONTH_TITLE
+import com.github.se.amber.ui.calendar.CalendarTestTags.NEXT_MONTH_BUTTON
+import com.github.se.amber.ui.calendar.CalendarTestTags.PREVIOUS_MONTH_BUTTON
 import com.github.se.amber.ui.theme.AmberAppTheme
 import java.time.LocalDate
 import java.time.YearMonth
@@ -20,9 +20,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
-/** Tests [DisplayCalendar]: the box, the month navigation, the weekdays and the days. */
+/** Tests [Calendar]: the box, the month navigation, the weekdays and the days. */
 @RunWith(RobolectricTestRunner::class)
-class DisplayCalendarTest {
+class CalendarTest {
 
   @get:Rule val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -33,7 +33,7 @@ class DisplayCalendarTest {
     // Created here, not in setContent: a ViewModel must not be constructed in a composable.
     val viewModel = CalendarViewModel(november)
     composeTestRule.setContent {
-      AmberAppTheme { DisplayCalendar(onDayClick = onDayClick, viewModel = viewModel) }
+      AmberAppTheme { Calendar(onDayClick = onDayClick, viewModel = viewModel) }
     }
   }
 
@@ -46,34 +46,34 @@ class DisplayCalendarTest {
     composeTestRule.onNodeWithTag(PREVIOUS_MONTH_BUTTON).assertIsDisplayed()
     composeTestRule.onNodeWithTag(NEXT_MONTH_BUTTON).assertIsDisplayed()
     for (index in 0 until 7) {
-      composeTestRule.onNodeWithTag(DisplayCalendarTestTags.weekday(index)).assertIsDisplayed()
+      composeTestRule.onNodeWithTag(CalendarTestTags.weekday(index)).assertIsDisplayed()
     }
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(30)).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(30)).assertIsDisplayed()
   }
 
   @Test
   fun nextArrowShowsTheNextMonth() {
     launch()
     // The 31st only exists in December and not in november.
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(31)).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(31)).assertDoesNotExist()
     composeTestRule.onNodeWithTag(NEXT_MONTH_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(31)).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(31)).assertIsDisplayed()
   }
 
   @Test
   fun previousArrowShowsThePreviousMonth() {
     launch()
     // The 31st only exists in October and not in november.
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(31)).assertDoesNotExist()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(31)).assertDoesNotExist()
     composeTestRule.onNodeWithTag(PREVIOUS_MONTH_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(31)).assertIsDisplayed()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(31)).assertIsDisplayed()
   }
 
   @Test
   fun clickingADayCallsOnDayClickWithItsDate() {
     var clicked: LocalDate? = null
     launch(onDayClick = { clicked = it })
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(12)).performClick()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(12)).performClick()
     assertEquals(LocalDate.of(2026, 11, 12), clicked)
   }
 
@@ -82,7 +82,7 @@ class DisplayCalendarTest {
     var clicked: LocalDate? = null
     launch(onDayClick = { clicked = it })
     composeTestRule.onNodeWithTag(NEXT_MONTH_BUTTON).performClick()
-    composeTestRule.onNodeWithTag(DisplayCalendarTestTags.day(5)).performClick()
+    composeTestRule.onNodeWithTag(CalendarTestTags.day(5)).performClick()
     assertEquals(LocalDate.of(2026, 12, 5), clicked)
   }
 }

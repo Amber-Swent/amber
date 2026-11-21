@@ -49,15 +49,15 @@ import java.time.format.TextStyle
 import java.time.temporal.WeekFields
 import java.util.Locale
 
-internal object DisplayCalendarTestTags {
-  const val CALENDAR = "display_calendar"
-  const val MONTH_TITLE = "display_calendar_month_title"
-  const val PREVIOUS_MONTH_BUTTON = "display_calendar_previous_month_button"
-  const val NEXT_MONTH_BUTTON = "display_calendar_next_month_button"
+internal object CalendarTestTags {
+  const val CALENDAR = "calendar"
+  const val MONTH_TITLE = "calendar_month_title"
+  const val PREVIOUS_MONTH_BUTTON = "calendar_previous_month_button"
+  const val NEXT_MONTH_BUTTON = "calendar_next_month_button"
 
-  fun weekday(index: Int) = "display_calendar_weekday_$index"
+  fun weekday(index: Int) = "calendar_weekday_$index"
 
-  fun day(day: Int) = "display_calendar_day_$day"
+  fun day(day: Int) = "calendar_day_$day"
 }
 
 /** Pattern of the title: the full month name, then the year ("November 2026" / "novembre 2026"). */
@@ -75,7 +75,7 @@ private const val MONTH_TITLE_PATTERN = "LLLL yyyy"
  * @param viewModel the ViewModel owning the displayed month. It starts on the current month.
  */
 @Composable
-fun DisplayCalendar(
+fun Calendar(
     modifier: Modifier = Modifier,
     // Note: the signature of onDayClick may change once the appointment are taken into account
     onDayClick: (LocalDate) -> Unit = {},
@@ -90,7 +90,7 @@ fun DisplayCalendar(
       modifier =
           modifier
               .fillMaxWidth(CALENDAR_WIDTH_FRACTION)
-              .testTag(DisplayCalendarTestTags.CALENDAR)
+              .testTag(CalendarTestTags.CALENDAR)
               .border(
                   BORDER_THICKNESS,
                   MaterialTheme.colorScheme.outline,
@@ -134,11 +134,11 @@ private fun CalendarHeader(
         text = title,
         style = MaterialTheme.typography.titleLarge,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.weight(WEIGHT_ONE).testTag(DisplayCalendarTestTags.MONTH_TITLE),
+        modifier = Modifier.weight(WEIGHT_ONE).testTag(CalendarTestTags.MONTH_TITLE),
     )
     IconButton(
         onClick = onPreviousMonth,
-        modifier = Modifier.testTag(DisplayCalendarTestTags.PREVIOUS_MONTH_BUTTON),
+        modifier = Modifier.testTag(CalendarTestTags.PREVIOUS_MONTH_BUTTON),
     ) {
       Icon(
           imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -148,7 +148,7 @@ private fun CalendarHeader(
     }
     IconButton(
         onClick = onNextMonth,
-        modifier = Modifier.testTag(DisplayCalendarTestTags.NEXT_MONTH_BUTTON),
+        modifier = Modifier.testTag(CalendarTestTags.NEXT_MONTH_BUTTON),
     ) {
       Icon(
           imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -171,7 +171,7 @@ private fun CalendarWeekdays(locale: Locale = Locale.getDefault()) {
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.secondary,
           textAlign = TextAlign.Center,
-          modifier = Modifier.weight(WEIGHT_ONE).testTag(DisplayCalendarTestTags.weekday(index)),
+          modifier = Modifier.weight(WEIGHT_ONE).testTag(CalendarTestTags.weekday(index)),
       )
     }
   }
@@ -221,7 +221,7 @@ private fun CalendarDay(
               // Clipping before clickable makes the click flash round.
               .clip(CircleShape)
               .clickable(onClick = onClick)
-              .testTag(DisplayCalendarTestTags.day(day)),
+              .testTag(CalendarTestTags.day(day)),
       contentAlignment = Alignment.Center,
   ) {
     Text(
@@ -235,6 +235,6 @@ private fun CalendarDay(
 /** Preview of the calendar on the current month. */
 @Preview(showBackground = true)
 @Composable
-private fun DisplayCalendarPreview() {
-  AmberAppTheme { DisplayCalendar() }
+private fun CalendarPreview() {
+  AmberAppTheme { Calendar() }
 }

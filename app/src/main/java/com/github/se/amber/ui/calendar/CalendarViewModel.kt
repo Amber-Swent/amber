@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 data class CalendarUIState(val month: YearMonth = YearMonth.now())
 
 /**
- * ViewModel of [DisplayCalendar]: it owns the displayed month and the month navigation.
+ * ViewModel of [Calendar]: it owns the displayed month and the month navigation.
  *
  * @param initialMonth the month displayed first. Defaults to the current month.
  */
