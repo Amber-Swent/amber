@@ -149,6 +149,16 @@ class CreateProfileViewModelTests {
     assertEquals("", state.surname)
     assertFalse(state.isLoading)
     assertTrue(state.canSubmit)
+
+    // Only a surname typed: kept too, and the empty name isn't filled in
+    val surnameLoad = CompletableDeferred<Result<UserProfile?>>()
+    val surnameFirst = viewModelLoading { surnameLoad.await() }
+    runCurrent()
+    surnameFirst.onSurnameChange(typed)
+    surnameLoad.complete(Result.success(savedProfile(role = Role.PATIENT)))
+    advanceUntilIdle()
+    assertEquals("", surnameFirst.uiState.value.name)
+    assertEquals(typed, surnameFirst.uiState.value.surname)
   }
 
   @Test
@@ -167,7 +177,7 @@ class CreateProfileViewModelTests {
     assertEquals(Role.PATIENT, lastSuccessRole)
     coVerify(exactly = 1) {
       profileRepository.createProfile(
-          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          person = Person(firstName = NAME, lastName = SURNAME),
           role = Role.PATIENT,
       )
     }
@@ -209,6 +219,10 @@ class CreateProfileViewModelTests {
     assertEquals(UiText.Resource(R.string.inputErrorNameFormat), state.nameError)
     assertEquals(UiText.Resource(R.string.inputErrorNameFormat), state.surnameError)
     assertFalse(state.canSubmit)
+
+    // A valid name isn't enough while the surname is refused
+    viewModel.onNameChange(NAME)
+    assertFalse(viewModel.uiState.value.canSubmit)
   }
 
   @Test
@@ -236,16 +250,16 @@ class CreateProfileViewModelTests {
 
   @Test
   fun onNameChange_updatesNameInState() {
-    viewModel.onNameChange("Ada")
+    viewModel.onNameChange(NAME)
 
-    assertEquals("Ada", viewModel.uiState.value.name)
+    assertEquals(NAME, viewModel.uiState.value.name)
   }
 
   @Test
   fun onSurnameChange_updatesSurnameInState() {
-    viewModel.onSurnameChange("Lovelace")
+    viewModel.onSurnameChange(SURNAME)
 
-    assertEquals("Lovelace", viewModel.uiState.value.surname)
+    assertEquals(SURNAME, viewModel.uiState.value.surname)
   }
 
   @Test
@@ -253,10 +267,10 @@ class CreateProfileViewModelTests {
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     assertEquals(UiText.Resource(R.string.createProfileFillOut), viewModel.uiState.value.nameError)
 
-    viewModel.onNameChange("Ada")
+    viewModel.onNameChange(NAME)
 
     assertNull(viewModel.uiState.value.nameError)
-    assertEquals("Ada", viewModel.uiState.value.name)
+    assertEquals(NAME, viewModel.uiState.value.name)
   }
 
   @Test
@@ -267,10 +281,10 @@ class CreateProfileViewModelTests {
         viewModel.uiState.value.surnameError,
     )
 
-    viewModel.onSurnameChange("Lovelace")
+    viewModel.onSurnameChange(SURNAME)
 
     assertNull(viewModel.uiState.value.surnameError)
-    assertEquals("Lovelace", viewModel.uiState.value.surname)
+    assertEquals(SURNAME, viewModel.uiState.value.surname)
   }
 
   @Test
@@ -320,7 +334,7 @@ class CreateProfileViewModelTests {
 
   @Test
   fun onRoleSelected_blankNameOnly_setsNameErrorAndDoesNotCallRepository() = runTest {
-    viewModel.onSurnameChange("Lovelace")
+    viewModel.onSurnameChange(SURNAME)
 
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
@@ -328,13 +342,13 @@ class CreateProfileViewModelTests {
     val state = viewModel.uiState.value
     assertEquals(UiText.Resource(R.string.createProfileFillOut), state.nameError)
     assertNull(state.surnameError)
-    assertEquals("Lovelace", state.surname)
+    assertEquals(SURNAME, state.surname)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
 
   @Test
   fun onRoleSelected_blankSurnameOnly_setsSurnameErrorAndDoesNotCallRepository() = runTest {
-    viewModel.onNameChange("Ada")
+    viewModel.onNameChange(NAME)
 
     viewModel.onRoleSelected(Role.PATIENT, onSuccess)
     advanceUntilIdle()
@@ -342,7 +356,7 @@ class CreateProfileViewModelTests {
     val state = viewModel.uiState.value
     assertNull(state.nameError)
     assertEquals(UiText.Resource(R.string.createProfileFillOut), state.surnameError)
-    assertEquals("Ada", state.name)
+    assertEquals(NAME, state.name)
     coVerify(exactly = 0) { profileRepository.createProfile(any(), any()) }
   }
 
@@ -362,11 +376,11 @@ class CreateProfileViewModelTests {
     assertNull(state.errorMsgRes)
     assertEquals(1, successCount)
     assertEquals(Role.PATIENT, lastSuccessRole)
-    assertEquals("Ada", state.name)
-    assertEquals("Lovelace", state.surname)
+    assertEquals(NAME, state.name)
+    assertEquals(SURNAME, state.surname)
     coVerify(exactly = 1) {
       profileRepository.createProfile(
-          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          person = Person(firstName = NAME, lastName = SURNAME),
           role = Role.PATIENT,
       )
     }
@@ -432,8 +446,9 @@ class CreateProfileViewModelTests {
   fun onRoleSelected_existingProfileWithNoCircle_writesTheNewlySelectedRole() = runTest {
     coEvery { profileRepository.createProfile(any(), any()) } returns
         Result.failure(ProfileCreationError.ProfileAlreadyExists)
+    // A blank circle id is no circle
     coEvery { profileRepository.getCurrentProfile() } returns
-        Result.success(savedProfile(role = Role.CAREGIVER))
+        Result.success(savedProfile(role = Role.CAREGIVER, circleIds = listOf("")))
     coEvery { profileRepository.updateOnboardingProfile(any(), any()) } returns Result.success(Unit)
     fillValidNameAndSurname()
 
@@ -444,7 +459,7 @@ class CreateProfileViewModelTests {
     assertEquals(Role.PATIENT, lastSuccessRole)
     coVerify(exactly = 1) {
       profileRepository.updateOnboardingProfile(
-          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          person = Person(firstName = NAME, lastName = SURNAME),
           role = Role.PATIENT,
       )
     }
@@ -636,7 +651,7 @@ class CreateProfileViewModelTests {
     coVerify(exactly = 1) { profileRepository.createProfile(any(), Role.PATIENT) }
     coVerify(exactly = 1) {
       profileRepository.updateOnboardingProfile(
-          person = Person(firstName = "Ada", lastName = "Lovelace"),
+          person = Person(firstName = NAME, lastName = SURNAME),
           role = Role.CAREGIVER,
       )
     }
@@ -687,15 +702,21 @@ class CreateProfileViewModelTests {
   private fun fillValidNameAndSurname() = viewModel.fillValidNameAndSurname()
 
   private fun CreateProfileViewModel.fillValidNameAndSurname() {
-    onNameChange("Ada")
-    onSurnameChange("Lovelace")
+    onNameChange(NAME)
+    onSurnameChange(SURNAME)
   }
 
   private fun savedProfile(role: Role, circleIds: List<String> = emptyList()) =
       UserProfile(
           uid = "uid",
           role = role,
-          person = Person(id = "uid", firstName = "Ada", lastName = "Lovelace"),
+          person = Person(id = "uid", firstName = NAME, lastName = SURNAME),
           circleIds = circleIds,
       )
+
+  private companion object {
+    /** A valid name and surname for the form. */
+    const val NAME = "Ada"
+    const val SURNAME = "Lovelace"
+  }
 }
