@@ -1,5 +1,4 @@
 // Written by MeiliV, with assistance from OpenAI Codex.
-// Modified by Neha Chakraborty, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.authentication.accountDeletion
 
@@ -9,14 +8,11 @@ import com.github.se.amber.data.account.AccountDeletionRepository
 import com.github.se.amber.data.circle.CareCircleRepository
 import com.github.se.amber.data.profile.ProfileRepository
 import com.github.se.amber.model.circle.CareCircle
-import com.github.se.amber.model.location.Place
 import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.github.se.amber.ui.authentication.signOut.PreviewSignOutAuthRepository
 import com.github.se.amber.ui.theme.AmberAppTheme
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 
 /** Local data source for the delete-account preview. */
 private object PreviewDeleteAccountRepository :
@@ -46,14 +42,6 @@ private object PreviewDeleteAccountRepository :
 
   override suspend fun addPerson(circleId: String, person: Person): Result<Person> =
       Result.success(person)
-
-  override fun observePlaces(circleId: String): Flow<List<Place>> = flowOf(emptyList())
-
-  override suspend fun addPlace(circleId: String, place: Place) = Result.success(place)
-
-  override suspend fun updatePlace(circleId: String, place: Place) = Result.success(place)
-
-  override suspend fun deletePlace(circleId: String, placeId: String) = Result.success(Unit)
 }
 
 internal val previewDeleteAccountViewModel =

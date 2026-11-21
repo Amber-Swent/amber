@@ -7,6 +7,7 @@
 
 package com.github.se.amber.firestore
 
+import com.github.se.amber.data.circle.isValidToSave
 import com.github.se.amber.data.media.toMap
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.circle.CareCircle
@@ -22,6 +23,7 @@ import com.github.se.amber.model.user.Person
 import com.github.se.amber.model.user.Role
 import com.github.se.amber.model.user.UserProfile
 import com.google.firebase.firestore.util.CustomClassMapper
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -145,7 +147,7 @@ class FirestoreSecurityRulesTest {
             authUid = "p",
             lookup = MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.PATIENT) }),
         )
-    val home = Place(id = "home", name = "Home", location = GeoLocation(lat = LAT, lng = LNG))
+    val home = SavedPlaceCases.HOME
     val pharmacy = home.copy(id = "pharmacy", name = "Pharmacy")
     val none = emptyMap<String, Place>()
     val withHome = mapOf("home" to home)
@@ -159,19 +161,23 @@ class FirestoreSecurityRulesTest {
     assertTrue(caregiver.placesChangeIsValid(withHome, none))
     assertFalse(caregiver.placesChangeIsValid(none, withHome + ("pharmacy" to pharmacy)))
     assertFalse(caregiver.placesChangeIsValid(none, mapOf("pharmacy" to home)))
-    assertFalse(caregiver.placesChangeIsValid(none, mapOf("home" to home.copy(name = " "))))
-    assertFalse(
-        caregiver.placesChangeIsValid(
-            none,
-            mapOf("home" to home.copy(location = GeoLocation(placeName = "Home"))),
+  }
+
+  @Test
+  fun placesChangeIsValid_agreesWithTheAppOnEveryPlace() {
+    val caregiver =
+        FirestoreSecurityRules(
+            authUid = "c",
+            lookup = MockDocumentLookup(userOf = { UserProfile(uid = it, role = Role.CAREGIVER) }),
         )
-    )
-    assertFalse(
-        caregiver.placesChangeIsValid(
-            none,
-            mapOf("home" to home.copy(location = GeoLocation(lat = MAX_LATITUDE + 1, lng = LNG))),
-        )
-    )
+
+    for ((case, place) in SavedPlaceCases.ALL) {
+      assertEquals(
+          case,
+          place.isValidToSave(),
+          caregiver.placesChangeIsValid(emptyMap(), mapOf(place.id to place)),
+      )
+    }
   }
 
   @Test
@@ -1093,7 +1099,7 @@ private class FirestoreSecurityRules(
   }
 
   // Only caregivers change places, one place per write. An added or edited place is stored under
-  // its own id, with a name and a real point.
+  // its own id, with a name and a real point, not (0, 0).
   fun placesChangeIsValid(before: Map<String, Place>, after: Map<String, Place>): Boolean {
     if (before == after) return true
     if (!isCaregiver()) return false
@@ -1105,7 +1111,8 @@ private class FirestoreSecurityRules(
     return place.id == key &&
         place.name.isNotBlank() &&
         lat in -MAX_LATITUDE..MAX_LATITUDE &&
-        lng in -MAX_LONGITUDE..MAX_LONGITUDE
+        lng in -MAX_LONGITUDE..MAX_LONGITUDE &&
+        !(lat == 0.0 && lng == 0.0)
   }
 
   // One personPhotos entry per write. The key is read directly: the writer's uid, or a key of

@@ -6,6 +6,7 @@ package com.github.se.amber.data.circle
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.Place
+import com.github.se.amber.model.location.TestPlaces.LAUSANNE
 import com.github.se.amber.model.user.Person
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.TaskCompletionSource
@@ -484,9 +485,17 @@ class FirebaseCareCircleRepositoryTest {
     runCurrent()
     listener.captured.onEvent(placesSnapshot(emptyMap()), null)
     runCurrent()
+    // The circle no longer exists: no places
+    listener.captured.onEvent(placesSnapshot(mapOf(home.id to home)), null)
+    runCurrent()
+    listener.captured.onEvent(
+        mockk { every { toObject(CareCircle::class.java) } returns null },
+        null,
+    )
+    runCurrent()
     collecting.cancel()
 
-    assertEquals(listOf(listOf(home), emptyList()), emitted)
+    assertEquals(listOf(listOf(home), emptyList(), listOf(home), emptyList()), emitted)
     verify { registration.remove() }
   }
 
@@ -523,12 +532,7 @@ class FirebaseCareCircleRepositoryTest {
     )
   }
 
-  private val home =
-      Place(
-          id = "home",
-          name = "Home",
-          location = GeoLocation(lat = 46.52, lng = 6.63, placeName = "Lausanne"),
-      )
+  private val home = Place(id = "home", name = "Home", location = LAUSANNE)
 
   private fun placesSnapshot(places: Map<String, Place>): DocumentSnapshot = mockk {
     every { toObject(CareCircle::class.java) } returns circle.copy(places = places)

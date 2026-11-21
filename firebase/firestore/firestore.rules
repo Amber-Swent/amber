@@ -187,7 +187,8 @@ service cloud.firestore {
           || (newValues.size() == 1 && isValidPlace(affected, newValues[0])));
     }
 
-    // The fields of Place: a name to show, and a real point the patient can be walked to.
+    // The fields of Place: a name to show, and a real point the patient can be walked to. Must
+    // agree with Place.isValidToSave() in the app.
     function isValidPlace(affected, place) {
       return place is map
         && place.keys().hasOnly(['id', 'name', 'location'])
@@ -198,6 +199,7 @@ service cloud.firestore {
         && isValidPoint(place.location);
     }
 
+    // (0, 0) is where a lost position lands, so it is no real point.
     function isValidPoint(location) {
       return location is map
         && location.keys().hasOnly(['lat', 'lng', 'placeName'])
@@ -205,6 +207,7 @@ service cloud.firestore {
         && location.lat >= -90 && location.lat <= 90
         && location.lng is number
         && location.lng >= -180 && location.lng <= 180
+        && !(location.lat == 0 && location.lng == 0)
         && (location.get('placeName', null) == null || location.placeName is string);
     }
 

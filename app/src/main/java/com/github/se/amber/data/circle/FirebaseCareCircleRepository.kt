@@ -8,7 +8,6 @@ package com.github.se.amber.data.circle
 import com.github.se.amber.data.isValidDocumentId
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.location.Place
-import com.github.se.amber.model.location.pointOrNull
 import com.github.se.amber.model.user.Person
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.CollectionReference
@@ -25,10 +24,10 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.tasks.await
 
-/** Firebase-backed implementation of [CareCircleRepository]. */
+/** Firebase-backed implementation of [CareCircleRepository] and [SavedPlacesRepository]. */
 class FirebaseCareCircleRepository(
     private val firestore: FirebaseFirestore = Firebase.firestore,
-) : CareCircleRepository {
+) : CareCircleRepository, SavedPlacesRepository {
 
   override fun newId(): String = newId(firestore.collection(CARE_CIRCLES_COLLECTION))
 
@@ -137,11 +136,10 @@ class FirebaseCareCircleRepository(
 
   /** Writes one entry of CareCircle.places, without waiting for the server (see [addPlace]). */
   private fun writePlace(circleId: String, place: Place): Result<Place> {
-    val name = place.name.trim()
-    if (name.isEmpty() || place.location.pointOrNull() == null) {
+    if (!place.isValidToSave()) {
       return Result.failure(CareCircleError.InvalidPlace)
     }
-    val savedPlace = place.copy(name = name)
+    val savedPlace = place.copy(name = place.name.trim())
     firestore
         .collection(CARE_CIRCLES_COLLECTION)
         .document(circleId)
