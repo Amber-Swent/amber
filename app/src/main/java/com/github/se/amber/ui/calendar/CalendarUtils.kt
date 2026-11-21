@@ -19,11 +19,20 @@ internal fun calendarCells(
     firstDayOfWeek: DayOfWeek = DayOfWeek.MONDAY,
 ): List<Int?> {
   val daysInWeek = DayOfWeek.entries.size
+
+  // Represent the empty cells before the 1st.
+  // In other words, how many columns the 1st is after the first column.
+  // DayOfWeek values go from 1 (Monday) to 7 (Sunday). The difference can be negative
+  // (a month starting on a Monday, with Sunday as first column), so daysInWeek is added before
+  // the modulo to get a value between 0 and 6.
   val leadingBlanks =
       (month.atDay(1).dayOfWeek.value - firstDayOfWeek.value + daysInWeek) % daysInWeek
   val days: List<Int?> = List(month.lengthOfMonth()) { it + 1 }
   val beforeFirstDay: List<Int?> = List(leadingBlanks) { null }
+
+  // Empty cells after the last day, to complete the last week.
   val trailingBlanks = (daysInWeek - (leadingBlanks + days.size) % daysInWeek) % daysInWeek
   val afterLastDay: List<Int?> = List(trailingBlanks) { null }
+
   return beforeFirstDay + days + afterLastDay
 }

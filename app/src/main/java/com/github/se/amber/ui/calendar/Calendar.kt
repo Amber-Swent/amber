@@ -124,6 +124,11 @@ private fun CalendarHeader(
     onPreviousMonth: () -> Unit = {},
     onNextMonth: () -> Unit = {},
 ) {
+  // The formatter gives the month name as the language writes it inside a sentence.
+  // e.g.: lowercase in French ("novembre 2026"), which looks wrong as a title. titlecase puts the
+  // first letter in
+  // capital ("Novembre 2026"), following the rules of the locale.
+  // A language that has no capitals, or that already capitalizes the month, is left as it is.
   val title =
       DateTimeFormatter.ofPattern(MONTH_TITLE_PATTERN, locale).format(month).replaceFirstChar {
         it.titlecase(locale)
@@ -195,6 +200,12 @@ private fun CalendarDays(
               modifier = Modifier.weight(WEIGHT_ONE).aspectRatio(CALENDAR_CELL_ASPECT_RATIO),
               contentAlignment = Alignment.Center,
           ) {
+            // A null cell is an empty cell of the grid. It shows nothing and is not clickable,
+            // but it still takes its place so that the other days stay in the right column.
+            // This covers two situations:
+            // 1. before the first day of the month
+            // 2. after the last one, to fill the first and the last week.
+            //
             if (day != null) {
               CalendarDay(
                   day = day,
