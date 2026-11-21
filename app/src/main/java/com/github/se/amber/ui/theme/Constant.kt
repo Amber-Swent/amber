@@ -3,6 +3,7 @@
 // Modified by MeiliV, with assistance from OpenAI Codex.
 // Modified by Yuhan YANG, with assistance from Cursor
 // Modified by camomille299, with assistance from Claude (Anthropic) via claude.ai.
+// Modified by LaMaier, with assistance from Claude (Anthropic) via Claude Code.
 
 package com.github.se.amber.ui.theme
 
@@ -165,3 +166,9 @@ val CAREGIVER_ICON_SIZE = 24.dp
 
 /** Icon size for patient tabs. */
 val PATIENT_ICON_SIZE = 32.dp
+
+// ------- CALENDAR -------
+const val CALENDAR_WIDTH_FRACTION = 1f
+
+/** A day cell of the calendar is a square. */
+const val CALENDAR_CELL_ASPECT_RATIO = 1f
