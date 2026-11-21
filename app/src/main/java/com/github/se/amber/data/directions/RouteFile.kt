@@ -45,8 +45,8 @@ class RouteFile(
         val temporary = File(file.parentFile, "${file.name}.tmp")
         temporary.writeText(route.toJson().toString())
         if (!temporary.renameTo(file)) {
-          temporary.delete()
-          error("Could not save the route in $file")
+          val leftover = if (temporary.delete()) "" else ", and $temporary was left behind"
+          error("Could not save the route in $file$leftover")
         }
       }
 
