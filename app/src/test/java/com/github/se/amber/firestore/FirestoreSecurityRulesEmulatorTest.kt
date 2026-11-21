@@ -887,12 +887,15 @@ class FirestoreSecurityRulesEmulatorTest {
     // The rules save exactly the places the app would save.
     for ((case, place) in SavedPlaceCases.ALL) {
       val code = writePlaces(mapOf(place.id to SavedPlaceCases.toFields(place)))(care)
-      assertEquals(case, place.isValidToSave(), code in 200..299)
+      assertEquals(case, place.isValidToSave(), code in HTTP_SUCCESS)
       fs.assertSucceeds(care, writePlaces(emptyMap()))
     }
   }
 
   companion object {
+    /** The HTTP codes of a write the rules allowed. */
+    private val HTTP_SUCCESS = 200..299
+
     /** Year 2096: the invitation is still valid, so a refused write is due to something else. */
     private const val FAR_FUTURE_EXPIRY = 4_000_000_000_000L
 

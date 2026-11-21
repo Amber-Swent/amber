@@ -12,7 +12,6 @@ import com.github.se.amber.data.media.toMap
 import com.github.se.amber.model.appointment.Appointment
 import com.github.se.amber.model.circle.CareCircle
 import com.github.se.amber.model.circle.Invitation
-import com.github.se.amber.model.location.GeoLocation
 import com.github.se.amber.model.location.MAX_LATITUDE
 import com.github.se.amber.model.location.MAX_LONGITUDE
 import com.github.se.amber.model.location.Place
@@ -466,18 +465,7 @@ class FirestoreSecurityRulesTest {
     val nicknameEdit = joined.copy(nicknames = mapOf("pat" to mapOf("care" to "Dad")))
     assertTrue(db.rulesFor("pat").canUpdateCircle(joined, nicknameEdit))
 
-    val placesEdit =
-        joined.copy(
-            places =
-                mapOf(
-                    "home" to
-                        Place(
-                            id = "home",
-                            name = "Home",
-                            location = GeoLocation(lat = LAT, lng = LNG),
-                        )
-                )
-        )
+    val placesEdit = joined.copy(places = mapOf(SavedPlaceCases.HOME.id to SavedPlaceCases.HOME))
     assertFalse(db.rulesFor("pat").canUpdateCircle(joined, placesEdit))
     assertTrue(db.rulesFor("care").canUpdateCircle(joined, placesEdit))
     assertFalse(db.rulesFor("care").canDeleteCircle())
@@ -952,10 +940,6 @@ class FirestoreSecurityRulesTest {
 
     /** One hour, in milliseconds. */
     const val HOUR = 60 * 60_000L
-
-    /** The point of the saved places of these tests, in Lausanne. */
-    const val LAT = 46.52
-    const val LNG = 6.63
   }
 }
 
